@@ -18,6 +18,10 @@ The project is brownfield. Cate already has a mature Electron/React shell, works
 - **Transport**: Prefer FlashQuery's host-visible MCP/HTTP surface for integration planning, with room to support stdio later only if needed.
 - **Compatibility**: Do not break existing Cate agent, terminal, editor, browser, Git, workspace, or layout behavior.
 - **Testing**: Add focused unit tests for config, IPC validation, and pure helpers; add renderer tests for UI state; add Electron smoke/E2E coverage for at least the happy-path workflow once UI exists.
+
+### Planning Preference
+
+Do not create roadmap phases automatically for this project. Codebase mapping, research, candidate requirements, and project context are useful before a milestone exists, but execution phases should only appear after the project owner explicitly creates a milestone or asks for phase planning.
 <!-- GSD:project-end -->
 
 <!-- GSD:stack-start source:codebase/STACK.md -->

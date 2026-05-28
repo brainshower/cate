@@ -20,8 +20,8 @@ Keep Cate as a client and UI surface. Store workspace-scoped connection metadata
 **Warning signs:**
 New Cate code imports Supabase clients for FlashQuery tables, writes `fqc_*` frontmatter manually, edits `flashquery.yml` or `.env` without delegating validation, or contains duplicate versions of FlashQuery tool schemas.
 
-**Phase to address:**
-Phase 1: Connection model and health checks. This phase must establish the boundary: Cate configures, probes, and calls FlashQuery; FlashQuery owns runtime and storage.
+**Milestone area to address:**
+Connection model and health checks. This work must establish the boundary: Cate configures, probes, and calls FlashQuery; FlashQuery owns runtime and storage.
 
 **Tests:**
 Unit-test connection config parsing so Cate rejects invalid metadata without mutating FlashQuery files. Add mocked health-check tests where FlashQuery reports schema, auth, vault, or embedding failures and Cate surfaces them without attempting repair. Add an Electron smoke test proving missing/offline FlashQuery does not corrupt workspace session state.
@@ -42,8 +42,8 @@ Create a focused FlashQuery IPC module under `src/main/ipc/` with Zod or equival
 **Warning signs:**
 New channels are added directly to `src/main/index.ts`, handlers accept `unknown` or untyped `any`, renderer-provided URLs are passed into `fetch` without normalization, or errors include bearer tokens, Basic auth values, full vault paths, or database URLs.
 
-**Phase to address:**
-Phase 1: Connection model and health checks. All later phases inherit this IPC surface, so validation must be present before search, save, or agent integration expands usage.
+**Milestone area to address:**
+Connection model and health checks. All later workflow work inherits this IPC surface, so validation must be present before search, save, or agent integration expands usage.
 
 **Tests:**
 Add node-environment Vitest tests for each FlashQuery IPC handler with malformed payloads, unsupported protocols, oversized strings, token-bearing errors, and wrong workspace IDs. Add preload contract tests for exposed method shape. Add logger/redaction tests that assert auth headers, raw secrets, and database URLs never appear in renderer-visible errors.
@@ -64,8 +64,8 @@ Model transport, endpoint, auth mode, token expiry, and last health status expli
 **Warning signs:**
 Connection tests succeed against `http://0.0.0.0`, LAN IPs, or remote hosts without auth; renderer devtools can inspect tokens; token expiry produces "server offline"; or retry code logs `Authorization` headers.
 
-**Phase to address:**
-Phase 1: Connection model and health checks. Phase 2: Search/read flows should consume the established token manager rather than adding their own request logic.
+**Milestone area to address:**
+Connection model and health checks. Search/read flows should consume the established token manager rather than adding their own request logic.
 
 **Tests:**
 Unit-test endpoint classification for loopback, LAN, and remote hosts. Mock `POST /token` success, expiry, refresh failure, legacy raw-secret rejection, and unauthenticated-server warning paths. Add IPC tests proving renderer-visible config returns redacted auth status only. Add E2E smoke coverage for expired token recovery without workspace state loss.
@@ -86,8 +86,8 @@ Treat vault paths as untrusted until validated in main. Require explicit workspa
 **Warning signs:**
 Renderer code calls `openPanel({ path })` directly from FlashQuery search JSON; vault roots are added globally rather than per workspace/window; path validation uses lexical prefix checks; tests do not include symlinks or paths outside the workspace.
 
-**Phase to address:**
-Phase 2: Search and open results. Phase 3: Save context to memory/documents must reuse the same vault trust model before enabling writes.
+**Milestone area to address:**
+Search and open results. Save context to memory/documents must reuse the same vault trust model before enabling writes.
 
 **Tests:**
 Extend path-validation tests with vault roots, per-window owner IDs, symlinks, `..` traversal, deleted/recreated paths, and workspace-vs-vault grants. Add renderer tests proving search-result previews escape HTML and do not use `dangerouslySetInnerHTML`. Add E2E coverage for opening an allowed vault document and rejecting an ungranted external vault path.
@@ -108,8 +108,8 @@ Start with explicit save flows that preview content, destination, tags, source p
 **Warning signs:**
 Auto-save runs after every agent message, save dialogs do not show destination or source, tags are freeform with no validation, document titles are generated without collision handling, or tests assert only that an API call was made.
 
-**Phase to address:**
-Phase 3: Explicit save-to-memory and save-to-document workflows. Do not introduce automatic agent memory before this phase has reviewable provenance.
+**Milestone area to address:**
+Explicit save-to-memory and save-to-document workflows. Do not introduce automatic agent memory before this work has reviewable provenance.
 
 **Tests:**
 Unit-test payload builders for memory/document saves from editor selection, agent output, and notes. Renderer-test preview and confirmation states, cancellation, duplicate-title warnings, and sensitive-field redaction. Mock FlashQuery failures after partial save attempts and assert Cate shows exact outcome without retry loops that create duplicates.
@@ -130,8 +130,8 @@ Treat context injection as an explicit, auditable attachment to a specific `agen
 **Warning signs:**
 Agent context is stored in a global Zustand slice without workspace and agent key; session restore rehydrates context silently; a panel delete leaves context behind; or a background retriever appends prompt text without a visible transcript marker.
 
-**Phase to address:**
-Phase 4: Agent context integration. This should come after connection, search/open, and explicit save flows so the context objects and trust model already exist.
+**Milestone area to address:**
+Agent context integration. This should come after connection, search/open, and explicit save flows so the context objects and trust model already exist.
 
 **Tests:**
 Add mocked Pi RPC tests for multiple agent keys, deleted sessions, workspace switching, and concurrent chats. Renderer-test visible context attachments and removal. Add integration tests proving context is routed by `agentKey`, not session filename alone, and that restored sessions do not silently reinject old FlashQuery context.
@@ -152,8 +152,8 @@ Use short timeouts, request cancellation, bounded result limits, pagination, and
 **Warning signs:**
 Search has no limit parameter, health checks run on every render, retry loops use unbounded exponential backoff, result previews include full document bodies, or Electron tests become flaky around terminal/window operations after FlashQuery integration.
 
-**Phase to address:**
-Phase 2: Search/read flows. Phase 3: Save flows should inherit the same timeout/cancellation utilities.
+**Milestone area to address:**
+Search/read flows. Save flows should inherit the same timeout/cancellation utilities.
 
 **Tests:**
 Unit-test timeout and abort behavior with fake timers. Add mocked large-result tests proving payloads are capped. Add renderer tests for loading, partial failure, and cancellation states. Add an Electron smoke test that search failure/timeout does not block terminal creation or workspace switching.
@@ -174,8 +174,8 @@ Use FlashQuery-returned IDs and current result metadata as display references, b
 **Warning signs:**
 Cate stores only absolute paths in session state, assumes `fqc_id` equals file path, modifies frontmatter IDs, or has no UI state for "document may have moved/changed".
 
-**Phase to address:**
-Phase 2: Search/open results for read-side resolution. Phase 3: Save flows for write-side preflight and conflict messaging.
+**Milestone area to address:**
+Search/open results for read-side resolution. Save flows need the same approach for write-side preflight and conflict messaging.
 
 **Tests:**
 Mock FlashQuery search results where a document path changes between search and open. Unit-test re-resolution and stale-result messaging. Add save-flow tests for "identity changed before write" and "scan recommended" responses. Add fixture markdown with stripped frontmatter to verify Cate does not attempt its own repair.
@@ -192,7 +192,7 @@ Shortcuts that seem reasonable but create long-term problems.
 | Exposing a generic `callMcpTool(name, args)` renderer API | Avoids adding per-feature methods | Turns renderer into a broad privileged MCP client and weakens validation | Only in internal test harnesses, never product UI |
 | Storing bearer tokens in renderer state | Simplifies fetch code | Token exposure through devtools, logs, screenshots, and compromised renderer dependencies | Never |
 | Opening vault paths as normal workspace files without grants | Smooth UX | Bypasses Cate's filesystem trust boundary and window-scoped grants | Never outside explicitly granted roots |
-| Auto-injecting context into agents before visible search/save exists | Impressive demo | Hidden prompts, wrong-session routing, hard-to-debug agent behavior | Never before Phase 4 |
+| Auto-injecting context into agents before visible search/save exists | Impressive demo | Hidden prompts, wrong-session routing, hard-to-debug agent behavior | Never before explicit agent-context work |
 | Caching FlashQuery search result bodies in session JSON | Faster restore | Bloats `.cate/session.json`, stores stale/sensitive data, slows autosave | Only cache small redacted display metadata |
 
 ## Integration Gotchas
@@ -271,20 +271,20 @@ When pitfalls occur despite prevention, how to recover.
 | Main-process blocking | MEDIUM | Add timeouts/cancellation/result caps, move heavy work out of UI path, add smoke/perf regression tests |
 | Stale document identity | LOW to MEDIUM | Re-run FlashQuery scan, re-resolve result before open/write, clear stale cached result metadata |
 
-## Pitfall-to-Phase Mapping
+## Pitfall-to-Milestone Sequencing Notes
 
-How roadmap phases should address these pitfalls.
+How a future milestone can address these pitfalls once the project owner creates one.
 
-| Pitfall | Prevention Phase | Verification |
+| Pitfall | Prevention Area | Verification |
 |---------|------------------|--------------|
-| Treating FlashQuery as Cate-owned infrastructure | Phase 1: Connection model and health checks | Cate never writes FlashQuery schema/config/vault identity directly; mocked health failures are surfaced only |
-| Broad unvalidated IPC | Phase 1: Connection model and health checks | Every FlashQuery IPC handler has runtime schema tests and redaction tests |
-| Weak HTTP auth/token lifecycle | Phase 1: Connection model and health checks | Auth state distinguishes offline, expired, rejected, and unauthenticated modes |
-| Vault path trust bypasses | Phase 2: Search and open results | Realpath, symlink, grant, and escaped-preview tests pass |
-| Unsafe save flows | Phase 3: Explicit save workflows | Preview/cancel/provenance/partial-failure tests pass before writes are enabled |
-| Agent context identity confusion | Phase 4: Agent context integration | Multi-agent routing and session-restore tests prove context attaches to the right `agentKey` visibly |
-| Main-process blocking | Phase 2: Search and open results | Timeout/cancellation tests and Electron smoke test show FlashQuery failures do not block core app actions |
-| Stale document identity | Phase 2 and Phase 3 | Re-resolution tests cover moved files, stripped frontmatter, and scan-recommended responses |
+| Treating FlashQuery as Cate-owned infrastructure | Connection model and health checks | Cate never writes FlashQuery schema/config/vault identity directly; mocked health failures are surfaced only |
+| Broad unvalidated IPC | Connection model and health checks | Every FlashQuery IPC handler has runtime schema tests and redaction tests |
+| Weak HTTP auth/token lifecycle | Connection model and health checks | Auth state distinguishes offline, expired, rejected, and unauthenticated modes |
+| Vault path trust bypasses | Search and open results | Realpath, symlink, grant, and escaped-preview tests pass |
+| Unsafe save flows | Explicit save workflows | Preview/cancel/provenance/partial-failure tests pass before writes are enabled |
+| Agent context identity confusion | Agent context integration | Multi-agent routing and session-restore tests prove context attaches to the right `agentKey` visibly |
+| Main-process blocking | Search and open results | Timeout/cancellation tests and Electron smoke test show FlashQuery failures do not block core app actions |
+| Stale document identity | Search/open and save flows | Re-resolution tests cover moved files, stripped frontmatter, and scan-recommended responses |
 
 ## Sources
 

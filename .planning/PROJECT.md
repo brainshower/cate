@@ -78,13 +78,17 @@ Known codebase concerns that affect this project:
 | Keep FlashQuery runtime ownership outside Cate | FlashQuery already owns setup, storage, scanning, auth, and MCP tool semantics; duplicating those in Cate would create drift | - Pending |
 | Make integration workspace-scoped | Cate is project/workspace-oriented and FlashQuery instances/vaults can differ by project | - Pending |
 | Start with read/search and explicit save flows before deeper agent automation | Observable user value arrives quickly while limiting security and session-complexity risk | - Pending |
-| Use MVP phase mode | Each phase should deliver an end-to-end capability usable from the Cate UI | - Pending |
+| Create phases only from explicit milestones | The project owner wants codebase/project context first and will define milestones before any phase plan exists | - Pending |
+
+## Planning Preference
+
+Do not create roadmap phases automatically for this project. Codebase mapping, research, candidate requirements, and project context are useful before a milestone exists, but execution phases should only appear after the project owner explicitly creates a milestone or asks for phase planning.
 
 ## Evolution
 
-This document evolves at phase transitions and milestone boundaries.
+This document evolves at milestone boundaries and, once explicitly created, phase transitions.
 
-**After each phase transition** (via `$gsd-transition`):
+**After each explicit phase transition** (via `$gsd-transition`):
 1. Requirements invalidated? -> Move to Out of Scope with reason
 2. Requirements validated? -> Move to Validated with phase reference
 3. New requirements emerged? -> Add to Active
@@ -98,4 +102,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-28 after initialization*
+*Last updated: 2026-05-28 after removing premature phase setup*

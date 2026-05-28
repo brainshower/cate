@@ -1,11 +1,15 @@
-# Requirements: Cate FlashQuery Integration
+# Candidate Requirements: Cate FlashQuery Integration
 
 **Defined:** 2026-05-28
 **Core Value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
 
-## v1 Requirements
+## Status
 
-Requirements for the initial FlashQuery integration milestone. Each maps to roadmap phases.
+These are candidate requirements inferred during project initialization and research. They are not an approved milestone, execution phase, or build plan. Promote, edit, split, or discard them when a milestone is explicitly created.
+
+## Candidate Requirements
+
+Possible requirements for a future FlashQuery integration milestone.
 
 ### Configuration And Health
 
@@ -49,9 +53,9 @@ Requirements for the initial FlashQuery integration milestone. Each maps to road
 - [ ] **FQSEC-04**: FlashQuery integration has unit tests for config validation, auth redaction, status classification, result normalization, stale-result handling, and save payload construction.
 - [ ] **FQSEC-05**: FlashQuery integration has renderer or E2E coverage for configure/status, search/open, save confirmation, and agent context attachment happy paths.
 
-## v2 Requirements
+## Deferred Ideas
 
-Deferred to future release. Tracked but not in current roadmap.
+Ideas captured for later consideration. These are not in scope until a milestone explicitly adopts them.
 
 ### Workflow Polish
 
@@ -86,43 +90,43 @@ Explicitly excluded. Documented to prevent scope creep.
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
+No milestone or phase exists yet. Requirement-to-phase traceability should be created only after a milestone is explicitly defined.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FQCFG-01 | Phase 1 | Pending |
-| FQCFG-02 | Phase 1 | Pending |
-| FQCFG-03 | Phase 1 | Pending |
-| FQCFG-04 | Phase 1 | Pending |
-| FQCFG-05 | Phase 1 | Pending |
-| FQSEC-01 | Phase 1 | Pending |
-| FQSEC-02 | Phase 1 | Pending |
-| FQSEC-03 | Phase 1 | Pending |
-| FQRET-01 | Phase 2 | Pending |
-| FQRET-02 | Phase 2 | Pending |
-| FQRET-03 | Phase 2 | Pending |
-| FQRET-04 | Phase 2 | Pending |
-| FQRET-05 | Phase 2 | Pending |
-| FQRET-06 | Phase 2 | Pending |
-| FQRET-07 | Phase 2 | Pending |
-| FQSAVE-01 | Phase 3 | Pending |
-| FQSAVE-02 | Phase 3 | Pending |
-| FQSAVE-03 | Phase 3 | Pending |
-| FQSAVE-04 | Phase 3 | Pending |
-| FQSAVE-05 | Phase 3 | Pending |
-| FQAGENT-01 | Phase 4 | Pending |
-| FQAGENT-02 | Phase 4 | Pending |
-| FQAGENT-03 | Phase 4 | Pending |
-| FQAGENT-04 | Phase 4 | Pending |
-| FQAGENT-05 | Phase 4 | Pending |
-| FQSEC-04 | Phase 5 | Pending |
-| FQSEC-05 | Phase 5 | Pending |
+| FQCFG-01 | Unassigned | Candidate |
+| FQCFG-02 | Unassigned | Candidate |
+| FQCFG-03 | Unassigned | Candidate |
+| FQCFG-04 | Unassigned | Candidate |
+| FQCFG-05 | Unassigned | Candidate |
+| FQSEC-01 | Unassigned | Candidate |
+| FQSEC-02 | Unassigned | Candidate |
+| FQSEC-03 | Unassigned | Candidate |
+| FQRET-01 | Unassigned | Candidate |
+| FQRET-02 | Unassigned | Candidate |
+| FQRET-03 | Unassigned | Candidate |
+| FQRET-04 | Unassigned | Candidate |
+| FQRET-05 | Unassigned | Candidate |
+| FQRET-06 | Unassigned | Candidate |
+| FQRET-07 | Unassigned | Candidate |
+| FQSAVE-01 | Unassigned | Candidate |
+| FQSAVE-02 | Unassigned | Candidate |
+| FQSAVE-03 | Unassigned | Candidate |
+| FQSAVE-04 | Unassigned | Candidate |
+| FQSAVE-05 | Unassigned | Candidate |
+| FQAGENT-01 | Unassigned | Candidate |
+| FQAGENT-02 | Unassigned | Candidate |
+| FQAGENT-03 | Unassigned | Candidate |
+| FQAGENT-04 | Unassigned | Candidate |
+| FQAGENT-05 | Unassigned | Candidate |
+| FQSEC-04 | Unassigned | Candidate |
+| FQSEC-05 | Unassigned | Candidate |
 
 **Coverage:**
-- v1 requirements: 27 total
-- Mapped to phases: 27
-- Unmapped: 0
+- candidate requirements: 27 total
+- Mapped to phases: 0
+- Unmapped: 27
 
 ---
 *Requirements defined: 2026-05-28*
-*Last updated: 2026-05-28 after initial definition*
+*Last updated: 2026-05-28 after removing premature phase mapping*
