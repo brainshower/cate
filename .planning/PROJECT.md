@@ -10,6 +10,23 @@ The project is brownfield. Cate already has a mature Electron/React shell, works
 
 Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
 
+## Current Milestone: v1.0 Vault Connect, Read, Edit
+
+**Goal:** Prove a Cate workspace can connect to a separately-running FlashQuery HTTP MCP server, browse its vault, open an existing markdown document in Cate's editor, edit it, and save it back.
+
+**Source of truth:** `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Initial connection to FQ`
+
+**Target features:**
+
+- Per-workspace FlashQuery HTTP connection config with bearer-token storage behind a main-process abstraction.
+- Main-process `FlashQueryClientManager` with lazy connection, probe/status, retry, disposal, and subscription behavior.
+- Typed `flashquery:*` IPC surface for setting connections, listing vault entries, reading documents, writing documents, probing, and broadcasting status.
+- `flashquery://<workspaceId>/<vault-path>` URI helpers and editor read/save routing.
+- `flashqueryVault` panel with vault tree, status chip, refresh, open, and open-on-canvas interactions.
+- FlashQuery connection dialog and workspace context-menu entry.
+- Editor vault badge and tooltip for vault-backed documents.
+- Test coverage matching the product test plan, with no regression of existing Cate panels.
+
 ## Requirements
 
 ### Validated
@@ -23,12 +40,13 @@ Cate should let a developer use FlashQuery knowledge from inside the same spatia
 
 ### Active
 
-- [ ] User can configure a FlashQuery connection for a Cate workspace without editing files by hand.
-- [ ] User can see whether the configured FlashQuery instance is reachable, authenticated, and ready for the current workspace.
-- [ ] User can search FlashQuery memories and documents from inside Cate and open useful results in existing panels.
-- [ ] User can save selected workspace context, notes, or agent output into FlashQuery memories or vault documents.
-- [ ] User can make relevant FlashQuery context available to Cate's in-app agent workflow in a predictable, auditable way.
-- [ ] User can recover from missing config, offline servers, auth failures, schema issues, and unsupported transports without corrupting local workspace state.
+- [ ] User can configure a FlashQuery HTTP connection for a Cate workspace without editing files by hand.
+- [ ] User can see whether the configured FlashQuery instance is connecting, live, or disconnected for the current workspace.
+- [ ] User can browse the configured FlashQuery vault from a dedicated Cate panel.
+- [ ] User can open an existing FlashQuery vault markdown document in Cate's existing editor.
+- [ ] User can edit and save an existing vault document back through FlashQuery.
+- [ ] User can restart Cate and keep the workspace's FlashQuery connection metadata available without eager startup probing.
+- [ ] User can recover from missing config, offline servers, auth failures, and write failures without corrupting local workspace state.
 
 ### Out of Scope
 
@@ -102,4 +120,4 @@ This document evolves at milestone boundaries and, once explicitly created, phas
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-28 after removing premature phase setup*
+*Last updated: 2026-05-28 after starting milestone v1.0*
