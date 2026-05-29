@@ -157,6 +157,33 @@ export interface FlashQueryHttpConnection {
 
 export type FlashQueryConnection = FlashQueryHttpConnection
 
+export type FlashQueryConnectionStatus = 'connecting' | 'live' | 'disconnected'
+
+export interface FlashQueryStatusBroadcastPayload {
+  workspaceId: string
+  status: FlashQueryConnectionStatus
+  version?: string
+  instanceId?: string
+  error?: string
+}
+
+export interface FlashQueryVaultEntry {
+  name: string
+  type: 'folder' | 'document'
+  vaultPath: string
+  title?: string
+}
+
+export interface FlashQueryDocumentBody {
+  body: string
+  version_token?: string
+  modified?: string
+}
+
+export type FlashQueryWriteResult =
+  | { success: true; modified: string }
+  | { success: false; error: string }
+
 export function isFlashQueryConnection(value: unknown): value is FlashQueryConnection {
   if (!value || typeof value !== 'object') return false
   const obj = value as Record<string, unknown>

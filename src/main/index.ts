@@ -16,6 +16,7 @@ import {
 } from '../shared/ipc-channels'
 import { registerHandlers as registerTerminalHandlers, flushAllLoggers, killAllTerminals, terminalPids } from './ipc/terminal'
 import { registerHandlers as registerFilesystemHandlers, stopWatchersForWindow } from './ipc/filesystem'
+import { registerHandlers as registerFlashQueryHandlers } from './ipc/flashquery'
 import { registerHandlers as registerGitHandlers } from './ipc/git'
 import { registerHandlers as registerShellHandlers, unregisterTerminalsForWindow } from './ipc/shell'
 import { registerHandlers as registerGitMonitorHandlers, stopMonitorsForWindow } from './ipc/git-monitor'
@@ -430,6 +431,7 @@ function registerCriticalHandlers(): void {
   registerStoreHandlers()
   registerProjectStateHandlers()
   registerWorkspaceHandlers()
+  registerFlashQueryHandlers()
   registerFilesystemHandlers()
   registerTerminalHandlers()
   registerShellHandlers()

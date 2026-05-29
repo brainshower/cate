@@ -178,6 +178,11 @@ import {
   AUTH_OAUTH_EVENT,
   AUTH_SAVE_API_KEY,
   AUTH_DELETE,
+  FLASHQUERY_GET_DOCUMENT,
+  FLASHQUERY_LIST_VAULT,
+  FLASHQUERY_SET_CONNECTION,
+  FLASHQUERY_STATUS,
+  FLASHQUERY_WRITE_DOCUMENT,
 } from '../shared/ipc-channels'
 
 // Cache native-fullscreen state so renderer drag handlers can synchronously
@@ -883,6 +888,36 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on(WORKSPACE_CHANGED, listener)
     return () => {
       ipcRenderer.removeListener(WORKSPACE_CHANGED, listener)
+    }
+  },
+
+  // ---------------------------------------------------------------------------
+  // FlashQuery
+  // ---------------------------------------------------------------------------
+
+  flashquerySetConnection(workspaceId: string, connection: unknown | null): Promise<void> {
+    return ipcRenderer.invoke(FLASHQUERY_SET_CONNECTION, workspaceId, connection)
+  },
+
+  flashqueryListVault(workspaceId: string, vaultPath?: string): Promise<unknown[]> {
+    return ipcRenderer.invoke(FLASHQUERY_LIST_VAULT, workspaceId, vaultPath)
+  },
+
+  flashqueryGetDocument(workspaceId: string, vaultPath: string): Promise<unknown> {
+    return ipcRenderer.invoke(FLASHQUERY_GET_DOCUMENT, workspaceId, vaultPath)
+  },
+
+  flashqueryWriteDocument(workspaceId: string, vaultPath: string, content: string): Promise<unknown> {
+    return ipcRenderer.invoke(FLASHQUERY_WRITE_DOCUMENT, workspaceId, vaultPath, content)
+  },
+
+  onFlashQueryStatus(callback: (payload: unknown) => void): () => void {
+    const listener = (_event: Electron.IpcRendererEvent, payload: unknown): void => {
+      callback(payload)
+    }
+    ipcRenderer.on(FLASHQUERY_STATUS, listener)
+    return () => {
+      ipcRenderer.removeListener(FLASHQUERY_STATUS, listener)
     }
   },
 

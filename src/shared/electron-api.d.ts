@@ -2,7 +2,7 @@
 // Type declaration for window.electronAPI exposed via contextBridge
 // =============================================================================
 
-import type { AgentCreateOptions, AgentEventEnvelope, AgentExtensionUIResponse, AgentImageAttachment, AgentModelRef, AgentRpcState, AgentSessionListEntry, AgentSessionStats, AgentSlashCommand, AgentThinkingLevel, AgentToolApprovalRequest, AppSettings, AgentState, AuthProviderDescriptor, AuthProviderStatus, CateWindowParams, DockWindowInitPayload, DetachedDockWindowSnapshot, DockStateSnapshot, FileSearchOptions, FileSearchResult, FileTreeNode, FlashQueryConnection, GitInfo, NotificationAction, OAuthFlowEvent, PanelState, PanelTransferSnapshot, PanelWindowSnapshot, Point, SessionSnapshot, TerminalActivity, WorkspaceInfo, WorkspaceMutationResult } from './types'
+import type { AgentCreateOptions, AgentEventEnvelope, AgentExtensionUIResponse, AgentImageAttachment, AgentModelRef, AgentRpcState, AgentSessionListEntry, AgentSessionStats, AgentSlashCommand, AgentThinkingLevel, AgentToolApprovalRequest, AppSettings, AgentState, AuthProviderDescriptor, AuthProviderStatus, CateWindowParams, DockWindowInitPayload, DetachedDockWindowSnapshot, DockStateSnapshot, FileSearchOptions, FileSearchResult, FileTreeNode, FlashQueryConnection, FlashQueryDocumentBody, FlashQueryStatusBroadcastPayload, FlashQueryVaultEntry, FlashQueryWriteResult, GitInfo, NotificationAction, OAuthFlowEvent, PanelState, PanelTransferSnapshot, PanelWindowSnapshot, Point, SessionSnapshot, TerminalActivity, WorkspaceInfo, WorkspaceMutationResult } from './types'
 
 export interface NativeContextMenuItem {
   id?: string
@@ -508,6 +508,20 @@ export interface ElectronAPI {
 
   /** Subscribe to workspace list changes broadcast from main process. */
   onWorkspaceChanged(callback: (workspaces: WorkspaceInfo[], originWindowId: number | null) => void): () => void
+
+  // ---------------------------------------------------------------------------
+  // FlashQuery
+  // ---------------------------------------------------------------------------
+
+  flashquerySetConnection(workspaceId: string, connection: FlashQueryConnection | null): Promise<void>
+
+  flashqueryListVault(workspaceId: string, vaultPath?: string): Promise<FlashQueryVaultEntry[]>
+
+  flashqueryGetDocument(workspaceId: string, vaultPath: string): Promise<FlashQueryDocumentBody>
+
+  flashqueryWriteDocument(workspaceId: string, vaultPath: string, content: string): Promise<FlashQueryWriteResult>
+
+  onFlashQueryStatus(callback: (payload: FlashQueryStatusBroadcastPayload) => void): () => void
 
   // ---------------------------------------------------------------------------
   // File drag-and-drop helpers

@@ -121,6 +121,13 @@ export const ANALYTICS_LINK_CLICK = 'analytics:linkClick'
 // Open an external URL in the user's default browser (renderer -> main).
 export const OPEN_EXTERNAL_URL = 'open:externalUrl'
 
+// FlashQuery
+export const FLASHQUERY_SET_CONNECTION = 'flashquery:setConnection'
+export const FLASHQUERY_LIST_VAULT = 'flashquery:listVault'
+export const FLASHQUERY_GET_DOCUMENT = 'flashquery:getDocument'
+export const FLASHQUERY_WRITE_DOCUMENT = 'flashquery:writeDocument'
+export const FLASHQUERY_STATUS = 'flashquery:status' // main -> renderer
+
 
 // Menu actions (main -> renderer)
 export const MENU_OPEN_SETTINGS = 'menu:openSettings'
@@ -267,4 +274,3 @@ export const WORKSPACE_CREATE = 'workspace:create'
 export const WORKSPACE_UPDATE = 'workspace:update'
 export const WORKSPACE_REMOVE = 'workspace:remove'
 export const WORKSPACE_CHANGED = 'workspace:changed' // main -> renderer (broadcast)
-
