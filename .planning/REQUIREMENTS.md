@@ -42,11 +42,11 @@ Cate should let a developer connect a workspace to FlashQuery, browse the FlashQ
 ### Vault Panel And Shared Chip
 
 - [ ] **REQ-014: Panel type registration.** Cate registers a `flashqueryVault` panel definition, renderer registry entry, and app-store factory.
-- [ ] **REQ-015: Panel header chrome.** The vault panel header shows FlashQuery Vault identity, host context, refresh affordance, and the connection-status chip.
-- [ ] **REQ-016: Vault tree rendering.** The panel renders folder and document rows from `flashquery:listVault`, with lazy folder expansion and local expansion state.
-- [ ] **REQ-017: Vault row interactions.** Document-row click, double-click, right-click, open, open-on-canvas, and multi-select behavior match Cate's local file-tree conventions.
-- [ ] **REQ-018: Refresh action.** Refresh reloads the root vault listing, preserves valid expansion/selection state, indicates loading, and does not close open editors.
-- [ ] **REQ-019: Panel states.** The panel renders populated, no-connection, connecting, disconnected, and empty-vault states with the product-specified actions.
+- [x] **REQ-015: Panel header chrome.** The vault panel header shows FlashQuery Vault identity, host context, refresh affordance, and the connection-status chip.
+- [x] **REQ-016: Vault tree rendering.** The panel renders folder and document rows from `flashquery:listVault`, with lazy folder expansion and local expansion state.
+- [x] **REQ-017: Vault row interactions.** Document-row click, double-click, right-click, open, open-on-canvas, and multi-select behavior match Cate's local file-tree conventions.
+- [x] **REQ-018: Refresh action.** Refresh reloads the root vault listing, preserves valid expansion/selection state, indicates loading, and does not close open editors.
+- [x] **REQ-019: Panel states.** The panel renders populated, no-connection, connecting, disconnected, and empty-vault states with the product-specified actions.
 - [ ] **REQ-024: Three-state chip with extensible prop API.** A reusable chip represents connecting, live, disconnected, and unknown/future states.
 - [ ] **REQ-025: Chip interaction.** The disconnected chip supports manual retry and surfaces useful hover/error information; live/connecting states are non-retry actions.
 - [ ] **REQ-026: Shared chip primitive location.** The chip lives in a reusable renderer component location for the vault panel and editor badge.
@@ -72,7 +72,7 @@ Cate should let a developer connect a workspace to FlashQuery, browse the FlashQ
 
 ### Guardrails And Cross-Cutting Requirements
 
-- [ ] **REQ-040: No vault doc creation.** v1 exposes no create-new-vault-document affordance and never calls FlashQuery write APIs in create mode.
+- [x] **REQ-040: No vault doc creation.** v1 exposes no create-new-vault-document affordance and never calls FlashQuery write APIs in create mode.
 - [ ] **REQ-041: Frontmatter not exposed.** Reads and writes operate on document body only; frontmatter, headings, tags, and title editing stay outside v1.
 - [ ] **REQ-042: No conflict detection.** v1 does not send expected-version/if-match data and uses last-write-wins semantics while leaving conflict detection for a later milestone.
 - [ ] **REQ-043: No regression of existing Cate panels.** Existing editor, terminal, browser, Git, workspace, layout, and panel tests continue to pass unchanged.

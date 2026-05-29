@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Vault Connect, Read, Edit
 status: executing
-stopped_at: Completed 04-03-PLAN.md
-last_updated: "2026-05-29T15:51:12.653Z"
+stopped_at: Completed 04-04-PLAN.md
+last_updated: "2026-05-29T16:09:46.221Z"
 last_activity: 2026-05-29
 progress:
   total_phases: 7
   completed_phases: 3
   total_plans: 13
-  completed_plans: 11
-  percent: 85
+  completed_plans: 12
+  percent: 92
 ---
 
 # Project State
@@ -28,20 +28,20 @@ See: `.planning/PROJECT.md`
 
 Phase: 4
 Plan: 04-02 next
-Status: Phase 4 in progress — Plan 04-03 complete
+Status: Phase 4 in progress — Plans 04-01, 04-03, and 04-04 complete; 04-02 remains
 Last activity: 2026-05-29
 
-Progress: [█████████░] 85%
+Progress: [█████████░] 92%
 
 ## Session Continuity
 
-Last session: 2026-05-29T15:51:11.916Z
-Stopped At: Completed 04-03-PLAN.md
+Last session: 2026-05-29T16:09:46.101Z
+Stopped At: Completed 04-04-PLAN.md
 Resume File: None
 
 ## Next Up
 
-Execute remaining Phase 04 plans: 04-02 panel registration/app-store factory and 04-04 vault panel behavior.
+Execute remaining Phase 04 plan: 04-02 panel registration/app-store factory.
 
 ## Decisions
 
@@ -55,6 +55,9 @@ Execute remaining Phase 04 plans: 04-02 panel registration/app-store factory and
 - [Phase 04]: Expose FlashQuery manual retry only as flashqueryRetry(workspaceId), delegating to FlashQueryClientManager.retry after non-empty string validation.
 - [Phase 04]: Keep FlashQuery URI parsing/building as dependency-free shared TypeScript and preserve main imports with a compatibility re-export.
 - [Phase 04]: Add only UI-store visibility state for the future FlashQuery connection dialog; defer Phase 5 dialog and workspace menu behavior.
+- [Phase 04]: Keep FlashQuery vault tree expansion, selection, children, and loading state local to the panel; no session persistence is introduced.
+- [Phase 04]: Open vault documents through createEditor using buildVaultUri from src/shared/flashqueryUri.ts and dock-center/canvas placements.
+- [Phase 04]: Limit vault document context menus to exactly Open and Open on Canvas; folder context menus remain inert in v1.
 
 ## Performance Metrics
 
@@ -67,3 +70,4 @@ Execute remaining Phase 04 plans: 04-02 panel registration/app-store factory and
 | Phase 03 P03 | 18 min | 4 tasks | 6 files |
 | Phase 04 P01 | 12min | 2 tasks | 4 files |
 | Phase 04 P03 | 6min | 3 tasks | 11 files |
+| Phase 04 P04 | 15min | 3 tasks | 2 files |
