@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Vault Connect, Read, Edit
-status: verifying
-stopped_at: Completed 03-03-PLAN.md
-last_updated: "2026-05-29T14:14:49.810Z"
+status: ready_to_plan
+stopped_at: Phase 03 complete (3/3) — ready to discuss Phase 4
+last_updated: "2026-05-29T14:50:00.000Z"
 last_activity: 2026-05-29
 progress:
   total_phases: 7
@@ -26,9 +26,9 @@ See: `.planning/PROJECT.md`
 
 ## Current Position
 
-Phase: 03 (ipc-surface) — EXECUTING
-Plan: 3 of 3
-Status: Phase complete — ready for verification
+Phase: 4
+Plan: Not started
+Status: Ready to discuss Phase 4
 Last activity: 2026-05-29
 
 Progress: [██████████] 100%
@@ -36,12 +36,12 @@ Progress: [██████████] 100%
 ## Session Continuity
 
 Last session: 2026-05-29T14:14:49.644Z
-Stopped At: Completed 03-03-PLAN.md
+Stopped At: Phase 03 complete (3/3) — ready to discuss Phase 4
 Resume File: None
 
 ## Next Up
 
-Verify Phase 02 connection-layer completion.
+Discuss Phase 04 vault panel + shared chip.
 
 ## Decisions
 
