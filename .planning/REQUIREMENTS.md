@@ -41,7 +41,7 @@ Cate should let a developer connect a workspace to FlashQuery, browse the FlashQ
 
 ### Vault Panel And Shared Chip
 
-- [ ] **REQ-014: Panel type registration.** Cate registers a `flashqueryVault` panel definition, renderer registry entry, and app-store factory.
+- [x] **REQ-014: Panel type registration.** Cate registers a `flashqueryVault` panel definition, renderer registry entry, and app-store factory.
 - [x] **REQ-015: Panel header chrome.** The vault panel header shows FlashQuery Vault identity, host context, refresh affordance, and the connection-status chip.
 - [x] **REQ-016: Vault tree rendering.** The panel renders folder and document rows from `flashquery:listVault`, with lazy folder expansion and local expansion state.
 - [x] **REQ-017: Vault row interactions.** Document-row click, double-click, right-click, open, open-on-canvas, and multi-select behavior match Cate's local file-tree conventions.
