@@ -23,7 +23,7 @@ Cate should let a developer connect a workspace to FlashQuery, browse the FlashQ
 - [ ] **REQ-002: Bearer-token storage abstraction.** Main-process helpers store, retrieve, and clear per-workspace bearer tokens without exposing raw secrets to renderer state or logs.
 - [ ] **REQ-003: FlashQueryClientManager lifecycle.** A main-process manager owns per-workspace clients, lazily constructs clients on first use, disposes clients when workspaces/configs change, and supports subscription cleanup.
 - [ ] **REQ-004: Connection probe via `GET /mcp/info`.** The manager probes `<url>/mcp/info`, extracts version and instance ID on success, and captures failures for status reporting.
-- [ ] **REQ-005: Reconnection strategy.** Failed probes or transport disconnects transition through `connecting`, `live`, and `disconnected` states with exponential-backoff retry and manual retry support.
+- [x] **REQ-005: Reconnection strategy.** Failed probes or transport disconnects transition through `connecting`, `live`, and `disconnected` states with exponential-backoff retry and manual retry support.
 - [ ] **REQ-006: Generic subscribe interface.** The manager exposes workspace-scoped event subscriptions, initially for status and shaped to allow future vault-change events.
 
 ### IPC Surface
@@ -32,7 +32,7 @@ Cate should let a developer connect a workspace to FlashQuery, browse the FlashQ
 - [ ] **REQ-008: `flashquery:listVault` IPC.** Renderer can list root or folder entries as `{ name, type, vaultPath, title? }`; disconnected/unconfigured workspaces return an empty array without throwing.
 - [ ] **REQ-009: `flashquery:getDocument` IPC.** Renderer can fetch an existing vault document body by vault path; the call requests body-only content and returns body plus metadata needed by the editor.
 - [ ] **REQ-010: `flashquery:writeDocument` IPC.** Renderer can update an existing vault document body; writes use update mode only and return structured success/failure.
-- [ ] **REQ-011: `flashquery:status` broadcast.** Manager status transitions are broadcast to renderer windows with workspace ID, status, and error text when disconnected.
+- [x] **REQ-011: `flashquery:status` broadcast.** Manager status transitions are broadcast to renderer windows with workspace ID, status, and error text when disconnected.
 
 ### Vault URI Contract
 
@@ -115,7 +115,7 @@ Every defined requirement has at least one listed test-plan reference. Manual vi
 | Requirement IDs | Phase | Status |
 |-----------------|-------|--------|
 | REQ-001, REQ-002, REQ-003, REQ-013 | Phase 1: Foundation | Planned |
-| REQ-004, REQ-005, REQ-006, REQ-011 | Phase 2: Connection layer | Planned |
+| REQ-004, REQ-005, REQ-006, REQ-011 | Phase 2: Connection layer | In Progress |
 | REQ-007, REQ-008, REQ-009, REQ-010, REQ-012 | Phase 3: IPC surface | Planned |
 | REQ-014, REQ-015, REQ-016, REQ-017, REQ-018, REQ-019, REQ-024, REQ-025, REQ-026, REQ-040 | Phase 4: Vault panel + shared chip | Planned |
 | REQ-034, REQ-035, REQ-036, REQ-037, REQ-038, REQ-039 | Phase 5: Settings dialog + workspace menu entry | Planned |

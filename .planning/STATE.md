@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: Vault Connect, Read, Edit
 status: executing
 stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-05-29T03:42:47.503Z"
+last_updated: "2026-05-29T03:51:13.744Z"
 last_activity: 2026-05-29
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 6
-  completed_plans: 4
-  percent: 67
+  completed_plans: 5
+  percent: 83
 ---
 
 # Project State
@@ -27,18 +27,30 @@ See: `.planning/PROJECT.md`
 ## Current Position
 
 Phase: 02 (connection-layer) — EXECUTING
-Plan: 2 of 3
-Status: Executing Phase 02
+Plan: 3 of 3
+Status: Ready to execute
 Last activity: 2026-05-29
 
-Progress: [███████░░░] 67%
+Progress: [████████░░] 83%
 
 ## Session Continuity
 
-Last session: 2026-05-29T03:42:47.231Z
-Stopped At: Completed 02-01-PLAN.md
+Last session: 2026-05-29T03:51:13.728Z
+Stopped At: Completed 02-02-PLAN.md
 Resume File: None
 
 ## Next Up
 
-Execute `.planning/phases/02-connection-layer/02-02-PLAN.md` next.
+Execute `.planning/phases/02-connection-layer/02-03-PLAN.md` next.
+
+## Decisions
+
+- Manual retry clears pending retry timers and immediately probes while preserving consecutive-failure backoff progression.
+- Retry timers are owned by FlashQueryClientManager workspace state and cleared on success, explicit probe, and dispose.
+- Stale FlashQuery probe completions are suppressed with workspace state identity and attempt-generation checks.
+
+## Performance Metrics
+
+| Phase | Plan | Duration | Tasks | Files |
+|-------|------|----------|-------|-------|
+| 02 | 02 | 4min | 2 | 3 |
