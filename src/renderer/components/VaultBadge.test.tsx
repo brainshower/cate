@@ -10,12 +10,14 @@ afterEach(() => {
 })
 
 describe('VaultBadge', () => {
-  it('T-I-095 renders exact Vault . host content with the teal Vault icon', () => {
+  it('T-I-095 renders exact Vault · host content with the teal Vault icon', () => {
     render(<VaultBadge filePath="flashquery://workspace-1/Docs/Plan.md" connectionUrl="https://fq.local:3100/mcp" />)
 
     expect(screen.getByText('Vault')).toBeTruthy()
-    expect(screen.getByText('. fq.local:3100')).toBeTruthy()
-    expect(screen.queryByText(/Vault ·/)).toBeNull()
+    const host = screen.getByText('· fq.local:3100')
+    expect(host).toBeTruthy()
+    expect(host.textContent?.charCodeAt(0)).toBe(0x00B7)
+    expect(screen.queryByText('. fq.local:3100')).toBeNull()
     expect(screen.getByTestId('vault-badge-icon')).toHaveProperty('style.color', 'rgb(90, 216, 184)')
   })
 

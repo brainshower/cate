@@ -39,7 +39,7 @@ export function VaultBadge({ filePath, connectionUrl }: VaultBadgeProps) {
   return (
     <ChipSurface
       data-testid="vault-badge"
-      aria-label={host ? `Vault . ${host}` : 'Vault'}
+      aria-label={host ? `Vault · ${host}` : 'Vault'}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
       onFocus={() => setHovering(true)}
@@ -57,7 +57,7 @@ export function VaultBadge({ filePath, connectionUrl }: VaultBadgeProps) {
       <span className="text-primary">Vault</span>
       {host && (
         <span className="text-muted" data-testid="vault-badge-host">
-          . {host}
+          · {host}
         </span>
       )}
       {showTooltip && (

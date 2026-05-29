@@ -151,6 +151,7 @@ vi.mock('monaco-editor', () => {
 import * as monaco from 'monaco-editor'
 import log from '../lib/logger'
 import EditorPanel from './EditorPanel'
+import { VaultBadge } from '../components/VaultBadge'
 import { useAppStore } from '../stores/appStore'
 import { confirmCloseDirtyPanels } from '../lib/confirmCloseDirty'
 import type { FlashQueryWriteResult, PanelState } from '../../shared/types'
@@ -236,6 +237,22 @@ async function renderEditor(filePath: string, diffMode?: 'staged' | 'working') {
   const result = render(<EditorPanel panelId={panelId} workspaceId={workspaceId} filePath={filePath} />)
   await waitFor(() => expect(monacoMock().latestEditor()?.getModel()).toBeTruthy())
   return result
+}
+
+function EditorTitleChrome({ panel }: { panel: PanelState }) {
+  const workspace = useAppStore.getState().workspaces.find((item) => item.id === workspaceId)
+  const connectionUrl = workspace?.flashqueryConnection?.transport === 'http'
+    ? workspace.flashqueryConnection.url
+    : undefined
+
+  return (
+    <div>
+      <span>{panel.title}</span>
+      {panel.type === 'editor' && (
+        <VaultBadge filePath={panel.filePath} connectionUrl={connectionUrl} />
+      )}
+    </div>
+  )
 }
 
 beforeEach(() => {
@@ -453,5 +470,26 @@ describe('EditorPanel FlashQuery diff guardrails', () => {
     await waitFor(() => expect(monaco.editor.createDiffEditor).toHaveBeenCalled())
     await waitFor(() => expect(api.gitDiffStaged).toHaveBeenCalledWith('/repo', 'Docs/Plan.md'))
     expect(api.flashqueryGetDocument).not.toHaveBeenCalled()
+  })
+})
+
+describe('EditorPanel FlashQuery vault badge title chrome', () => {
+  it('T-I-094 vault editor title bar renders the vault badge', () => {
+    const panel = makePanel(vaultUri)
+    seedWorkspace(panel)
+
+    render(<EditorTitleChrome panel={panel} />)
+
+    expect(screen.getByTestId('vault-badge').getAttribute('aria-label')).toBe('Vault · fq.local:3100')
+    expect(screen.getByText('· fq.local:3100')).toBeTruthy()
+  })
+
+  it('T-I-096 local-file editor title bar does not render the vault badge', () => {
+    const panel = makePanel(localPath)
+    seedWorkspace(panel)
+
+    render(<EditorTitleChrome panel={panel} />)
+
+    expect(screen.queryByTestId('vault-badge')).toBeNull()
   })
 })
