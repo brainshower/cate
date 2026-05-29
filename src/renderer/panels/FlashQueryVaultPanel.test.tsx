@@ -23,9 +23,15 @@ type ElectronApiMock = Pick<
 
 const workspaceId = 'workspace-1'
 let statusListener: ((payload: FlashQueryStatusBroadcastPayload) => void) | null = null
+let createEditorSpy: ReturnType<typeof vi.fn>
 
-const makeElectronApi = (entries: FlashQueryVaultEntry[] = []): ElectronApiMock => ({
-  flashqueryListVault: vi.fn().mockResolvedValue(entries),
+const makeElectronApi = (
+  entries: FlashQueryVaultEntry[] = [],
+  childrenByPath: Record<string, FlashQueryVaultEntry[]> = {},
+): ElectronApiMock => ({
+  flashqueryListVault: vi.fn((_: string, vaultPath?: string) => Promise.resolve(
+    vaultPath ? childrenByPath[vaultPath] ?? [] : entries,
+  )),
   flashqueryRetry: vi.fn().mockResolvedValue(undefined),
   onFlashQueryStatus: vi.fn((callback) => {
     statusListener = callback
@@ -70,6 +76,8 @@ beforeEach(() => {
   setElectronApi(makeElectronApi())
   seedWorkspace({ transport: 'http', url: 'https://flashquery.local:8787/mcp' })
   useUIStore.setState({ showFlashQueryConnectionDialog: false })
+  createEditorSpy = vi.fn(() => 'editor-1')
+  useAppStore.setState({ createEditor: createEditorSpy as any })
 })
 
 afterEach(() => {
@@ -147,5 +155,122 @@ describe('FlashQueryVaultPanel State', () => {
 
     await waitFor(() => expect(screen.getByText('Notes')).toBeTruthy())
     expect(screen.getByText('Project Brief')).toBeTruthy()
+  })
+})
+
+describe('FlashQueryVaultPanel row and folder behavior', () => {
+  async function renderLiveTree(
+    entries: FlashQueryVaultEntry[],
+    childrenByPath: Record<string, FlashQueryVaultEntry[]> = {},
+  ) {
+    const api = makeElectronApi(entries, childrenByPath)
+    setElectronApi(api)
+    renderPanel()
+    statusListener?.({ workspaceId, status: 'live' })
+    await waitFor(() => expect(api.flashqueryListVault).toHaveBeenCalledWith(workspaceId))
+    return api
+  }
+
+  it('renders folder and document rows with labels and indentation', async () => {
+    await renderLiveTree([
+      { name: 'Notes', type: 'folder', vaultPath: 'Notes' },
+      { name: 'Project.md', title: 'Project Brief', type: 'document', vaultPath: 'Project.md' },
+    ])
+
+    expect(screen.getByRole('treeitem', { name: /Notes/ })).toBeTruthy()
+    expect(screen.getByRole('treeitem', { name: /Project Brief/ })).toBeTruthy()
+  })
+
+  it('loads a folder once when expanded and shows a folder loading indicator', async () => {
+    const api = await renderLiveTree(
+      [{ name: 'Notes', type: 'folder', vaultPath: 'Notes' }],
+      { Notes: [{ name: 'Daily.md', type: 'document', vaultPath: 'Notes/Daily.md' }] },
+    )
+
+    fireEvent.click(screen.getByRole('treeitem', { name: /Notes/ }))
+
+    expect(await screen.findByText('Daily.md')).toBeTruthy()
+    expect(api.flashqueryListVault).toHaveBeenCalledWith(workspaceId, 'Notes')
+
+    fireEvent.click(screen.getByRole('treeitem', { name: /Notes/ }))
+    fireEvent.click(screen.getByRole('treeitem', { name: /Notes/ }))
+
+    expect(api.flashqueryListVault).toHaveBeenCalledTimes(2)
+  })
+
+  it('selects a document row on single click without opening it', async () => {
+    await renderLiveTree([
+      { name: 'Project.md', type: 'document', vaultPath: 'Project.md' },
+    ])
+
+    fireEvent.click(screen.getByRole('treeitem', { name: /Project.md/ }))
+
+    expect(screen.getByRole('treeitem', { name: /Project.md/ }).getAttribute('aria-selected')).toBe('true')
+    expect(createEditorSpy).not.toHaveBeenCalled()
+  })
+
+  it('opens a document row in the center dock on double click', async () => {
+    await renderLiveTree([
+      { name: 'Project.md', type: 'document', vaultPath: 'Project.md' },
+    ])
+
+    fireEvent.doubleClick(screen.getByRole('treeitem', { name: /Project.md/ }))
+
+    expect(createEditorSpy).toHaveBeenCalledWith(
+      workspaceId,
+      'flashquery://workspace-1/Project.md',
+      undefined,
+      { target: 'dock', zone: 'center' },
+    )
+  })
+
+  it('opens document context actions through exactly Open and Open on Canvas', async () => {
+    const api = await renderLiveTree([
+      { name: 'Project.md', type: 'document', vaultPath: 'Project.md' },
+    ])
+    vi.mocked(api.showContextMenu).mockResolvedValueOnce('open-on-canvas')
+
+    fireEvent.contextMenu(screen.getByRole('treeitem', { name: /Project.md/ }))
+
+    await waitFor(() => expect(api.showContextMenu).toHaveBeenCalledTimes(1))
+    expect(api.showContextMenu).toHaveBeenCalledWith([
+      { id: 'open', label: 'Open' },
+      { id: 'open-on-canvas', label: 'Open on Canvas' },
+    ])
+    expect(createEditorSpy).toHaveBeenCalledWith(
+      workspaceId,
+      'flashquery://workspace-1/Project.md',
+      undefined,
+      { target: 'canvas' },
+    )
+  })
+
+  it('does not show a context menu for folder rows', async () => {
+    const api = await renderLiveTree([
+      { name: 'Notes', type: 'folder', vaultPath: 'Notes' },
+    ])
+
+    fireEvent.contextMenu(screen.getByRole('treeitem', { name: /Notes/ }))
+
+    expect(api.showContextMenu).not.toHaveBeenCalled()
+  })
+
+  it('supports visible-row multi-select with modifier and shift clicks', async () => {
+    await renderLiveTree([
+      { name: 'A.md', type: 'document', vaultPath: 'A.md' },
+      { name: 'B.md', type: 'document', vaultPath: 'B.md' },
+      { name: 'C.md', type: 'document', vaultPath: 'C.md' },
+    ])
+
+    fireEvent.click(screen.getByRole('treeitem', { name: /A.md/ }))
+    fireEvent.click(screen.getByRole('treeitem', { name: /C.md/ }), { shiftKey: true })
+
+    expect(screen.getByRole('treeitem', { name: /A.md/ }).getAttribute('aria-selected')).toBe('true')
+    expect(screen.getByRole('treeitem', { name: /B.md/ }).getAttribute('aria-selected')).toBe('true')
+    expect(screen.getByRole('treeitem', { name: /C.md/ }).getAttribute('aria-selected')).toBe('true')
+
+    fireEvent.click(screen.getByRole('treeitem', { name: /B.md/ }), { metaKey: true })
+
+    expect(screen.getByRole('treeitem', { name: /B.md/ }).getAttribute('aria-selected')).toBe('false')
   })
 })
