@@ -15,9 +15,15 @@ vi.mock('../lib/terminalRegistry', () => ({
   terminalRegistry: { entries: () => [], panelIdForPty: () => null },
 }))
 vi.mock('../lib/logger', () => ({ default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }))
+vi.mock('../hooks/useAgentPanelInfo', () => ({
+  useAgentInfoByPanel: () => ({}),
+}))
 
-import { TerminalPanelRow } from './WorkspaceTab'
-import type { AgentState } from '../../shared/types'
+import { TerminalPanelRow, WorkspaceTab } from './WorkspaceTab'
+import { useAppStore } from '../stores/appStore'
+import { useUIStore } from '../stores/uiStore'
+import type { AgentState, WorkspaceState } from '../../shared/types'
+import type { ElectronAPI, NativeContextMenuItem } from '../../shared/electron-api'
 
 let host: HTMLDivElement
 let root: Root
@@ -104,5 +110,135 @@ describe('state transitions render correctly', () => {
       expect(hasShimmer(el)).toBe(expectShimmer)
       expect(hasAwaitIndicator(el)).toBe(expectAwait)
     }
+  })
+})
+
+type ElectronApiMock = Pick<ElectronAPI, 'showContextMenu' | 'openFolderDialog'>
+
+const workspace: WorkspaceState = {
+  id: 'workspace-1',
+  name: 'Cate Workspace',
+  color: '',
+  rootPath: '/Users/matt/project',
+  rootPathError: null,
+  isRootPathPending: false,
+  panels: {},
+  canvasNodes: {},
+  regions: {},
+  zoomLevel: 1,
+  viewportOffset: { x: 0, y: 0 },
+  focusedNodeId: null,
+}
+
+function setElectronApi(api: ElectronApiMock) {
+  Object.defineProperty(window, 'electronAPI', {
+    configurable: true,
+    value: api,
+  })
+}
+
+function makeElectronApi(selectedId: string | null = null): ElectronApiMock {
+  return {
+    showContextMenu: vi.fn().mockResolvedValue(selectedId),
+    openFolderDialog: vi.fn(),
+  }
+}
+
+function renderWorkspaceTab(api: ElectronApiMock = makeElectronApi()) {
+  setElectronApi(api)
+  useAppStore.setState({
+    selectedWorkspaceId: workspace.id,
+    workspaces: [workspace],
+  })
+  useUIStore.getState().setShowFlashQueryConnectionDialog(false)
+
+  act(() => {
+    root.render(
+      <WorkspaceTab
+        workspace={workspace}
+        isSelected={true}
+        onClick={() => {}}
+        onClose={() => {}}
+      />,
+    )
+  })
+}
+
+async function openWorkspaceContextMenu(api: ElectronApiMock) {
+  const row = Array.from(host.querySelectorAll('span'))
+    .find((element) => element.textContent === 'Cate Workspace')
+  expect(row).toBeTruthy()
+
+  await act(async () => {
+    row!.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    await Promise.resolve()
+  })
+
+  expect(api.showContextMenu).toHaveBeenCalledTimes(1)
+  return vi.mocked(api.showContextMenu).mock.calls[0][0] as NativeContextMenuItem[]
+}
+
+describe('WorkspaceTab FlashQuery native context menu', () => {
+  it('includes FlashQuery Connection in the native workspace menu', async () => {
+    const api = makeElectronApi()
+    renderWorkspaceTab(api)
+
+    const items = await openWorkspaceContextMenu(api)
+
+    expect(items).toContainEqual({
+      id: 'flashquery-connection',
+      label: 'FlashQuery Connection...',
+    })
+  })
+
+  it('places FlashQuery Connection between copy-cwd and duplicate with separators', async () => {
+    const api = makeElectronApi()
+    renderWorkspaceTab(api)
+
+    const items = await openWorkspaceContextMenu(api)
+    const ids = items.map((item) => item.id ?? item.type)
+
+    expect(ids).toEqual([
+      'select',
+      'rename',
+      undefined,
+      'separator',
+      'select-folder',
+      'copy-cwd',
+      'separator',
+      'flashquery-connection',
+      'separator',
+      'duplicate',
+      'close-panels',
+      'separator',
+      'remove',
+    ])
+  })
+
+  it('opens the FlashQuery connection dialog without mutating the workspace', async () => {
+    const api = makeElectronApi('flashquery-connection')
+    const selectWorkspace = vi.fn()
+    const duplicateWorkspace = vi.fn()
+    const removeWorkspace = vi.fn()
+    renderWorkspaceTab(api)
+    useAppStore.setState({ selectWorkspace, duplicateWorkspace, removeWorkspace })
+
+    await openWorkspaceContextMenu(api)
+
+    expect(useUIStore.getState().showFlashQueryConnectionDialog).toBe(true)
+    expect(selectWorkspace).not.toHaveBeenCalled()
+    expect(duplicateWorkspace).not.toHaveBeenCalled()
+    expect(removeWorkspace).not.toHaveBeenCalled()
+  })
+
+  it('does not render a custom React context-menu element', async () => {
+    const api = makeElectronApi()
+    renderWorkspaceTab(api)
+
+    await openWorkspaceContextMenu(api)
+
+    expect(host.querySelector('[role="menu"]')).toBeNull()
+    expect(host.querySelector('[data-testid*="context-menu"]')).toBeNull()
+    expect(host.querySelector('.context-menu')).toBeNull()
   })
 })
