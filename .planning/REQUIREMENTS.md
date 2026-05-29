@@ -63,10 +63,10 @@ Cate should let a developer connect a workspace to FlashQuery, browse the FlashQ
 
 ### Settings Dialog And Workspace Menu
 
-- [ ] **REQ-034: `FlashQueryConnectionDialog` component.** A modal dialog manages first-time setup and edit mode for a workspace connection.
-- [ ] **REQ-035: Dialog input fields.** The dialog includes URL and bearer-token inputs with validation, reveal/hide behavior, helper text, and prepopulation in edit mode.
-- [ ] **REQ-036: Test-connection inline action.** The dialog can probe the currently-entered URL/token without persisting them and show success/failure inline.
-- [ ] **REQ-037: Dialog save, cancel, and remove behavior.** Save validates and persists, cancel closes without writes, and remove clears config/token after confirmation.
+- [x] **REQ-034: `FlashQueryConnectionDialog` component.** A modal dialog manages first-time setup and edit mode for a workspace connection.
+- [x] **REQ-035: Dialog input fields.** The dialog includes URL and bearer-token inputs with validation, reveal/hide behavior, helper text, and prepopulation in edit mode.
+- [x] **REQ-036: Test-connection inline action.** The dialog can probe the currently-entered URL/token without persisting them and show success/failure inline.
+- [x] **REQ-037: Dialog save, cancel, and remove behavior.** Save validates and persists, cancel closes without writes, and remove clears config/token after confirmation.
 - [ ] **REQ-038: `useUIStore` slice for dialog visibility.** Renderer UI state can open/close the FlashQuery connection dialog predictably.
 - [ ] **REQ-039: Workspace context menu addition.** Workspace context menu includes a FlashQuery Connection entry in the product-specified position.
 
