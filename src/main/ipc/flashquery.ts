@@ -1,21 +1,25 @@
 import { ipcMain } from 'electron'
 import {
+  FLASHQUERY_GET_CONNECTION_SECRET,
   FLASHQUERY_GET_DOCUMENT,
   FLASHQUERY_LIST_VAULT,
+  FLASHQUERY_PROBE,
   FLASHQUERY_RETRY,
   FLASHQUERY_STATUS,
   FLASHQUERY_SET_CONNECTION,
   FLASHQUERY_WRITE_DOCUMENT,
 } from '../../shared/ipc-channels'
-import type { FlashQueryConnection, FlashQueryStatusBroadcastPayload, WorkspaceMutationResult } from '../../shared/types'
+import type { FlashQueryConnection, FlashQueryProbeResult, FlashQueryStatusBroadcastPayload, WorkspaceMutationResult } from '../../shared/types'
 import { isFlashQueryConnection } from '../../shared/types'
 import { FlashQueryClientManager } from '../flashquery/clientManager'
+import { getWorkspaceToken } from '../flashquery/credentials'
 import { broadcastToAll } from '../windowRegistry'
 import { broadcastWorkspaceChange, updateWorkspace } from '../workspaceManager'
 
 const flashQueryClientManager = new FlashQueryClientManager()
 const statusUnsubscribers = new Map<string, () => void>()
 let handlersRegistered = false
+const DIALOG_PROBE_TIMEOUT_MS = 10_000
 
 function flashQueryHandlerUnavailable(operation: string): never {
   throw new Error(`FlashQuery ${operation} handler is not available until its Phase 3 implementation plan runs`)
@@ -60,6 +64,25 @@ function validateConnection(connection: unknown): FlashQueryConnection {
   return connection
 }
 
+function buildInfoUrl(url: string): string {
+  return `${url.replace(/\/+$/, '')}/mcp/info`
+}
+
+function parseInfoPayload(value: unknown): { version: string; instanceId: string } | null {
+  if (!value || typeof value !== 'object') return null
+  const info = value as Record<string, unknown>
+  if (typeof info.version !== 'string' || typeof info.instance_id !== 'string') return null
+  return { version: info.version, instanceId: info.instance_id }
+}
+
+function safeOneLineError(error: unknown, token?: string): string {
+  let message = error instanceof Error ? error.message : String(error)
+  if (token) {
+    message = message.split(token).join('[redacted]')
+  }
+  return message.split(/\r?\n/)[0]?.trim() || 'FlashQuery probe failed'
+}
+
 function resetWorkspaceManagerBridge(workspaceId: string): void {
   statusUnsubscribers.get(workspaceId)?.()
   statusUnsubscribers.delete(workspaceId)
@@ -102,6 +125,55 @@ async function setConnection(workspaceId: string, connection: unknown): Promise<
   subscribeWorkspaceStatus(workspaceId)
   await flashQueryClientManager.connect(workspaceId, nextConnection)
   return result
+}
+
+async function probeConnection(workspaceId: string, connection: unknown): Promise<FlashQueryProbeResult> {
+  try {
+    requireNonEmptyString(workspaceId, 'workspaceId')
+    const nextConnection = validateConnection(connection)
+    const token = nextConnection.auth?.type === 'bearer' ? nextConnection.auth.token.trim() : ''
+    const abortController = new AbortController()
+    const timeout = setTimeout(() => {
+      abortController.abort(new Error('FlashQuery probe timed out'))
+    }, DIALOG_PROBE_TIMEOUT_MS)
+
+    try {
+      const headers: Record<string, string> = { Accept: 'application/json' }
+      if (token) {
+        headers.Authorization = `Bearer ${token}`
+      }
+
+      const response = await globalThis.fetch(buildInfoUrl(nextConnection.url), {
+        method: 'GET',
+        headers,
+        signal: abortController.signal,
+      })
+
+      if (!response.ok) {
+        return {
+          ok: false,
+          error: `FlashQuery probe failed with ${response.status} ${response.statusText}`.trim(),
+        }
+      }
+
+      const info = parseInfoPayload(await response.json())
+      if (!info) {
+        return { ok: false, error: 'FlashQuery probe returned an invalid response' }
+      }
+
+      return { ok: true, version: info.version, instanceId: info.instanceId }
+    } catch (error) {
+      return { ok: false, error: safeOneLineError(error, token) }
+    } finally {
+      clearTimeout(timeout)
+    }
+  } catch (error) {
+    return { ok: false, error: safeOneLineError(error) }
+  }
+}
+
+async function getConnectionSecret(workspaceId: string): Promise<string | null> {
+  return getWorkspaceToken(requireNonEmptyString(workspaceId, 'workspaceId'))
 }
 
 function requireNonEmptyString(value: unknown, field: string): string {
@@ -158,6 +230,12 @@ export function registerHandlers(): void {
 
   ipcMain.handle(FLASHQUERY_SET_CONNECTION, async (_event, workspaceId: string, connection: unknown) => {
     return setConnection(workspaceId, connection)
+  })
+  ipcMain.handle(FLASHQUERY_PROBE, async (_event, workspaceId: string, connection: unknown) => {
+    return probeConnection(workspaceId, connection)
+  })
+  ipcMain.handle(FLASHQUERY_GET_CONNECTION_SECRET, async (_event, workspaceId: string) => {
+    return getConnectionSecret(workspaceId)
   })
   ipcMain.handle(FLASHQUERY_LIST_VAULT, async (_event, workspaceId: string, vaultPath?: string) => {
     return listVault(workspaceId, vaultPath)

@@ -2,7 +2,7 @@
 // Type declaration for window.electronAPI exposed via contextBridge
 // =============================================================================
 
-import type { AgentCreateOptions, AgentEventEnvelope, AgentExtensionUIResponse, AgentImageAttachment, AgentModelRef, AgentRpcState, AgentSessionListEntry, AgentSessionStats, AgentSlashCommand, AgentThinkingLevel, AgentToolApprovalRequest, AppSettings, AgentState, AuthProviderDescriptor, AuthProviderStatus, CateWindowParams, DockWindowInitPayload, DetachedDockWindowSnapshot, DockStateSnapshot, FileSearchOptions, FileSearchResult, FileTreeNode, FlashQueryConnection, FlashQueryDocumentBody, FlashQueryStatusBroadcastPayload, FlashQueryVaultEntry, FlashQueryWriteResult, GitInfo, NotificationAction, OAuthFlowEvent, PanelState, PanelTransferSnapshot, PanelWindowSnapshot, Point, SessionSnapshot, TerminalActivity, WorkspaceInfo, WorkspaceMutationResult } from './types'
+import type { AgentCreateOptions, AgentEventEnvelope, AgentExtensionUIResponse, AgentImageAttachment, AgentModelRef, AgentRpcState, AgentSessionListEntry, AgentSessionStats, AgentSlashCommand, AgentThinkingLevel, AgentToolApprovalRequest, AppSettings, AgentState, AuthProviderDescriptor, AuthProviderStatus, CateWindowParams, DockWindowInitPayload, DetachedDockWindowSnapshot, DockStateSnapshot, FileSearchOptions, FileSearchResult, FileTreeNode, FlashQueryConnection, FlashQueryDocumentBody, FlashQueryProbeResult, FlashQueryStatusBroadcastPayload, FlashQueryVaultEntry, FlashQueryWriteResult, GitInfo, NotificationAction, OAuthFlowEvent, PanelState, PanelTransferSnapshot, PanelWindowSnapshot, Point, SessionSnapshot, TerminalActivity, WorkspaceInfo, WorkspaceMutationResult } from './types'
 
 export interface NativeContextMenuItem {
   id?: string
@@ -514,6 +514,10 @@ export interface ElectronAPI {
   // ---------------------------------------------------------------------------
 
   flashquerySetConnection(workspaceId: string, connection: FlashQueryConnection | null): Promise<void>
+
+  flashqueryProbe(workspaceId: string, connection: FlashQueryConnection): Promise<FlashQueryProbeResult>
+
+  flashqueryGetConnectionSecret(workspaceId: string): Promise<string | null>
 
   flashqueryListVault(workspaceId: string, vaultPath?: string): Promise<FlashQueryVaultEntry[]>
 

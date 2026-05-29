@@ -178,8 +178,10 @@ import {
   AUTH_OAUTH_EVENT,
   AUTH_SAVE_API_KEY,
   AUTH_DELETE,
+  FLASHQUERY_GET_CONNECTION_SECRET,
   FLASHQUERY_GET_DOCUMENT,
   FLASHQUERY_LIST_VAULT,
+  FLASHQUERY_PROBE,
   FLASHQUERY_RETRY,
   FLASHQUERY_SET_CONNECTION,
   FLASHQUERY_STATUS,
@@ -898,6 +900,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   flashquerySetConnection(workspaceId: string, connection: unknown | null): Promise<void> {
     return ipcRenderer.invoke(FLASHQUERY_SET_CONNECTION, workspaceId, connection)
+  },
+
+  flashqueryProbe(workspaceId: string, connection: unknown): Promise<unknown> {
+    return ipcRenderer.invoke(FLASHQUERY_PROBE, workspaceId, connection)
+  },
+
+  flashqueryGetConnectionSecret(workspaceId: string): Promise<string | null> {
+    return ipcRenderer.invoke(FLASHQUERY_GET_CONNECTION_SECRET, workspaceId)
   },
 
   flashqueryListVault(workspaceId: string, vaultPath?: string): Promise<unknown[]> {

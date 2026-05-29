@@ -167,6 +167,10 @@ export interface FlashQueryStatusBroadcastPayload {
   error?: string
 }
 
+export type FlashQueryProbeResult =
+  | { ok: true; version: string; instanceId: string }
+  | { ok: false; error: string }
+
 export interface FlashQueryVaultEntry {
   name: string
   type: 'folder' | 'document'

@@ -123,6 +123,8 @@ export const OPEN_EXTERNAL_URL = 'open:externalUrl'
 
 // FlashQuery
 export const FLASHQUERY_SET_CONNECTION = 'flashquery:setConnection'
+export const FLASHQUERY_PROBE = 'flashquery:probe'
+export const FLASHQUERY_GET_CONNECTION_SECRET = 'flashquery:getConnectionSecret'
 export const FLASHQUERY_LIST_VAULT = 'flashquery:listVault'
 export const FLASHQUERY_GET_DOCUMENT = 'flashquery:getDocument'
 export const FLASHQUERY_WRITE_DOCUMENT = 'flashquery:writeDocument'

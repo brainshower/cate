@@ -144,7 +144,7 @@ describe('FlashQuery IPC handlers', () => {
     registerHandlers()
     registerHandlers()
 
-    expect(mocks.handle).toHaveBeenCalledTimes(5)
+    expect(mocks.handle).toHaveBeenCalledTimes(7)
   })
 
   it('declares the exact Phase 3 FlashQuery channel strings', () => {
