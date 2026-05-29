@@ -182,7 +182,7 @@ The structure follows existing Cate convention: specs in `e2e/*.spec.ts` and hel
 
 **What:** The stub should count `GET /mcp/info` separately from `POST /mcp` and expose counts to tests through the fixture object. [CITED: 07-CONTEXT.md:38-49]  
 **When to use:** T-E-007 must prove no eager startup probe and first probe only after vault-panel use. [CITED: Test Plan.md:518-519]  
-**Warning:** There is a product/code conflict around auth headers on `/mcp/info`; see Open Questions. [CITED: Requirements.md:243-254] [VERIFIED: src/main/flashquery/clientManager.ts:217-226]
+**Resolved decision:** There is a product/code conflict around auth headers on `/mcp/info`; Phase 7 resolves it by fixing public info probes to omit bearer auth and making the E2E stub strict. [CITED: Requirements.md:243-254] [VERIFIED: src/main/flashquery/clientManager.ts:217-226]
 
 ### Pattern 3: Prefer User-Visible Assertions, Use Harness Only for Setup/Inspection
 
@@ -309,15 +309,14 @@ await transport.handleRequest(req, res, parsedBody)
 
 ## Open Questions
 
-1. **Should Phase 7 fix `/mcp/info` auth behavior or make the stub permissive?**
-   - What we know: product docs require no `Authorization` header on `/mcp/info`, while current manager/dialog probe code includes it when a token is present. [CITED: Requirements.md:243-254] [VERIFIED: src/main/flashquery/clientManager.ts:217-226; src/main/ipc/flashquery.ts:156-165]
-   - What's unclear: whether Phase 7 should include the correction despite being a regression/proof phase. [CITED: 07-CONTEXT.md:18]
-   - Recommendation: Planner should add a checkpoint before hard-coding stub auth assertions; if product docs remain authoritative, include a small bug-fix task and update affected tests. [CITED: 07-CONTEXT.md:24-30]
+1. **RESOLVED: Phase 7 fixes `/mcp/info` auth behavior and the stub remains strict.**
+   - Decision: Product docs remain authoritative, so Phase 7 includes the small manager/dialog correction: public `GET /mcp/info` probes must send only `Accept: application/json` and never send `Authorization`, even when a bearer token is configured. [CITED: Requirements.md:243-254] [VERIFIED: src/main/flashquery/clientManager.ts:217-226; src/main/ipc/flashquery.ts:156-165]
+   - Planning impact: `07-01-PLAN.md` fixes manager and dialog probe behavior first; `07-02-PLAN.md` then builds a strict E2E stub that fails `/mcp/info` requests containing bearer auth instead of masking the drift. [CITED: 07-CONTEXT.md:24-30]
+   - Non-goal: MCP `POST /mcp` transport calls remain authenticated with the stored bearer token where configured. [VERIFIED: src/main/flashquery/clientManager.test.ts auth cases]
 
-2. **Where should reusable restart state be rooted?**
-   - What we know: current E2E mode creates a fresh tmp `userData` per launch. [VERIFIED: src/main/index.ts:1082-1089]
-   - What's unclear: whether to preserve Electron `userData`, project `.cate`, or both through a helper. [VERIFIED: src/main/projectWorkspaceStore.ts:90-117; src/main/flashquery/credentials.ts:22-35]
-   - Recommendation: Preserve both an explicit temp workspace root and explicit E2E userData dir for T-E-006/T-E-007. [ASSUMED]
+2. **RESOLVED: Reusable restart state preserves both Electron userData and workspace root.**
+   - Decision: T-E-006/T-E-007 should use an explicit temp workspace root plus an explicit E2E-only `userData` directory so both workspace metadata and credential/token availability survive the close/reopen cycle. [VERIFIED: src/main/projectWorkspaceStore.ts:90-117; src/main/flashquery/credentials.ts:22-35]
+   - Planning impact: `07-02-PLAN.md` adds `launchApp({ userDataDir, env })` support and a `CATE_E2E_USER_DATA_DIR` hook guarded by `CATE_E2E === '1'`; the current fresh `mkdtempSync` behavior remains the default when the override is absent. [VERIFIED: src/main/index.ts:1082-1089]
 
 ## Environment Availability
 
