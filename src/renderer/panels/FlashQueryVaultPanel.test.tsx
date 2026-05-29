@@ -2,6 +2,15 @@ import React from 'react'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('../lib/logger', () => ({
+  default: {
+    debug: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+  },
+}))
+
 import FlashQueryVaultPanel from './FlashQueryVaultPanel'
 import { useAppStore } from '../stores/appStore'
 import { useUIStore } from '../stores/uiStore'
@@ -73,7 +82,7 @@ describe('FlashQueryVaultPanel Header', () => {
     renderPanel()
 
     expect(screen.getByText('FlashQuery Vault')).toBeTruthy()
-    expect(screen.getByText(/flashquery\.local:8787/)).toBeTruthy()
+    expect(screen.getAllByText(/flashquery\.local:8787/).length).toBeGreaterThan(0)
     expect(screen.getByLabelText('Refresh vault')).toBeTruthy()
 
     statusListener?.({ workspaceId, status: 'live' })
