@@ -100,7 +100,7 @@ describe('FlashQueryVaultPanel Header', () => {
 })
 
 describe('FlashQueryVaultPanel State', () => {
-  it('renders no-connection copy and opens workspace settings', () => {
+  it('renders no-connection state and opens workspace settings', () => {
     seedWorkspace(undefined)
     renderPanel()
 
@@ -119,7 +119,7 @@ describe('FlashQueryVaultPanel State', () => {
     expect(screen.getByText('probing flashquery.local:8787')).toBeTruthy()
   })
 
-  it('renders disconnected copy, retries, and opens edit connection', async () => {
+  it('renders disconnected state, retries, and opens edit connection', async () => {
     const api = makeElectronApi()
     setElectronApi(api)
     renderPanel()
