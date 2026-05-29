@@ -15,10 +15,11 @@ import {
   WORKSPACE_CHANGED,
 } from '../shared/ipc-channels'
 import type { FlashQueryConnection, WorkspaceInfo, WorkspaceMutationResult } from '../shared/types'
-import { sanitizeFlashQueryConnection } from '../shared/types'
+import { isFlashQueryConnection, sanitizeFlashQueryConnection } from '../shared/types'
 import { broadcastToAll, windowFromEvent } from './windowRegistry'
 import { addAllowedRoot, removeAllowedRoot } from './ipc/pathValidation'
 import { resolveTrustedWorkspaceRoot } from './workspaceRoots'
+import { setWorkspaceToken } from './flashquery/credentials'
 
 // In-memory workspace list — authoritative source of truth
 const workspaces: Map<string, WorkspaceInfo> = new Map()
@@ -63,6 +64,14 @@ function sanitizeWorkspaceChanges(
   }
 }
 
+async function storeFlashQueryToken(workspaceId: string, connection: unknown): Promise<void> {
+  if (isFlashQueryConnection(connection) && connection.auth) {
+    await setWorkspaceToken(workspaceId, connection.auth.token)
+    return
+  }
+  await setWorkspaceToken(workspaceId, null)
+}
+
 export async function createWorkspace(
   name?: string,
   rootPath?: string,
@@ -88,6 +97,10 @@ export async function createWorkspace(
       }
     }
     trustedRoot = resolvedRoot
+  }
+
+  if (flashqueryConnection !== undefined) {
+    await storeFlashQueryToken(resolvedId, flashqueryConnection)
   }
 
   const info: WorkspaceInfo = {
@@ -129,6 +142,9 @@ export async function updateWorkspace(id: string, changes: Partial<Omit<Workspac
 
   let nextRootPath = existing.rootPath
   const sanitizedChanges = sanitizeWorkspaceChanges(changes)
+  if ('flashqueryConnection' in changes) {
+    await storeFlashQueryToken(id, changes.flashqueryConnection)
+  }
 
   if (typeof sanitizedChanges.rootPath === 'string') {
     if (!sanitizedChanges.rootPath) {

@@ -1,4 +1,4 @@
-export type FlashQueryClientEventType = 'status' | 'vault-changed'
+export type FlashQueryClientEventType = 'status' | 'vault-changed' | 'tools-changed' | (string & {})
 
 export interface FlashQueryClientEvent {
   workspaceId: string
@@ -6,7 +6,7 @@ export interface FlashQueryClientEvent {
   payload?: unknown
 }
 
-export type FlashQueryClientEventHandler = (event: FlashQueryClientEvent) => void
+export type FlashQueryClientEventHandler<T = unknown> = (event: T) => void
 
 interface WorkspaceClientState {
   subscribers: Map<FlashQueryClientEventType, Set<FlashQueryClientEventHandler>>
@@ -15,10 +15,10 @@ interface WorkspaceClientState {
 export class FlashQueryClientManager {
   private readonly workspaceStates = new Map<string, WorkspaceClientState>()
 
-  subscribe(
+  subscribe<T = unknown>(
     workspaceId: string,
     type: FlashQueryClientEventType,
-    handler: FlashQueryClientEventHandler,
+    handler: FlashQueryClientEventHandler<T>,
   ): () => void {
     const state = this.getOrCreateWorkspaceState(workspaceId)
     let subscribers = state.subscribers.get(type)
@@ -26,10 +26,11 @@ export class FlashQueryClientManager {
       subscribers = new Set()
       state.subscribers.set(type, subscribers)
     }
-    subscribers.add(handler)
+    const storedHandler = handler as FlashQueryClientEventHandler
+    subscribers.add(storedHandler)
 
     return () => {
-      subscribers?.delete(handler)
+      subscribers?.delete(storedHandler)
     }
   }
 
@@ -46,4 +47,3 @@ export class FlashQueryClientManager {
     return state
   }
 }
-

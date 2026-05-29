@@ -11,7 +11,10 @@ describe('FlashQueryConnection', () => {
     }
 
     expect(isFlashQueryConnection(connection)).toBe(true)
-    expect(sanitizeFlashQueryConnection(connection)).toEqual(connection)
+    expect(sanitizeFlashQueryConnection(connection)).toEqual({
+      transport: 'http',
+      url: 'http://127.0.0.1:3210/mcp',
+    })
   })
 
   it('is optional on WorkspaceInfo', () => {
@@ -31,4 +34,3 @@ describe('FlashQueryConnection', () => {
     expect(sanitizeFlashQueryConnection({ transport: 'http', url: 'x', auth: { type: 'basic' } })).toBeUndefined()
   })
 })
-

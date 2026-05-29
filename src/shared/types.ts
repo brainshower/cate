@@ -169,8 +169,7 @@ export function isFlashQueryConnection(value: unknown): value is FlashQueryConne
 
 export function sanitizeFlashQueryConnection(value: unknown): FlashQueryConnection | undefined {
   if (!isFlashQueryConnection(value)) return undefined
-  const auth = value.auth ? { type: 'bearer' as const, token: value.auth.token } : undefined
-  return { transport: 'http', url: value.url, auth }
+  return { transport: 'http', url: value.url }
 }
 
 export interface WorkspaceInfo {

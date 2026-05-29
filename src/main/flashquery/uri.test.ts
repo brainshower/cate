@@ -15,6 +15,10 @@ describe('FlashQuery URI helpers', () => {
     expect(parseVaultUri(uri)).toEqual({ workspaceId: 'workspace-1', vaultPath: 'docs/Requirements.md' })
   })
 
+  it('builds the canonical nested path URI', () => {
+    expect(buildVaultUri('ws-abc', 'foo/bar.md')).toBe('flashquery://ws-abc/foo/bar.md')
+  })
+
   it('encodes spaces and reserved characters in path segments', () => {
     const uri = buildVaultUri('workspace 1', 'a folder/query #1?.md')
 
@@ -38,6 +42,7 @@ describe('FlashQuery URI helpers', () => {
 
   it('returns null for non-FlashQuery URIs and malformed escapes', () => {
     expect(parseVaultUri('https://workspace-1/path')).toBeNull()
+    expect(parseVaultUri('file:///local/path.md')).toBeNull()
     expect(parseVaultUri('not-a-uri')).toBeNull()
     expect(parseVaultUri('flashquery://workspace-1/%E0%A4%A')).toBeNull()
   })
