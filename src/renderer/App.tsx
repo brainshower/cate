@@ -28,6 +28,7 @@ import { NodeSwitcher } from './ui/NodeSwitcher'
 import { CommandPalette } from './ui/CommandPalette'
 import { SettingsWindow } from './settings/SettingsWindow'
 import { SavedLayoutsDialog } from './dialogs/SavedLayoutsDialog'
+import { FlashQueryConnectionDialog } from './dialogs/FlashQueryConnectionDialog'
 import { PostUpdateFeedbackDialog } from './dialogs/PostUpdateFeedbackDialog'
 import { loadSession, restoreSession, restoreMultiWorkspaceSession, restoreDetachedWindows, setupAutoSave, saveSession } from './lib/session'
 import type { MultiWorkspaceSession } from '../shared/types'
@@ -491,6 +492,7 @@ function MainApp() {
         <SettingsWindow isOpen={showSettings} onClose={closeSettings} initialTab={settingsInitialTab ?? undefined} />
       )}
       <SavedLayoutsDialog />
+      <FlashQueryConnectionDialog />
       <PostUpdateFeedbackDialog />
 
       {initializing && (
