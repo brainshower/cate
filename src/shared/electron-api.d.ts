@@ -2,7 +2,7 @@
 // Type declaration for window.electronAPI exposed via contextBridge
 // =============================================================================
 
-import type { AgentCreateOptions, AgentEventEnvelope, AgentExtensionUIResponse, AgentImageAttachment, AgentModelRef, AgentRpcState, AgentSessionListEntry, AgentSessionStats, AgentSlashCommand, AgentThinkingLevel, AgentToolApprovalRequest, AppSettings, AgentState, AuthProviderDescriptor, AuthProviderStatus, CateWindowParams, DockWindowInitPayload, DetachedDockWindowSnapshot, DockStateSnapshot, FileSearchOptions, FileSearchResult, FileTreeNode, GitInfo, NotificationAction, OAuthFlowEvent, PanelState, PanelTransferSnapshot, PanelWindowSnapshot, Point, SessionSnapshot, TerminalActivity, WorkspaceInfo, WorkspaceMutationResult } from './types'
+import type { AgentCreateOptions, AgentEventEnvelope, AgentExtensionUIResponse, AgentImageAttachment, AgentModelRef, AgentRpcState, AgentSessionListEntry, AgentSessionStats, AgentSlashCommand, AgentThinkingLevel, AgentToolApprovalRequest, AppSettings, AgentState, AuthProviderDescriptor, AuthProviderStatus, CateWindowParams, DockWindowInitPayload, DetachedDockWindowSnapshot, DockStateSnapshot, FileSearchOptions, FileSearchResult, FileTreeNode, FlashQueryConnection, GitInfo, NotificationAction, OAuthFlowEvent, PanelState, PanelTransferSnapshot, PanelWindowSnapshot, Point, SessionSnapshot, TerminalActivity, WorkspaceInfo, WorkspaceMutationResult } from './types'
 
 export interface NativeContextMenuItem {
   id?: string
@@ -498,7 +498,7 @@ export interface ElectronAPI {
   // ---------------------------------------------------------------------------
 
   /** Create a new workspace in the main process. */
-  workspaceCreate(options?: { name?: string; rootPath?: string; id?: string }): Promise<WorkspaceMutationResult>
+  workspaceCreate(options?: { name?: string; rootPath?: string; id?: string; flashqueryConnection?: FlashQueryConnection }): Promise<WorkspaceMutationResult>
 
   /** Update workspace metadata in the main process. */
   workspaceUpdate(id: string, changes: Partial<Omit<WorkspaceInfo, 'id'>>): Promise<WorkspaceMutationResult>

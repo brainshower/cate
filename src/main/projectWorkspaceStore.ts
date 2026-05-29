@@ -8,6 +8,7 @@ import {
   PROJECT_STATE_LOAD,
 } from '../shared/ipc-channels'
 import type { ProjectWorkspaceFile, ProjectSessionFile, MultiWorkspaceSession, SessionSnapshot, DockLayoutNode, WindowDockState } from '../shared/types'
+import { sanitizeFlashQueryConnection } from '../shared/types'
 import { toRelativePath } from '../shared/pathUtils'
 
 const CATE_DIR = '.cate'
@@ -108,7 +109,10 @@ export async function loadProjectState(rootPath: string): Promise<{
   if (!ws || !isValidWorkspace(ws)) return null
   const sess = await tryReadWithFallback<ProjectSessionFile>(sessionPath(rootPath))
   return {
-    workspace: ws,
+    workspace: {
+      ...ws,
+      flashqueryConnection: sanitizeFlashQueryConnection(ws.flashqueryConnection),
+    },
     session: sess && isValidSession(sess) ? sess : null,
   }
 }
@@ -244,6 +248,7 @@ function snapshotToWorkspaceFile(snapshot: SessionSnapshot): ProjectWorkspaceFil
     version: 1,
     name: snapshot.workspaceName,
     color: '',
+    flashqueryConnection: sanitizeFlashQueryConnection(snapshot.flashqueryConnection),
     canvas: { nodes, regions, zoomLevel: snapshot.zoomLevel, viewportOffset: snapshot.viewportOffset },
     dockState: snapshot.dockState,
     dockPanels,

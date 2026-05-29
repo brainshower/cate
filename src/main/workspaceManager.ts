@@ -14,7 +14,8 @@ import {
   WORKSPACE_REMOVE,
   WORKSPACE_CHANGED,
 } from '../shared/ipc-channels'
-import type { WorkspaceInfo, WorkspaceMutationResult } from '../shared/types'
+import type { FlashQueryConnection, WorkspaceInfo, WorkspaceMutationResult } from '../shared/types'
+import { sanitizeFlashQueryConnection } from '../shared/types'
 import { broadcastToAll, windowFromEvent } from './windowRegistry'
 import { addAllowedRoot, removeAllowedRoot } from './ipc/pathValidation'
 import { resolveTrustedWorkspaceRoot } from './workspaceRoots'
@@ -41,11 +42,33 @@ function generateId(): string {
 // Public API (called by IPC handlers)
 // -----------------------------------------------------------------------------
 
-function listWorkspaces(): WorkspaceInfo[] {
-  return Array.from(workspaces.values())
+export function listWorkspaces(): WorkspaceInfo[] {
+  return Array.from(workspaces.values()).map(sanitizeWorkspaceInfo)
 }
 
-async function createWorkspace(name?: string, rootPath?: string, id?: string): Promise<WorkspaceMutationResult> {
+function sanitizeWorkspaceInfo(info: WorkspaceInfo): WorkspaceInfo {
+  return {
+    ...info,
+    flashqueryConnection: sanitizeFlashQueryConnection(info.flashqueryConnection),
+  }
+}
+
+function sanitizeWorkspaceChanges(
+  changes: Partial<Omit<WorkspaceInfo, 'id'>>,
+): Partial<Omit<WorkspaceInfo, 'id'>> {
+  if (!('flashqueryConnection' in changes)) return changes
+  return {
+    ...changes,
+    flashqueryConnection: sanitizeFlashQueryConnection(changes.flashqueryConnection),
+  }
+}
+
+export async function createWorkspace(
+  name?: string,
+  rootPath?: string,
+  id?: string,
+  flashqueryConnection?: FlashQueryConnection,
+): Promise<WorkspaceMutationResult> {
   // Validate caller-supplied id; fall back to a fresh UUID if invalid.
   const resolvedId = id && isValidWorkspaceId(id) ? id : generateId()
   if (id && resolvedId !== id) {
@@ -72,6 +95,7 @@ async function createWorkspace(name?: string, rootPath?: string, id?: string): P
     name: name ?? 'Workspace',
     color: '',
     rootPath: trustedRoot,
+    flashqueryConnection: sanitizeFlashQueryConnection(flashqueryConnection),
   }
   workspaces.set(info.id, info)
   log.info('Workspace created: %s (%s)', info.id, info.rootPath || 'no root')
@@ -81,7 +105,7 @@ async function createWorkspace(name?: string, rootPath?: string, id?: string): P
   return { ok: true, workspace: info }
 }
 
-async function updateWorkspace(id: string, changes: Partial<Omit<WorkspaceInfo, 'id'>>): Promise<WorkspaceMutationResult> {
+export async function updateWorkspace(id: string, changes: Partial<Omit<WorkspaceInfo, 'id'>>): Promise<WorkspaceMutationResult> {
   if (!isValidWorkspaceId(id)) {
     log.warn('workspaceManager: updateWorkspace called with invalid id: %s', id)
     return {
@@ -104,17 +128,19 @@ async function updateWorkspace(id: string, changes: Partial<Omit<WorkspaceInfo, 
   }
 
   let nextRootPath = existing.rootPath
-  if (typeof changes.rootPath === 'string') {
-    if (!changes.rootPath) {
+  const sanitizedChanges = sanitizeWorkspaceChanges(changes)
+
+  if (typeof sanitizedChanges.rootPath === 'string') {
+    if (!sanitizedChanges.rootPath) {
       nextRootPath = ''
     } else {
-      const resolvedRoot = await resolveTrustedWorkspaceRoot(changes.rootPath)
+      const resolvedRoot = await resolveTrustedWorkspaceRoot(sanitizedChanges.rootPath)
       if (!resolvedRoot) {
         return {
           ok: false,
           error: {
             code: 'INVALID_ROOT_PATH',
-            message: `Workspace root is not a readable directory: ${changes.rootPath}`,
+            message: `Workspace root is not a readable directory: ${sanitizedChanges.rootPath}`,
           },
         }
       }
@@ -126,7 +152,7 @@ async function updateWorkspace(id: string, changes: Partial<Omit<WorkspaceInfo, 
     removeAllowedRoot(existing.rootPath)
   }
 
-  const updated = { ...existing, ...changes, rootPath: nextRootPath }
+  const updated = sanitizeWorkspaceInfo({ ...existing, ...sanitizedChanges, rootPath: nextRootPath })
   workspaces.set(id, updated)
   if (updated.rootPath) {
     addAllowedRoot(updated.rootPath)
@@ -134,7 +160,7 @@ async function updateWorkspace(id: string, changes: Partial<Omit<WorkspaceInfo, 
   return { ok: true, workspace: updated }
 }
 
-function removeWorkspace(id: string): boolean {
+export function removeWorkspace(id: string): boolean {
   if (!isValidWorkspaceId(id)) {
     log.warn('workspaceManager: removeWorkspace called with invalid id: %s', id)
     return false
@@ -164,8 +190,8 @@ export function registerWorkspaceHandlers(): void {
   // Create a new workspace
   ipcMain.handle(
     WORKSPACE_CREATE,
-    async (event, options?: { name?: string; rootPath?: string; id?: string }) => {
-      const result = await createWorkspace(options?.name, options?.rootPath, options?.id)
+    async (event, options?: { name?: string; rootPath?: string; id?: string; flashqueryConnection?: FlashQueryConnection }) => {
+      const result = await createWorkspace(options?.name, options?.rootPath, options?.id, options?.flashqueryConnection)
       if (!result.ok) return result
       const win = windowFromEvent(event)
       broadcastWorkspaceChange(win?.id)

@@ -27,6 +27,7 @@ import type {
   ProjectPanelRef,
   ProjectSessionNode,
 } from '../../shared/types'
+import { sanitizeFlashQueryConnection } from '../../shared/types'
 import { toRelativePath } from '../../shared/pathUtils'
 import { useDockStore } from '../stores/dockStore'
 import { terminalRegistry } from './terminalRegistry'
@@ -155,6 +156,7 @@ function buildWorkspaceFile(
     version: 1,
     name: snapshot.workspaceName,
     color: color ?? '',
+    flashqueryConnection: sanitizeFlashQueryConnection(snapshot.flashqueryConnection),
     canvas: { nodes, regions, zoomLevel: snapshot.zoomLevel, viewportOffset: snapshot.viewportOffset },
     dockState: snapshot.dockState,
     dockPanels,
@@ -317,6 +319,7 @@ export async function saveSession(): Promise<void> {
       workspaceId: workspace.id,
       workspaceName: workspace.name,
       rootPath: workspace.rootPath || null,
+      flashqueryConnection: sanitizeFlashQueryConnection(workspace.flashqueryConnection),
       zoomLevel: workspace.zoomLevel,
       viewportOffset: workspace.viewportOffset,
       nodes: nodeSnapshots,
@@ -461,6 +464,7 @@ async function loadFromProjectFiles(): Promise<MultiWorkspaceSession | null> {
       snapshots.push({
         workspaceName: ws.name,
         rootPath,
+        flashqueryConnection: sanitizeFlashQueryConnection(ws.flashqueryConnection),
         zoomLevel: ws.canvas.zoomLevel,
         viewportOffset: ws.canvas.viewportOffset,
         nodes,
@@ -730,7 +734,11 @@ export async function restoreMultiWorkspaceSession(session: MultiWorkspaceSessio
   for (let i = 0; i < session.workspaces.length; i++) {
     const snapshot = session.workspaces[i]
     log.debug(`[session] workspace ${i + 1}/${session.workspaces.length}: "${snapshot.workspaceName}" (${snapshot.nodes.length} nodes)`)
-    const wsId = appStore.addWorkspace(snapshot.workspaceName, snapshot.rootPath ?? undefined)
+    const wsId = appStore.addWorkspace(
+      snapshot.workspaceName,
+      snapshot.rootPath ?? undefined,
+      sanitizeFlashQueryConnection(snapshot.flashqueryConnection),
+    )
     wsIds.push(wsId)
 
     if (i === selectedIdx) {

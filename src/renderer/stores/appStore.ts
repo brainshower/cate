@@ -11,6 +11,7 @@ import log from '../lib/logger'
 import type {
   WorkspaceState,
   WorkspaceInfo,
+  FlashQueryConnection,
   WorkspaceMutationResult,
   PanelState,
   PanelType,
@@ -19,7 +20,7 @@ import type {
   DockZonePosition,
   WorktreeMeta,
 } from '../../shared/types'
-import { PANEL_DEFAULT_SIZES, ZOOM_DEFAULT, ALL_ZONES } from '../../shared/types'
+import { PANEL_DEFAULT_SIZES, ZOOM_DEFAULT, ALL_ZONES, sanitizeFlashQueryConnection } from '../../shared/types'
 import { ACCENT_COLORS } from '../../shared/colors'
 import type { CanvasNodeId, CanvasNodeState, CanvasRegion } from '../../shared/types'
 import type { StoreApi } from 'zustand'
@@ -107,12 +108,17 @@ function generateId(): string {
 /** Workspace accent colors — re-exported from the shared accent palette. */
 export const WORKSPACE_COLORS = ACCENT_COLORS
 
-function createDefaultWorkspace(name?: string, rootPath?: string): WorkspaceState {
+function createDefaultWorkspace(
+  name?: string,
+  rootPath?: string,
+  flashqueryConnection?: FlashQueryConnection,
+): WorkspaceState {
   return {
     id: generateId(),
     name: name ?? 'Workspace',
     color: '',
     rootPath: rootPath ?? '',
+    flashqueryConnection: sanitizeFlashQueryConnection(flashqueryConnection),
     rootPathError: null,
     isRootPathPending: false,
     panels: {},
@@ -202,9 +208,14 @@ function applyWorkspaceInfo(ws: WorkspaceState, info: WorkspaceInfo): WorkspaceS
     name: info.name,
     color: info.color,
     rootPath: info.rootPath,
+    flashqueryConnection: sanitizeFlashQueryConnection(info.flashqueryConnection),
     rootPathError: null,
     isRootPathPending: false,
   }
+}
+
+function sameFlashQueryConnection(a: unknown, b: unknown): boolean {
+  return JSON.stringify(sanitizeFlashQueryConnection(a) ?? null) === JSON.stringify(sanitizeFlashQueryConnection(b) ?? null)
 }
 
 function syncCreateToMain(ws: WorkspaceState): Promise<WorkspaceMutationResult | undefined> {
@@ -213,6 +224,7 @@ function syncCreateToMain(ws: WorkspaceState): Promise<WorkspaceMutationResult |
       name: ws.name,
       rootPath: ws.rootPath,
       id: ws.id,
+      flashqueryConnection: ws.flashqueryConnection,
     }),
   )
 }
@@ -274,7 +286,7 @@ interface AppStoreState {
 
 interface AppStoreActions {
   // Workspace management
-  addWorkspace: (name?: string, rootPath?: string) => string
+  addWorkspace: (name?: string, rootPath?: string, flashqueryConnection?: FlashQueryConnection) => string
   selectWorkspace: (id: string) => Promise<void>
   removeWorkspace: (id: string) => void
 
@@ -380,13 +392,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   // --- Workspace management ---
 
-  addWorkspace(name?, rootPath?) {
+  addWorkspace(name?, rootPath?, flashqueryConnection?) {
     const existingCount = get().workspaces.length
     if (existingCount >= 10) {
       // Cap at 10 workspaces — no-op, return current selection
       return get().selectedWorkspaceId || get().workspaces[0]?.id || ''
     }
-    const ws = createDefaultWorkspace(name, rootPath)
+    const ws = createDefaultWorkspace(name, rootPath, flashqueryConnection)
     const isFirst = existingCount === 0
 
     // Note: the new workspace starts with an empty panels map. selectWorkspace
@@ -1469,13 +1481,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
           if (
             existing.name !== info.name ||
             existing.color !== info.color ||
-            existing.rootPath !== info.rootPath
+            existing.rootPath !== info.rootPath ||
+            !sameFlashQueryConnection(existing.flashqueryConnection, info.flashqueryConnection)
           ) {
           existingMap.set(info.id, {
             ...existing,
             name: info.name,
             color: info.color,
             rootPath: info.rootPath,
+            flashqueryConnection: sanitizeFlashQueryConnection(info.flashqueryConnection),
             rootPathError: null,
             isRootPathPending: false,
           })
@@ -1487,6 +1501,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
             name: info.name,
             color: info.color,
             rootPath: info.rootPath,
+            flashqueryConnection: sanitizeFlashQueryConnection(info.flashqueryConnection),
             rootPathError: null,
             isRootPathPending: false,
             panels: {},

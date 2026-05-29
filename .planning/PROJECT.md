@@ -97,6 +97,7 @@ Known codebase concerns that affect this project:
 | Make integration workspace-scoped | Cate is project/workspace-oriented and FlashQuery instances/vaults can differ by project | - Pending |
 | Start with read/search and explicit save flows before deeper agent automation | Observable user value arrives quickly while limiting security and session-complexity risk | - Pending |
 | Create phases only from explicit milestones | The project owner wants codebase/project context first and will define milestones before any phase plan exists | - Pending |
+| Keep Phase 1 as inert foundation code | Metadata, credentials, URI helpers, and manager lifecycle are now in place without FlashQuery IPC, UI, network probes, MCP clients, or runtime ownership | - Phase 01 |
 
 ## Planning Preference
 
@@ -120,4 +121,4 @@ This document evolves at milestone boundaries and, once explicitly created, phas
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-28 after starting milestone v1.0*
+*Last updated: 2026-05-29 after completing Phase 01 foundation*

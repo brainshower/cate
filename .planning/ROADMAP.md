@@ -2,7 +2,7 @@
 
 **Milestone:** v1.0 Vault Connect, Read, Edit
 **Created:** 2026-05-28
-**Status:** Not started
+**Status:** In progress
 
 ## Milestone Goal
 
@@ -20,12 +20,13 @@ Prove a Cate workspace can connect to a separately-running FlashQuery HTTP MCP s
 | 6 | Editor URI-awareness + vault badge | Phase 3 + Phase 4 | REQ-027, REQ-028, REQ-029, REQ-030, REQ-031, REQ-032, REQ-033, REQ-041, REQ-042 | Test Plan §4.6 |
 | 7 | Cross-cutting + regression | All | REQ-043, REQ-044, REQ-045 | Test Plan §4.7 |
 
-## Phase 1: Foundation
+## Phase 1: Foundation ✅ Complete
 
 **Goal:** Establish the data, credential, URI, and manager skeleton needed before any FlashQuery network behavior lands.
 
 **Requirements:** REQ-001, REQ-002, REQ-003, REQ-013
 **Tests:** T-U-001..020
+**Completed:** 2026-05-29
 
 **Success criteria:**
 
@@ -36,9 +37,9 @@ Prove a Cate workspace can connect to a separately-running FlashQuery HTTP MCP s
 
 **Plans:**
 
-- [ ] **1.1 Workspace connection model.** Add connection types/schema to workspace shared types and persistence handling.
-- [ ] **1.2 Credential abstraction.** Implement main-process token get/set/clear helpers and redaction-safe tests.
-- [ ] **1.3 URI helpers and manager skeleton.** Add vault URI helpers plus the initial manager lifecycle and subscribe/unsubscribe shell.
+- [x] **1.1 Workspace connection model.** Add connection types/schema to workspace shared types and persistence handling.
+- [x] **1.2 Credential abstraction.** Implement main-process token get/set/clear helpers and redaction-safe tests.
+- [x] **1.3 URI helpers and manager skeleton.** Add vault URI helpers plus the initial manager lifecycle and subscribe/unsubscribe shell.
 
 ## Phase 2: Connection Layer
 

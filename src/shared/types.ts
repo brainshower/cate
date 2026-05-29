@@ -144,11 +144,41 @@ export interface WorktreeMeta {
 // Workspace metadata — shared across windows, managed by main process
 // -----------------------------------------------------------------------------
 
+export interface FlashQueryBearerAuth {
+  type: 'bearer'
+  token: string
+}
+
+export interface FlashQueryHttpConnection {
+  transport: 'http'
+  url: string
+  auth?: FlashQueryBearerAuth
+}
+
+export type FlashQueryConnection = FlashQueryHttpConnection
+
+export function isFlashQueryConnection(value: unknown): value is FlashQueryConnection {
+  if (!value || typeof value !== 'object') return false
+  const obj = value as Record<string, unknown>
+  if (obj.transport !== 'http' || typeof obj.url !== 'string' || obj.url.length === 0) return false
+  if (obj.auth === undefined) return true
+  if (!obj.auth || typeof obj.auth !== 'object') return false
+  const auth = obj.auth as Record<string, unknown>
+  return auth.type === 'bearer' && typeof auth.token === 'string'
+}
+
+export function sanitizeFlashQueryConnection(value: unknown): FlashQueryConnection | undefined {
+  if (!isFlashQueryConnection(value)) return undefined
+  const auth = value.auth ? { type: 'bearer' as const, token: value.auth.token } : undefined
+  return { transport: 'http', url: value.url, auth }
+}
+
 export interface WorkspaceInfo {
   id: string
   name: string
   color: string
   rootPath: string
+  flashqueryConnection?: FlashQueryConnection
 }
 
 export interface WorkspaceMutationError {
@@ -317,6 +347,7 @@ export interface WorkspaceState {
   name: string
   color: string
   rootPath: string
+  flashqueryConnection?: FlashQueryConnection
   /** Additional project roots opened alongside the primary `rootPath`.
    *  Used to keep multiple repos in one canvas. Order is user-controlled. */
   additionalRoots?: string[]
@@ -585,6 +616,7 @@ export interface SessionSnapshot {
   workspaceId?: string
   workspaceName: string
   rootPath: string | null
+  flashqueryConnection?: FlashQueryConnection
   viewportOffset: Point
   zoomLevel: number
   nodes: NodeSnapshot[]
@@ -628,6 +660,7 @@ export interface ProjectWorkspaceFile {
   version: 1
   name: string
   color: string
+  flashqueryConnection?: FlashQueryConnection
   canvas: {
     nodes: ProjectCanvasNode[]
     regions: ProjectCanvasRegion[]

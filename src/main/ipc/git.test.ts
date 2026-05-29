@@ -22,7 +22,7 @@ describe('createBranch', () => {
     await fs.writeFile(path.join(repoDir, 'README.md'), 'base\n', 'utf8')
     await git.add('README.md')
     await git.commit('initial')
-    await git.checkoutLocalBranch('main')
+    await git.branch(['-M', 'main'])
   })
 
   afterEach(async () => {

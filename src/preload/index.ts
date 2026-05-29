@@ -860,7 +860,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Workspace management (main process is source of truth)
   // ---------------------------------------------------------------------------
 
-  workspaceCreate(options?: { name?: string; rootPath?: string; id?: string }): Promise<unknown> {
+  workspaceCreate(options?: { name?: string; rootPath?: string; id?: string; flashqueryConnection?: unknown }): Promise<unknown> {
     return ipcRenderer.invoke(WORKSPACE_CREATE, options)
   },
 
