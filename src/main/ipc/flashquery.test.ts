@@ -101,6 +101,15 @@ describe('FlashQuery IPC handlers', () => {
     expect(mocks.handle.mock.calls.map(([channel]) => channel)).not.toContain(FLASHQUERY_STATUS)
   })
 
+  it('keeps FlashQuery handler registration idempotent', async () => {
+    const { registerHandlers } = await import('./flashquery')
+
+    registerHandlers()
+    registerHandlers()
+
+    expect(mocks.handle).toHaveBeenCalledTimes(4)
+  })
+
   it('declares the exact Phase 3 FlashQuery channel strings', () => {
     expect(FLASHQUERY_SET_CONNECTION).toBe('flashquery:setConnection')
     expect(FLASHQUERY_LIST_VAULT).toBe('flashquery:listVault')
@@ -176,5 +185,58 @@ describe('FlashQuery IPC handlers', () => {
     await expect(handler({}, 'workspace-1', { transport: 'http', url: 'ftp://flashquery.local' }))
       .rejects.toThrow(/http or https/i)
     expect(mocks.updateWorkspace).not.toHaveBeenCalled()
+  })
+
+  it('T-I-012 and T-I-013 broadcasts direct manager status payloads with safe error handling', async () => {
+    const connection: FlashQueryConnection = { transport: 'http', url: 'https://flashquery.local' }
+    mocks.updateWorkspace.mockResolvedValue({
+      ok: true,
+      workspace: workspace({ flashqueryConnection: { transport: 'http', url: 'https://flashquery.local' } }),
+    })
+    const handler = await registeredSetConnectionHandler()
+
+    await handler({}, 'workspace-1', connection)
+    const subscription = mocks.managerInstances[0].subscriptions[0]
+
+    expect(subscription).toMatchObject({ workspaceId: 'workspace-1', type: 'status' })
+
+    subscription.handler({ workspaceId: 'workspace-1', status: 'connecting', error: 'stale error' })
+    subscription.handler({ workspaceId: 'workspace-1', status: 'live', version: '1.2.3', error: 'stale error' })
+    subscription.handler({ workspaceId: 'workspace-1', status: 'disconnected', error: 'Connection refused' })
+
+    expect(mocks.broadcastToAll).toHaveBeenCalledWith(FLASHQUERY_STATUS, {
+      workspaceId: 'workspace-1',
+      status: 'connecting',
+    })
+    expect(mocks.broadcastToAll).toHaveBeenCalledWith(FLASHQUERY_STATUS, {
+      workspaceId: 'workspace-1',
+      status: 'live',
+      version: '1.2.3',
+    })
+    expect(mocks.broadcastToAll).toHaveBeenCalledWith(FLASHQUERY_STATUS, {
+      workspaceId: 'workspace-1',
+      status: 'disconnected',
+      error: 'Connection refused',
+    })
+  })
+
+  it('T-I-014 uses broadcastToAll as the status fanout primitive without duplicate workspace subscriptions', async () => {
+    const connection: FlashQueryConnection = { transport: 'http', url: 'https://flashquery.local' }
+    mocks.updateWorkspace.mockResolvedValue({
+      ok: true,
+      workspace: workspace({ flashqueryConnection: { transport: 'http', url: 'https://flashquery.local' } }),
+    })
+    const handler = await registeredSetConnectionHandler()
+
+    await handler({}, 'workspace-1', connection)
+    await handler({}, 'workspace-1', connection)
+
+    expect(mocks.managerInstances[0].subscribe).toHaveBeenCalledTimes(2)
+    mocks.managerInstances[0].subscriptions[1].handler({ workspaceId: 'workspace-1', status: 'live' })
+
+    expect(mocks.broadcastToAll).toHaveBeenLastCalledWith(FLASHQUERY_STATUS, {
+      workspaceId: 'workspace-1',
+      status: 'live',
+    })
   })
 })
