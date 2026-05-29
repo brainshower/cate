@@ -116,11 +116,11 @@ Prove a Cate workspace can connect to a separately-running FlashQuery HTTP MCP s
 - Save, cancel, and remove flows update state only through the IPC surface.
 - Workspace context menu contains the FlashQuery Connection entry in the specified position and opens the dialog.
 
-**Plans:**
+**Plans:** 3 plans
 
-- [ ] **5.1 Dialog state and shell.** Add UI-store visibility state and modal scaffolding.
-- [ ] **5.2 Form behavior.** Implement URL/token fields, reveal toggle, validation, prepopulation, probe, save, cancel, and remove flows.
-- [ ] **5.3 Workspace menu wiring.** Add the context-menu item and tests for position, action, and native-menu behavior.
+- [ ] `05-01-PLAN.md` — Dialog state and shell: verify UI-store state, create and mount the modal shell, and cover close behavior.
+- [ ] `05-02-PLAN.md` — Form behavior: implement URL/token fields, reveal toggle, validation, prepopulation, dry-run probe, save, cancel, and remove flows.
+- [ ] `05-03-PLAN.md` — Workspace menu wiring: add the native context-menu item and tests for position, action, and native-menu behavior.
 
 ## Phase 6: Editor URI-Awareness + Vault Badge
 
