@@ -706,6 +706,32 @@ describe('FlashQueryClientManager', () => {
     expect(args).not.toHaveProperty('expected_version')
     expect(args).not.toHaveProperty('if_match')
   })
+
+  it('returns safe write failures for malformed JSON and token-bearing transport errors', async () => {
+    workspaceMock.workspaces = [workspaceInfo({ transport: 'http', url: 'http://127.0.0.1:3100' })]
+    workspaceMock.token = 'secret-token'
+    const malformedManager = new FlashQueryClientManager({
+      createMcpClient: async () => ({
+        callTool: vi.fn().mockResolvedValue({ content: [{ type: 'text', text: '{not-json' }] }),
+      }),
+    })
+
+    await expect(malformedManager.writeDocument('workspace-1', 'Plan.md', 'body')).resolves.toEqual({
+      success: false,
+      error: 'FlashQuery write_document returned malformed JSON',
+    })
+
+    const rejectingManager = new FlashQueryClientManager({
+      createMcpClient: async () => ({
+        callTool: vi.fn().mockRejectedValue(new Error('Authorization failed for secret-token')),
+      }),
+    })
+
+    await expect(rejectingManager.writeDocument('workspace-1', 'Plan.md', 'body')).resolves.toEqual({
+      success: false,
+      error: 'Authorization failed for [redacted]',
+    })
+  })
 })
 
 function workspaceInfo(connection: FlashQueryConnection = { transport: 'http', url: 'http://127.0.0.1:3100' }) {

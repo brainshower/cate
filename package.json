@@ -45,6 +45,7 @@
     "@earendil-works/pi-agent-core": "^0.75.4",
     "@earendil-works/pi-ai": "^0.75.5",
     "@earendil-works/pi-coding-agent": "^0.75.4",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@phosphor-icons/react": "^2.1.10",
     "@sentry/electron": "^5.11.0",
     "@xterm/addon-fit": "^0.10.0",

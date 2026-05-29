@@ -103,16 +103,41 @@ async function setConnection(workspaceId: string, connection: unknown): Promise<
   return result
 }
 
-async function listVault(_workspaceId: string, _vaultPath?: string): Promise<never> {
-  flashQueryHandlerUnavailable('listVault')
+function requireNonEmptyString(value: unknown, field: string): string {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new Error(`${field} must be a non-empty string`)
+  }
+  return value
 }
 
-async function getDocument(_workspaceId: string, _vaultPath: string): Promise<never> {
-  flashQueryHandlerUnavailable('getDocument')
+async function listVault(workspaceId: string, vaultPath?: string) {
+  requireNonEmptyString(workspaceId, 'workspaceId')
+  if (vaultPath !== undefined && typeof vaultPath !== 'string') {
+    throw new Error('vaultPath must be a string when provided')
+  }
+  return flashQueryClientManager.listVault(workspaceId, vaultPath)
 }
 
-async function writeDocument(_workspaceId: string, _vaultPath: string, _content: string): Promise<never> {
-  flashQueryHandlerUnavailable('writeDocument')
+async function getDocument(workspaceId: string, vaultPath: string) {
+  return flashQueryClientManager.getDocument(
+    requireNonEmptyString(workspaceId, 'workspaceId'),
+    requireNonEmptyString(vaultPath, 'vaultPath'),
+  )
+}
+
+async function writeDocument(workspaceId: string, vaultPath: string, content: string) {
+  try {
+    return await flashQueryClientManager.writeDocument(
+      requireNonEmptyString(workspaceId, 'workspaceId'),
+      requireNonEmptyString(vaultPath, 'vaultPath'),
+      requireNonEmptyString(content, 'content'),
+    )
+  } catch (error) {
+    return {
+      success: false as const,
+      error: error instanceof Error ? error.message : String(error),
+    }
+  }
 }
 
 export function registerHandlers(): void {
