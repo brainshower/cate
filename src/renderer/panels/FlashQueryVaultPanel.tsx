@@ -43,6 +43,25 @@ function withoutPath(paths: Set<string>, vaultPath: string): Set<string> {
   return new Set([...paths].filter((path) => path !== vaultPath))
 }
 
+function collectAvailablePaths(
+  entries: FlashQueryVaultEntry[],
+  childrenByPath: Record<string, FlashQueryVaultEntry[]>,
+): { paths: Set<string>; folderPaths: Set<string> } {
+  const paths = new Set<string>()
+  const folderPaths = new Set<string>()
+  const visit = (entryList: FlashQueryVaultEntry[]) => {
+    for (const entry of entryList) {
+      paths.add(entry.vaultPath)
+      if (entry.type === 'folder') {
+        folderPaths.add(entry.vaultPath)
+        visit(childrenByPath[entry.vaultPath] ?? [])
+      }
+    }
+  }
+  visit(entries)
+  return { paths, folderPaths }
+}
+
 function SkeletonTree() {
   return (
     <div data-testid="vault-skeleton-tree" className="flex flex-col gap-2 px-3 py-2">
@@ -177,6 +196,8 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
   const [rootLoaded, setRootLoaded] = useState(false)
   const lastSelectedPathRef = useRef<string | null>(null)
   const listRequestRef = useRef(0)
+  const rootLoadingRef = useRef(false)
+  const childrenByPathRef = useRef<Record<string, FlashQueryVaultEntry[]>>({})
   const folderRequestRef = useRef<Record<string, number>>({})
 
   const host = useMemo(() => connection ? hostFromUrl(connection.url) : '', [connection])
@@ -188,17 +209,36 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
   }, [workspaceId])
 
   const loadRoot = useCallback(async () => {
+    if (rootLoadingRef.current) return
+    rootLoadingRef.current = true
     const requestId = ++listRequestRef.current
     setRootLoading(true)
     try {
       const entries = await window.electronAPI.flashqueryListVault(workspaceId)
       if (requestId !== listRequestRef.current) return
       setRootEntries(entries)
+      const available = collectAvailablePaths(entries, childrenByPathRef.current)
+      setExpandedPaths((prev) => new Set([...prev].filter((path) => available.folderPaths.has(path))))
+      setSelectedPaths((prev) => new Set([...prev].filter((path) => available.paths.has(path))))
+      setChildrenByPath((prev) => Object.fromEntries(
+        Object.entries(prev).filter(([path]) => available.folderPaths.has(path)),
+      ))
+      setLoadedFolderPaths((prev) => new Set([...prev].filter((path) => available.folderPaths.has(path))))
+      if (lastSelectedPathRef.current && !available.paths.has(lastSelectedPathRef.current)) {
+        lastSelectedPathRef.current = null
+      }
       setRootLoaded(true)
     } finally {
-      if (requestId === listRequestRef.current) setRootLoading(false)
+      if (requestId === listRequestRef.current) {
+        rootLoadingRef.current = false
+        setRootLoading(false)
+      }
     }
   }, [workspaceId])
+
+  useEffect(() => {
+    childrenByPathRef.current = childrenByPath
+  }, [childrenByPath])
 
   const visibleRows = useMemo(
     () => flattenVisibleRows(rootEntries, expandedPaths, childrenByPath),
@@ -411,8 +451,13 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
           aria-label="Refresh vault"
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-muted transition-colors hover:bg-hover hover:text-primary"
           onClick={loadRoot}
+          disabled={rootLoading}
         >
-          <ArrowsClockwise size={14} />
+          <ArrowsClockwise
+            size={14}
+            className={rootLoading ? 'text-teal-400' : undefined}
+            style={{ animation: rootLoading ? 'spin 0.9s linear infinite' : undefined }}
+          />
         </button>
       </div>
       <div className="flex min-h-0 flex-1 flex-col">
