@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowsClockwise, CaretRight, CircleNotch, FileText, Folder, FolderOpen, Vault } from '@phosphor-icons/react'
+import { ArrowsClockwise, CaretRight, CircleNotch, FileText, Folder, FolderOpen, Plug, Vault, WarningCircle } from '@phosphor-icons/react'
 
 import { Chip, type ConnectionStatus } from '../components/Chip'
 import { useAppStore } from '../stores/appStore'
@@ -81,6 +81,7 @@ function SkeletonTree() {
 function EmptyState() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-2 px-5 text-center text-xs">
+      <Folder data-testid="vault-state-empty-icon" size={28} className="text-muted" />
       <div className="text-primary">This vault has no documents yet.</div>
       <div className="max-w-72 text-muted">Create a document in FlashQuery to see it here.</div>
     </div>
@@ -157,6 +158,7 @@ function VaultTree({
           >
             {isFolder ? (
               <CaretRight
+                data-testid={`vault-row-chevron-${entry.vaultPath}`}
                 size={11}
                 className="shrink-0 text-muted transition-transform"
                 style={{ transform: isExpanded ? 'rotate(90deg)' : undefined }}
@@ -164,7 +166,7 @@ function VaultTree({
             ) : (
               <span className="w-3 shrink-0" />
             )}
-            <Icon size={14} weight={isFolder ? 'fill' : 'regular'} className={`shrink-0 ${isFolder ? 'text-teal-400' : 'text-muted'}`} />
+            <Icon data-testid={`vault-row-icon-${entry.vaultPath}`} size={14} weight={isFolder ? 'fill' : 'regular'} className={`shrink-0 ${isFolder ? 'text-teal-400' : 'text-muted'}`} />
             <span className="min-w-0 truncate">{label}</span>
             {isLoading && (
               <CircleNotch
@@ -371,6 +373,7 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
   if (!connection) {
     body = (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 px-5 text-center text-xs">
+        <Plug data-testid="vault-state-no-connection-icon" size={28} className="text-muted" />
         <div className="text-primary">No FlashQuery connection configured for this workspace.</div>
         <div className="max-w-80 text-muted">Right-click the workspace name in the sidebar and pick 'FlashQuery connection…' to set one up.</div>
         <button
@@ -385,6 +388,7 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
   } else if (status?.kind === 'disconnected') {
     body = (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 px-5 text-center text-xs">
+        <WarningCircle data-testid="vault-state-disconnected-icon" size={28} className="text-muted" />
         <div className="text-primary">Can't reach FlashQuery.</div>
         <div className="max-w-80 text-muted">{status.error ?? `Unable to connect to ${host}.`}</div>
         <div className="flex items-center gap-2">
@@ -437,11 +441,11 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-surface-4">
-      <div className="flex h-10 shrink-0 items-center gap-2 border-b border-subtle px-3">
+      <div data-testid="vault-panel-header" className="flex h-8 shrink-0 items-center gap-2 border-b border-subtle px-3">
         <Vault size={16} weight="duotone" className="shrink-0 text-teal-400" />
         <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
-          {host && <span className="min-w-0 truncate text-xs text-muted">· {host}</span>}
-          <span className="shrink-0 text-xs font-medium text-primary">FlashQuery Vault</span>
+          <span data-testid="vault-panel-header-label" className="shrink-0 text-xs text-secondary">FlashQuery Vault</span>
+          {host && <span data-testid="vault-panel-header-host" className="min-w-0 truncate text-xs text-muted">· {host}</span>}
         </div>
         {connection && (
           <Chip state={chipState} onRetry={retry} />

@@ -71,7 +71,7 @@ function getChipContent(state: ConnectionStatus): ChipContent {
       return {
         label: 'Disconnected',
         icon: statusDot('#FF453A'),
-        labelClassName: 'text-secondary',
+        labelClassName: 'text-red-400',
       }
     case 'unknown':
       return {
@@ -94,11 +94,12 @@ export function Chip({ state, onRetry }: ChipProps) {
   const isDisconnected = state.kind === 'disconnected'
   const tooltipError = isDisconnected ? state.error : undefined
 
-  const className = `relative inline-flex items-center gap-1.5 px-2 whitespace-nowrap select-none ${content.labelClassName}`
+  const className = 'relative inline-flex items-center gap-1.5 px-2 whitespace-nowrap select-none'
   const commonProps = {
     className,
     style: {
       ...chipStyle,
+      background: isDisconnected && showTooltip ? 'var(--surface-5)' : chipStyle.background,
       cursor: isDisconnected ? 'pointer' : 'default',
     },
     onMouseEnter: () => {
@@ -110,7 +111,7 @@ export function Chip({ state, onRetry }: ChipProps) {
   const inner = (
     <>
       {content.icon}
-      <span>{content.label}</span>
+      <span className={content.labelClassName}>{content.label}</span>
       {isDisconnected && showTooltip && (
         <span
           role="tooltip"

@@ -28,6 +28,7 @@ describe('Chip', () => {
 
     expect(screen.getByText('Disconnected')).toBeTruthy()
     expect(container.querySelector('[data-chip-dot]')).toHaveProperty('style.backgroundColor', 'rgb(255, 69, 58)')
+    expect(screen.getByText('Disconnected').className).toContain('text-red-400')
   })
 
   it('renders an unknown fallback for future states without throwing', () => {
@@ -53,10 +54,14 @@ describe('Chip', () => {
 
     expect(screen.queryByText('Server is offline')).toBeNull()
 
-    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Disconnected' }))
+    const chip = screen.getByRole('button', { name: 'Disconnected' })
+    const restingBackground = chip.style.background
+
+    fireEvent.mouseEnter(chip)
 
     expect(screen.getByText('Server is offline')).toBeTruthy()
     expect(screen.getByText('Click to retry')).toBeTruthy()
+    expect(chip.style.background).not.toBe(restingBackground)
   })
 
   it('does not fire retry for live or connecting clicks', () => {

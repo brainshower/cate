@@ -121,13 +121,29 @@ describe('FlashQueryVaultPanel Header', () => {
   it('renders the vault identity, host context, status chip, and refresh button', async () => {
     renderPanel()
 
-    expect(screen.getByText('FlashQuery Vault')).toBeTruthy()
-    expect(screen.getAllByText(/flashquery\.local:8787/).length).toBeGreaterThan(0)
+    const label = screen.getByTestId('vault-panel-header-label')
+    const host = screen.getByTestId('vault-panel-header-host')
+    const header = screen.getByTestId('vault-panel-header')
+
+    expect(label.textContent).toBe('FlashQuery Vault')
+    expect(label.className).toContain('text-secondary')
+    expect(host.textContent).toBe('· flashquery.local:8787')
+    expect(host.className).toContain('truncate')
+    expect(label.compareDocumentPosition(host) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(header.className).toContain('h-8')
     expect(screen.getByLabelText('Refresh vault')).toBeTruthy()
 
     statusListener?.({ workspaceId, status: 'live' })
 
     expect(await screen.findByText('Live')).toBeTruthy()
+  })
+
+  it('keeps the FlashQuery Vault label visible while a long host is truncatable', () => {
+    seedWorkspace({ transport: 'http', url: 'https://a-very-long-flashquery-hostname-that-should-truncate.example.internal:8787/mcp' })
+    renderPanel()
+
+    expect(screen.getByTestId('vault-panel-header-label').textContent).toBe('FlashQuery Vault')
+    expect(screen.getByTestId('vault-panel-header-host').className).toContain('truncate')
   })
 })
 
@@ -136,6 +152,7 @@ describe('FlashQueryVaultPanel State', () => {
     seedWorkspace(undefined)
     renderPanel()
 
+    expect(screen.getByTestId('vault-state-no-connection-icon')).toBeTruthy()
     expect(screen.getByText('No FlashQuery connection configured for this workspace.')).toBeTruthy()
     expect(screen.getByText("Right-click the workspace name in the sidebar and pick 'FlashQuery connection…' to set one up.")).toBeTruthy()
 
@@ -158,6 +175,7 @@ describe('FlashQueryVaultPanel State', () => {
 
     statusListener?.({ workspaceId, status: 'disconnected', error: 'ECONNREFUSED' })
 
+    expect(await screen.findByTestId('vault-state-disconnected-icon')).toBeTruthy()
     expect(await screen.findByText("Can't reach FlashQuery.")).toBeTruthy()
     expect(screen.getByText('ECONNREFUSED')).toBeTruthy()
 
@@ -173,6 +191,7 @@ describe('FlashQueryVaultPanel State', () => {
     statusListener?.({ workspaceId, status: 'live' })
 
     expect(await screen.findByText('This vault has no documents yet.')).toBeTruthy()
+    expect(screen.getByTestId('vault-state-empty-icon')).toBeTruthy()
     expect(screen.getByText('Create a document in FlashQuery to see it here.')).toBeTruthy()
     expect(screen.queryByRole('button', { name: /create/i })).toBeNull()
   })
@@ -209,8 +228,11 @@ describe('FlashQueryVaultPanel row and folder behavior', () => {
       { name: 'Project.md', title: 'Project Brief', type: 'document', vaultPath: 'Project.md' },
     ])
 
-    expect(screen.getByRole('treeitem', { name: /Notes/ })).toBeTruthy()
-    expect(screen.getByRole('treeitem', { name: /Project Brief/ })).toBeTruthy()
+    expect(screen.getByRole('treeitem', { name: /Notes/ })).toHaveProperty('style.paddingLeft', '8px')
+    expect(screen.getByRole('treeitem', { name: /Project Brief/ })).toHaveProperty('style.paddingLeft', '8px')
+    expect(screen.getByTestId('vault-row-chevron-Notes')).toBeTruthy()
+    expect(screen.getByTestId('vault-row-icon-Notes')).toBeTruthy()
+    expect(screen.getByTestId('vault-row-icon-Project.md')).toBeTruthy()
   })
 
   it('loads a folder once when expanded and shows a folder loading indicator', async () => {
@@ -228,6 +250,37 @@ describe('FlashQueryVaultPanel row and folder behavior', () => {
     fireEvent.click(screen.getByRole('treeitem', { name: /Notes/ }))
 
     expect(api.flashqueryListVault).toHaveBeenCalledTimes(2)
+  })
+
+  it('shows a folder loading indicator while lazy folder fetch is in flight', async () => {
+    const pending = deferredEntries()
+    const rootEntries: FlashQueryVaultEntry[] = [{ name: 'Notes', type: 'folder', vaultPath: 'Notes' }]
+    const api: ElectronApiMock = {
+      flashqueryListVault: vi.fn((_: string, vaultPath?: string) => {
+        if (vaultPath === 'Notes') return pending.promise
+        return Promise.resolve(rootEntries)
+      }),
+      flashqueryRetry: vi.fn().mockResolvedValue(undefined),
+      onFlashQueryStatus: vi.fn((callback) => {
+        statusListener = callback
+        return () => {
+          statusListener = null
+        }
+      }),
+      showContextMenu: vi.fn().mockResolvedValue(null),
+    }
+    setElectronApi(api)
+    renderPanel()
+    statusListener?.({ workspaceId, status: 'live' })
+    await waitFor(() => expect(api.flashqueryListVault).toHaveBeenCalledWith(workspaceId))
+
+    fireEvent.click(screen.getByRole('treeitem', { name: /Notes/ }))
+
+    expect(await screen.findByTestId('vault-loading-Notes')).toBeTruthy()
+
+    pending.resolve([{ name: 'Daily.md', type: 'document', vaultPath: 'Notes/Daily.md' }])
+    expect(await screen.findByText('Daily.md')).toBeTruthy()
+    await waitFor(() => expect(screen.queryByTestId('vault-loading-Notes')).toBeNull())
   })
 
   it('selects a document row on single click without opening it', async () => {
@@ -275,6 +328,22 @@ describe('FlashQueryVaultPanel row and folder behavior', () => {
       undefined,
       { target: 'canvas' },
     )
+  })
+
+  it('opens the document in dock mode from the Open context menu action', async () => {
+    const api = await renderLiveTree([
+      { name: 'Project.md', type: 'document', vaultPath: 'Project.md' },
+    ])
+    vi.mocked(api.showContextMenu).mockResolvedValueOnce('open')
+
+    fireEvent.contextMenu(screen.getByRole('treeitem', { name: /Project.md/ }))
+
+    await waitFor(() => expect(createEditorSpy).toHaveBeenCalledWith(
+      workspaceId,
+      'flashquery://workspace-1/Project.md',
+      undefined,
+      { target: 'dock', zone: 'center' },
+    ))
   })
 
   it('does not show a context menu for folder rows', async () => {
