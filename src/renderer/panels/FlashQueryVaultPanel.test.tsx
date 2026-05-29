@@ -42,6 +42,37 @@ const makeElectronApi = (
   showContextMenu: vi.fn().mockResolvedValue(null),
 })
 
+const makeSequencedElectronApi = (
+  rootResponses: Array<FlashQueryVaultEntry[] | Promise<FlashQueryVaultEntry[]>>,
+  childrenByPath: Record<string, FlashQueryVaultEntry[]> = {},
+): ElectronApiMock => {
+  let rootIndex = 0
+  return {
+    flashqueryListVault: vi.fn((_: string, vaultPath?: string) => {
+      if (vaultPath) return Promise.resolve(childrenByPath[vaultPath] ?? [])
+      const response = rootResponses[Math.min(rootIndex, rootResponses.length - 1)] ?? []
+      rootIndex += 1
+      return Promise.resolve(response)
+    }),
+    flashqueryRetry: vi.fn().mockResolvedValue(undefined),
+    onFlashQueryStatus: vi.fn((callback) => {
+      statusListener = callback
+      return () => {
+        statusListener = null
+      }
+    }),
+    showContextMenu: vi.fn().mockResolvedValue(null),
+  }
+}
+
+function deferredEntries() {
+  let resolve!: (entries: FlashQueryVaultEntry[]) => void
+  const promise = new Promise<FlashQueryVaultEntry[]>((done) => {
+    resolve = done
+  })
+  return { promise, resolve }
+}
+
 function setElectronApi(api: ElectronApiMock) {
   Object.defineProperty(window, 'electronAPI', {
     configurable: true,
@@ -272,5 +303,134 @@ describe('FlashQueryVaultPanel row and folder behavior', () => {
     fireEvent.click(screen.getByRole('treeitem', { name: /B.md/ }), { metaKey: true })
 
     expect(screen.getByRole('treeitem', { name: /B.md/ }).getAttribute('aria-selected')).toBe('false')
+  })
+})
+
+describe('FlashQueryVaultPanel refresh behavior and design tokens', () => {
+  async function renderLiveTreeWithApi(api: ElectronApiMock) {
+    setElectronApi(api)
+    renderPanel()
+    statusListener?.({ workspaceId, status: 'live' })
+    await waitFor(() => expect(api.flashqueryListVault).toHaveBeenCalledWith(workspaceId))
+  }
+
+  it('refresh calls the root vault listing', async () => {
+    const api = makeSequencedElectronApi([
+      [{ name: 'A.md', type: 'document', vaultPath: 'A.md' }],
+      [{ name: 'B.md', type: 'document', vaultPath: 'B.md' }],
+    ])
+    await renderLiveTreeWithApi(api)
+
+    fireEvent.click(screen.getByLabelText('Refresh vault'))
+
+    await waitFor(() => expect(api.flashqueryListVault).toHaveBeenCalledTimes(2))
+    expect(api.flashqueryListVault).toHaveBeenLastCalledWith(workspaceId)
+    expect(await screen.findByText('B.md')).toBeTruthy()
+  })
+
+  it('ignores duplicate refresh clicks while root reload is in flight', async () => {
+    const pending = deferredEntries()
+    const api = makeSequencedElectronApi([
+      [{ name: 'A.md', type: 'document', vaultPath: 'A.md' }],
+      pending.promise,
+    ])
+    await renderLiveTreeWithApi(api)
+
+    fireEvent.click(screen.getByLabelText('Refresh vault'))
+    fireEvent.click(screen.getByLabelText('Refresh vault'))
+
+    expect(api.flashqueryListVault).toHaveBeenCalledTimes(2)
+
+    pending.resolve([{ name: 'B.md', type: 'document', vaultPath: 'B.md' }])
+    expect(await screen.findByText('B.md')).toBeTruthy()
+  })
+
+  it('preserves expanded folders that still exist after refresh', async () => {
+    const api = makeSequencedElectronApi(
+      [
+        [{ name: 'Notes', type: 'folder', vaultPath: 'Notes' }],
+        [{ name: 'Notes', type: 'folder', vaultPath: 'Notes' }],
+      ],
+      { Notes: [{ name: 'Daily.md', type: 'document', vaultPath: 'Notes/Daily.md' }] },
+    )
+    await renderLiveTreeWithApi(api)
+    fireEvent.click(screen.getByRole('treeitem', { name: /Notes/ }))
+    expect(await screen.findByText('Daily.md')).toBeTruthy()
+
+    fireEvent.click(screen.getByLabelText('Refresh vault'))
+
+    await waitFor(() => expect(api.flashqueryListVault).toHaveBeenCalledTimes(3))
+    expect(screen.getByText('Daily.md')).toBeTruthy()
+  })
+
+  it('removes expansion and selection for vault paths missing after refresh', async () => {
+    const api = makeSequencedElectronApi(
+      [
+        [{ name: 'Notes', type: 'folder', vaultPath: 'Notes' }],
+        [{ name: 'Other.md', type: 'document', vaultPath: 'Other.md' }],
+      ],
+      { Notes: [{ name: 'Daily.md', type: 'document', vaultPath: 'Notes/Daily.md' }] },
+    )
+    await renderLiveTreeWithApi(api)
+    fireEvent.click(screen.getByRole('treeitem', { name: /Notes/ }))
+    fireEvent.click(await screen.findByRole('treeitem', { name: /Daily.md/ }))
+    expect(screen.getByRole('treeitem', { name: /Daily.md/ }).getAttribute('aria-selected')).toBe('true')
+
+    fireEvent.click(screen.getByLabelText('Refresh vault'))
+
+    await waitFor(() => expect(screen.queryByText('Daily.md')).toBeNull())
+    expect(screen.queryByRole('treeitem', { name: /Notes/ })).toBeNull()
+  })
+
+  it('keeps a selected row selected when its vault path remains after refresh', async () => {
+    const api = makeSequencedElectronApi([
+      [{ name: 'A.md', type: 'document', vaultPath: 'A.md' }],
+      [{ name: 'A.md', title: 'A title', type: 'document', vaultPath: 'A.md' }],
+    ])
+    await renderLiveTreeWithApi(api)
+    fireEvent.click(screen.getByRole('treeitem', { name: /A.md/ }))
+
+    fireEvent.click(screen.getByLabelText('Refresh vault'))
+
+    expect(await screen.findByRole('treeitem', { name: /A title/ })).toHaveProperty('ariaSelected', 'true')
+  })
+
+  it('does not mutate open editor panels during refresh', async () => {
+    const api = makeSequencedElectronApi([
+      [{ name: 'A.md', type: 'document', vaultPath: 'A.md' }],
+      [{ name: 'A.md', type: 'document', vaultPath: 'A.md' }],
+    ])
+    seedWorkspace({ transport: 'http', url: 'https://flashquery.local:8787/mcp' })
+    useAppStore.setState((state) => ({
+      workspaces: state.workspaces.map((workspace) => workspace.id === workspaceId
+        ? {
+            ...workspace,
+            panels: {
+              editor_existing: {
+                id: 'editor_existing',
+                type: 'editor',
+                title: 'Existing.md',
+                isDirty: false,
+                filePath: 'flashquery://workspace-1/Existing.md',
+              },
+            },
+          }
+        : workspace),
+    }))
+    await renderLiveTreeWithApi(api)
+
+    fireEvent.click(screen.getByLabelText('Refresh vault'))
+    await waitFor(() => expect(api.flashqueryListVault).toHaveBeenCalledTimes(2))
+
+    const panels = useAppStore.getState().workspaces.find((workspace) => workspace.id === workspaceId)?.panels
+    expect(Object.keys(panels ?? {})).toEqual(['editor_existing'])
+    expect(createEditorSpy).not.toHaveBeenCalled()
+  })
+
+  it('does not render forbidden stock neutral utility classes', () => {
+    const rendered = render(<FlashQueryVaultPanel panelId="panel-1" workspaceId={workspaceId} />).container.innerHTML
+    const forbiddenStockNeutralPattern = /\b(?:gray|slate|zinc)\b/
+
+    expect(rendered).not.toMatch(forbiddenStockNeutralPattern)
   })
 })
