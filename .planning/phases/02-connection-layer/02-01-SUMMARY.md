@@ -26,7 +26,7 @@ key-files:
 
 key-decisions:
   - "Keep `/mcp/info` unauthenticated even when the workspace connection includes bearer auth."
-  - "Expose manager status through a generic event wrapper carrying workspaceId, event type, and status payload."
+- "Expose manager status through the generic subscribe callback as the status payload itself, carrying workspaceId inline for later renderer broadcasts."
   - "Leave retry timers and manual retry for Plan 02-02 while preserving attempt tracking for superseded probes."
 
 patterns-established:
@@ -77,7 +77,7 @@ completed: 2026-05-29
 
 ## Decisions Made
 
-- The manager emits status subscribers with a `FlashQueryClientEvent<FlashQueryStatusPayload>` wrapper so Phase 3 can map manager events to renderer broadcasts without losing `workspaceId`.
+- The manager now emits `FlashQueryStatusPayload` directly to status subscribers, with `workspaceId` inline, so Phase 3 can map manager events to renderer broadcasts while preserving the REQ-006 `(event: T) => void` callback contract.
 - The probe request uses only `method: 'GET'` and `Accept: 'application/json'`; bearer tokens are not read or sent for `/mcp/info`.
 - Retry scheduling remains deferred to Plan 02-02 per this plan's explicit scope.
 

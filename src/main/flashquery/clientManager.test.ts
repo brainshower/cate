@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { FlashQueryClientManager } from './clientManager'
-import type { FlashQueryClientEvent, FlashQueryStatusPayload } from './clientManager'
+import type { FlashQueryStatusPayload } from './clientManager'
 import type { FlashQueryConnection } from '../../shared/types'
 
 const originalFetch = globalThis.fetch
@@ -34,7 +34,7 @@ function failedInfoResponse(status = 503, statusText = 'Service Unavailable') {
 }
 
 function statusPayloads(handler: ReturnType<typeof vi.fn>): FlashQueryStatusPayload[] {
-  return handler.mock.calls.map((call) => (call[0] as FlashQueryClientEvent<FlashQueryStatusPayload>).payload)
+  return handler.mock.calls.map((call) => call[0] as FlashQueryStatusPayload)
 }
 
 afterEach(() => {
@@ -127,11 +127,11 @@ describe('FlashQueryClientManager', () => {
       url: 'http://127.0.0.1:3100',
     })
 
-    expect(result).toEqual({ status: 'live', version: '2.0.0', instanceId: 'fq-main' })
+    expect(result).toEqual({ workspaceId: 'workspace-1', status: 'live', version: '2.0.0', instanceId: 'fq-main' })
     expect(manager.getStatus('workspace-1')).toEqual(result)
     expect(statusPayloads(statusHandler)).toEqual([
-      { status: 'connecting' },
-      { status: 'live', version: '2.0.0', instanceId: 'fq-main' },
+      { workspaceId: 'workspace-1', status: 'connecting' },
+      { workspaceId: 'workspace-1', status: 'live', version: '2.0.0', instanceId: 'fq-main' },
     ])
   })
 
@@ -180,7 +180,7 @@ describe('FlashQueryClientManager', () => {
     expect(result.error).toContain('503')
     expect(result.error).toContain('Service Unavailable')
     expect(result.error).not.toContain('secret-token')
-    expect(statusPayloads(statusHandler)).toEqual([{ status: 'connecting' }, result])
+    expect(statusPayloads(statusHandler)).toEqual([{ workspaceId: 'workspace-1', status: 'connecting' }, result])
   })
 
   it('transitions to disconnected when the info payload is malformed', async () => {
@@ -199,6 +199,7 @@ describe('FlashQueryClientManager', () => {
     })
 
     expect(result).toEqual({
+      workspaceId: 'workspace-1',
       status: 'disconnected',
       error: 'FlashQuery info probe returned an invalid response',
     })
@@ -219,7 +220,7 @@ describe('FlashQueryClientManager', () => {
       url: 'http://127.0.0.1:3100',
     })
 
-    expect(result).toEqual({ status: 'disconnected', error: 'Unexpected token < in JSON' })
+    expect(result).toEqual({ workspaceId: 'workspace-1', status: 'disconnected', error: 'Unexpected token < in JSON' })
   })
 
   it('transitions to disconnected with safe rejection reason text when fetch rejects', async () => {
@@ -235,9 +236,9 @@ describe('FlashQueryClientManager', () => {
       auth: { type: 'bearer', token: 'secret-token' },
     })
 
-    expect(result).toEqual({ status: 'disconnected', error: 'connection refused' })
+    expect(result).toEqual({ workspaceId: 'workspace-1', status: 'disconnected', error: 'connection refused' })
     expect(JSON.stringify(statusHandler.mock.calls)).not.toContain('secret-token')
-    expect(statusPayloads(statusHandler)).toEqual([{ status: 'connecting' }, result])
+    expect(statusPayloads(statusHandler)).toEqual([{ workspaceId: 'workspace-1', status: 'connecting' }, result])
   })
 
   it('times out a hung info probe and schedules retry', async () => {
@@ -264,15 +265,16 @@ describe('FlashQueryClientManager', () => {
     })
 
     await vi.advanceTimersByTimeAsync(9_999)
-    expect(statusPayloads(statusHandler)).toEqual([{ status: 'connecting' }])
+    expect(statusPayloads(statusHandler)).toEqual([{ workspaceId: 'workspace-1', status: 'connecting' }])
     await vi.advanceTimersByTimeAsync(1)
     await expect(connectPromise).resolves.toEqual({
       status: 'disconnected',
+      workspaceId: 'workspace-1',
       error: 'FlashQuery info probe timed out',
     })
     expect(statusPayloads(statusHandler)).toEqual([
-      { status: 'connecting' },
-      { status: 'disconnected', error: 'FlashQuery info probe timed out' },
+      { workspaceId: 'workspace-1', status: 'connecting' },
+      { workspaceId: 'workspace-1', status: 'disconnected', error: 'FlashQuery info probe timed out' },
     ])
 
     await vi.advanceTimersByTimeAsync(2_000)
@@ -298,15 +300,15 @@ describe('FlashQueryClientManager', () => {
       url: 'http://127.0.0.1:3200',
     })
 
-    expect(liveResult).toEqual({ status: 'live', version: '2.1.0', instanceId: 'fq-live' })
+    expect(liveResult).toEqual({ workspaceId: 'workspace-live', status: 'live', version: '2.1.0', instanceId: 'fq-live' })
     expect(failedResult.status).toBe('disconnected')
     expect(failedResult.error).toContain('502')
     expect(statusPayloads(liveHandler)).toEqual([
-      { status: 'connecting' },
-      { status: 'live', version: '2.1.0', instanceId: 'fq-live' },
+      { workspaceId: 'workspace-live', status: 'connecting' },
+      { workspaceId: 'workspace-live', status: 'live', version: '2.1.0', instanceId: 'fq-live' },
     ])
     expect(statusPayloads(failedHandler)).toEqual([
-      { status: 'connecting' },
+      { workspaceId: 'workspace-failed', status: 'connecting' },
       failedResult,
     ])
   })
@@ -382,6 +384,7 @@ describe('FlashQueryClientManager', () => {
     await vi.advanceTimersByTimeAsync(2_000)
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(manager.getStatus('workspace-1')).toEqual({
+      workspaceId: 'workspace-1',
       status: 'live',
       version: '2.2.0',
       instanceId: 'fq-reset',
@@ -419,11 +422,11 @@ describe('FlashQueryClientManager', () => {
       transport: 'http',
       url: 'http://127.0.0.1:3100',
     })
-    expect(statusPayloads(lateHandler)).toEqual([{ status: 'connecting' }])
+    expect(statusPayloads(lateHandler)).toEqual([{ workspaceId: 'workspace-late', status: 'connecting' }])
     manager.dispose('workspace-late')
     resolveFetch(okInfoResponse('9.9.9', 'fq-late'))
     await connectPromise
-    expect(statusPayloads(lateHandler)).toEqual([{ status: 'connecting' }])
+    expect(statusPayloads(lateHandler)).toEqual([{ workspaceId: 'workspace-late', status: 'connecting' }])
     expect(manager.getStatus('workspace-late')).toBeNull()
   })
 
@@ -448,15 +451,17 @@ describe('FlashQueryClientManager', () => {
     })
 
     const expectedPayloads: FlashQueryStatusPayload[] = [
-      { status: 'connecting' },
-      { status: 'live', version: '3.0.0', instanceId: 'fq-subscriber' },
-      { status: 'connecting' },
-      { status: 'disconnected', error: 'subscriber connection refused' },
+      { workspaceId: 'workspace-1', status: 'connecting' },
+      { workspaceId: 'workspace-1', status: 'live', version: '3.0.0', instanceId: 'fq-subscriber' },
+      { workspaceId: 'workspace-1', status: 'connecting' },
+      { workspaceId: 'workspace-1', status: 'disconnected', error: 'subscriber connection refused' },
     ]
     expect(statusPayloads(firstHandler)).toEqual(expectedPayloads)
     expect(statusPayloads(secondHandler)).toEqual(expectedPayloads)
     for (const call of firstHandler.mock.calls) {
-      expect(call[0]).toMatchObject({ workspaceId: 'workspace-1', type: 'status' })
+      expect(call[0]).toMatchObject({ workspaceId: 'workspace-1' })
+      expect(call[0]).not.toHaveProperty('type')
+      expect(call[0]).not.toHaveProperty('payload')
     }
   })
 
@@ -474,14 +479,15 @@ describe('FlashQueryClientManager', () => {
     await expect(manager.connect('workspace-1', {
       transport: 'http',
       url: 'http://127.0.0.1:3100',
-    })).resolves.toEqual({ status: 'live', version: '3.0.1', instanceId: 'fq-subscriber-safe' })
+    })).resolves.toEqual({ workspaceId: 'workspace-1', status: 'live', version: '3.0.1', instanceId: 'fq-subscriber-safe' })
 
     expect(statusPayloads(healthyHandler)).toEqual([
-      { status: 'connecting' },
-      { status: 'live', version: '3.0.1', instanceId: 'fq-subscriber-safe' },
+      { workspaceId: 'workspace-1', status: 'connecting' },
+      { workspaceId: 'workspace-1', status: 'live', version: '3.0.1', instanceId: 'fq-subscriber-safe' },
     ])
     expect(throwingHandler).toHaveBeenCalledTimes(2)
     expect(manager.getStatus('workspace-1')).toEqual({
+      workspaceId: 'workspace-1',
       status: 'live',
       version: '3.0.1',
       instanceId: 'fq-subscriber-safe',
@@ -509,8 +515,8 @@ describe('FlashQueryClientManager', () => {
     })
 
     expect(statusPayloads(statusHandler)).toEqual([
-      { status: 'connecting' },
-      { status: 'live', version: '3.1.0', instanceId: 'fq-before-unsubscribe' },
+      { workspaceId: 'workspace-1', status: 'connecting' },
+      { workspaceId: 'workspace-1', status: 'live', version: '3.1.0', instanceId: 'fq-before-unsubscribe' },
     ])
   })
 
@@ -538,8 +544,8 @@ describe('FlashQueryClientManager', () => {
     unsubscribeFuture()
 
     expect(statusPayloads(workspaceHandler)).toEqual([
-      { status: 'connecting' },
-      { status: 'live', version: '3.3.0', instanceId: 'fq-isolated' },
+      { workspaceId: 'workspace-1', status: 'connecting' },
+      { workspaceId: 'workspace-1', status: 'live', version: '3.3.0', instanceId: 'fq-isolated' },
     ])
     expect(otherWorkspaceHandler).not.toHaveBeenCalled()
     expect(vaultHandler).not.toHaveBeenCalled()

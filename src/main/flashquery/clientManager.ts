@@ -2,17 +2,12 @@ import type { FlashQueryConnection } from '../../shared/types'
 
 export type FlashQueryClientEventType = 'status' | 'vault-changed' | 'tools-changed' | (string & {})
 
-export interface FlashQueryClientEvent<T = unknown> {
-  workspaceId: string
-  type: FlashQueryClientEventType
-  payload: T
-}
-
-export type FlashQueryClientEventHandler<T = unknown> = (event: FlashQueryClientEvent<T>) => void
+export type FlashQueryClientEventHandler<T = unknown> = (event: T) => void
 
 export type FlashQueryConnectionStatus = 'connecting' | 'live' | 'disconnected'
 
 export interface FlashQueryStatusPayload {
+  workspaceId: string
   status: FlashQueryConnectionStatus
   version?: string
   instanceId?: string
@@ -65,6 +60,7 @@ export class FlashQueryClientManager {
     const connection = state?.connection
     if (!state || !connection) {
       const payload: FlashQueryStatusPayload = {
+        workspaceId,
         status: 'disconnected',
         error: 'No FlashQuery connection is configured for this workspace',
       }
@@ -99,7 +95,7 @@ export class FlashQueryClientManager {
     state.attemptId += 1
     const attemptId = state.attemptId
 
-    this.emitStatus(workspaceId, state, { status: 'connecting' })
+    this.emitStatus(workspaceId, state, { workspaceId, status: 'connecting' })
 
     const abortController = new AbortController()
     const timeout = setTimeout(() => {
@@ -114,7 +110,7 @@ export class FlashQueryClientManager {
       })
 
       if (!this.isCurrentAttempt(workspaceId, state, attemptId)) {
-        return state.status ?? { status: 'disconnected', error: 'Connection attempt was superseded' }
+        return state.status ?? { workspaceId, status: 'disconnected', error: 'Connection attempt was superseded' }
       }
 
       if (!response.ok) {
@@ -128,7 +124,7 @@ export class FlashQueryClientManager {
 
       const info = this.parseInfoPayload(await response.json())
       if (!this.isCurrentAttempt(workspaceId, state, attemptId)) {
-        return state.status ?? { status: 'disconnected', error: 'Connection attempt was superseded' }
+        return state.status ?? { workspaceId, status: 'disconnected', error: 'Connection attempt was superseded' }
       }
 
       if (!info) {
@@ -141,6 +137,7 @@ export class FlashQueryClientManager {
       }
 
       const payload: FlashQueryStatusPayload = {
+        workspaceId,
         status: 'live',
         version: info.version,
         instanceId: info.instanceId,
@@ -151,7 +148,7 @@ export class FlashQueryClientManager {
       return payload
     } catch (error) {
       if (!this.isCurrentAttempt(workspaceId, state, attemptId)) {
-        return state.status ?? { status: 'disconnected', error: 'Connection attempt was superseded' }
+        return state.status ?? { workspaceId, status: 'disconnected', error: 'Connection attempt was superseded' }
       }
 
       return this.failConnection(workspaceId, state, connection, this.errorToSafeMessage(error, connection))
@@ -180,14 +177,9 @@ export class FlashQueryClientManager {
     const subscribers = state.subscribers.get('status')
     if (!subscribers) return
 
-    const event: FlashQueryClientEvent<FlashQueryStatusPayload> = {
-      workspaceId,
-      type: 'status',
-      payload,
-    }
     for (const handler of subscribers) {
       try {
-        handler(event)
+        handler(payload)
       } catch {
         // Subscriber failures must not alter connection state or suppress later handlers.
       }
@@ -200,7 +192,7 @@ export class FlashQueryClientManager {
     connection: FlashQueryConnection,
     error: string,
   ): FlashQueryStatusPayload {
-    const payload: FlashQueryStatusPayload = { status: 'disconnected', error }
+    const payload: FlashQueryStatusPayload = { workspaceId, status: 'disconnected', error }
     this.emitStatus(workspaceId, state, payload)
     this.scheduleRetry(workspaceId, state, connection)
     return payload

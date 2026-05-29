@@ -9,7 +9,7 @@ requires:
     provides: Plan 02-02 retry lifecycle and status event production
 provides:
   - Public coverage for workspace-scoped status subscribers
-  - Generic `FlashQueryClientEvent<T>` handler contract for typed event payloads
+  - Generic `FlashQueryClientEventHandler<T>` callback contract for typed event payloads
   - Verified status-only Phase 2 emission discipline with future event registration tolerance
 affects: [flashquery-client-manager, phase-03-ipc, phase-04-status-chip]
 
@@ -26,7 +26,7 @@ key-files:
 
 key-decisions:
   - "Keep Phase 2 manager events status-only while accepting registration for future event type strings."
-  - "Type `FlashQueryClientEventHandler<T>` as receiving `FlashQueryClientEvent<T>` so payload generics match the runtime event wrapper."
+  - "Post-gap remediation restored `FlashQueryClientEventHandler<T>` to `(event: T) => void`, with `FlashQueryStatusPayload` carrying `workspaceId` inline."
 
 patterns-established:
   - "Status subscribers receive `{ workspaceId, type: 'status', payload }` wrappers for every emitted status transition."
@@ -40,7 +40,7 @@ completed: 2026-05-29
 
 # Phase 02 Plan 03: Subscription Events Summary
 
-**FlashQuery manager subscriptions now have typed event wrappers with coverage for same-workspace delivery, unsubscribe, event-type isolation, and payload shape.**
+**FlashQuery manager subscriptions now deliver typed event payloads directly with coverage for same-workspace delivery, unsubscribe, event-type isolation, and payload shape.**
 
 ## Performance
 
@@ -54,7 +54,7 @@ completed: 2026-05-29
 
 - Added public tests for T-U-033 through T-U-039 using real `connect` probes and mocked fetch responses.
 - Covered multiple same-workspace status subscribers, idempotent unsubscribe behavior, cross-workspace isolation, future event-type isolation, and status payload error shape.
-- Tightened `FlashQueryClientEventHandler<T>` so handlers receive `FlashQueryClientEvent<T>`, matching the runtime wrapper emitted by `subscribe(workspaceId, 'status', handler)`.
+- Restored `FlashQueryClientEventHandler<T>` so handlers receive `T` directly, matching REQ-006's `subscribe(workspaceId, eventType, handler: (event: T) => void)` contract.
 - Verified Phase 2 added no `flashquery:*` IPC, preload, renderer, or broadcast surface.
 
 ## Task Commits
@@ -64,7 +64,7 @@ completed: 2026-05-29
 
 ## Files Created/Modified
 
-- `src/main/flashquery/clientManager.ts` - Finalizes the generic event handler type around `FlashQueryClientEvent<T>` payload wrappers.
+- `src/main/flashquery/clientManager.ts` - Finalizes the generic event handler type around direct payload delivery with `workspaceId` included in `FlashQueryStatusPayload`.
 - `src/main/flashquery/clientManager.test.ts` - Adds T-U-033 through T-U-039 coverage for subscription delivery, unsubscribe, workspace isolation, event-type isolation, and payload shape.
 - `.planning/phases/02-connection-layer/02-03-SUMMARY.md` - Records execution outcome and verification evidence.
 
@@ -77,7 +77,7 @@ completed: 2026-05-29
 ## Decisions Made
 
 - Kept `emitStatus` as the only Phase 2 event producer and left `vault-changed`, `tools-changed`, and arbitrary future event strings registration-only.
-- Treated the existing status event wrapper shape as the public contract for generics rather than changing runtime handler invocation to payload-only.
+- Resolved the status event wrapper drift by changing runtime handler invocation to payload-only and keeping `workspaceId` on the status payload.
 
 ## Deviations from Plan
 

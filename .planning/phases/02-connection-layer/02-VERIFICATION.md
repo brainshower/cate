@@ -76,7 +76,7 @@ No phase probes were declared or found for Phase 2. Step 7c skipped.
 | REQ-004 | `02-01-PLAN.md` | Connection probe via `GET /mcp/info` | SATISFIED | Fetch path, method, no Authorization, metadata parse, and failure classification verified in code and tests. |
 | REQ-005 | `02-02-PLAN.md` | Reconnection strategy | SATISFIED | Three states, failed-probe retry, bounded backoff, manual retry, success reset, and disposal cleanup verified in code and tests. |
 | REQ-006 | `02-03-PLAN.md` | Generic subscribe interface | SATISFIED | Event type union includes status/future strings, subscribe returns unsubscribe, workspace/event-type isolation verified. |
-| REQ-011 | `02-01/02/03-PLAN.md` | Manager-side status production for later `flashquery:status` broadcast | SATISFIED | Manager emits workspaceId/type/payload wrapper; disconnected includes error; connecting/live omit error. Full renderer IPC broadcast remains Phase 3 per ROADMAP and no Phase 2 IPC surface was added. |
+| REQ-011 | `02-01/02/03-PLAN.md` | Manager-side status production for later `flashquery:status` broadcast | SATISFIED | Manager emits `FlashQueryStatusPayload` directly through `subscribe<T>` with inline `workspaceId`; disconnected includes error; connecting/live omit error. Full renderer IPC broadcast remains Phase 3 per ROADMAP and no Phase 2 IPC surface was added. |
 
 No orphaned Phase 2 requirements were found: ROADMAP and REQUIREMENTS map Phase 2 to REQ-004, REQ-005, REQ-006, and REQ-011, and all are claimed by plan frontmatter.
 
