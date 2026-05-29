@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Vault Connect, Read, Edit
-status: executing
-stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-05-29T18:28:03.071Z"
+status: ready
+stopped_at: Completed Phase 05 verification and validation
+last_updated: "2026-05-29T20:26:44.000Z"
 last_activity: 2026-05-29
 progress:
   total_phases: 7
@@ -26,9 +26,9 @@ See: `.planning/PROJECT.md`
 
 ## Current Position
 
-Phase: 05 (settings-dialog-workspace-menu-entry) — EXECUTING
-Plan: 3 of 3
-Status: Complete
+Phase: 06 (editor-uri-awareness-vault-badge) — READY
+Plan: 06-01 next
+Status: Phase 05 complete — settings dialog and workspace menu entry verified; Phase 06 editor URI-awareness is next
 Last activity: 2026-05-29
 
 Progress: [██████████] 100%
@@ -41,7 +41,7 @@ Resume File: None
 
 ## Next Up
 
-Phase 05 is complete. Next milestone work can proceed to Phase 06 when ready.
+Execute Phase 06 plan 06-01: editor URI routing and local-file regression coverage.
 
 ## Decisions
 
@@ -62,6 +62,10 @@ Phase 05 is complete. Next milestone work can proceed to Phase 06 when ready.
 - [Phase 05]: Reuse the Phase 4 useUIStore visibility slice for the FlashQuery connection dialog shell; no dialog form state is stored in Zustand. — Avoids duplicating renderer state and keeps Plan 05-01 shell-only.
 - [Phase 05]: Keep 05-01 shell-only with an inert URL focus scaffold; save, probe, token, and remove behavior remain for later Phase 5 plans. — Matches the plan boundary and prevents token or persistence behavior from entering the shell task.
 - [Phase 05]: Use dedicated flashquery:probe and flashquery:getConnectionSecret channels for dialog dry-run probing and token-safe edit-mode prepopulation. — Keeps Test connection separate from persistence and avoids exposing tokens through workspace metadata or renderer stores.
+- [Phase 05]: Workspace menu opens the FlashQuery connection dialog for the clicked workspace by selecting it first. — Prevents editing the currently selected workspace when the user right-clicked another row.
+- [Phase 05]: Normalize bearer tokens at renderer and main-process boundaries. — Whitespace-only tokens are treated as absent and non-empty tokens are trimmed before probe/save/client use.
+- [Phase 05]: Guard FlashQuery MCP client lifecycle with attempt identity and shared in-flight creation. — Reconnect, failure, dispose, and concurrent tool calls cannot leave stale or duplicate clients cached.
+- [Phase 05]: Ignore stale dialog probe results after workspace, URL, token, or visibility changes. — Prevents late async results from rendering against changed form state.
 
 ## Performance Metrics
 
@@ -78,3 +82,5 @@ Phase 05 is complete. Next milestone work can proceed to Phase 06 when ready.
 | Phase 04 P02 | 5min | 3 tasks | 7 files |
 | Phase 05 P01 | 5min | 3 tasks | 4 files |
 | Phase 05 P02 | 11min | 3 tasks | 9 files |
+| Phase 05 P03 | 10min | 2 tasks | 3 files |
+| Phase 05 review fixes | 48min | 4 review cycles | 8 files |

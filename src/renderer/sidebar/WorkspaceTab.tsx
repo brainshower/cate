@@ -340,7 +340,12 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({
         if (dir) navigator.clipboard.writeText(dir)
         break
       }
-      case 'flashquery-connection': useUIStore.getState().setShowFlashQueryConnectionDialog(true); break
+      case 'flashquery-connection':
+        if (app.selectedWorkspaceId !== workspace.id) {
+          await app.selectWorkspace(workspace.id)
+        }
+        useUIStore.getState().setShowFlashQueryConnectionDialog(true)
+        break
       case 'duplicate': app.duplicateWorkspace(workspace.id); break
       case 'close-panels': app.closeAllPanels(workspace.id); break
       case 'remove': app.removeWorkspace(workspace.id); break

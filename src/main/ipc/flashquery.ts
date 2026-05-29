@@ -64,6 +64,15 @@ function validateConnection(connection: unknown): FlashQueryConnection {
   return connection
 }
 
+function normalizeConnection(connection: FlashQueryConnection): FlashQueryConnection {
+  const token = connection.auth?.type === 'bearer' ? connection.auth.token.trim() : ''
+  return {
+    transport: 'http',
+    url: connection.url,
+    ...(token ? { auth: { type: 'bearer', token } } : {}),
+  }
+}
+
 function buildInfoUrl(url: string): string {
   return `${url.replace(/\/+$/, '')}/mcp/info`
 }
@@ -101,7 +110,7 @@ function subscribeWorkspaceStatus(workspaceId: string): void {
 }
 
 async function setConnection(workspaceId: string, connection: unknown): Promise<WorkspaceMutationResult> {
-  const nextConnection = connection === null ? null : validateConnection(connection)
+  const nextConnection = connection === null ? null : normalizeConnection(validateConnection(connection))
   const result = await updateWorkspace(workspaceId, {
     flashqueryConnection: nextConnection === null ? undefined : nextConnection,
   })

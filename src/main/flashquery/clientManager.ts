@@ -38,6 +38,7 @@ interface WorkspaceClientState {
   connection?: FlashQueryConnection
   status?: FlashQueryStatusPayload
   mcpClient?: FlashQueryMcpToolClient
+  mcpClientPromise?: Promise<FlashQueryMcpToolClient | null>
   token?: string | null
   attemptId: number
   retryDelayMs: number
@@ -77,6 +78,11 @@ export class FlashQueryClientManager {
 
   async connect(workspaceId: string, connection: FlashQueryConnection): Promise<FlashQueryStatusPayload> {
     const state = this.getOrCreateWorkspaceState(workspaceId)
+    const staleClient = state.mcpClient
+    state.mcpClient = undefined
+    state.mcpClientPromise = undefined
+    state.token = undefined
+    this.closeClientQuietly(staleClient)
     state.connection = connection
     return this.probeConnection(workspaceId, state, connection)
   }
@@ -108,7 +114,7 @@ export class FlashQueryClientManager {
     if (state) {
       this.clearRetryTimer(state)
       state.attemptId += 1
-      void state.mcpClient?.close?.()
+      this.closeClientQuietly(state.mcpClient)
     }
     this.workspaceStates.delete(workspaceId)
   }
@@ -208,9 +214,15 @@ export class FlashQueryClientManager {
     }, PROBE_TIMEOUT_MS)
 
     try {
+      const token = connection.auth?.type === 'bearer' ? connection.auth.token.trim() : ''
+      const headers: Record<string, string> = { Accept: 'application/json' }
+      if (token) {
+        headers.Authorization = `Bearer ${token}`
+      }
+
       const response = await globalThis.fetch(this.buildInfoUrl(connection.url), {
         method: 'GET',
-        headers: { Accept: 'application/json' },
+        headers,
         signal: abortController.signal,
       })
 
@@ -297,10 +309,20 @@ export class FlashQueryClientManager {
     connection: FlashQueryConnection,
     error: string,
   ): FlashQueryStatusPayload {
+    const staleClient = state.mcpClient
+    state.mcpClient = undefined
+    state.mcpClientPromise = undefined
+    this.closeClientQuietly(staleClient)
     const payload: FlashQueryStatusPayload = { workspaceId, status: 'disconnected', error }
     this.emitStatus(workspaceId, state, payload)
     this.scheduleRetry(workspaceId, state, connection)
     return payload
+  }
+
+  private closeClientQuietly(client: FlashQueryMcpToolClient | undefined): void {
+    void Promise.resolve(client?.close?.()).catch(() => {
+      // Best-effort transport cleanup; connection state has already advanced.
+    })
   }
 
   private scheduleRetry(workspaceId: string, state: WorkspaceClientState, connection: FlashQueryConnection): void {
@@ -370,15 +392,39 @@ export class FlashQueryClientManager {
   private async getOrCreateMcpClient(workspaceId: string): Promise<FlashQueryMcpToolClient | null> {
     const state = this.getOrCreateWorkspaceState(workspaceId)
     if (state.mcpClient) return state.mcpClient
+    if (state.mcpClientPromise) return state.mcpClientPromise
 
     const connection = state.connection ?? this.getConfiguredConnection(workspaceId)
     if (!connection) return null
 
-    state.connection = connection
-    const token = await getWorkspaceToken(workspaceId)
-    state.token = token
-    state.mcpClient = await this.createMcpClient(workspaceId, connection, token)
-    return state.mcpClient
+    const creation = (async (): Promise<FlashQueryMcpToolClient | null> => {
+      state.connection = connection
+      const attemptId = state.attemptId
+      const token = await getWorkspaceToken(workspaceId)
+      if (!this.isCurrentAttempt(workspaceId, state, attemptId) || state.connection !== connection) {
+        return null
+      }
+
+      state.token = token
+      const client = await this.createMcpClient(workspaceId, connection, token)
+
+      if (!this.isCurrentAttempt(workspaceId, state, attemptId) || state.connection !== connection) {
+        this.closeClientQuietly(client)
+        return null
+      }
+
+      state.mcpClient = client
+      return client
+    })()
+
+    state.mcpClientPromise = creation
+    try {
+      return await creation
+    } finally {
+      if (state.mcpClientPromise === creation) {
+        state.mcpClientPromise = undefined
+      }
+    }
   }
 
   private async requireMcpClient(workspaceId: string): Promise<FlashQueryMcpToolClient> {

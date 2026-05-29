@@ -164,9 +164,9 @@ function renderWorkspaceTab(api: ElectronApiMock = makeElectronApi()) {
   })
 }
 
-async function openWorkspaceContextMenu(api: ElectronApiMock) {
+async function openWorkspaceContextMenu(api: ElectronApiMock, workspaceName = 'Cate Workspace') {
   const row = Array.from(host.querySelectorAll('span'))
-    .find((element) => element.textContent === 'Cate Workspace')
+    .find((element) => element.textContent === workspaceName)
   expect(row).toBeTruthy()
 
   await act(async () => {
@@ -215,7 +215,7 @@ describe('WorkspaceTab FlashQuery native context menu', () => {
     ])
   })
 
-  it('opens the FlashQuery connection dialog without mutating the workspace', async () => {
+  it('opens the FlashQuery connection dialog without mutating the selected workspace', async () => {
     const api = makeElectronApi('flashquery-connection')
     const selectWorkspace = vi.fn()
     const duplicateWorkspace = vi.fn()
@@ -229,6 +229,44 @@ describe('WorkspaceTab FlashQuery native context menu', () => {
     expect(selectWorkspace).not.toHaveBeenCalled()
     expect(duplicateWorkspace).not.toHaveBeenCalled()
     expect(removeWorkspace).not.toHaveBeenCalled()
+  })
+
+  it('selects the clicked workspace before opening its FlashQuery connection dialog', async () => {
+    const api = makeElectronApi('flashquery-connection')
+    const otherWorkspace: WorkspaceState = {
+      ...workspace,
+      id: 'workspace-2',
+      name: 'Other Workspace',
+      rootPath: '/Users/matt/other-project',
+    }
+    const selectWorkspace = vi.fn().mockResolvedValue(undefined)
+    setElectronApi(api)
+    useAppStore.setState({
+      selectedWorkspaceId: workspace.id,
+      workspaces: [workspace, otherWorkspace],
+      selectWorkspace,
+    })
+    useUIStore.getState().setShowFlashQueryConnectionDialog(false)
+
+    act(() => {
+      root.render(
+        <WorkspaceTab
+          workspace={otherWorkspace}
+          isSelected={false}
+          onClick={() => {}}
+          onClose={() => {}}
+        />,
+      )
+    })
+
+    const items = await openWorkspaceContextMenu(api, 'Other Workspace')
+
+    expect(items).toContainEqual({
+      id: 'flashquery-connection',
+      label: 'FlashQuery Connection...',
+    })
+    expect(selectWorkspace).toHaveBeenCalledWith('workspace-2')
+    expect(useUIStore.getState().showFlashQueryConnectionDialog).toBe(true)
   })
 
   it('does not render a custom React context-menu element', async () => {

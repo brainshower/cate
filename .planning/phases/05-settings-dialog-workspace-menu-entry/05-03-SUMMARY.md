@@ -27,7 +27,7 @@ key-files:
 
 key-decisions:
   - "Keep the workspace menu native by adding only a NativeContextMenuItem and returned-id handler."
-  - "Use the existing showFlashQueryConnectionDialog UI-store setter without adding menu-specific state."
+  - "Select the clicked workspace before opening showFlashQueryConnectionDialog so the dialog targets the row the user acted on."
 
 patterns-established:
   - "Workspace menu tests can render WorkspaceTab under jsdom and assert the native menu descriptor array passed to showContextMenu."
@@ -54,7 +54,7 @@ completed: 2026-05-29
 
 - Added focused WorkspaceTab tests for T-I-075 through T-I-078.
 - Inserted `FlashQuery Connection...` into the native workspace menu between `copy-cwd` and `duplicate`, with separators on both sides.
-- Handled the returned `flashquery-connection` id by opening `showFlashQueryConnectionDialog` without selecting, duplicating, closing, or mutating the workspace.
+- Handled the returned `flashquery-connection` id by selecting the clicked workspace, then opening `showFlashQueryConnectionDialog` without duplicating, closing, or mutating workspace metadata.
 
 ## Task Commits
 
@@ -70,7 +70,7 @@ completed: 2026-05-29
 ## Verification
 
 - PASS: `npx -p node@22 npm test -- src/renderer/sidebar/WorkspaceTab.test.tsx`
-  - Result: 10 tests passed.
+  - Result: 11 tests passed.
 - PASS: `npx -p node@22 npm run typecheck`
   - Result: `tsc --noEmit` completed successfully in the current working tree.
 
@@ -78,7 +78,7 @@ completed: 2026-05-29
 
 - Used `FlashQuery Connection...` exactly as the plan specified.
 - Preserved Cate's native menu pattern; no React dropdown, popover, portal, or menu library was added.
-- Reused `useUIStore.getState().setShowFlashQueryConnectionDialog(true)` as the only side effect for the new menu id.
+- Reused `useUIStore.getState().setShowFlashQueryConnectionDialog(true)` after ensuring the clicked workspace is selected, so the selected-workspace-scoped dialog edits the intended workspace.
 
 ## Deviations from Plan
 

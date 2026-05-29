@@ -10,6 +10,7 @@ provides:
   - Typed dry-run FlashQuery probe and token-read IPC/preload surface
   - FlashQuery connection dialog URL/token form with validation and probe result rendering
   - Save, cancel, and remove flows scoped to the selected workspace
+  - Review-hardening for token normalization, stale dialog probe suppression, and FlashQuery client reconnect lifecycle
 affects: [phase-05-settings-dialog, phase-06-editor-uri-awareness, phase-07-e2e]
 tech-stack:
   added: []
@@ -57,6 +58,7 @@ completed: 2026-05-29
 - Implemented dry-run `GET /mcp/info` probing with current form values, bearer header inclusion when present, URL validation, timeout, and redacted one-line failures.
 - Completed the dialog form with URL/token inputs, reveal toggle, helper/error associations, initial URL focus, inline probe status, and no stock neutral Tailwind classes.
 - Added Save, Cancel, and Remove flows where only Save and confirmed Remove call `flashquerySetConnection`.
+- Hardened connection handling after code review: whitespace bearer tokens are normalized at renderer and IPC boundaries, authenticated manager probes match dialog probes, stale and concurrent MCP client creation is guarded, and stale dialog probe results are ignored after form/workspace changes.
 
 ## Task Commits
 
@@ -78,9 +80,9 @@ Each TDD task was committed with RED and GREEN gates:
 - `src/shared/electron-api.d.ts` - Types the new preload methods.
 - `src/preload/index.ts` - Exposes `flashqueryProbe` and `flashqueryGetConnectionSecret`.
 - `src/main/ipc/flashquery.ts` - Implements dry-run probe, token read, timeout, validation, and redacted error mapping.
-- `src/main/ipc/flashquery.test.ts` - Covers probe registration, Authorization header behavior, no-persistence semantics, failures, and token-read delegation.
+- `src/main/ipc/flashquery.test.ts` - Covers probe registration, Authorization header behavior, no-persistence semantics, whitespace token normalization, failures, and token-read delegation.
 - `src/renderer/dialogs/FlashQueryConnectionDialog.tsx` - Implements full local form/probe/save/remove UI.
-- `src/renderer/dialogs/FlashQueryConnectionDialog.test.tsx` - Covers T-I-056 through T-I-074 and T-U-104.
+- `src/renderer/dialogs/FlashQueryConnectionDialog.test.tsx` - Covers T-I-056 through T-I-074 and T-U-104, plus whitespace token save normalization and stale probe suppression.
 - `.planning/phases/05-settings-dialog-workspace-menu-entry/05-02-SUMMARY.md` - Execution summary and evidence.
 
 ## Verification
@@ -88,7 +90,7 @@ Each TDD task was committed with RED and GREEN gates:
 - PASS: `npx -p node@22 npm test -- src/main/ipc/flashquery.test.ts`
   - Result: 20 tests passed.
 - PASS: `npx -p node@22 npm test -- src/renderer/dialogs/FlashQueryConnectionDialog.test.tsx`
-  - Result: 13 tests passed.
+  - Result: 15 tests passed.
 - PASS: `npx -p node@22 npm test -- src/main/ipc/flashquery.test.ts src/renderer/dialogs/FlashQueryConnectionDialog.test.tsx`
   - Result: 2 files / 33 tests passed.
 - PASS: `npx -p node@22 npm run typecheck`

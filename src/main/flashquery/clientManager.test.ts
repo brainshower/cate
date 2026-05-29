@@ -72,6 +72,16 @@ function statusPayloads(handler: ReturnType<typeof vi.fn>): FlashQueryStatusPayl
   return handler.mock.calls.map((call) => call[0] as FlashQueryStatusPayload)
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+  return { promise, resolve, reject }
+}
+
 afterEach(() => {
   Object.defineProperty(globalThis, 'fetch', { value: originalFetch, configurable: true })
   vi.clearAllMocks()
@@ -152,6 +162,27 @@ describe('FlashQueryClientManager', () => {
     })
   })
 
+  it('sends bearer Authorization during the connection info probe', async () => {
+    const fetchMock = installFetchMock()
+    fetchMock.mockResolvedValue(okInfoResponse())
+    const manager = new FlashQueryClientManager()
+
+    await manager.connect('workspace-1', {
+      transport: 'http',
+      url: 'https://flashquery.local/',
+      auth: { type: 'bearer', token: 'secret-token' },
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith('https://flashquery.local/mcp/info', {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: 'Bearer secret-token',
+      },
+      signal: expect.any(AbortSignal),
+    })
+  })
+
   it('transitions from connecting to live with version and instance metadata', async () => {
     const fetchMock = installFetchMock()
     fetchMock.mockResolvedValue(okInfoResponse('2.0.0', 'fq-main'))
@@ -172,7 +203,101 @@ describe('FlashQueryClientManager', () => {
     ])
   })
 
-  it('does not send bearer auth or perform POST /mcp during the info probe', async () => {
+  it('closes and clears a cached MCP client when reconnecting with a new connection', async () => {
+    const fetchMock = installFetchMock()
+    fetchMock.mockResolvedValue(okInfoResponse())
+    workspaceMock.workspaces = [workspaceInfo()]
+    const oldClose = vi.fn()
+    const oldCallTool = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({ entries: [] }) }],
+    })
+    const newCallTool = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({
+        entries: [{ name: 'New.md', path: 'New.md', type: 'file' }],
+      }) }],
+    })
+    const createMcpClient = vi.fn()
+      .mockResolvedValueOnce({ callTool: oldCallTool, close: oldClose })
+      .mockResolvedValueOnce({ callTool: newCallTool })
+    const manager = new FlashQueryClientManager({ createMcpClient })
+
+    await manager.connect('workspace-1', { transport: 'http', url: 'http://old.local:3100' })
+    await manager.listVault('workspace-1')
+    await manager.connect('workspace-1', { transport: 'http', url: 'http://new.local:3100' })
+
+    await expect(manager.listVault('workspace-1')).resolves.toEqual([
+      { name: 'New.md', type: 'document', vaultPath: 'New.md' },
+    ])
+    expect(oldClose).toHaveBeenCalledTimes(1)
+    expect(createMcpClient).toHaveBeenCalledTimes(2)
+    expect(oldCallTool).toHaveBeenCalledTimes(1)
+    expect(newCallTool).toHaveBeenCalledTimes(1)
+  })
+
+  it('ignores an in-flight MCP client created for a stale connection after reconnect', async () => {
+    const fetchMock = installFetchMock()
+    fetchMock.mockResolvedValue(okInfoResponse())
+    workspaceMock.workspaces = [workspaceInfo({ transport: 'http', url: 'http://old.local:3100' })]
+    const oldClient = {
+      callTool: vi.fn().mockResolvedValue({
+        content: [{ type: 'text', text: JSON.stringify({ entries: [] }) }],
+      }),
+      close: vi.fn(),
+    }
+    const newClient = {
+      callTool: vi.fn().mockResolvedValue({
+        content: [{ type: 'text', text: JSON.stringify({
+          entries: [{ name: 'Fresh.md', path: 'Fresh.md', type: 'file' }],
+        }) }],
+      }),
+    }
+    const pendingOldClient = deferred<typeof oldClient>()
+    const createMcpClient = vi.fn()
+      .mockReturnValueOnce(pendingOldClient.promise)
+      .mockResolvedValueOnce(newClient)
+    const manager = new FlashQueryClientManager({ createMcpClient })
+
+    const staleListPromise = manager.listVault('workspace-1')
+    await Promise.resolve()
+
+    await manager.connect('workspace-1', { transport: 'http', url: 'http://new.local:3100' })
+    pendingOldClient.resolve(oldClient)
+    await expect(staleListPromise).resolves.toEqual([])
+
+    await expect(manager.listVault('workspace-1')).resolves.toEqual([
+      { name: 'Fresh.md', type: 'document', vaultPath: 'Fresh.md' },
+    ])
+    expect(oldClient.close).toHaveBeenCalledTimes(1)
+    expect(oldClient.callTool).not.toHaveBeenCalled()
+    expect(newClient.callTool).toHaveBeenCalledTimes(1)
+    expect(createMcpClient).toHaveBeenNthCalledWith(1, 'workspace-1', { transport: 'http', url: 'http://old.local:3100' }, null)
+    expect(createMcpClient).toHaveBeenNthCalledWith(2, 'workspace-1', { transport: 'http', url: 'http://new.local:3100' }, null)
+  })
+
+  it('shares same-generation MCP client creation across concurrent tool calls', async () => {
+    workspaceMock.workspaces = [workspaceInfo()]
+    const client = {
+      callTool: vi.fn().mockResolvedValue({
+        content: [{ type: 'text', text: JSON.stringify({ entries: [] }) }],
+      }),
+    }
+    const pendingClient = deferred<typeof client>()
+    const createMcpClient = vi.fn().mockReturnValue(pendingClient.promise)
+    const manager = new FlashQueryClientManager({ createMcpClient })
+
+    const firstList = manager.listVault('workspace-1')
+    const secondList = manager.listVault('workspace-1')
+    await Promise.resolve()
+
+    expect(createMcpClient).toHaveBeenCalledTimes(1)
+    pendingClient.resolve(client)
+
+    await expect(firstList).resolves.toEqual([])
+    await expect(secondList).resolves.toEqual([])
+    expect(client.callTool).toHaveBeenCalledTimes(2)
+  })
+
+  it('sends bearer auth without performing POST /mcp during the info probe', async () => {
     const fetchMock = installFetchMock()
     fetchMock.mockResolvedValue(okInfoResponse())
     const manager = new FlashQueryClientManager()
@@ -190,8 +315,10 @@ describe('FlashQueryClientManager', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
     const [, init] = fetchMock.mock.calls[0]
     expect(init.method).toBe('GET')
-    expect(init.headers).toEqual({ Accept: 'application/json' })
-    expect(JSON.stringify(fetchMock.mock.calls)).not.toContain('secret-token')
+    expect(init.headers).toEqual({
+      Accept: 'application/json',
+      Authorization: 'Bearer secret-token',
+    })
     expect(JSON.stringify(statusHandler.mock.calls)).not.toContain('secret-token')
   })
 
@@ -712,6 +839,39 @@ describe('FlashQueryClientManager', () => {
       { workspaceId: 'workspace-1', status: 'live', version: '1.2.3', instanceId: 'fq-instance-1' },
       { workspaceId: 'workspace-1', status: 'disconnected', error: 'transport failed for [redacted]' },
     ])
+  })
+
+  it('closes and recreates a cached MCP client after transport failure and retry recovery', async () => {
+    vi.useFakeTimers()
+    const fetchMock = installFetchMock()
+    fetchMock.mockResolvedValue(okInfoResponse())
+    workspaceMock.workspaces = [workspaceInfo()]
+    const staleClose = vi.fn()
+    const staleCallTool = vi.fn().mockRejectedValue(new Error('transport failed'))
+    const freshCallTool = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({
+        entries: [{ name: 'Recovered.md', path: 'Recovered.md', type: 'file' }],
+      }) }],
+    })
+    const createMcpClient = vi.fn()
+      .mockResolvedValueOnce({ callTool: staleCallTool, close: staleClose })
+      .mockResolvedValueOnce({ callTool: freshCallTool })
+    const manager = new FlashQueryClientManager({ createMcpClient })
+
+    await manager.connect('workspace-1', { transport: 'http', url: 'http://127.0.0.1:3100' })
+    await expect(manager.listVault('workspace-1')).resolves.toEqual([])
+    expect(staleClose).toHaveBeenCalledTimes(1)
+
+    await vi.advanceTimersByTimeAsync(2_000)
+
+    await expect(manager.listVault('workspace-1')).resolves.toEqual([
+      { name: 'Recovered.md', type: 'document', vaultPath: 'Recovered.md' },
+    ])
+    expect(createMcpClient).toHaveBeenCalledTimes(2)
+    expect(freshCallTool).toHaveBeenCalledWith({
+      name: 'list_vault',
+      arguments: { path: '/', include: ['tracking'] },
+    })
   })
 
   it('T-I-005 omits malformed list_vault entries while returning valid entries', async () => {

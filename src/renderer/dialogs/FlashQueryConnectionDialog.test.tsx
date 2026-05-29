@@ -38,6 +38,16 @@ function makeElectronApi(): ElectronApiMock {
   }
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+  return { promise, resolve, reject }
+}
+
 function seedWorkspace(
   name = 'Workspace',
   flashqueryConnection?: { transport: 'http'; url: string },
@@ -195,6 +205,28 @@ describe('FlashQueryConnectionDialog shell', () => {
     expect(await screen.findByText('Auth failed')).toBeTruthy()
   })
 
+  it('ignores late probe results after the form changes', async () => {
+    const api = makeElectronApi()
+    const pendingProbe = deferred<{ ok: true; version: string; instanceId: string }>()
+    api.flashqueryProbe.mockReturnValueOnce(pendingProbe.promise)
+    setElectronApi(api)
+    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+
+    renderDialog()
+
+    fireEvent.change(screen.getByLabelText('FlashQuery URL'), { target: { value: 'https://old.flashquery.local' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Test connection' }))
+    expect(screen.getByText('Testing...')).toBeTruthy()
+
+    fireEvent.change(screen.getByLabelText('FlashQuery URL'), { target: { value: 'https://new.flashquery.local' } })
+    pendingProbe.resolve({ ok: true, version: '9.9.9', instanceId: 'stale-instance' })
+
+    await waitFor(() => {
+      expect(screen.queryByText('Testing...')).toBeNull()
+      expect(screen.queryByText('Connected to FlashQuery v9.9.9 (instance stale-in)')).toBeNull()
+    })
+  })
+
   it('T-I-067 saves the current values through setConnection and closes on success', async () => {
     const api = makeElectronApi()
     setElectronApi(api)
@@ -213,6 +245,25 @@ describe('FlashQueryConnectionDialog shell', () => {
         auth: { type: 'bearer', token: 'save-token' },
       })
       expect(useUIStore.getState().showFlashQueryConnectionDialog).toBe(false)
+    })
+  })
+
+  it('omits auth when saving a whitespace-only bearer token', async () => {
+    const api = makeElectronApi()
+    setElectronApi(api)
+    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+
+    renderDialog()
+
+    fireEvent.change(screen.getByLabelText('FlashQuery URL'), { target: { value: 'https://flashquery.local' } })
+    fireEvent.change(screen.getByLabelText('Bearer token'), { target: { value: '   ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => {
+      expect(api.flashquerySetConnection).toHaveBeenCalledWith(workspaceId, {
+        transport: 'http',
+        url: 'https://flashquery.local',
+      })
     })
   })
 

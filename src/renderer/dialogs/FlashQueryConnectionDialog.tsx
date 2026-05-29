@@ -37,6 +37,15 @@ function safeOneLineError(error: unknown, token?: string): string {
   return message.split(/\r?\n/)[0]?.trim() || 'FlashQuery connection update failed'
 }
 
+function buildConnection(url: string, token: string) {
+  const trimmedToken = token.trim()
+  return {
+    transport: 'http' as const,
+    url,
+    ...(trimmedToken ? { auth: { type: 'bearer' as const, token: trimmedToken } } : {}),
+  }
+}
+
 export function FlashQueryConnectionDialog() {
   const show = useUIStore((s) => s.showFlashQueryConnectionDialog)
   const setShow = useUIStore((s) => s.setShowFlashQueryConnectionDialog)
@@ -44,6 +53,8 @@ export function FlashQueryConnectionDialog() {
   const workspace = useAppStore((s) => s.workspaces.find((candidate) => candidate.id === selectedWorkspaceId))
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const urlInputRef = useRef<HTMLInputElement | null>(null)
+  const probeRequestIdRef = useRef(0)
+  const latestProbeContextRef = useRef({ show: false, workspaceId: '', url: '', token: '' })
   const [url, setUrl] = useState('')
   const [token, setToken] = useState('')
   const [tokenVisible, setTokenVisible] = useState(false)
@@ -61,6 +72,18 @@ export function FlashQueryConnectionDialog() {
     'flashquery-url-helper',
     urlInvalid ? 'flashquery-url-error' : null,
   ].filter(Boolean).join(' ')
+
+  useEffect(() => {
+    latestProbeContextRef.current = {
+      show,
+      workspaceId: workspace?.id ?? '',
+      url,
+      token,
+    }
+    probeRequestIdRef.current += 1
+    setProbeResult(null)
+    setTesting(false)
+  }, [show, workspace?.id, url, token])
 
   useEffect(() => {
     if (!show) return
@@ -139,23 +162,43 @@ export function FlashQueryConnectionDialog() {
 
     if (!isValidFlashQueryUrl(url)) return
 
+    const requestId = probeRequestIdRef.current
+    const requestContext = {
+      show,
+      workspaceId: workspace?.id ?? '',
+      url,
+      token,
+    }
+    const isCurrentProbe = () => {
+      const latest = latestProbeContextRef.current
+      return probeRequestIdRef.current === requestId
+        && latest.show === requestContext.show
+        && latest.workspaceId === requestContext.workspaceId
+        && latest.url === requestContext.url
+        && latest.token === requestContext.token
+    }
+
     setTesting(true)
     try {
       const result = await window.electronAPI.flashqueryProbe(workspace?.id ?? '', {
-        transport: 'http',
-        url,
-        auth: { type: 'bearer', token },
+        ...buildConnection(url, token),
       })
-      setProbeResult(result)
+      if (isCurrentProbe()) {
+        setProbeResult(result)
+      }
     } catch (error) {
-      setProbeResult({
-        ok: false,
-        error: error instanceof Error ? error.message : String(error),
-      })
+      if (isCurrentProbe()) {
+        setProbeResult({
+          ok: false,
+          error: error instanceof Error ? error.message : String(error),
+        })
+      }
     } finally {
-      setTesting(false)
+      if (isCurrentProbe()) {
+        setTesting(false)
+      }
     }
-  }, [token, url, workspace?.id])
+  }, [show, token, url, workspace?.id])
 
   const handleSave = useCallback(async () => {
     setUrlTouched(true)
@@ -166,9 +209,7 @@ export function FlashQueryConnectionDialog() {
     setSaving(true)
     try {
       await window.electronAPI.flashquerySetConnection(workspace?.id ?? '', {
-        transport: 'http',
-        url,
-        auth: { type: 'bearer', token },
+        ...buildConnection(url, token),
       })
       close()
     } catch (error) {

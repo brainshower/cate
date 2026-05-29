@@ -180,6 +180,28 @@ describe('FlashQuery IPC handlers', () => {
     expect(JSON.stringify(mocks.broadcastWorkspaceChange.mock.calls)).not.toContain('secret-token')
   })
 
+  it('normalizes whitespace-only bearer tokens before persisting a connection', async () => {
+    const rawConnection: FlashQueryConnection = {
+      transport: 'http',
+      url: 'https://flashquery.local',
+      auth: { type: 'bearer', token: '   ' },
+    }
+    const normalizedConnection: FlashQueryConnection = {
+      transport: 'http',
+      url: 'https://flashquery.local',
+    }
+    mocks.updateWorkspace.mockResolvedValue({
+      ok: true,
+      workspace: workspace({ flashqueryConnection: normalizedConnection }),
+    })
+    const handler = await registeredSetConnectionHandler()
+
+    await handler({}, 'workspace-1', rawConnection)
+
+    expect(mocks.updateWorkspace).toHaveBeenCalledWith('workspace-1', { flashqueryConnection: normalizedConnection })
+    expect(mocks.managerInstances[0].connect).toHaveBeenCalledWith('workspace-1', normalizedConnection)
+  })
+
   it('T-U-042 clears a connection through workspace manager, disposes manager state, and broadcasts no-connection status', async () => {
     mocks.updateWorkspace.mockResolvedValue({ ok: true, workspace: workspace() })
     const handler = await registeredSetConnectionHandler()

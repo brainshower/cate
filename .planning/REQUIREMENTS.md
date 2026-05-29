@@ -67,8 +67,8 @@ Cate should let a developer connect a workspace to FlashQuery, browse the FlashQ
 - [x] **REQ-035: Dialog input fields.** The dialog includes URL and bearer-token inputs with validation, reveal/hide behavior, helper text, and prepopulation in edit mode.
 - [x] **REQ-036: Test-connection inline action.** The dialog can probe the currently-entered URL/token without persisting them and show success/failure inline.
 - [x] **REQ-037: Dialog save, cancel, and remove behavior.** Save validates and persists, cancel closes without writes, and remove clears config/token after confirmation.
-- [ ] **REQ-038: `useUIStore` slice for dialog visibility.** Renderer UI state can open/close the FlashQuery connection dialog predictably.
-- [ ] **REQ-039: Workspace context menu addition.** Workspace context menu includes a FlashQuery Connection entry in the product-specified position.
+- [x] **REQ-038: `useUIStore` slice for dialog visibility.** Renderer UI state can open/close the FlashQuery connection dialog predictably.
+- [x] **REQ-039: Workspace context menu addition.** Workspace context menu includes a FlashQuery Connection entry in the product-specified position.
 
 ### Guardrails And Cross-Cutting Requirements
 
@@ -118,7 +118,7 @@ Every defined requirement has at least one listed test-plan reference. Manual vi
 | REQ-004, REQ-005, REQ-006, REQ-011 | Phase 2: Connection layer | In Progress |
 | REQ-007, REQ-008, REQ-009, REQ-010, REQ-012 | Phase 3: IPC surface | Planned |
 | REQ-014, REQ-015, REQ-016, REQ-017, REQ-018, REQ-019, REQ-024, REQ-025, REQ-026, REQ-040 | Phase 4: Vault panel + shared chip | Planned |
-| REQ-034, REQ-035, REQ-036, REQ-037, REQ-038, REQ-039 | Phase 5: Settings dialog + workspace menu entry | Planned |
+| REQ-034, REQ-035, REQ-036, REQ-037, REQ-038, REQ-039 | Phase 5: Settings dialog + workspace menu entry | Complete |
 | REQ-027, REQ-028, REQ-029, REQ-030, REQ-031, REQ-032, REQ-033, REQ-041, REQ-042 | Phase 6: Editor URI-awareness + vault badge | Planned |
 | REQ-043, REQ-044, REQ-045 | Phase 7: Cross-cutting + regression | Planned |
 
