@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Vault Connect, Read, Edit
-status: executing
-stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-05-29T21:08:48.586Z"
-last_activity: 2026-05-29 -- Phase 6 planning complete
+status: ready_to_plan
+stopped_at: Phase 06 complete (4/4) — ready to discuss Phase 7
+last_updated: 2026-05-29T21:42:03.029Z
+last_activity: 2026-05-29 -- Phase 06 execution started
 progress:
   total_phases: 7
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 20
-  completed_plans: 16
-  percent: 71
+  completed_plans: 20
+  percent: 86
 ---
 
 # Project State
@@ -26,10 +26,10 @@ See: `.planning/PROJECT.md`
 
 ## Current Position
 
-Phase: 06 (editor-uri-awareness-vault-badge) — READY
-Plan: 06-01 next
-Status: Ready to execute
-Last activity: 2026-05-29 -- Phase 6 planning complete
+Phase: 7
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-05-29 -- Phase 06 complete; full test suite and typecheck passed
 
 Progress: [██████████] 100%
 
@@ -41,7 +41,7 @@ Resume File: None
 
 ## Next Up
 
-Execute Phase 06 plan 06-01: editor URI routing and local-file regression coverage.
+Plan Phase 07: cross-cutting + regression.
 
 ## Decisions
 
@@ -66,6 +66,10 @@ Execute Phase 06 plan 06-01: editor URI routing and local-file regression covera
 - [Phase 05]: Normalize bearer tokens at renderer and main-process boundaries. — Whitespace-only tokens are treated as absent and non-empty tokens are trimmed before probe/save/client use.
 - [Phase 05]: Guard FlashQuery MCP client lifecycle with attempt identity and shared in-flight creation. — Reconnect, failure, dispose, and concurrent tool calls cannot leave stale or duplicate clients cached.
 - [Phase 05]: Ignore stale dialog probe results after workspace, URL, token, or visibility changes. — Prevents late async results from rendering against changed form state.
+- [Phase 06]: Treat FlashQuery vault documents as existing editor panels with `flashquery://` filePath values. — Preserves local editor behavior while routing vault reads/writes through typed FlashQuery IPC.
+- [Phase 06]: Keep vault unsaved buffers in Monaco memory only. — No vault body is persisted to PanelState.unsavedContent or temp files.
+- [Phase 06]: Git diff mode is local-file-only. — Vault diff requests log a warning and render standard editor mode without local Git/file IPC.
+- [Phase 06]: Render vault source as inert title chrome. — The shared chip surface powers a `Vault . <host>` badge with decoded path tooltip and no revision/conflict/frontmatter UI.
 
 ## Performance Metrics
 
@@ -84,3 +88,4 @@ Execute Phase 06 plan 06-01: editor URI routing and local-file regression covera
 | Phase 05 P02 | 11min | 3 tasks | 9 files |
 | Phase 05 P03 | 10min | 2 tasks | 3 files |
 | Phase 05 review fixes | 48min | 4 review cycles | 8 files |
+| Phase 06 | 60min | 8 tasks | 12 source/test files |

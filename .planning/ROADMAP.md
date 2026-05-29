@@ -17,7 +17,7 @@ Prove a Cate workspace can connect to a separately-running FlashQuery HTTP MCP s
 | 3 | IPC surface | 3/3 | Complete   | 2026-05-29 |
 | 4 | Vault panel + shared chip | 4/4 | Complete   | 2026-05-29 |
 | 5 | Settings dialog + workspace menu entry | 3/3 | Complete   | 2026-05-29 |
-| 6 | Editor URI-awareness + vault badge | Phase 3 + Phase 4 | REQ-027, REQ-028, REQ-029, REQ-030, REQ-031, REQ-032, REQ-033, REQ-041, REQ-042 | Test Plan §4.6 |
+| 6 | Editor URI-awareness + vault badge | 4/4 | Complete   | 2026-05-29 |
 | 7 | Cross-cutting + regression | All | REQ-043, REQ-044, REQ-045 | Test Plan §4.7 |
 
 ## Phase 1: Foundation ✅ Complete
@@ -122,7 +122,7 @@ Prove a Cate workspace can connect to a separately-running FlashQuery HTTP MCP s
 - [x] `05-02-PLAN.md` — Form behavior: implement URL/token fields, reveal toggle, validation, prepopulation, dry-run probe, save, cancel, and remove flows.
 - [x] `05-03-PLAN.md` — Workspace menu wiring: add the native context-menu item and tests for position, action, and native-menu behavior.
 
-## Phase 6: Editor URI-Awareness + Vault Badge
+## Phase 6: Editor URI-Awareness + Vault Badge ✅ Complete
 
 **Goal:** Extend the existing editor so vault documents behave like editable documents while preserving local-file behavior.
 
@@ -138,10 +138,10 @@ Prove a Cate workspace can connect to a separately-running FlashQuery HTTP MCP s
 
 **Plans:**
 
-- [ ] **6.1 Editor URI routing.** Add URI detection, read routing, Monaco model cache behavior, and local-file regression tests.
-- [ ] **6.2 Save and dirty-state behavior.** Route vault saves to FlashQuery, handle failure states, and preserve local-save behavior.
-- [ ] **6.3 Diff guardrails.** Disable local Git diff mode for vault URIs while preserving local-file diff behavior.
-- [ ] **6.4 Vault badge/title chrome.** Add vault badge/tooltip, shared chip-surface reuse, and docked/canvas/detached title chrome coverage.
+- [x] **6.1 Editor URI routing.** Add URI detection, read routing, Monaco model cache behavior, and local-file regression tests.
+- [x] **6.2 Save and dirty-state behavior.** Route vault saves to FlashQuery, handle failure states, and preserve local-save behavior.
+- [x] **6.3 Diff guardrails.** Disable local Git diff mode for vault URIs while preserving local-file diff behavior.
+- [x] **6.4 Vault badge/title chrome.** Add vault badge/tooltip, shared chip-surface reuse, and docked/canvas/detached title chrome coverage.
 
 ## Phase 7: Cross-Cutting + Regression
 

@@ -39,13 +39,13 @@ Cate should let a developer use FlashQuery knowledge from inside the same spatia
 - ✓ Main, preload, renderer, and shared contracts are separated through Electron IPC and `window.electronAPI` - existing
 - ✓ User can see manager-side FlashQuery connection status transitions for a configured workspace - Phase 02
 - ✓ User can recover manager-side from offline, hung, or failing FlashQuery probes through bounded retry, manual retry, and disposal cleanup - Phase 02
+- ✓ User can configure a FlashQuery HTTP connection for a Cate workspace without editing files by hand - Phase 05
+- ✓ User can browse the configured FlashQuery vault from a dedicated Cate panel - Phase 04
+- ✓ User can open an existing FlashQuery vault markdown document in Cate's existing editor - Phase 06
+- ✓ User can edit and save an existing vault document back through FlashQuery - Phase 06
 
 ### Active
 
-- [ ] User can configure a FlashQuery HTTP connection for a Cate workspace without editing files by hand.
-- [ ] User can browse the configured FlashQuery vault from a dedicated Cate panel.
-- [ ] User can open an existing FlashQuery vault markdown document in Cate's existing editor.
-- [ ] User can edit and save an existing vault document back through FlashQuery.
 - [ ] User can restart Cate and keep the workspace's FlashQuery connection metadata available without eager startup probing.
 - [ ] User can recover from missing config, auth failures, and write failures without corrupting local workspace state.
 
@@ -100,6 +100,8 @@ Known codebase concerns that affect this project:
 | Create phases only from explicit milestones | The project owner wants codebase/project context first and will define milestones before any phase plan exists | - Pending |
 | Keep Phase 1 as inert foundation code | Metadata, credentials, URI helpers, and manager lifecycle are now in place without FlashQuery IPC, UI, network probes, MCP clients, or runtime ownership | - Phase 01 |
 | Keep Phase 2 manager-side only | The connection manager now owns HTTP `/mcp/info` probing, status transitions, retry, disposal, and subscriptions; IPC/preload/renderer broadcasts remain Phase 3 scope | - Phase 02 |
+| Keep vault documents in the existing editor | `flashquery://` is treated as an editor `filePath`, with read/save routed through FlashQuery IPC and local editor behavior preserved | - Phase 06 |
+| Show vault source as quiet title chrome | Vault-backed editor tabs/windows show an inert shared-chip badge and decoded path tooltip rather than a separate status bar or conflict surface | - Phase 06 |
 
 ## Planning Preference
 
@@ -123,4 +125,4 @@ This document evolves at milestone boundaries and, once explicitly created, phas
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-29 after completing Phase 02 connection layer*
+*Last updated: 2026-05-29 after completing Phase 06 editor URI-awareness + vault badge*
