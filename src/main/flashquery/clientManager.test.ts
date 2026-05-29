@@ -385,4 +385,129 @@ describe('FlashQueryClientManager', () => {
     expect(statusPayloads(lateHandler)).toEqual([{ status: 'connecting' }])
     expect(manager.getStatus('workspace-late')).toBeNull()
   })
+
+  it('T-U-033 and T-U-035 invokes every same-workspace status subscriber on each status transition', async () => {
+    const fetchMock = installFetchMock()
+    fetchMock
+      .mockResolvedValueOnce(okInfoResponse('3.0.0', 'fq-subscriber'))
+      .mockRejectedValueOnce(new Error('subscriber connection refused'))
+    const manager = new FlashQueryClientManager()
+    const firstHandler = vi.fn()
+    const secondHandler = vi.fn()
+    manager.subscribe('workspace-1', 'status', firstHandler)
+    manager.subscribe('workspace-1', 'status', secondHandler)
+
+    await manager.connect('workspace-1', {
+      transport: 'http',
+      url: 'http://127.0.0.1:3100',
+    })
+    await manager.connect('workspace-1', {
+      transport: 'http',
+      url: 'http://127.0.0.1:3100',
+    })
+
+    const expectedPayloads: FlashQueryStatusPayload[] = [
+      { status: 'connecting' },
+      { status: 'live', version: '3.0.0', instanceId: 'fq-subscriber' },
+      { status: 'connecting' },
+      { status: 'disconnected', error: 'subscriber connection refused' },
+    ]
+    expect(statusPayloads(firstHandler)).toEqual(expectedPayloads)
+    expect(statusPayloads(secondHandler)).toEqual(expectedPayloads)
+    for (const call of firstHandler.mock.calls) {
+      expect(call[0]).toMatchObject({ workspaceId: 'workspace-1', type: 'status' })
+    }
+  })
+
+  it('T-U-034 stops invoking an unsubscribed status handler', async () => {
+    const fetchMock = installFetchMock()
+    fetchMock
+      .mockResolvedValueOnce(okInfoResponse('3.1.0', 'fq-before-unsubscribe'))
+      .mockResolvedValueOnce(okInfoResponse('3.2.0', 'fq-after-unsubscribe'))
+    const manager = new FlashQueryClientManager()
+    const statusHandler = vi.fn()
+    const unsubscribe = manager.subscribe('workspace-1', 'status', statusHandler)
+
+    await manager.connect('workspace-1', {
+      transport: 'http',
+      url: 'http://127.0.0.1:3100',
+    })
+    unsubscribe()
+    unsubscribe()
+    await manager.connect('workspace-1', {
+      transport: 'http',
+      url: 'http://127.0.0.1:3100',
+    })
+
+    expect(statusPayloads(statusHandler)).toEqual([
+      { status: 'connecting' },
+      { status: 'live', version: '3.1.0', instanceId: 'fq-before-unsubscribe' },
+    ])
+  })
+
+  it('T-U-036 and T-U-037 isolates subscribers by workspace and future event type', async () => {
+    const fetchMock = installFetchMock()
+    fetchMock.mockResolvedValue(okInfoResponse('3.3.0', 'fq-isolated'))
+    const manager = new FlashQueryClientManager()
+    const workspaceHandler = vi.fn()
+    const otherWorkspaceHandler = vi.fn()
+    const vaultHandler = vi.fn()
+    const toolsHandler = vi.fn()
+    const futureHandler = vi.fn()
+    const unsubscribeVault = manager.subscribe('workspace-1', 'vault-changed', vaultHandler)
+    const unsubscribeTools = manager.subscribe('workspace-1', 'tools-changed', toolsHandler)
+    const unsubscribeFuture = manager.subscribe('workspace-1', 'future-event', futureHandler)
+    manager.subscribe('workspace-1', 'status', workspaceHandler)
+    manager.subscribe('workspace-2', 'status', otherWorkspaceHandler)
+
+    await manager.connect('workspace-1', {
+      transport: 'http',
+      url: 'http://127.0.0.1:3100',
+    })
+    unsubscribeVault()
+    unsubscribeTools()
+    unsubscribeFuture()
+
+    expect(statusPayloads(workspaceHandler)).toEqual([
+      { status: 'connecting' },
+      { status: 'live', version: '3.3.0', instanceId: 'fq-isolated' },
+    ])
+    expect(otherWorkspaceHandler).not.toHaveBeenCalled()
+    expect(vaultHandler).not.toHaveBeenCalled()
+    expect(toolsHandler).not.toHaveBeenCalled()
+    expect(futureHandler).not.toHaveBeenCalled()
+  })
+
+  it('T-U-038 and T-U-039 emits error only for disconnected status payloads', async () => {
+    const fetchMock = installFetchMock()
+    fetchMock
+      .mockResolvedValueOnce(okInfoResponse('3.4.0', 'fq-payload-shape'))
+      .mockResolvedValueOnce(failedInfoResponse(503, 'Unavailable'))
+    const manager = new FlashQueryClientManager()
+    const statusHandler = vi.fn()
+    manager.subscribe('workspace-1', 'status', statusHandler)
+
+    await manager.connect('workspace-1', {
+      transport: 'http',
+      url: 'http://127.0.0.1:3100',
+    })
+    await manager.connect('workspace-1', {
+      transport: 'http',
+      url: 'http://127.0.0.1:3100',
+    })
+
+    const payloads = statusPayloads(statusHandler)
+    expect(payloads.map((payload) => payload.status)).toEqual([
+      'connecting',
+      'live',
+      'connecting',
+      'disconnected',
+    ])
+    expect(payloads.filter((payload) => payload.status === 'disconnected')).toEqual([
+      expect.objectContaining({ status: 'disconnected', error: expect.stringContaining('503') }),
+    ])
+    for (const payload of payloads.filter((item) => item.status === 'connecting' || item.status === 'live')) {
+      expect(payload).not.toHaveProperty('error')
+    }
+  })
 })
