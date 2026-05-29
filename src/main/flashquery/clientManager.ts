@@ -19,11 +19,16 @@ export interface FlashQueryStatusPayload {
   error?: string
 }
 
+const INITIAL_RETRY_DELAY_MS = 2_000
+const MAX_RETRY_DELAY_MS = 60_000
+
 interface WorkspaceClientState {
   subscribers: Map<FlashQueryClientEventType, Set<FlashQueryClientEventHandler>>
   connection?: FlashQueryConnection
   status?: FlashQueryStatusPayload
   attemptId: number
+  retryDelayMs: number
+  retryTimer?: ReturnType<typeof setTimeout>
 }
 
 export class FlashQueryClientManager {
@@ -51,10 +56,49 @@ export class FlashQueryClientManager {
   async connect(workspaceId: string, connection: FlashQueryConnection): Promise<FlashQueryStatusPayload> {
     const state = this.getOrCreateWorkspaceState(workspaceId)
     state.connection = connection
+    return this.probeConnection(workspaceId, state, connection)
+  }
+
+  async retry(workspaceId: string): Promise<FlashQueryStatusPayload> {
+    const state = this.workspaceStates.get(workspaceId)
+    const connection = state?.connection
+    if (!state || !connection) {
+      const payload: FlashQueryStatusPayload = {
+        status: 'disconnected',
+        error: 'No FlashQuery connection is configured for this workspace',
+      }
+      if (state) {
+        this.emitStatus(workspaceId, state, payload)
+      }
+      return payload
+    }
+
+    return this.probeConnection(workspaceId, state, connection)
+  }
+
+  getStatus(workspaceId: string): FlashQueryStatusPayload | null {
+    return this.workspaceStates.get(workspaceId)?.status ?? null
+  }
+
+  dispose(workspaceId: string): void {
+    const state = this.workspaceStates.get(workspaceId)
+    if (state) {
+      this.clearRetryTimer(state)
+      state.attemptId += 1
+    }
+    this.workspaceStates.delete(workspaceId)
+  }
+
+  private async probeConnection(
+    workspaceId: string,
+    state: WorkspaceClientState,
+    connection: FlashQueryConnection,
+  ): Promise<FlashQueryStatusPayload> {
+    this.clearRetryTimer(state)
     state.attemptId += 1
     const attemptId = state.attemptId
 
-    this.emitStatus(workspaceId, { status: 'connecting' })
+    this.emitStatus(workspaceId, state, { status: 'connecting' })
 
     try {
       const response = await globalThis.fetch(this.buildInfoUrl(connection.url), {
@@ -69,13 +113,24 @@ export class FlashQueryClientManager {
       if (!response.ok) {
         return this.failConnection(
           workspaceId,
+          state,
+          connection,
           `FlashQuery info probe failed with ${response.status} ${response.statusText}`.trim(),
         )
       }
 
       const info = this.parseInfoPayload(await response.json())
+      if (!this.isCurrentAttempt(workspaceId, state, attemptId)) {
+        return state.status ?? { status: 'disconnected', error: 'Connection attempt was superseded' }
+      }
+
       if (!info) {
-        return this.failConnection(workspaceId, 'FlashQuery info probe returned an invalid response')
+        return this.failConnection(
+          workspaceId,
+          state,
+          connection,
+          'FlashQuery info probe returned an invalid response',
+        )
       }
 
       const payload: FlashQueryStatusPayload = {
@@ -83,36 +138,35 @@ export class FlashQueryClientManager {
         version: info.version,
         instanceId: info.instanceId,
       }
-      this.emitStatus(workspaceId, payload)
+      this.clearRetryTimer(state)
+      state.retryDelayMs = INITIAL_RETRY_DELAY_MS
+      this.emitStatus(workspaceId, state, payload)
       return payload
     } catch (error) {
       if (!this.isCurrentAttempt(workspaceId, state, attemptId)) {
         return state.status ?? { status: 'disconnected', error: 'Connection attempt was superseded' }
       }
 
-      return this.failConnection(workspaceId, this.errorToSafeMessage(error, connection))
+      return this.failConnection(workspaceId, state, connection, this.errorToSafeMessage(error, connection))
     }
-  }
-
-  getStatus(workspaceId: string): FlashQueryStatusPayload | null {
-    return this.workspaceStates.get(workspaceId)?.status ?? null
-  }
-
-  dispose(workspaceId: string): void {
-    this.workspaceStates.delete(workspaceId)
   }
 
   private getOrCreateWorkspaceState(workspaceId: string): WorkspaceClientState {
     let state = this.workspaceStates.get(workspaceId)
     if (!state) {
-      state = { subscribers: new Map(), attemptId: 0 }
+      state = {
+        subscribers: new Map(),
+        attemptId: 0,
+        retryDelayMs: INITIAL_RETRY_DELAY_MS,
+      }
       this.workspaceStates.set(workspaceId, state)
     }
     return state
   }
 
-  private emitStatus(workspaceId: string, payload: FlashQueryStatusPayload): void {
-    const state = this.getOrCreateWorkspaceState(workspaceId)
+  private emitStatus(workspaceId: string, state: WorkspaceClientState, payload: FlashQueryStatusPayload): void {
+    if (this.workspaceStates.get(workspaceId) !== state) return
+
     state.status = payload
     const subscribers = state.subscribers.get('status')
     if (!subscribers) return
@@ -127,10 +181,34 @@ export class FlashQueryClientManager {
     }
   }
 
-  private failConnection(workspaceId: string, error: string): FlashQueryStatusPayload {
+  private failConnection(
+    workspaceId: string,
+    state: WorkspaceClientState,
+    connection: FlashQueryConnection,
+    error: string,
+  ): FlashQueryStatusPayload {
     const payload: FlashQueryStatusPayload = { status: 'disconnected', error }
-    this.emitStatus(workspaceId, payload)
+    this.emitStatus(workspaceId, state, payload)
+    this.scheduleRetry(workspaceId, state, connection)
     return payload
+  }
+
+  private scheduleRetry(workspaceId: string, state: WorkspaceClientState, connection: FlashQueryConnection): void {
+    if (this.workspaceStates.get(workspaceId) !== state) return
+
+    this.clearRetryTimer(state)
+    const delayMs = state.retryDelayMs
+    state.retryDelayMs = Math.min(delayMs * 2, MAX_RETRY_DELAY_MS)
+    state.retryTimer = setTimeout(() => {
+      if (this.workspaceStates.get(workspaceId) !== state) return
+      void this.probeConnection(workspaceId, state, connection)
+    }, delayMs)
+  }
+
+  private clearRetryTimer(state: WorkspaceClientState): void {
+    if (!state.retryTimer) return
+    clearTimeout(state.retryTimer)
+    state.retryTimer = undefined
   }
 
   private buildInfoUrl(url: string): string {

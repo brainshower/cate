@@ -321,7 +321,9 @@ describe('FlashQueryClientManager', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
     await vi.advanceTimersByTimeAsync(1)
     expect(fetchMock).toHaveBeenCalledTimes(2)
-    await vi.advanceTimersByTimeAsync(2_000)
+    await vi.advanceTimersByTimeAsync(2_999)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    await vi.advanceTimersByTimeAsync(1)
     expect(fetchMock).toHaveBeenCalledTimes(3)
   })
 
