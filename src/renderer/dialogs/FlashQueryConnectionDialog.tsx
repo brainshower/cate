@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useRef } from 'react'
-import { Lightning, X } from '@phosphor-icons/react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { CheckCircle, Eye, EyeSlash, Lightning, X, XCircle } from '@phosphor-icons/react'
+import type { FlashQueryProbeResult } from '../../shared/types'
 import { useAppStore } from '../stores/appStore'
 import { useUIStore } from '../stores/uiStore'
 
@@ -17,6 +18,19 @@ function getFocusable(container: HTMLElement): HTMLElement[] {
     .filter((element) => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true')
 }
 
+function isValidFlashQueryUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+function formatProbeSuccess(result: Extract<FlashQueryProbeResult, { ok: true }>): string {
+  return `Connected to FlashQuery v${result.version} (instance ${result.instanceId.slice(0, 8)})`
+}
+
 export function FlashQueryConnectionDialog() {
   const show = useUIStore((s) => s.showFlashQueryConnectionDialog)
   const setShow = useUIStore((s) => s.setShowFlashQueryConnectionDialog)
@@ -24,13 +38,51 @@ export function FlashQueryConnectionDialog() {
   const workspace = useAppStore((s) => s.workspaces.find((candidate) => candidate.id === selectedWorkspaceId))
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const urlInputRef = useRef<HTMLInputElement | null>(null)
+  const [url, setUrl] = useState('')
+  const [token, setToken] = useState('')
+  const [tokenVisible, setTokenVisible] = useState(false)
+  const [urlTouched, setUrlTouched] = useState(false)
+  const [probeResult, setProbeResult] = useState<FlashQueryProbeResult | null>(null)
+  const [testing, setTesting] = useState(false)
 
   const close = useCallback(() => setShow(false), [setShow])
 
+  const urlInvalid = urlTouched && !isValidFlashQueryUrl(url)
+  const urlDescribedBy = [
+    'flashquery-url-helper',
+    urlInvalid ? 'flashquery-url-error' : null,
+  ].filter(Boolean).join(' ')
+
   useEffect(() => {
     if (!show) return
+
+    let cancelled = false
+    const initialUrl = workspace?.flashqueryConnection?.transport === 'http'
+      ? workspace.flashqueryConnection.url
+      : ''
+    setUrl(initialUrl)
+    setToken('')
+    setTokenVisible(false)
+    setUrlTouched(false)
+    setProbeResult(null)
+    setTesting(false)
+
+    if (workspace?.flashqueryConnection) {
+      window.electronAPI.flashqueryGetConnectionSecret(workspace.id)
+        .then((secret) => {
+          if (!cancelled) setToken(secret ?? '')
+        })
+        .catch(() => {
+          if (!cancelled) setToken('')
+        })
+    }
+
     urlInputRef.current?.focus()
-  }, [show])
+
+    return () => {
+      cancelled = true
+    }
+  }, [show, workspace?.id, workspace?.flashqueryConnection])
 
   useEffect(() => {
     if (!show) return
@@ -68,12 +120,33 @@ export function FlashQueryConnectionDialog() {
     }
   }, [])
 
+  const handleTestConnection = useCallback(async () => {
+    setUrlTouched(true)
+    setProbeResult(null)
+
+    if (!isValidFlashQueryUrl(url)) return
+
+    setTesting(true)
+    try {
+      const result = await window.electronAPI.flashqueryProbe(workspace?.id ?? '', {
+        transport: 'http',
+        url,
+        auth: { type: 'bearer', token },
+      })
+      setProbeResult(result)
+    } catch (error) {
+      setProbeResult({
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    } finally {
+      setTesting(false)
+    }
+  }, [token, url, workspace?.id])
+
   if (!show) return null
 
   const workspaceName = workspace?.name ?? 'Workspace'
-  const initialUrl = workspace?.flashqueryConnection?.transport === 'http'
-    ? workspace.flashqueryConnection.url
-    : ''
 
   return (
     <div
@@ -105,22 +178,93 @@ export function FlashQueryConnectionDialog() {
           </div>
         </div>
 
-        <div className="px-5 py-5">
+        <div className="space-y-4 px-5 py-5">
+          <div>
           <label htmlFor="flashquery-url" className="block text-xs font-medium text-secondary">
             FlashQuery URL
           </label>
           <input
             ref={urlInputRef}
             id="flashquery-url"
-            type="url"
-            readOnly
-            defaultValue={initialUrl}
-            placeholder="http://localhost:3100"
+            type="text"
+            value={url}
+            placeholder="https://fq.example.com or http://localhost:3100"
+            aria-describedby={urlDescribedBy}
+            aria-invalid={urlInvalid ? 'true' : undefined}
+            onBlur={() => setUrlTouched(true)}
+            onChange={(event) => {
+              setUrl(event.target.value)
+              setProbeResult(null)
+            }}
             className="mt-2 h-9 w-full rounded-lg border border-subtle bg-surface-5 px-3 text-[13px] text-primary outline-none placeholder:text-muted focus:border-focus focus-visible:ring-2 focus-visible:ring-[#5AD8B8]/50"
           />
-          <p className="mt-2 text-[11px] leading-relaxed text-muted">
+          <p id="flashquery-url-helper" className="mt-2 text-[11px] leading-relaxed text-muted">
             The HTTP base URL where FlashQuery&apos;s MCP server is listening.
           </p>
+          {urlInvalid && (
+            <p id="flashquery-url-error" className="mt-2 text-[11px] leading-relaxed text-red-400">
+              Enter a valid http:// or https:// URL.
+            </p>
+          )}
+          </div>
+
+          <div>
+            <label htmlFor="flashquery-token" className="block text-xs font-medium text-secondary">
+              Bearer token
+            </label>
+            <div className="relative mt-2">
+              <input
+                id="flashquery-token"
+                type={tokenVisible ? 'text' : 'password'}
+                value={token}
+                onChange={(event) => {
+                  setToken(event.target.value)
+                  setProbeResult(null)
+                }}
+                className="h-9 w-full rounded-lg border border-subtle bg-surface-5 px-3 pr-10 text-[13px] text-primary outline-none placeholder:text-muted focus:border-focus focus-visible:ring-2 focus-visible:ring-[#5AD8B8]/50"
+              />
+              <button
+                type="button"
+                aria-label={tokenVisible ? 'Hide bearer token' : 'Show bearer token'}
+                className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-md text-muted hover:text-primary hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5AD8B8]/70"
+                onClick={() => setTokenVisible((visible) => !visible)}
+              >
+                {tokenVisible
+                  ? <EyeSlash size={16} aria-hidden="true" />
+                  : <Eye size={16} aria-hidden="true" />}
+              </button>
+            </div>
+            <p className="mt-2 text-[11px] leading-relaxed text-muted">
+              A bearer token issued by FlashQuery. Stored locally with this workspace.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <button
+              type="button"
+              className="inline-flex h-8 items-center justify-center rounded-lg border border-subtle bg-surface-5 px-3 text-xs font-medium text-secondary hover:bg-hover hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5AD8B8]/70 disabled:cursor-default disabled:opacity-60"
+              disabled={testing}
+              onClick={handleTestConnection}
+            >
+              {testing ? 'Testing...' : 'Test connection'}
+            </button>
+
+            {probeResult && (
+              <div
+                aria-live="polite"
+                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs ${
+                  probeResult.ok ? 'bg-green-600/10 text-green-400' : 'bg-red-600/10 text-red-400'
+                }`}
+              >
+                {probeResult.ok
+                  ? <CheckCircle size={16} weight="bold" aria-hidden="true" />
+                  : <XCircle size={16} weight="bold" aria-hidden="true" />}
+                <span className="min-w-0 break-words">
+                  {probeResult.ok ? formatProbeSuccess(probeResult) : probeResult.error}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
         <button
