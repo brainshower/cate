@@ -153,6 +153,8 @@ export interface FlashQueryHttpConnection {
   transport: 'http'
   url: string
   auth?: FlashQueryBearerAuth
+  /** Renderer->main save hint: keep the stored token when the edit dialog token field is blank. */
+  preserveExistingToken?: boolean
 }
 
 export type FlashQueryConnection = FlashQueryHttpConnection

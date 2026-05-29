@@ -302,7 +302,7 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({
       { id: 'select-folder', label: 'Select Project Folder' },
       { id: 'copy-cwd', label: 'Copy Working Directory' },
       { type: 'separator' },
-      { id: 'flashquery-connection', label: 'FlashQuery Connection...' },
+      { id: 'flashquery-connection', label: 'FlashQuery Connection…' },
       { type: 'separator' },
       { id: 'duplicate', label: 'Duplicate Workspace' },
       { id: 'close-panels', label: 'Close All Panels', enabled: Object.keys(workspace.panels).length > 0 },
@@ -341,10 +341,7 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({
         break
       }
       case 'flashquery-connection':
-        if (app.selectedWorkspaceId !== workspace.id) {
-          await app.selectWorkspace(workspace.id)
-        }
-        useUIStore.getState().setShowFlashQueryConnectionDialog(true)
+        useUIStore.getState().setShowFlashQueryConnectionDialog(true, workspace.id)
         break
       case 'duplicate': app.duplicateWorkspace(workspace.id); break
       case 'close-panels': app.closeAllPanels(workspace.id); break

@@ -18,7 +18,6 @@ import { useUIStore } from '../stores/uiStore'
 type ElectronApiMock = {
   flashquerySetConnection: ReturnType<typeof vi.fn>
   flashqueryProbe: ReturnType<typeof vi.fn>
-  flashqueryGetConnectionSecret: ReturnType<typeof vi.fn>
 }
 
 const workspaceId = 'workspace-1'
@@ -34,7 +33,6 @@ function makeElectronApi(): ElectronApiMock {
   return {
     flashquerySetConnection: vi.fn().mockResolvedValue(undefined),
     flashqueryProbe: vi.fn().mockResolvedValue({ ok: true, version: '1.2.3', instanceId: 'instance-abcdef' }),
-    flashqueryGetConnectionSecret: vi.fn().mockResolvedValue(null),
   }
 }
 
@@ -51,11 +49,12 @@ function deferred<T>() {
 function seedWorkspace(
   name = 'Workspace',
   flashqueryConnection?: { transport: 'http'; url: string },
+  id = workspaceId,
 ) {
   useAppStore.setState({
     selectedWorkspaceId: workspaceId,
     workspaces: [{
-      id: workspaceId,
+      id,
       name,
       color: '#5AD8B8',
       rootPath: '/workspace',
@@ -77,7 +76,10 @@ function renderDialog() {
 beforeEach(() => {
   setElectronApi(makeElectronApi())
   seedWorkspace()
-  useUIStore.setState({ showFlashQueryConnectionDialog: false })
+  useUIStore.setState({
+    showFlashQueryConnectionDialog: false,
+    flashqueryConnectionDialogWorkspaceId: null,
+  })
 })
 
 afterEach(() => {
@@ -142,9 +144,8 @@ describe('FlashQueryConnectionDialog shell', () => {
     expect(tokenInput.getAttribute('type')).toBe('password')
   })
 
-  it('T-I-060 and T-I-061 prepopulates edit mode from workspace URL/token and leaves setup mode empty', async () => {
+  it('T-I-060 and T-I-061 prepopulates edit mode URL without sending the token back to renderer', async () => {
     const api = makeElectronApi()
-    api.flashqueryGetConnectionSecret.mockResolvedValueOnce('stored-token')
     setElectronApi(api)
     seedWorkspace('Cate Workspace', { transport: 'http', url: 'https://flashquery.local' })
     useUIStore.setState({ showFlashQueryConnectionDialog: true })
@@ -153,9 +154,9 @@ describe('FlashQueryConnectionDialog shell', () => {
 
     await waitFor(() => {
       expect(screen.getByLabelText('FlashQuery URL')).toHaveProperty('value', 'https://flashquery.local')
-      expect(screen.getByLabelText('Bearer token')).toHaveProperty('value', 'stored-token')
+      expect(screen.getByLabelText('Bearer token')).toHaveProperty('value', '')
     })
-    expect(api.flashqueryGetConnectionSecret).toHaveBeenCalledWith(workspaceId)
+    expect('flashqueryGetConnectionSecret' in api).toBe(false)
 
     fireEvent.change(screen.getByLabelText('FlashQuery URL'), { target: { value: 'https://unsaved.local' } })
     useUIStore.setState({ showFlashQueryConnectionDialog: false })
@@ -248,6 +249,26 @@ describe('FlashQueryConnectionDialog shell', () => {
     })
   })
 
+  it('leaves the existing edit-mode token unchanged when saving a blank token field', async () => {
+    const api = makeElectronApi()
+    setElectronApi(api)
+    seedWorkspace('Cate Workspace', { transport: 'http', url: 'https://flashquery.local' })
+    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+
+    renderDialog()
+
+    fireEvent.change(screen.getByLabelText('FlashQuery URL'), { target: { value: 'https://new.flashquery.local' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => {
+      expect(api.flashquerySetConnection).toHaveBeenCalledWith(workspaceId, {
+        transport: 'http',
+        url: 'https://new.flashquery.local',
+        preserveExistingToken: true,
+      })
+    })
+  })
+
   it('omits auth when saving a whitespace-only bearer token', async () => {
     const api = makeElectronApi()
     setElectronApi(api)
@@ -265,6 +286,16 @@ describe('FlashQueryConnectionDialog shell', () => {
         url: 'https://flashquery.local',
       })
     })
+  })
+
+  it('renders Phosphor leading icons for Test connection and Remove connection controls', () => {
+    seedWorkspace('Cate Workspace', { transport: 'http', url: 'https://flashquery.local' })
+    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+
+    renderDialog()
+
+    expect(screen.getByRole('button', { name: 'Test connection' }).querySelector('svg')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Remove connection' }).querySelector('svg')).toBeTruthy()
   })
 
   it('T-I-068 and T-I-069 blocks invalid saves and keeps save failures open with a one-line error', async () => {
@@ -347,6 +378,69 @@ describe('FlashQueryConnectionDialog shell', () => {
       expect(api.flashquerySetConnection).toHaveBeenCalledWith(workspaceId, null)
       expect(useUIStore.getState().showFlashQueryConnectionDialog).toBe(false)
     })
+  })
+
+  it('auto-dismisses the remove confirmation after roughly three seconds', async () => {
+    vi.useFakeTimers()
+    try {
+      seedWorkspace('Cate Workspace', { transport: 'http', url: 'https://flashquery.local' })
+      useUIStore.setState({ showFlashQueryConnectionDialog: true })
+
+      renderDialog()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Remove connection' }))
+      expect(screen.getByText('Really remove?')).toBeTruthy()
+
+      await vi.advanceTimersByTimeAsync(2900)
+      expect(screen.getByText('Really remove?')).toBeTruthy()
+
+      await vi.advanceTimersByTimeAsync(100)
+      expect(screen.queryByText('Really remove?')).toBeNull()
+      expect(screen.getByRole('button', { name: 'Remove connection' })).toBeTruthy()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('targets an explicitly opened workspace instead of the selected workspace', () => {
+    useAppStore.setState({
+      selectedWorkspaceId: workspaceId,
+      workspaces: [
+        {
+          id: workspaceId,
+          name: 'Selected Workspace',
+          color: '#5AD8B8',
+          rootPath: '/selected',
+          panels: {},
+          canvasNodes: {},
+          regions: {},
+          zoomLevel: 1,
+          viewportOffset: { x: 0, y: 0 },
+          focusedNodeId: null,
+          flashqueryConnection: { transport: 'http', url: 'https://selected.flashquery.local' },
+        },
+        {
+          id: 'workspace-2',
+          name: 'Target Workspace',
+          color: '#5AD8B8',
+          rootPath: '/target',
+          panels: {},
+          canvasNodes: {},
+          regions: {},
+          zoomLevel: 1,
+          viewportOffset: { x: 0, y: 0 },
+          focusedNodeId: null,
+          flashqueryConnection: { transport: 'http', url: 'https://target.flashquery.local' },
+        },
+      ],
+    })
+    useUIStore.getState().setShowFlashQueryConnectionDialog(true, 'workspace-2')
+
+    renderDialog()
+
+    expect(screen.getByText('For workspace: Target Workspace')).toBeTruthy()
+    expect(screen.getByLabelText('FlashQuery URL')).toHaveProperty('value', 'https://target.flashquery.local')
+    expect(useAppStore.getState().selectedWorkspaceId).toBe(workspaceId)
   })
 
   it('closes with Escape, overlay click, and close button without calling FlashQuery IPC', () => {

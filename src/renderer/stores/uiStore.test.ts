@@ -17,4 +17,14 @@ describe('useUIStore FlashQuery connection dialog state', () => {
     useUIStore.getState().setShowFlashQueryConnectionDialog(false)
     expect(useUIStore.getState().showFlashQueryConnectionDialog).toBe(false)
   })
+
+  it('can target a workspace without changing the selected workspace', () => {
+    useUIStore.getState().setShowFlashQueryConnectionDialog(true, 'workspace-2')
+
+    expect(useUIStore.getState().showFlashQueryConnectionDialog).toBe(true)
+    expect(useUIStore.getState().flashqueryConnectionDialogWorkspaceId).toBe('workspace-2')
+
+    useUIStore.getState().setShowFlashQueryConnectionDialog(false)
+    expect(useUIStore.getState().flashqueryConnectionDialogWorkspaceId).toBeNull()
+  })
 })

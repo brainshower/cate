@@ -517,8 +517,6 @@ export interface ElectronAPI {
 
   flashqueryProbe(workspaceId: string, connection: FlashQueryConnection): Promise<FlashQueryProbeResult>
 
-  flashqueryGetConnectionSecret(workspaceId: string): Promise<string | null>
-
   flashqueryListVault(workspaceId: string, vaultPath?: string): Promise<FlashQueryVaultEntry[]>
 
   flashqueryGetDocument(workspaceId: string, vaultPath: string): Promise<FlashQueryDocumentBody>

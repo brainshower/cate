@@ -64,11 +64,16 @@ function sanitizeWorkspaceChanges(
   }
 }
 
+function shouldPreserveFlashQueryToken(connection: unknown): boolean {
+  return Boolean(connection && typeof connection === 'object' && (connection as { preserveExistingToken?: unknown }).preserveExistingToken === true)
+}
+
 async function storeFlashQueryToken(workspaceId: string, connection: unknown): Promise<void> {
   if (isFlashQueryConnection(connection) && connection.auth) {
     await setWorkspaceToken(workspaceId, connection.auth.token)
     return
   }
+  if (shouldPreserveFlashQueryToken(connection)) return
   await setWorkspaceToken(workspaceId, null)
 }
 

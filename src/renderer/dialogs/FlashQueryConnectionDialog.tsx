@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { CheckCircle, Eye, EyeSlash, Lightning, X, XCircle } from '@phosphor-icons/react'
+import { Asterisk, CheckCircle, Eye, EyeSlash, Lightning, Trash, X, XCircle } from '@phosphor-icons/react'
 import type { FlashQueryProbeResult } from '../../shared/types'
 import { useAppStore } from '../stores/appStore'
 import { useUIStore } from '../stores/uiStore'
@@ -37,20 +37,23 @@ function safeOneLineError(error: unknown, token?: string): string {
   return message.split(/\r?\n/)[0]?.trim() || 'FlashQuery connection update failed'
 }
 
-function buildConnection(url: string, token: string) {
+function buildConnection(url: string, token: string, preserveExistingToken = false) {
   const trimmedToken = token.trim()
   return {
     transport: 'http' as const,
     url,
     ...(trimmedToken ? { auth: { type: 'bearer' as const, token: trimmedToken } } : {}),
+    ...(!trimmedToken && preserveExistingToken ? { preserveExistingToken: true } : {}),
   }
 }
 
 export function FlashQueryConnectionDialog() {
   const show = useUIStore((s) => s.showFlashQueryConnectionDialog)
   const setShow = useUIStore((s) => s.setShowFlashQueryConnectionDialog)
+  const targetWorkspaceId = useUIStore((s) => s.flashqueryConnectionDialogWorkspaceId)
   const selectedWorkspaceId = useAppStore((s) => s.selectedWorkspaceId)
-  const workspace = useAppStore((s) => s.workspaces.find((candidate) => candidate.id === selectedWorkspaceId))
+  const effectiveWorkspaceId = targetWorkspaceId ?? selectedWorkspaceId
+  const workspace = useAppStore((s) => s.workspaces.find((candidate) => candidate.id === effectiveWorkspaceId))
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const urlInputRef = useRef<HTMLInputElement | null>(null)
   const probeRequestIdRef = useRef(0)
@@ -88,7 +91,6 @@ export function FlashQueryConnectionDialog() {
   useEffect(() => {
     if (!show) return
 
-    let cancelled = false
     const initialUrl = workspace?.flashqueryConnection?.transport === 'http'
       ? workspace.flashqueryConnection.url
       : ''
@@ -102,22 +104,14 @@ export function FlashQueryConnectionDialog() {
     setSaving(false)
     setRemoveConfirming(false)
 
-    if (workspace?.flashqueryConnection) {
-      window.electronAPI.flashqueryGetConnectionSecret(workspace.id)
-        .then((secret) => {
-          if (!cancelled) setToken(secret ?? '')
-        })
-        .catch(() => {
-          if (!cancelled) setToken('')
-        })
-    }
-
     urlInputRef.current?.focus()
-
-    return () => {
-      cancelled = true
-    }
   }, [show, workspace?.id, workspace?.flashqueryConnection])
+
+  useEffect(() => {
+    if (!show || !removeConfirming) return
+    const id = window.setTimeout(() => setRemoveConfirming(false), 3000)
+    return () => window.clearTimeout(id)
+  }, [show, removeConfirming])
 
   useEffect(() => {
     if (!show) return
@@ -209,7 +203,7 @@ export function FlashQueryConnectionDialog() {
     setSaving(true)
     try {
       await window.electronAPI.flashquerySetConnection(workspace?.id ?? '', {
-        ...buildConnection(url, token),
+        ...buildConnection(url, token, Boolean(workspace?.flashqueryConnection)),
       })
       close()
     } catch (error) {
@@ -337,6 +331,7 @@ export function FlashQueryConnectionDialog() {
               disabled={testing}
               onClick={handleTestConnection}
             >
+              <Asterisk size={14} aria-hidden="true" />
               {testing ? 'Testing...' : 'Test connection'}
             </button>
 
@@ -388,11 +383,12 @@ export function FlashQueryConnectionDialog() {
             ) : (
               <button
                 type="button"
-                className="h-8 rounded-lg px-2 text-xs text-red-400 hover:bg-red-600/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/50 disabled:cursor-default disabled:text-muted disabled:hover:bg-transparent"
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs text-red-400 hover:bg-red-600/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/50 disabled:cursor-default disabled:text-muted disabled:hover:bg-transparent"
                 disabled={!hasConnection}
                 title={!hasConnection ? 'Currently no connection to remove.' : undefined}
                 onClick={() => setRemoveConfirming(true)}
               >
+                <Trash size={14} aria-hidden="true" className="inline-block" />
                 Remove connection
               </button>
             )}

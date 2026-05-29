@@ -52,6 +52,7 @@ interface UIStoreState {
   showCommandPalette: boolean
   showLayoutsDialog: boolean
   showFlashQueryConnectionDialog: boolean
+  flashqueryConnectionDialogWorkspaceId: string | null
   /** Whether the minimap is currently expanded. */
   minimapOpen: boolean
   showSettings: boolean
@@ -74,7 +75,7 @@ interface UIStoreActions {
   setShowNodeSwitcher: (show: boolean) => void
   setShowCommandPalette: (show: boolean) => void
   setShowLayoutsDialog: (show: boolean) => void
-  setShowFlashQueryConnectionDialog: (show: boolean) => void
+  setShowFlashQueryConnectionDialog: (show: boolean, workspaceId?: string | null) => void
   setMinimapOpen: (open: boolean) => void
   toggleMinimapOpen: () => void
   openSettings: (initialTab?: string) => void
@@ -101,6 +102,7 @@ export const useUIStore = create<UIStore>((set, get) => ({
   showCommandPalette: false,
   showLayoutsDialog: false,
   showFlashQueryConnectionDialog: false,
+  flashqueryConnectionDialogWorkspaceId: null,
   minimapOpen: false,
   showSettings: false,
   settingsInitialTab: null,
@@ -125,8 +127,11 @@ export const useUIStore = create<UIStore>((set, get) => ({
     set({ showLayoutsDialog: show })
   },
 
-  setShowFlashQueryConnectionDialog(show) {
-    set({ showFlashQueryConnectionDialog: show })
+  setShowFlashQueryConnectionDialog(show, workspaceId) {
+    set({
+      showFlashQueryConnectionDialog: show,
+      flashqueryConnectionDialogWorkspaceId: show ? (workspaceId ?? null) : null,
+    })
   },
 
   setMinimapOpen(open) {

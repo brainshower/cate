@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  FLASHQUERY_GET_CONNECTION_SECRET,
   FLASHQUERY_GET_DOCUMENT,
   FLASHQUERY_LIST_VAULT,
   FLASHQUERY_PROBE,
@@ -45,7 +44,6 @@ vi.mock('../windowRegistry', () => ({
 }))
 
 vi.mock('../flashquery/credentials', () => ({
-  getWorkspaceToken: mocks.getWorkspaceToken,
   setWorkspaceToken: mocks.setWorkspaceToken,
 }))
 
@@ -116,18 +114,16 @@ describe('FlashQuery IPC handlers', () => {
 
     registerHandlers()
 
-    expect(mocks.handle).toHaveBeenCalledTimes(7)
+    expect(mocks.handle).toHaveBeenCalledTimes(6)
     expect(mocks.handle.mock.calls.map(([channel]) => channel)).toEqual([
       FLASHQUERY_SET_CONNECTION,
       FLASHQUERY_PROBE,
-      FLASHQUERY_GET_CONNECTION_SECRET,
       FLASHQUERY_LIST_VAULT,
       FLASHQUERY_GET_DOCUMENT,
       FLASHQUERY_WRITE_DOCUMENT,
       FLASHQUERY_RETRY,
     ])
     expect(mocks.handle.mock.calls.map(([, handler]) => handler)).toEqual([
-      expect.any(Function),
       expect.any(Function),
       expect.any(Function),
       expect.any(Function),
@@ -144,13 +140,12 @@ describe('FlashQuery IPC handlers', () => {
     registerHandlers()
     registerHandlers()
 
-    expect(mocks.handle).toHaveBeenCalledTimes(7)
+    expect(mocks.handle).toHaveBeenCalledTimes(6)
   })
 
   it('declares the exact Phase 3 FlashQuery channel strings', () => {
     expect(FLASHQUERY_SET_CONNECTION).toBe('flashquery:setConnection')
     expect(FLASHQUERY_PROBE).toBe('flashquery:probe')
-    expect(FLASHQUERY_GET_CONNECTION_SECRET).toBe('flashquery:getConnectionSecret')
     expect(FLASHQUERY_LIST_VAULT).toBe('flashquery:listVault')
     expect(FLASHQUERY_GET_DOCUMENT).toBe('flashquery:getDocument')
     expect(FLASHQUERY_WRITE_DOCUMENT).toBe('flashquery:writeDocument')
@@ -199,6 +194,33 @@ describe('FlashQuery IPC handlers', () => {
     await handler({}, 'workspace-1', rawConnection)
 
     expect(mocks.updateWorkspace).toHaveBeenCalledWith('workspace-1', { flashqueryConnection: normalizedConnection })
+    expect(mocks.managerInstances[0].connect).toHaveBeenCalledWith('workspace-1', normalizedConnection)
+  })
+
+  it('preserves the existing token when the dialog saves an edit-mode connection with no replacement token', async () => {
+    const connection = {
+      transport: 'http',
+      url: 'https://flashquery.local',
+      preserveExistingToken: true,
+    } satisfies FlashQueryConnection & { preserveExistingToken: true }
+    const normalizedConnection: FlashQueryConnection = {
+      transport: 'http',
+      url: 'https://flashquery.local',
+    }
+    mocks.updateWorkspace.mockResolvedValue({
+      ok: true,
+      workspace: workspace({ flashqueryConnection: normalizedConnection }),
+    })
+    const handler = await registeredSetConnectionHandler()
+
+    await handler({}, 'workspace-1', connection)
+
+    expect(mocks.updateWorkspace).toHaveBeenCalledWith('workspace-1', {
+      flashqueryConnection: {
+        ...normalizedConnection,
+        preserveExistingToken: true,
+      },
+    })
     expect(mocks.managerInstances[0].connect).toHaveBeenCalledWith('workspace-1', normalizedConnection)
   })
 
@@ -364,21 +386,6 @@ describe('FlashQuery IPC handlers', () => {
       url: 'https://flashquery.local',
       auth: { type: 'bearer', token: 'secret-token' },
     })).resolves.toEqual({ ok: false, error: 'network failed for [redacted]' })
-  })
-
-  it('T-I-060 reads the current workspace token through the credential helper only', async () => {
-    const handler = await registeredHandler<(
-      _event: unknown,
-      workspaceId: string,
-    ) => Promise<string | null>>(FLASHQUERY_GET_CONNECTION_SECRET)
-    mocks.getWorkspaceToken.mockResolvedValueOnce('stored-token')
-
-    await expect(handler({}, 'workspace-1')).resolves.toBe('stored-token')
-
-    expect(mocks.getWorkspaceToken).toHaveBeenCalledWith('workspace-1')
-    expect(mocks.updateWorkspace).not.toHaveBeenCalled()
-    expect(mocks.broadcastWorkspaceChange).not.toHaveBeenCalled()
-    expect(mocks.broadcastToAll).not.toHaveBeenCalled()
   })
 
   it('T-I-014 uses broadcastToAll as the status fanout primitive without duplicate workspace subscriptions', async () => {

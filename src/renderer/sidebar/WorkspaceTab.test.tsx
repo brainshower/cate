@@ -187,8 +187,9 @@ describe('WorkspaceTab FlashQuery native context menu', () => {
 
     expect(items).toContainEqual({
       id: 'flashquery-connection',
-      label: 'FlashQuery Connection...',
+      label: 'FlashQuery Connection…',
     })
+    expect(JSON.stringify(items)).not.toContain('FlashQuery Connection...')
   })
 
   it('places FlashQuery Connection between copy-cwd and duplicate with separators', async () => {
@@ -231,7 +232,7 @@ describe('WorkspaceTab FlashQuery native context menu', () => {
     expect(removeWorkspace).not.toHaveBeenCalled()
   })
 
-  it('selects the clicked workspace before opening its FlashQuery connection dialog', async () => {
+  it('opens the clicked workspace FlashQuery connection dialog without changing selection', async () => {
     const api = makeElectronApi('flashquery-connection')
     const otherWorkspace: WorkspaceState = {
       ...workspace,
@@ -263,10 +264,12 @@ describe('WorkspaceTab FlashQuery native context menu', () => {
 
     expect(items).toContainEqual({
       id: 'flashquery-connection',
-      label: 'FlashQuery Connection...',
+      label: 'FlashQuery Connection…',
     })
-    expect(selectWorkspace).toHaveBeenCalledWith('workspace-2')
+    expect(selectWorkspace).not.toHaveBeenCalled()
     expect(useUIStore.getState().showFlashQueryConnectionDialog).toBe(true)
+    expect(useUIStore.getState().flashqueryConnectionDialogWorkspaceId).toBe('workspace-2')
+    expect(useAppStore.getState().selectedWorkspaceId).toBe('workspace-1')
   })
 
   it('does not render a custom React context-menu element', async () => {

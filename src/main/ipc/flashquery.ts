@@ -1,6 +1,5 @@
 import { ipcMain } from 'electron'
 import {
-  FLASHQUERY_GET_CONNECTION_SECRET,
   FLASHQUERY_GET_DOCUMENT,
   FLASHQUERY_LIST_VAULT,
   FLASHQUERY_PROBE,
@@ -12,7 +11,6 @@ import {
 import type { FlashQueryConnection, FlashQueryProbeResult, FlashQueryStatusBroadcastPayload, WorkspaceMutationResult } from '../../shared/types'
 import { isFlashQueryConnection } from '../../shared/types'
 import { FlashQueryClientManager } from '../flashquery/clientManager'
-import { getWorkspaceToken } from '../flashquery/credentials'
 import { broadcastToAll } from '../windowRegistry'
 import { broadcastWorkspaceChange, updateWorkspace } from '../workspaceManager'
 
@@ -110,9 +108,17 @@ function subscribeWorkspaceStatus(workspaceId: string): void {
 }
 
 async function setConnection(workspaceId: string, connection: unknown): Promise<WorkspaceMutationResult> {
+  const preserveExistingToken = Boolean(
+    connection
+    && typeof connection === 'object'
+    && (connection as { preserveExistingToken?: unknown }).preserveExistingToken === true,
+  )
   const nextConnection = connection === null ? null : normalizeConnection(validateConnection(connection))
+  const workspaceConnection = nextConnection && preserveExistingToken
+    ? { ...nextConnection, preserveExistingToken: true }
+    : nextConnection
   const result = await updateWorkspace(workspaceId, {
-    flashqueryConnection: nextConnection === null ? undefined : nextConnection,
+    flashqueryConnection: workspaceConnection === null ? undefined : workspaceConnection,
   })
 
   if (!result.ok) {
@@ -181,10 +187,6 @@ async function probeConnection(workspaceId: string, connection: unknown): Promis
   }
 }
 
-async function getConnectionSecret(workspaceId: string): Promise<string | null> {
-  return getWorkspaceToken(requireNonEmptyString(workspaceId, 'workspaceId'))
-}
-
 function requireNonEmptyString(value: unknown, field: string): string {
   if (typeof value !== 'string' || value.trim().length === 0) {
     throw new Error(`${field} must be a non-empty string`)
@@ -242,9 +244,6 @@ export function registerHandlers(): void {
   })
   ipcMain.handle(FLASHQUERY_PROBE, async (_event, workspaceId: string, connection: unknown) => {
     return probeConnection(workspaceId, connection)
-  })
-  ipcMain.handle(FLASHQUERY_GET_CONNECTION_SECRET, async (_event, workspaceId: string) => {
-    return getConnectionSecret(workspaceId)
   })
   ipcMain.handle(FLASHQUERY_LIST_VAULT, async (_event, workspaceId: string, vaultPath?: string) => {
     return listVault(workspaceId, vaultPath)
