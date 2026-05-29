@@ -16,7 +16,7 @@ Prove a Cate workspace can connect to a separately-running FlashQuery HTTP MCP s
 | 2 | Connection layer | 3/3 | Complete   | 2026-05-29 |
 | 3 | IPC surface | 3/3 | Complete   | 2026-05-29 |
 | 4 | Vault panel + shared chip | 4/4 | Complete   | 2026-05-29 |
-| 5 | Settings dialog + workspace menu entry | Phase 3 | REQ-034, REQ-035, REQ-036, REQ-037, REQ-038, REQ-039 | Test Plan §4.5 |
+| 5 | Settings dialog + workspace menu entry | 2/3 | In Progress|  |
 | 6 | Editor URI-awareness + vault badge | Phase 3 + Phase 4 | REQ-027, REQ-028, REQ-029, REQ-030, REQ-031, REQ-032, REQ-033, REQ-041, REQ-042 | Test Plan §4.6 |
 | 7 | Cross-cutting + regression | All | REQ-043, REQ-044, REQ-045 | Test Plan §4.7 |
 
@@ -116,9 +116,9 @@ Prove a Cate workspace can connect to a separately-running FlashQuery HTTP MCP s
 - Save, cancel, and remove flows update state only through the IPC surface.
 - Workspace context menu contains the FlashQuery Connection entry in the specified position and opens the dialog.
 
-**Plans:** 3 plans
+**Plans:** 2/3 plans executed
 
-- [ ] `05-01-PLAN.md` — Dialog state and shell: verify UI-store state, create and mount the modal shell, and cover close behavior.
+- [x] `05-01-PLAN.md` — Dialog state and shell: verify UI-store state, create and mount the modal shell, and cover close behavior.
 - [ ] `05-02-PLAN.md` — Form behavior: implement URL/token fields, reveal toggle, validation, prepopulation, dry-run probe, save, cancel, and remove flows.
 - [ ] `05-03-PLAN.md` — Workspace menu wiring: add the native context-menu item and tests for position, action, and native-menu behavior.
 

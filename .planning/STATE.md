@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Vault Connect, Read, Edit
 status: executing
-stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-05-29T16:18:21.598Z"
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-05-29T18:13:53.896Z"
 last_activity: 2026-05-29
 progress:
   total_phases: 7
   completed_phases: 4
-  total_plans: 13
-  completed_plans: 13
-  percent: 100
+  total_plans: 16
+  completed_plans: 15
+  percent: 94
 ---
 
 # Project State
@@ -26,22 +26,22 @@ See: `.planning/PROJECT.md`
 
 ## Current Position
 
-Phase: 5
-Plan: 05-01 next
-Status: Phase 4 complete — FlashQuery Vault shared chip and panel registration complete; Phase 5 settings dialog/workspace menu is next
+Phase: 05 (settings-dialog-workspace-menu-entry) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
 Last activity: 2026-05-29
 
-Progress: [██████████] 100%
+Progress: [█████████░] 94%
 
 ## Session Continuity
 
-Last session: 2026-05-29T16:18:21.578Z
-Stopped At: Completed 04-02-PLAN.md
+Last session: 2026-05-29T18:13:43.006Z
+Stopped At: Completed 05-01-PLAN.md
 Resume File: None
 
 ## Next Up
 
-Execute Phase 05 plan 05-01: dialog state and shell.
+Execute Phase 05 plan 05-02: form behavior.
 
 ## Decisions
 
@@ -59,6 +59,8 @@ Execute Phase 05 plan 05-01: dialog state and shell.
 - [Phase 04]: Open vault documents through createEditor using buildVaultUri from src/shared/flashqueryUri.ts and dock-center/canvas placements.
 - [Phase 04]: Limit vault document context menus to exactly Open and Open on Canvas; folder context menus remain inert in v1.
 - [Phase 04]: Register flashqueryVault through shared panel metadata, renderer registry, and app-store createFlashQueryVault factory without adding Phase 5 workspace menu behavior.
+- [Phase 05]: Reuse the Phase 4 useUIStore visibility slice for the FlashQuery connection dialog shell; no dialog form state is stored in Zustand. — Avoids duplicating renderer state and keeps Plan 05-01 shell-only.
+- [Phase 05]: Keep 05-01 shell-only with an inert URL focus scaffold; save, probe, token, and remove behavior remain for later Phase 5 plans. — Matches the plan boundary and prevents token or persistence behavior from entering the shell task.
 
 ## Performance Metrics
 
@@ -73,3 +75,4 @@ Execute Phase 05 plan 05-01: dialog state and shell.
 | Phase 04 P03 | 6min | 3 tasks | 11 files |
 | Phase 04 P04 | 15min | 3 tasks | 2 files |
 | Phase 04 P02 | 5min | 3 tasks | 7 files |
+| Phase 05 P01 | 5min | 3 tasks | 4 files |
