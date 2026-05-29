@@ -1,5 +1,5 @@
 import React from 'react'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../lib/logger', () => ({
@@ -15,7 +15,10 @@ import { FlashQueryConnectionDialog } from './FlashQueryConnectionDialog'
 import { useAppStore } from '../stores/appStore'
 import { useUIStore } from '../stores/uiStore'
 
-type ElectronApiMock = Pick<Window['electronAPI'], 'flashquerySetConnection'>
+type ElectronApiMock = Pick<
+  Window['electronAPI'],
+  'flashquerySetConnection' | 'flashqueryProbe' | 'flashqueryGetConnectionSecret'
+>
 
 const workspaceId = 'workspace-1'
 
@@ -29,10 +32,15 @@ function setElectronApi(api: ElectronApiMock) {
 function makeElectronApi(): ElectronApiMock {
   return {
     flashquerySetConnection: vi.fn().mockResolvedValue(undefined),
+    flashqueryProbe: vi.fn().mockResolvedValue({ ok: true, version: '1.2.3', instanceId: 'instance-abcdef' }),
+    flashqueryGetConnectionSecret: vi.fn().mockResolvedValue(null),
   }
 }
 
-function seedWorkspace(name = 'Workspace') {
+function seedWorkspace(
+  name = 'Workspace',
+  flashqueryConnection?: { transport: 'http'; url: string },
+) {
   useAppStore.setState({
     selectedWorkspaceId: workspaceId,
     workspaces: [{
@@ -46,6 +54,7 @@ function seedWorkspace(name = 'Workspace') {
       zoomLevel: 1,
       viewportOffset: { x: 0, y: 0 },
       focusedNodeId: null,
+      flashqueryConnection,
     }],
   })
 }
@@ -86,6 +95,103 @@ describe('FlashQueryConnectionDialog shell', () => {
     expect(screen.getByText('For workspace: Cate Workspace')).toBeTruthy()
     expect(screen.getByLabelText('Close FlashQuery connection dialog')).toBeTruthy()
     expect(screen.getByLabelText('FlashQuery URL')).toBe(document.activeElement)
+  })
+
+  it('T-I-056 renders URL copy, helper text, placeholder, and associated invalid URL error', async () => {
+    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+
+    renderDialog()
+
+    const input = screen.getByLabelText('FlashQuery URL')
+    expect(input.getAttribute('placeholder')).toBe('https://fq.example.com or http://localhost:3100')
+    expect(screen.getByText("The HTTP base URL where FlashQuery's MCP server is listening.")).toBeTruthy()
+
+    fireEvent.change(input, { target: { value: 'ftp://flashquery.local' } })
+    fireEvent.blur(input)
+
+    const error = await screen.findByText('Enter a valid http:// or https:// URL.')
+    expect(input.getAttribute('aria-invalid')).toBe('true')
+    expect(input.getAttribute('aria-describedby')).toContain(error.id)
+  })
+
+  it('T-I-057 and T-I-058 renders bearer token as password and toggles visibility with accessible labels', () => {
+    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+
+    renderDialog()
+
+    const tokenInput = screen.getByLabelText('Bearer token')
+    expect(tokenInput.getAttribute('type')).toBe('password')
+    expect(screen.getByText('A bearer token issued by FlashQuery. Stored locally with this workspace.')).toBeTruthy()
+
+    fireEvent.click(screen.getByLabelText('Show bearer token'))
+    expect(tokenInput.getAttribute('type')).toBe('text')
+    expect(screen.getByLabelText('Hide bearer token')).toBeTruthy()
+
+    fireEvent.click(screen.getByLabelText('Hide bearer token'))
+    expect(tokenInput.getAttribute('type')).toBe('password')
+  })
+
+  it('T-I-060 and T-I-061 prepopulates edit mode from workspace URL/token and leaves setup mode empty', async () => {
+    const api = makeElectronApi()
+    api.flashqueryGetConnectionSecret.mockResolvedValueOnce('stored-token')
+    setElectronApi(api)
+    seedWorkspace('Cate Workspace', { transport: 'http', url: 'https://flashquery.local' })
+    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+
+    const { rerender } = renderDialog()
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('FlashQuery URL')).toHaveProperty('value', 'https://flashquery.local')
+      expect(screen.getByLabelText('Bearer token')).toHaveProperty('value', 'stored-token')
+    })
+    expect(api.flashqueryGetConnectionSecret).toHaveBeenCalledWith(workspaceId)
+
+    fireEvent.change(screen.getByLabelText('FlashQuery URL'), { target: { value: 'https://unsaved.local' } })
+    useUIStore.setState({ showFlashQueryConnectionDialog: false })
+    rerender(<FlashQueryConnectionDialog />)
+
+    seedWorkspace('Cate Workspace')
+    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    rerender(<FlashQueryConnectionDialog />)
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('FlashQuery URL')).toHaveProperty('value', '')
+      expect(screen.getByLabelText('Bearer token')).toHaveProperty('value', '')
+    })
+  })
+
+  it('T-I-059 and T-I-062 through T-I-066 probes current form values without saving and renders live results', async () => {
+    const api = makeElectronApi()
+    setElectronApi(api)
+    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+
+    renderDialog()
+
+    fireEvent.change(screen.getByLabelText('FlashQuery URL'), { target: { value: 'not-a-url' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Test connection' }))
+    expect(await screen.findByText('Enter a valid http:// or https:// URL.')).toBeTruthy()
+    expect(api.flashqueryProbe).not.toHaveBeenCalled()
+    expect(api.flashquerySetConnection).not.toHaveBeenCalled()
+
+    fireEvent.change(screen.getByLabelText('FlashQuery URL'), { target: { value: 'https://flashquery.local' } })
+    fireEvent.change(screen.getByLabelText('Bearer token'), { target: { value: 'current-token' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Test connection' }))
+
+    expect(screen.getByText('Testing...')).toBeTruthy()
+    await screen.findByText('Connected to FlashQuery v1.2.3 (instance instance)')
+    const status = screen.getByText('Connected to FlashQuery v1.2.3 (instance instance)').closest('[aria-live]')
+    expect(status?.getAttribute('aria-live')).toBe('polite')
+    expect(api.flashqueryProbe).toHaveBeenCalledWith(workspaceId, {
+      transport: 'http',
+      url: 'https://flashquery.local',
+      auth: { type: 'bearer', token: 'current-token' },
+    })
+    expect(api.flashquerySetConnection).not.toHaveBeenCalled()
+
+    api.flashqueryProbe.mockResolvedValueOnce({ ok: false, error: 'Auth failed' })
+    fireEvent.click(screen.getByRole('button', { name: 'Test connection' }))
+    expect(screen.queryByText('Connected to FlashQuery v1.2.3 (instance instance)')).toBeNull()
+    expect(await screen.findByText('Auth failed')).toBeTruthy()
   })
 
   it('closes with Escape, overlay click, and close button without calling FlashQuery IPC', () => {
