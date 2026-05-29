@@ -126,6 +126,7 @@ export const FLASHQUERY_SET_CONNECTION = 'flashquery:setConnection'
 export const FLASHQUERY_LIST_VAULT = 'flashquery:listVault'
 export const FLASHQUERY_GET_DOCUMENT = 'flashquery:getDocument'
 export const FLASHQUERY_WRITE_DOCUMENT = 'flashquery:writeDocument'
+export const FLASHQUERY_RETRY = 'flashquery:retry'
 export const FLASHQUERY_STATUS = 'flashquery:status' // main -> renderer
 
 

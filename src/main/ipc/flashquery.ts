@@ -2,6 +2,7 @@ import { ipcMain } from 'electron'
 import {
   FLASHQUERY_GET_DOCUMENT,
   FLASHQUERY_LIST_VAULT,
+  FLASHQUERY_RETRY,
   FLASHQUERY_STATUS,
   FLASHQUERY_SET_CONNECTION,
   FLASHQUERY_WRITE_DOCUMENT,
@@ -147,6 +148,10 @@ async function writeDocument(workspaceId: string, vaultPath: string, content: st
   }
 }
 
+async function retry(workspaceId: string): Promise<void> {
+  await flashQueryClientManager.retry(requireNonEmptyString(workspaceId, 'workspaceId'))
+}
+
 export function registerHandlers(): void {
   if (handlersRegistered) return
   handlersRegistered = true
@@ -162,6 +167,9 @@ export function registerHandlers(): void {
   })
   ipcMain.handle(FLASHQUERY_WRITE_DOCUMENT, async (_event, workspaceId: string, vaultPath: string, content: string) => {
     return writeDocument(workspaceId, vaultPath, content)
+  })
+  ipcMain.handle(FLASHQUERY_RETRY, async (_event, workspaceId: string) => {
+    return retry(workspaceId)
   })
 }
 

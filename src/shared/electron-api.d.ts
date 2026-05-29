@@ -521,6 +521,8 @@ export interface ElectronAPI {
 
   flashqueryWriteDocument(workspaceId: string, vaultPath: string, content: string): Promise<FlashQueryWriteResult>
 
+  flashqueryRetry(workspaceId: string): Promise<void>
+
   onFlashQueryStatus(callback: (payload: FlashQueryStatusBroadcastPayload) => void): () => void
 
   // ---------------------------------------------------------------------------

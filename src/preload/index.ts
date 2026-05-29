@@ -180,6 +180,7 @@ import {
   AUTH_DELETE,
   FLASHQUERY_GET_DOCUMENT,
   FLASHQUERY_LIST_VAULT,
+  FLASHQUERY_RETRY,
   FLASHQUERY_SET_CONNECTION,
   FLASHQUERY_STATUS,
   FLASHQUERY_WRITE_DOCUMENT,
@@ -909,6 +910,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   flashqueryWriteDocument(workspaceId: string, vaultPath: string, content: string): Promise<unknown> {
     return ipcRenderer.invoke(FLASHQUERY_WRITE_DOCUMENT, workspaceId, vaultPath, content)
+  },
+
+  flashqueryRetry(workspaceId: string): Promise<void> {
+    return ipcRenderer.invoke(FLASHQUERY_RETRY, workspaceId)
   },
 
   onFlashQueryStatus(callback: (payload: unknown) => void): () => void {
