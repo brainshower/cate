@@ -25,7 +25,7 @@ function okInfoResponse(version = '1.2.3', instanceId = 'fq-instance-1') {
 }
 
 function statusPayloads(handler: ReturnType<typeof vi.fn>): FlashQueryStatusPayload[] {
-  return handler.mock.calls.map(([event]: [FlashQueryClientEvent<FlashQueryStatusPayload>]) => event.payload)
+  return handler.mock.calls.map((call) => (call[0] as FlashQueryClientEvent<FlashQueryStatusPayload>).payload)
 }
 
 afterEach(() => {
@@ -169,6 +169,45 @@ describe('FlashQueryClientManager', () => {
     expect(result.error).toContain('Service Unavailable')
     expect(result.error).not.toContain('secret-token')
     expect(statusPayloads(statusHandler)).toEqual([{ status: 'connecting' }, result])
+  })
+
+  it('transitions to disconnected when the info payload is malformed', async () => {
+    const fetchMock = installFetchMock()
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: vi.fn().mockResolvedValue({ version: '2.0.0' }),
+    })
+    const manager = new FlashQueryClientManager()
+
+    const result = await manager.connect('workspace-1', {
+      transport: 'http',
+      url: 'http://127.0.0.1:3100',
+    })
+
+    expect(result).toEqual({
+      status: 'disconnected',
+      error: 'FlashQuery info probe returned an invalid response',
+    })
+  })
+
+  it('transitions to disconnected when the info response is invalid JSON', async () => {
+    const fetchMock = installFetchMock()
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: vi.fn().mockRejectedValue(new Error('Unexpected token < in JSON')),
+    })
+    const manager = new FlashQueryClientManager()
+
+    const result = await manager.connect('workspace-1', {
+      transport: 'http',
+      url: 'http://127.0.0.1:3100',
+    })
+
+    expect(result).toEqual({ status: 'disconnected', error: 'Unexpected token < in JSON' })
   })
 
   it('transitions to disconnected with safe rejection reason text when fetch rejects', async () => {
