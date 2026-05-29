@@ -14,6 +14,7 @@ import { broadcastWorkspaceChange, updateWorkspace } from '../workspaceManager'
 
 const flashQueryClientManager = new FlashQueryClientManager()
 const statusUnsubscribers = new Map<string, () => void>()
+let handlersRegistered = false
 
 function flashQueryHandlerUnavailable(operation: string): never {
   throw new Error(`FlashQuery ${operation} handler is not available until its Phase 3 implementation plan runs`)
@@ -115,6 +116,9 @@ async function writeDocument(_workspaceId: string, _vaultPath: string, _content:
 }
 
 export function registerHandlers(): void {
+  if (handlersRegistered) return
+  handlersRegistered = true
+
   ipcMain.handle(FLASHQUERY_SET_CONNECTION, async (_event, workspaceId: string, connection: unknown) => {
     return setConnection(workspaceId, connection)
   })
