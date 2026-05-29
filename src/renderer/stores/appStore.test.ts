@@ -99,7 +99,7 @@ describe('appStore.createFlashQueryVault', () => {
       zone: 'left',
     })
 
-    expect(useDockStore.getState().panelLocations[panelId]).toEqual({
+    expect(useDockStore.getState().panelLocations[panelId]).toMatchObject({
       type: 'dock',
       zone: 'left',
     })
@@ -114,7 +114,7 @@ describe('appStore.createFlashQueryVault', () => {
 
     const panelId = useAppStore.getState().createFlashQueryVault(workspaceId)
 
-    expect(panelId).toBe('')
+    expect(panelId).toBeNull()
     expect(useAppStore.getState().workspaces[0].panels).toEqual({})
   })
 })

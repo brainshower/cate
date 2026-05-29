@@ -297,6 +297,7 @@ interface AppStoreActions {
   createDiffEditor: (workspaceId: string, filePath: string, diffMode: 'staged' | 'working', position?: Point, placement?: PanelPlacement) => string
   createGit: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
   createFileExplorer: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
+  createFlashQueryVault: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
   createProjectList: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
   createCanvas: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
   createAgent: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
@@ -913,6 +914,39 @@ export const useAppStore = create<AppStore>((set, get) => ({
         ),
       }))
       log.error('Failed to place file explorer panel:', error)
+      return null as unknown as string
+    }
+    return panelId
+  },
+
+  createFlashQueryVault(workspaceId, position?, placement?) {
+    const panelId = generateId()
+    const panel: PanelState = {
+      id: panelId,
+      type: 'flashqueryVault',
+      title: 'FlashQuery Vault',
+      isDirty: false,
+    }
+    set((state) => ({
+      workspaces: state.workspaces.map((ws) =>
+        ws.id === workspaceId
+          ? { ...ws, panels: { ...ws.panels, [panelId]: panel } }
+          : ws,
+      ),
+    }))
+    try {
+      placePanel(panelId, 'flashqueryVault', placement, position, workspaceId === get().selectedWorkspaceId)
+    } catch (error) {
+      set((state) => ({
+        workspaces: state.workspaces.map((ws) =>
+          ws.id === workspaceId
+            ? { ...ws, panels: Object.fromEntries(
+                Object.entries(ws.panels).filter(([id]) => id !== panelId)
+              )}
+            : ws,
+        ),
+      }))
+      log.error('Failed to place FlashQuery Vault panel:', error)
       return null as unknown as string
     }
     return panelId
