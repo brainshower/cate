@@ -28,7 +28,7 @@ Goal: "Let users configure, test, save, and remove a workspace's FlashQuery conn
 Verified:
 
 - `FlashQueryConnectionDialog` is mounted in the root modal stack and controlled by the FlashQuery dialog UI-store slice.
-- The dialog supports first-time setup and edit mode, including URL input, bearer-token password input, reveal/hide, helper text, validation, token-safe prepopulation, and close/cancel behavior.
+- The dialog supports first-time setup and edit mode, including URL input, bearer-token password input, reveal/hide, mode-aware helper text, validation, URL-only edit-mode prepopulation, blank-edit-token preservation through `preserveExistingToken: true`, and close/cancel behavior.
 - Test connection uses a dedicated dry-run IPC probe with the current URL/token and does not persist connection state.
 - Save and remove route through the typed main-process IPC surface.
 - Workspace context menu includes `FlashQuery Connection...` in the specified native-menu position and opens the dialog for the clicked workspace.
@@ -39,9 +39,9 @@ Verified:
 | Requirement | Evidence | Status |
 |---|---|---|
 | REQ-034 | `FlashQueryConnectionDialog` component mounted from `src/renderer/App.tsx`; shell and accessibility coverage in `FlashQueryConnectionDialog.test.tsx`. | PASS |
-| REQ-035 | URL/token fields, reveal toggle, helper/error text, and edit prepopulation covered in dialog tests. | PASS |
+| REQ-035 | URL/token fields, reveal toggle, helper/error text, edit-mode URL prepopulation, no main → renderer token return, and token-preservation disclosure covered in dialog tests. | PASS |
 | REQ-036 | `flashquery:probe` IPC, preload API, and dialog probe UI covered in `src/main/ipc/flashquery.test.ts` and dialog tests. | PASS |
-| REQ-037 | Save, cancel, remove, token normalization, and redacted failure paths covered in dialog and IPC tests. | PASS |
+| REQ-037 | Save, cancel, remove, token normalization, blank-edit-token preservation, and redacted failure paths covered in dialog and IPC tests. | PASS |
 | REQ-038 | `useUIStore` dialog visibility is covered by `src/renderer/stores/uiStore.test.ts` and root mount tests. | PASS |
 | REQ-039 | Native workspace context-menu entry order and clicked-workspace targeting covered in `WorkspaceTab.test.tsx`. | PASS |
 

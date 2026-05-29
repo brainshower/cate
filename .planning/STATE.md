@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Vault Connect, Read, Edit
-status: ready
-stopped_at: Completed Phase 05 verification and validation
-last_updated: "2026-05-29T20:26:44.000Z"
-last_activity: 2026-05-29
+status: executing
+stopped_at: Completed 05-02-PLAN.md
+last_updated: "2026-05-29T21:08:48.586Z"
+last_activity: 2026-05-29 -- Phase 6 planning complete
 progress:
   total_phases: 7
   completed_phases: 5
-  total_plans: 16
+  total_plans: 20
   completed_plans: 16
-  percent: 100
+  percent: 71
 ---
 
 # Project State
@@ -28,8 +28,8 @@ See: `.planning/PROJECT.md`
 
 Phase: 06 (editor-uri-awareness-vault-badge) — READY
 Plan: 06-01 next
-Status: Phase 05 complete — settings dialog and workspace menu entry verified; Phase 06 editor URI-awareness is next
-Last activity: 2026-05-29
+Status: Ready to execute
+Last activity: 2026-05-29 -- Phase 6 planning complete
 
 Progress: [██████████] 100%
 

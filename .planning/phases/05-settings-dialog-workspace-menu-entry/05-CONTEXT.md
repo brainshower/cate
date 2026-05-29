@@ -31,8 +31,8 @@ This phase does not build editor URI-awareness, editor read/save routing, the ed
 
 ### Form Behavior
 - **D-08:** URL field values are locked: label `FlashQuery URL`, text input, placeholder `https://fq.example.com` or `http://localhost:3100`, helper text `The HTTP base URL where FlashQuery's MCP server is listening.`, and blur/save validation requiring parseable `http:` or `https:` URL.
-- **D-09:** Bearer token field values are locked: label `Bearer token`, password by default, Phosphor `Eye` / `EyeSlash` reveal toggle, helper text `A bearer token issued by FlashQuery. Stored locally with this workspace.`, and no validation beyond non-empty where required by a save/test flow.
-- **D-10:** Edit mode prepopulates URL from `WorkspaceInfo.flashqueryConnection.url` and token through the existing preload/IP C contract for token retrieval or connection details. First-time setup leaves fields empty.
+- **D-09:** Bearer token field values are locked: label `Bearer token`, password by default, Phosphor `Eye` / `EyeSlash` reveal toggle, mode-aware helper text, and no validation beyond non-empty where required by a save/test flow. First-time setup helper text remains `A bearer token issued by FlashQuery. Stored locally with this workspace.` Edit mode helper text must disclose that a token is already stored, blank save keeps it, entering a value replaces it, and `Remove connection` clears it entirely.
+- **D-10:** After the Phase 5 Gap 4 fix, edit mode prepopulates only the URL from `WorkspaceInfo.flashqueryConnection.url`; main must not return the stored token to renderer. First-time setup leaves both fields empty. In edit mode, leaving the token field blank on Save sends the existing renderer → main `preserveExistingToken: true` hint to keep the stored credential; typing a token replaces it.
 
 ### Test Connection
 - **D-11:** The dialog must include a `Test connection` button below the bearer-token field.
@@ -41,7 +41,7 @@ This phase does not build editor URI-awareness, editor read/save routing, the ed
 - **D-14:** The result area starts empty and clears between attempts. Test connection must not dispatch `flashquery:setConnection`.
 
 ### Save, Cancel, And Remove
-- **D-15:** Save validates the URL, dispatches `flashquery:setConnection(workspaceId, { transport: 'http', url, auth: { type: 'bearer', token } })`, closes on success, and surfaces the error while keeping the dialog open on failure.
+- **D-15:** Save validates the URL, dispatches `flashquery:setConnection` with `{ transport: 'http', url, auth: { type: 'bearer', token } }` when the user enters a token, dispatches `{ transport: 'http', url, preserveExistingToken: true }` when edit mode is saved with a blank token field, closes on success, and surfaces the error while keeping the dialog open on failure.
 - **D-16:** Save is the primary action with teal styling (`#5AD8B8`) and a visible focus ring.
 - **D-17:** Cancel, close `X`, Escape, and click-outside close without saving and without any IPC writes.
 - **D-18:** Remove connection is a footer-left muted destructive ghost action. First-time setup disables it with tooltip `Currently no connection to remove.` Edit mode shows inline confirmation `Really remove?` with adjacent `Yes` / `No` affordances. Confirming dispatches `flashquery:setConnection(workspaceId, null)` and closes.

@@ -47,6 +47,9 @@ function buildConnection(url: string, token: string, preserveExistingToken = fal
   }
 }
 
+const setupTokenHelper = 'A bearer token issued by FlashQuery. Stored locally with this workspace.'
+const editTokenHelper = 'A bearer token is already stored for this workspace. Leave this field blank to keep it, or enter a new value to replace it. Use "Remove connection" to clear it entirely.'
+
 export function FlashQueryConnectionDialog() {
   const show = useUIStore((s) => s.showFlashQueryConnectionDialog)
   const setShow = useUIStore((s) => s.setShowFlashQueryConnectionDialog)
@@ -230,6 +233,7 @@ export function FlashQueryConnectionDialog() {
 
   const workspaceName = workspace?.name ?? 'Workspace'
   const hasConnection = Boolean(workspace?.flashqueryConnection)
+  const tokenHelperText = hasConnection ? editTokenHelper : setupTokenHelper
 
   return (
     <div
@@ -301,6 +305,7 @@ export function FlashQueryConnectionDialog() {
                 id="flashquery-token"
                 type={tokenVisible ? 'text' : 'password'}
                 value={token}
+                aria-describedby="flashquery-token-helper"
                 onChange={(event) => {
                   setToken(event.target.value)
                   setProbeResult(null)
@@ -319,8 +324,8 @@ export function FlashQueryConnectionDialog() {
                   : <Eye size={16} aria-hidden="true" />}
               </button>
             </div>
-            <p className="mt-2 text-[11px] leading-relaxed text-muted">
-              A bearer token issued by FlashQuery. Stored locally with this workspace.
+            <p id="flashquery-token-helper" className="mt-2 text-[11px] leading-relaxed text-muted">
+              {tokenHelperText}
             </p>
           </div>
 

@@ -21,6 +21,8 @@ type ElectronApiMock = {
 }
 
 const workspaceId = 'workspace-1'
+const setupTokenHelper = 'A bearer token issued by FlashQuery. Stored locally with this workspace.'
+const editTokenHelper = 'A bearer token is already stored for this workspace. Leave this field blank to keep it, or enter a new value to replace it. Use "Remove connection" to clear it entirely.'
 
 function setElectronApi(api: ElectronApiMock) {
   Object.defineProperty(window, 'electronAPI', {
@@ -134,7 +136,8 @@ describe('FlashQueryConnectionDialog shell', () => {
 
     const tokenInput = screen.getByLabelText('Bearer token')
     expect(tokenInput.getAttribute('type')).toBe('password')
-    expect(screen.getByText('A bearer token issued by FlashQuery. Stored locally with this workspace.')).toBeTruthy()
+    expect(screen.getByText(setupTokenHelper)).toBeTruthy()
+    expect(screen.queryByText(editTokenHelper)).toBeNull()
 
     fireEvent.click(screen.getByLabelText('Show bearer token'))
     expect(tokenInput.getAttribute('type')).toBe('text')
@@ -142,6 +145,21 @@ describe('FlashQueryConnectionDialog shell', () => {
 
     fireEvent.click(screen.getByLabelText('Hide bearer token'))
     expect(tokenInput.getAttribute('type')).toBe('password')
+  })
+
+  it('renders edit-mode token disclosure and binds it to the token input', () => {
+    seedWorkspace('Cate Workspace', { transport: 'http', url: 'https://flashquery.local' })
+    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+
+    renderDialog()
+
+    const tokenInput = screen.getByLabelText('Bearer token')
+    const helper = screen.getByText(editTokenHelper)
+
+    expect(helper).toBeTruthy()
+    expect(screen.queryByText(setupTokenHelper)).toBeNull()
+    expect(helper.id).toBe('flashquery-token-helper')
+    expect(tokenInput.getAttribute('aria-describedby')).toBe(helper.id)
   })
 
   it('T-I-060 and T-I-061 prepopulates edit mode URL without sending the token back to renderer', async () => {
@@ -257,6 +275,7 @@ describe('FlashQueryConnectionDialog shell', () => {
 
     renderDialog()
 
+    expect(screen.getByText(editTokenHelper)).toBeTruthy()
     fireEvent.change(screen.getByLabelText('FlashQuery URL'), { target: { value: 'https://new.flashquery.local' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 

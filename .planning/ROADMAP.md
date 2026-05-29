@@ -140,7 +140,8 @@ Prove a Cate workspace can connect to a separately-running FlashQuery HTTP MCP s
 
 - [ ] **6.1 Editor URI routing.** Add URI detection, read routing, Monaco model cache behavior, and local-file regression tests.
 - [ ] **6.2 Save and dirty-state behavior.** Route vault saves to FlashQuery, handle failure states, and preserve local-save behavior.
-- [ ] **6.3 Badge and guardrails.** Add vault badge/tooltip, disable vault diff mode, verify body-only/no-conflict semantics.
+- [ ] **6.3 Diff guardrails.** Disable local Git diff mode for vault URIs while preserving local-file diff behavior.
+- [ ] **6.4 Vault badge/title chrome.** Add vault badge/tooltip, shared chip-surface reuse, and docked/canvas/detached title chrome coverage.
 
 ## Phase 7: Cross-Cutting + Regression
 
