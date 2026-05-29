@@ -5,6 +5,7 @@ import type { WorkspaceState, PanelType, PanelLocation, DockLayoutNode } from '.
 import { ALL_ZONES } from '../../shared/types'
 import { useStatusStore } from '../stores/statusStore'
 import { useAppStore, WORKSPACE_COLORS, getCanvasOperations, getWorkspaceCanvasPanelId, ensureCanvasOpsForPanel } from '../stores/appStore'
+import { useUIStore } from '../stores/uiStore'
 import { ACCENT_COLOR_NAMES } from '../../shared/colors'
 import { useDockStore } from '../stores/dockStore'
 import { getOrCreateCanvasStoreForPanel } from '../stores/canvasStore'
@@ -301,6 +302,8 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({
       { id: 'select-folder', label: 'Select Project Folder' },
       { id: 'copy-cwd', label: 'Copy Working Directory' },
       { type: 'separator' },
+      { id: 'flashquery-connection', label: 'FlashQuery Connection...' },
+      { type: 'separator' },
       { id: 'duplicate', label: 'Duplicate Workspace' },
       { id: 'close-panels', label: 'Close All Panels', enabled: Object.keys(workspace.panels).length > 0 },
       { type: 'separator' },
@@ -337,6 +340,7 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({
         if (dir) navigator.clipboard.writeText(dir)
         break
       }
+      case 'flashquery-connection': useUIStore.getState().setShowFlashQueryConnectionDialog(true); break
       case 'duplicate': app.duplicateWorkspace(workspace.id); break
       case 'close-panels': app.closeAllPanels(workspace.id); break
       case 'remove': app.removeWorkspace(workspace.id); break
