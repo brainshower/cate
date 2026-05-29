@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  FLASHQUERY_GET_CONNECTION_SECRET,
   FLASHQUERY_GET_DOCUMENT,
   FLASHQUERY_LIST_VAULT,
+  FLASHQUERY_PROBE,
   FLASHQUERY_RETRY,
   FLASHQUERY_SET_CONNECTION,
   FLASHQUERY_STATUS,
@@ -14,6 +16,9 @@ const mocks = vi.hoisted(() => ({
   updateWorkspace: vi.fn(),
   broadcastWorkspaceChange: vi.fn(),
   broadcastToAll: vi.fn(),
+  getWorkspaceToken: vi.fn(),
+  setWorkspaceToken: vi.fn(),
+  fetch: vi.fn(),
   managerInstances: [] as Array<{
     connect: ReturnType<typeof vi.fn>
     dispose: ReturnType<typeof vi.fn>
@@ -37,6 +42,11 @@ vi.mock('../workspaceManager', () => ({
 
 vi.mock('../windowRegistry', () => ({
   broadcastToAll: mocks.broadcastToAll,
+}))
+
+vi.mock('../flashquery/credentials', () => ({
+  getWorkspaceToken: mocks.getWorkspaceToken,
+  setWorkspaceToken: mocks.setWorkspaceToken,
 }))
 
 vi.mock('../flashquery/clientManager', () => {
@@ -68,7 +78,11 @@ describe('FlashQuery IPC handlers', () => {
     mocks.updateWorkspace.mockReset()
     mocks.broadcastWorkspaceChange.mockReset()
     mocks.broadcastToAll.mockReset()
+    mocks.getWorkspaceToken.mockReset()
+    mocks.setWorkspaceToken.mockReset()
+    mocks.fetch.mockReset()
     mocks.managerInstances.length = 0
+    vi.stubGlobal('fetch', mocks.fetch)
   })
 
   function workspace(overrides: Partial<WorkspaceInfo> = {}): WorkspaceInfo {
@@ -102,15 +116,19 @@ describe('FlashQuery IPC handlers', () => {
 
     registerHandlers()
 
-    expect(mocks.handle).toHaveBeenCalledTimes(5)
+    expect(mocks.handle).toHaveBeenCalledTimes(7)
     expect(mocks.handle.mock.calls.map(([channel]) => channel)).toEqual([
       FLASHQUERY_SET_CONNECTION,
+      FLASHQUERY_PROBE,
+      FLASHQUERY_GET_CONNECTION_SECRET,
       FLASHQUERY_LIST_VAULT,
       FLASHQUERY_GET_DOCUMENT,
       FLASHQUERY_WRITE_DOCUMENT,
       FLASHQUERY_RETRY,
     ])
     expect(mocks.handle.mock.calls.map(([, handler]) => handler)).toEqual([
+      expect.any(Function),
+      expect.any(Function),
       expect.any(Function),
       expect.any(Function),
       expect.any(Function),
@@ -131,6 +149,8 @@ describe('FlashQuery IPC handlers', () => {
 
   it('declares the exact Phase 3 FlashQuery channel strings', () => {
     expect(FLASHQUERY_SET_CONNECTION).toBe('flashquery:setConnection')
+    expect(FLASHQUERY_PROBE).toBe('flashquery:probe')
+    expect(FLASHQUERY_GET_CONNECTION_SECRET).toBe('flashquery:getConnectionSecret')
     expect(FLASHQUERY_LIST_VAULT).toBe('flashquery:listVault')
     expect(FLASHQUERY_GET_DOCUMENT).toBe('flashquery:getDocument')
     expect(FLASHQUERY_WRITE_DOCUMENT).toBe('flashquery:writeDocument')
@@ -238,6 +258,105 @@ describe('FlashQuery IPC handlers', () => {
       status: 'disconnected',
       error: 'Connection refused',
     })
+  })
+
+  it('T-I-062 dry-runs the provided URL and bearer token without persisting connection state', async () => {
+    const handler = await registeredHandler<(
+      _event: unknown,
+      workspaceId: string,
+      connection: FlashQueryConnection,
+    ) => Promise<unknown>>(FLASHQUERY_PROBE)
+    mocks.fetch.mockResolvedValueOnce(new Response(JSON.stringify({
+      version: '1.2.3',
+      instance_id: 'instance-abcdef',
+    }), { status: 200 }))
+
+    await expect(handler({}, 'workspace-1', {
+      transport: 'http',
+      url: 'https://flashquery.local/',
+      auth: { type: 'bearer', token: 'current-token' },
+    })).resolves.toEqual({
+      ok: true,
+      version: '1.2.3',
+      instanceId: 'instance-abcdef',
+    })
+
+    expect(mocks.fetch).toHaveBeenCalledWith('https://flashquery.local/mcp/info', {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: 'Bearer current-token',
+      },
+      signal: expect.any(AbortSignal),
+    })
+    expect(mocks.updateWorkspace).not.toHaveBeenCalled()
+    expect(mocks.broadcastWorkspaceChange).not.toHaveBeenCalled()
+    expect(mocks.setWorkspaceToken).not.toHaveBeenCalled()
+    expect(mocks.managerInstances[0].connect).not.toHaveBeenCalled()
+  })
+
+  it('T-I-062 omits Authorization for empty dialog token values', async () => {
+    const handler = await registeredHandler<(
+      _event: unknown,
+      workspaceId: string,
+      connection: FlashQueryConnection,
+    ) => Promise<unknown>>(FLASHQUERY_PROBE)
+    mocks.fetch.mockResolvedValueOnce(new Response(JSON.stringify({
+      version: '1.2.3',
+      instance_id: 'instance-abcdef',
+    }), { status: 200 }))
+
+    await handler({}, 'workspace-1', {
+      transport: 'http',
+      url: 'http://localhost:3100',
+      auth: { type: 'bearer', token: '   ' },
+    })
+
+    expect(mocks.fetch).toHaveBeenCalledWith('http://localhost:3100/mcp/info', {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      signal: expect.any(AbortSignal),
+    })
+  })
+
+  it('T-I-065 returns safe one-line probe failures without throwing ordinary connection errors', async () => {
+    const handler = await registeredHandler<(
+      _event: unknown,
+      workspaceId: string,
+      connection: FlashQueryConnection,
+    ) => Promise<unknown>>(FLASHQUERY_PROBE)
+
+    await expect(handler({}, 'workspace-1', { transport: 'http', url: 'ftp://flashquery.local' }))
+      .resolves.toEqual({ ok: false, error: 'FlashQuery connection URL must use http or https' })
+
+    mocks.fetch.mockResolvedValueOnce(new Response('nope', { status: 401, statusText: 'Unauthorized' }))
+    await expect(handler({}, 'workspace-1', {
+      transport: 'http',
+      url: 'https://flashquery.local',
+      auth: { type: 'bearer', token: 'secret-token' },
+    })).resolves.toEqual({ ok: false, error: 'FlashQuery probe failed with 401 Unauthorized' })
+
+    mocks.fetch.mockRejectedValueOnce(new Error('network failed for secret-token\nwith stack details'))
+    await expect(handler({}, 'workspace-1', {
+      transport: 'http',
+      url: 'https://flashquery.local',
+      auth: { type: 'bearer', token: 'secret-token' },
+    })).resolves.toEqual({ ok: false, error: 'network failed for [redacted]' })
+  })
+
+  it('T-I-060 reads the current workspace token through the credential helper only', async () => {
+    const handler = await registeredHandler<(
+      _event: unknown,
+      workspaceId: string,
+    ) => Promise<string | null>>(FLASHQUERY_GET_CONNECTION_SECRET)
+    mocks.getWorkspaceToken.mockResolvedValueOnce('stored-token')
+
+    await expect(handler({}, 'workspace-1')).resolves.toBe('stored-token')
+
+    expect(mocks.getWorkspaceToken).toHaveBeenCalledWith('workspace-1')
+    expect(mocks.updateWorkspace).not.toHaveBeenCalled()
+    expect(mocks.broadcastWorkspaceChange).not.toHaveBeenCalled()
+    expect(mocks.broadcastToAll).not.toHaveBeenCalled()
   })
 
   it('T-I-014 uses broadcastToAll as the status fanout primitive without duplicate workspace subscriptions', async () => {
