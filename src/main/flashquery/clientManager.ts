@@ -8,7 +8,7 @@ export interface FlashQueryClientEvent<T = unknown> {
   payload: T
 }
 
-export type FlashQueryClientEventHandler<T = unknown> = (event: T) => void
+export type FlashQueryClientEventHandler<T = unknown> = (event: FlashQueryClientEvent<T>) => void
 
 export type FlashQueryConnectionStatus = 'connecting' | 'live' | 'disconnected'
 
