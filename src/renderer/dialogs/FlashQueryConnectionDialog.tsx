@@ -31,6 +31,12 @@ function formatProbeSuccess(result: Extract<FlashQueryProbeResult, { ok: true }>
   return `Connected to FlashQuery v${result.version} (instance ${result.instanceId.slice(0, 8)})`
 }
 
+function safeOneLineError(error: unknown, token?: string): string {
+  let message = error instanceof Error ? error.message : String(error)
+  if (token) message = message.split(token).join('[redacted]')
+  return message.split(/\r?\n/)[0]?.trim() || 'FlashQuery connection update failed'
+}
+
 export function FlashQueryConnectionDialog() {
   const show = useUIStore((s) => s.showFlashQueryConnectionDialog)
   const setShow = useUIStore((s) => s.setShowFlashQueryConnectionDialog)
@@ -44,6 +50,9 @@ export function FlashQueryConnectionDialog() {
   const [urlTouched, setUrlTouched] = useState(false)
   const [probeResult, setProbeResult] = useState<FlashQueryProbeResult | null>(null)
   const [testing, setTesting] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [removeConfirming, setRemoveConfirming] = useState(false)
 
   const close = useCallback(() => setShow(false), [setShow])
 
@@ -66,6 +75,9 @@ export function FlashQueryConnectionDialog() {
     setUrlTouched(false)
     setProbeResult(null)
     setTesting(false)
+    setSaveError(null)
+    setSaving(false)
+    setRemoveConfirming(false)
 
     if (workspace?.flashqueryConnection) {
       window.electronAPI.flashqueryGetConnectionSecret(workspace.id)
@@ -123,6 +135,7 @@ export function FlashQueryConnectionDialog() {
   const handleTestConnection = useCallback(async () => {
     setUrlTouched(true)
     setProbeResult(null)
+    setSaveError(null)
 
     if (!isValidFlashQueryUrl(url)) return
 
@@ -144,9 +157,44 @@ export function FlashQueryConnectionDialog() {
     }
   }, [token, url, workspace?.id])
 
+  const handleSave = useCallback(async () => {
+    setUrlTouched(true)
+    setSaveError(null)
+
+    if (!isValidFlashQueryUrl(url)) return
+
+    setSaving(true)
+    try {
+      await window.electronAPI.flashquerySetConnection(workspace?.id ?? '', {
+        transport: 'http',
+        url,
+        auth: { type: 'bearer', token },
+      })
+      close()
+    } catch (error) {
+      setSaveError(safeOneLineError(error, token))
+    } finally {
+      setSaving(false)
+    }
+  }, [close, token, url, workspace?.id])
+
+  const handleConfirmRemove = useCallback(async () => {
+    setSaveError(null)
+    setSaving(true)
+    try {
+      await window.electronAPI.flashquerySetConnection(workspace?.id ?? '', null)
+      close()
+    } catch (error) {
+      setSaveError(safeOneLineError(error, token))
+    } finally {
+      setSaving(false)
+    }
+  }, [close, token, workspace?.id])
+
   if (!show) return null
 
   const workspaceName = workspace?.name ?? 'Workspace'
+  const hasConnection = Boolean(workspace?.flashqueryConnection)
 
   return (
     <div
@@ -195,6 +243,7 @@ export function FlashQueryConnectionDialog() {
             onChange={(event) => {
               setUrl(event.target.value)
               setProbeResult(null)
+              setSaveError(null)
             }}
             className="mt-2 h-9 w-full rounded-lg border border-subtle bg-surface-5 px-3 text-[13px] text-primary outline-none placeholder:text-muted focus:border-focus focus-visible:ring-2 focus-visible:ring-[#5AD8B8]/50"
           />
@@ -220,6 +269,7 @@ export function FlashQueryConnectionDialog() {
                 onChange={(event) => {
                   setToken(event.target.value)
                   setProbeResult(null)
+                  setSaveError(null)
                 }}
                 className="h-9 w-full rounded-lg border border-subtle bg-surface-5 px-3 pr-10 text-[13px] text-primary outline-none placeholder:text-muted focus:border-focus focus-visible:ring-2 focus-visible:ring-[#5AD8B8]/50"
               />
@@ -264,6 +314,65 @@ export function FlashQueryConnectionDialog() {
                 </span>
               </div>
             )}
+          </div>
+
+          {saveError && (
+            <div aria-live="polite" className="rounded-lg bg-red-600/10 px-3 py-2 text-xs text-red-400">
+              {saveError}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between gap-3 border-t border-subtle px-5 py-4">
+          <div className="min-w-0">
+            {removeConfirming ? (
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-red-400">Really remove?</span>
+                <button
+                  type="button"
+                  className="h-8 rounded-lg border border-subtle bg-surface-5 px-3 text-red-400 hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/50"
+                  disabled={saving}
+                  onClick={handleConfirmRemove}
+                >
+                  Yes
+                </button>
+                <button
+                  type="button"
+                  className="h-8 rounded-lg border border-subtle bg-surface-5 px-3 text-secondary hover:bg-hover hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5AD8B8]/70"
+                  onClick={() => setRemoveConfirming(false)}
+                >
+                  No
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="h-8 rounded-lg px-2 text-xs text-red-400 hover:bg-red-600/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/50 disabled:cursor-default disabled:text-muted disabled:hover:bg-transparent"
+                disabled={!hasConnection}
+                title={!hasConnection ? 'Currently no connection to remove.' : undefined}
+                onClick={() => setRemoveConfirming(true)}
+              >
+                Remove connection
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="h-8 rounded-lg border border-subtle bg-surface-5 px-3 text-xs font-medium text-secondary hover:bg-hover hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5AD8B8]/70"
+              onClick={close}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="h-8 rounded-lg bg-[#5AD8B8] px-4 text-xs font-semibold text-black hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5AD8B8]/70 disabled:cursor-default disabled:opacity-70"
+              disabled={saving}
+              onClick={handleSave}
+            >
+              Save
+            </button>
           </div>
         </div>
 

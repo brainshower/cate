@@ -15,17 +15,18 @@ import { FlashQueryConnectionDialog } from './FlashQueryConnectionDialog'
 import { useAppStore } from '../stores/appStore'
 import { useUIStore } from '../stores/uiStore'
 
-type ElectronApiMock = Pick<
-  Window['electronAPI'],
-  'flashquerySetConnection' | 'flashqueryProbe' | 'flashqueryGetConnectionSecret'
->
+type ElectronApiMock = {
+  flashquerySetConnection: ReturnType<typeof vi.fn>
+  flashqueryProbe: ReturnType<typeof vi.fn>
+  flashqueryGetConnectionSecret: ReturnType<typeof vi.fn>
+}
 
 const workspaceId = 'workspace-1'
 
 function setElectronApi(api: ElectronApiMock) {
   Object.defineProperty(window, 'electronAPI', {
     configurable: true,
-    value: api,
+    value: api as unknown as Window['electronAPI'],
   })
 }
 
