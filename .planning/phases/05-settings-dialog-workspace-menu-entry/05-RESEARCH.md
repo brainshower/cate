@@ -342,20 +342,19 @@ Object.defineProperty(window, 'electronAPI', {
 
 | # | Claim | Section | Risk if Wrong |
 |---|-------|---------|---------------|
-| A1 | A narrow `flashquery:getToken` IPC is acceptable if implemented through main/preload and kept dialog-local. [ASSUMED] | Summary, Architecture Patterns | If product owner rejects token-return-to-renderer even inside dialog, edit mode must use a masked "unchanged token" sentinel flow instead. |
-| A2 | The planner may add `FlashQueryProbeResult` to `src/shared/types.ts` instead of keeping it local to `electron-api.d.ts`. [ASSUMED] | Recommended Project Structure | Type placement might need adjustment to match implementer preference. |
+| A1 | A narrow `flashquery:getToken` IPC is the Phase 5 plan contract when implemented through main/preload and kept dialog-local. [RESOLVED] | Summary, Architecture Patterns | If future security review rejects token-return-to-renderer even inside dialog, a later follow-up can switch to a masked "unchanged token" sentinel flow. |
+| A2 | The planner may add `FlashQueryProbeResult` to `src/shared/types.ts` instead of keeping it local to `electron-api.d.ts`. [RESOLVED] | Recommended Project Structure | Type placement can be adjusted during implementation to match existing shared type conventions without changing behavior. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Token prepopulation exact contract**
    - What we know: Product requires edit mode fields pre-populated from `WorkspaceInfo.flashqueryConnection` plus `getWorkspaceToken`; current preload API has no token read. [CITED: product requirements §6.7.2; VERIFIED: codebase]
-   - What's unclear: Whether returning the token to renderer dialog-local state is acceptable, or whether a masked "existing token unchanged" UX should be substituted. [ASSUMED]
-   - Recommendation: Plan a narrow `flashqueryGetToken(workspaceId)` IPC that returns `string | null`, no logging, no global renderer storage, and clear component state on close.
+   - Resolution: Plan a narrow `flashqueryGetToken(workspaceId)` / `flashqueryGetConnectionSecret(workspaceId)` IPC that returns `string | null` to dialog-local React state only. Do not store the token in Zustand, workspace metadata, logs, snapshots, broadcasts, or tests. Clear the local token state on every close/reopen. A masked "existing token unchanged" sentinel is not used in Phase 5 because the product requirement explicitly asks for prepopulation from `getWorkspaceToken`.
 
 2. **Probe should reuse manager internals or duplicate fetch helper**
    - What we know: `FlashQueryClientManager` has private `probeConnection`, `buildInfoUrl`, and `parseInfoPayload` helpers. [VERIFIED: codebase `clientManager.ts:194-253`, `:324-336`]
-   - What's unclear: Whether to expose a public dry-run probe method on the manager or keep a small pure helper in `src/main/ipc/flashquery.ts`. [ASSUMED]
-   - Recommendation: Extract a small main-side probe helper if it avoids mutating manager state, retry timers, or broadcasts; tests must prove no persistence and no status broadcast.
+   - Resolution: Keep Phase 5's dialog test as a small main-side dry-run probe helper in `src/main/ipc/flashquery.ts` (or an adjacent main helper imported only by that IPC module), not as a public manager method. This avoids mutating manager connection state, retry timers, subscriptions, or status broadcasts.
+   - Requirement resolution: The dialog probe must use the current form URL and token. It should call `GET <url>/mcp/info` and include `Authorization: Bearer <token>` when the user entered a token, while still never persisting the token or connection. This is intentionally separate from the manager's connection-establishment probe, which omits authorization. Tests must prove the dry-run request includes the current token when present, returns 401/403 as an auth failure, and does not call workspace persistence, token write helpers, manager connect, retry, or broadcast paths.
 
 ## Environment Availability
 
