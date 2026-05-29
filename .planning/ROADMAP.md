@@ -14,7 +14,7 @@ Prove a Cate workspace can connect to a separately-running FlashQuery HTTP MCP s
 |-------|------|------------|----------|----------------|
 | 1 | Foundation | None | REQ-001, REQ-002, REQ-003, REQ-013 | Test Plan §4.1 |
 | 2 | Connection layer | 3/3 | Complete   | 2026-05-29 |
-| 3 | IPC surface | 2/3 | In Progress|  |
+| 3 | IPC surface | 3/3 | Complete   | 2026-05-29 |
 | 4 | Vault panel + shared chip | Phase 3 | REQ-014, REQ-015, REQ-016, REQ-017, REQ-018, REQ-019, REQ-024, REQ-025, REQ-026, REQ-040 | Test Plan §4.4 |
 | 5 | Settings dialog + workspace menu entry | Phase 3 | REQ-034, REQ-035, REQ-036, REQ-037, REQ-038, REQ-039 | Test Plan §4.5 |
 | 6 | Editor URI-awareness + vault badge | Phase 3 + Phase 4 | REQ-027, REQ-028, REQ-029, REQ-030, REQ-031, REQ-032, REQ-033, REQ-041, REQ-042 | Test Plan §4.6 |
