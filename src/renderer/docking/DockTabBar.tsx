@@ -13,6 +13,7 @@ import { useDragStore, useTabSourceVisibility } from '../drag'
 import { PANEL_REGISTRY, getPanelDef } from '../panels/registry'
 import { useAppStore } from '../stores/appStore'
 import { useAgentInfoByPanel } from '../hooks/useAgentPanelInfo'
+import { VaultBadge } from '../components/VaultBadge'
 
 const AWAIT_COLOR = '#c08a5a'
 
@@ -130,6 +131,11 @@ export function DockTabBar(props: DockTabBarProps) {
 
   const worktreeColorByPanel = useWorktreeColorByPanel()
   const agentInfoByPanel = useAgentInfoByPanel(workspaceId)
+  const connectionUrl = useAppStore((s) => (
+    workspaceId
+      ? s.workspaces.find((workspace) => workspace.id === workspaceId)?.flashqueryConnection?.url
+      : undefined
+  ))
 
   // Build the visible tab list (skip the in-flight tab when source === this
   // stack) and choose where to slot the placeholder. Clamp to >=1 so a
@@ -250,6 +256,9 @@ export function DockTabBar(props: DockTabBarProps) {
               <span
                 className="truncate flex-1 min-w-0"
               >{getPanelTitle(panelId)}</span>
+            )}
+            {panel?.type === 'editor' && (
+              <VaultBadge filePath={panel.filePath} connectionUrl={connectionUrl} />
             )}
             {agentInfoByPanel[panelId]?.state === 'waitingForInput' && (
               <span className="cate-await-indicator shrink-0" aria-label="awaiting input">

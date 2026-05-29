@@ -12,8 +12,10 @@ import { DragOverlay, setupCrossWindowDragListeners, useDragOp } from '../drag'
 import { renderPanelComponent, getPanelDef } from '../panels/registry'
 import { getOrCreateCanvasStoreForPanel } from '../stores/canvasStore'
 import { useSettingsStore } from '../stores/settingsStore'
+import { useAppStore } from '../stores/appStore'
 import { applyTheme } from '../lib/themeManager'
 import { applyCanvasChildPanels } from '../lib/applyCanvasChildPanels'
+import { VaultBadge } from '../components/VaultBadge'
 
 interface PanelWindowShellProps {
   panelType?: string
@@ -137,6 +139,11 @@ export default function PanelWindowShell({ panelType, panelId, workspaceId }: Pa
 
   // If we have panel info from query params but no transfer yet, show a loading state
   const displayPanel = panel
+  const connectionUrl = useAppStore((s) => (
+    workspaceId
+      ? s.workspaces.find((workspace) => workspace.id === workspaceId)?.flashqueryConnection?.url
+      : undefined
+  ))
 
   const handleClose = useCallback(() => {
     window.close()
@@ -195,7 +202,13 @@ export default function PanelWindowShell({ panelType, panelId, workspaceId }: Pa
         >
           <PanelTypeIcon type={displayPanel.type} />
         </div>
-        <span className="text-xs text-secondary truncate flex-1 min-w-0">{displayPanel.title}</span>
+        <span className="text-xs text-secondary truncate min-w-0">{displayPanel.title}</span>
+        {displayPanel.type === 'editor' && (
+          <span className="ml-2 shrink-0">
+            <VaultBadge filePath={displayPanel.filePath} connectionUrl={connectionUrl} />
+          </span>
+        )}
+        <span className="flex-1 min-w-0" />
         <button
           className="w-5 h-5 flex items-center justify-center rounded hover:bg-hover text-muted hover:text-primary transition-colors"
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}

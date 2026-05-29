@@ -2,7 +2,7 @@ import React from 'react'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { Chip } from './Chip'
+import { Chip, ChipSurface, chipSurfaceStyle } from './Chip'
 
 afterEach(() => {
   cleanup()
@@ -93,5 +93,14 @@ describe('Chip', () => {
     const forbiddenStockNeutralPattern = /\b(?:gray|slate|zinc)\b/
 
     expect(`${rendered}\n${sourceClasses}`).not.toMatch(forbiddenStockNeutralPattern)
+  })
+
+  it('exports the shared ChipSurface primitive for non-status badges', () => {
+    render(<ChipSurface data-testid="custom-chip">Custom</ChipSurface>)
+
+    const surface = screen.getByTestId('custom-chip')
+    expect(surface.textContent).toBe('Custom')
+    expect(surface.style.minHeight).toBe(`${chipSurfaceStyle.minHeight}px`)
+    expect(surface.style.borderRadius).toBe(`${chipSurfaceStyle.borderRadius}px`)
   })
 })

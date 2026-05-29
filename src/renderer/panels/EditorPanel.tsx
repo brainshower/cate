@@ -19,6 +19,7 @@ import {
   getActiveEditorPanelId,
 } from '../lib/editorSaveRegistry'
 import { getResolvedTheme, subscribeTheme } from '../lib/themeManager'
+import { parseVaultUri } from '../../shared/flashqueryUri'
 
 // -----------------------------------------------------------------------------
 // Monaco worker setup for Electron (Vite bundler)
@@ -279,6 +280,12 @@ function detectLanguage(filePath: string): string {
   return fallbackMap[ext] ?? 'plaintext'
 }
 
+function basenameForEditorTitle(filePath: string): string {
+  const vaultUri = parseVaultUri(filePath)
+  const sourcePath = vaultUri?.vaultPath ?? filePath
+  return sourcePath.split(/[\\/]/).pop() || 'Untitled'
+}
+
 // -----------------------------------------------------------------------------
 // Helper: reconstruct original content from current content + unified diff
 // -----------------------------------------------------------------------------
@@ -367,6 +374,7 @@ export default function EditorPanel({
 
   const [markdownPreview, setMarkdownPreview] = useState(false)
   const [markdownContent, setMarkdownContent] = useState('')
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const workspaces = useAppStore((s) => s.workspaces)
   const ws = workspaces.find((w) => w.id === workspaceId)
@@ -380,7 +388,9 @@ export default function EditorPanel({
 
   const save = useCallback(async (): Promise<boolean> => {
     const editor = editorRef.current
-    if (!editor || diffMode) return false
+    const activePath = filePathRef.current
+    const activeVaultUri = activePath ? parseVaultUri(activePath) : null
+    if (!editor || (diffMode && !activeVaultUri)) return false
 
     const content = editor.getValue()
 
@@ -406,19 +416,40 @@ export default function EditorPanel({
       isInitialSave = true
     }
 
-    try {
-      await window.electronAPI.fsWriteFile(targetPath, content)
-    } catch (err) {
-      log.error('[EditorPanel] Failed to save file:', err)
-      return false
+    const vaultUri = parseVaultUri(targetPath)
+    if (vaultUri) {
+      try {
+        const result = await window.electronAPI.flashqueryWriteDocument(
+          vaultUri.workspaceId,
+          vaultUri.vaultPath,
+          content,
+        )
+        if (!result.success) {
+          const message = result.error || 'Failed to save vault document'
+          setSaveError(message)
+          log.error('[EditorPanel] Failed to save vault document:', message)
+          return false
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to save vault document'
+        setSaveError(message)
+        log.error('[EditorPanel] Failed to save vault document:', err)
+        return false
+      }
+    } else {
+      try {
+        await window.electronAPI.fsWriteFile(targetPath, content)
+      } catch (err) {
+        log.error('[EditorPanel] Failed to save file:', err)
+        return false
+      }
     }
 
+    setSaveError(null)
     isDirtyRef.current = false
     useAppStore.getState().setPanelDirty(workspaceId, panelId, false)
 
-    // Use both separators so the basename is correct on Windows (`\\`) as
-    // well as POSIX (`/`).
-    const fileName = targetPath.split(/[\\/]/).pop() || 'Untitled'
+    const fileName = basenameForEditorTitle(targetPath)
     useAppStore.getState().updatePanelTitle(workspaceId, panelId, fileName)
 
     if (isInitialSave) {
@@ -458,11 +489,16 @@ export default function EditorPanel({
     ensureCateThemes()
     monaco.editor.setTheme(resolvedMonacoTheme())
     const fontSize = useSettingsStore.getState().editorFontSize
+    const vaultUri = filePath ? parseVaultUri(filePath) : null
 
     // =======================================================================
     // DIFF MODE — Monaco diff editor
     // =======================================================================
-    if (diffMode && filePath && rootPath) {
+    if (diffMode && vaultUri) {
+      log.warn('[EditorPanel] Git diff mode is not supported for FlashQuery vault documents:', filePath)
+    }
+
+    if (diffMode && filePath && rootPath && !vaultUri) {
       const diffEditor = monaco.editor.createDiffEditor(containerRef.current, {
         theme: resolvedMonacoTheme(),
         fontFamily: 'Menlo, Monaco, "Courier New", monospace',
@@ -567,10 +603,10 @@ export default function EditorPanel({
       // monaco.editor.getModel(uri) in case Monaco itself still owns one
       // (e.g. across HMR boundaries). Models survive panel unmount in the
       // cache so reopening the same file is instant.
-      const fileUri = monaco.Uri.file(filePath)
+      const modelUri = vaultUri ? monaco.Uri.parse(filePath) : monaco.Uri.file(filePath)
       let cached = modelCache.get(filePath)
       if (!cached || cached.isDisposed()) {
-        const byUri = monaco.editor.getModel(fileUri)
+        const byUri = monaco.editor.getModel(modelUri)
         if (byUri && !byUri.isDisposed()) {
           cached = byUri
           rememberModel(filePath, byUri)
@@ -582,13 +618,18 @@ export default function EditorPanel({
         editor.setModel(cached)
       } else {
         const language = detectLanguage(filePath)
-        window.electronAPI
-          .fsReadFile(filePath)
+        const readContent = vaultUri
+          ? window.electronAPI
+            .flashqueryGetDocument(vaultUri.workspaceId, vaultUri.vaultPath)
+            .then((result) => result.body)
+          : window.electronAPI.fsReadFile(filePath)
+
+        readContent
           .then((content) => {
             if (cancelled) return
             // Pass the file URI so Monaco indexes the model by it; this
             // enables monaco.editor.getModel(uri) reuse on later opens.
-            const model = monaco.editor.createModel(content, language, fileUri)
+            const model = monaco.editor.createModel(content, language, modelUri)
             createdModel = model
             rememberModel(filePath, model)
             retainModel(filePath)
@@ -634,7 +675,7 @@ export default function EditorPanel({
         useAppStore.getState().setPanelDirty(workspaceId, panelId, true)
 
         if (filePathRef.current) {
-          const fileName = filePathRef.current.split('/').pop() ?? 'Untitled'
+          const fileName = basenameForEditorTitle(filePathRef.current)
           useAppStore
             .getState()
             .updatePanelTitle(workspaceId, panelId, `${fileName} \u2022`)
@@ -727,7 +768,7 @@ export default function EditorPanel({
       const model = editorRef.current?.getModel()
       if (model && !model.isDisposed()) {
         setMarkdownContent(model.getValue())
-      } else if (filePath) {
+      } else if (filePath && !parseVaultUri(filePath)) {
         window.electronAPI.fsReadFile(filePath).then(setMarkdownContent).catch(() => {})
       }
     } else {
@@ -769,6 +810,14 @@ export default function EditorPanel({
       )}
       {markdownPreview && isMarkdown && (
         <MarkdownPreview content={markdownContent} />
+      )}
+      {saveError && (
+        <div
+          role="alert"
+          className="absolute left-3 right-3 bottom-3 z-10 rounded-md border border-red-500/40 bg-red-950/80 px-3 py-2 text-xs text-red-100 shadow-2xl"
+        >
+          Save failed: {saveError}
+        </div>
       )}
       <div ref={containerRef} className={`w-full h-full ${markdownPreview && isMarkdown ? 'hidden' : ''}`} />
     </div>

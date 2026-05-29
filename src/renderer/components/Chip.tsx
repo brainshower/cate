@@ -18,13 +18,44 @@ interface ChipContent {
   labelClassName: string
 }
 
-const chipStyle: React.CSSProperties = {
+export const chipSurfaceStyle: React.CSSProperties = {
   minHeight: 22,
   borderRadius: 999,
   background: 'rgba(255,255,255,0.04)',
   border: '1px solid rgba(255,255,255,0.06)',
   fontSize: 11,
   fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
+}
+
+export interface ChipSurfaceProps extends React.HTMLAttributes<HTMLSpanElement> {
+  children: React.ReactNode
+  as?: 'span' | 'div'
+  interactive?: boolean
+  style?: React.CSSProperties
+}
+
+export function ChipSurface({
+  children,
+  as = 'span',
+  interactive = false,
+  className = '',
+  style,
+  ...rest
+}: ChipSurfaceProps) {
+  const Component = as
+  return (
+    <Component
+      className={`relative inline-flex items-center gap-1.5 px-2 whitespace-nowrap select-none ${className}`}
+      style={{
+        ...chipSurfaceStyle,
+        cursor: interactive ? 'pointer' : 'default',
+        ...style,
+      }}
+      {...rest}
+    >
+      {children}
+    </Component>
+  )
 }
 
 const statusDot = (color: string) => (
@@ -94,13 +125,9 @@ export function Chip({ state, onRetry }: ChipProps) {
   const isDisconnected = state.kind === 'disconnected'
   const tooltipError = isDisconnected ? state.error : undefined
 
-  const className = 'relative inline-flex items-center gap-1.5 px-2 whitespace-nowrap select-none'
   const commonProps = {
-    className,
     style: {
-      ...chipStyle,
-      background: isDisconnected && showTooltip ? 'var(--surface-5)' : chipStyle.background,
-      cursor: isDisconnected ? 'pointer' : 'default',
+      background: isDisconnected && showTooltip ? 'var(--surface-5)' : chipSurfaceStyle.background,
     },
     onMouseEnter: () => {
       if (isDisconnected) setShowTooltip(true)
@@ -130,11 +157,18 @@ export function Chip({ state, onRetry }: ChipProps) {
       <button
         type="button"
         aria-label={content.label}
-        {...commonProps}
+        className="relative inline-flex items-center gap-1.5 px-2 whitespace-nowrap select-none"
+        style={{
+          ...chipSurfaceStyle,
+          ...commonProps.style,
+          cursor: 'pointer',
+        }}
         onClick={(event) => {
           event.stopPropagation()
           onRetry?.()
         }}
+        onMouseEnter={commonProps.onMouseEnter}
+        onMouseLeave={commonProps.onMouseLeave}
         onMouseDown={(event) => event.stopPropagation()}
       >
         {inner}
@@ -143,8 +177,8 @@ export function Chip({ state, onRetry }: ChipProps) {
   }
 
   return (
-    <div {...commonProps}>
+    <ChipSurface as="div" {...commonProps}>
       {inner}
-    </div>
+    </ChipSurface>
   )
 }
