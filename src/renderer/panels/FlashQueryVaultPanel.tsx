@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowsClockwise, CaretRight, CircleNotch, FileText, Folder, FolderOpen, Plug, Vault, WarningCircle } from '@phosphor-icons/react'
+import { ArrowsClockwise, CaretRight, CircleNotch, FileText, Folder, FolderOpen, Plug, WarningCircle } from '@phosphor-icons/react'
 
 import { Chip, type ConnectionStatus } from '../components/Chip'
 import { useAppStore } from '../stores/appStore'
@@ -442,9 +442,7 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-surface-4">
       <div data-testid="vault-panel-header" className="flex h-8 shrink-0 items-center gap-2 border-b border-subtle px-3">
-        <Vault size={16} weight="duotone" className="shrink-0 text-teal-400" />
         <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
-          <span data-testid="vault-panel-header-label" className="shrink-0 text-xs text-secondary">FlashQuery Vault</span>
           {host && <span data-testid="vault-panel-header-host" className="min-w-0 truncate text-xs text-muted">· {host}</span>}
         </div>
         {connection && (

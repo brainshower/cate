@@ -118,18 +118,17 @@ afterEach(() => {
 })
 
 describe('FlashQueryVaultPanel Header', () => {
-  it('renders the vault identity, host context, status chip, and refresh button', async () => {
+  it('renders only net-new header chrome while wrapper owns the vault identity', async () => {
     renderPanel()
 
-    const label = screen.getByTestId('vault-panel-header-label')
     const host = screen.getByTestId('vault-panel-header-host')
     const header = screen.getByTestId('vault-panel-header')
 
-    expect(label.textContent).toBe('FlashQuery Vault')
-    expect(label.className).toContain('text-secondary')
+    expect(screen.queryByTestId('vault-panel-header-label')).toBeNull()
+    expect(screen.queryByText('FlashQuery Vault')).toBeNull()
     expect(host.textContent).toBe('· flashquery.local:8787')
     expect(host.className).toContain('truncate')
-    expect(label.compareDocumentPosition(host) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(header.querySelector('[data-testid="vault-panel-header-icon"]')).toBeNull()
     expect(header.className).toContain('h-8')
     expect(screen.getByLabelText('Refresh vault')).toBeTruthy()
 
@@ -138,11 +137,11 @@ describe('FlashQueryVaultPanel Header', () => {
     expect(await screen.findByText('Live')).toBeTruthy()
   })
 
-  it('keeps the FlashQuery Vault label visible while a long host is truncatable', () => {
+  it('keeps the long host truncatable while wrapper owns the FlashQuery Vault label', () => {
     seedWorkspace({ transport: 'http', url: 'https://a-very-long-flashquery-hostname-that-should-truncate.example.internal:8787/mcp' })
     renderPanel()
 
-    expect(screen.getByTestId('vault-panel-header-label').textContent).toBe('FlashQuery Vault')
+    expect(screen.queryByText('FlashQuery Vault')).toBeNull()
     expect(screen.getByTestId('vault-panel-header-host').className).toContain('truncate')
   })
 })
