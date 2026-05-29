@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   FLASHQUERY_GET_DOCUMENT,
   FLASHQUERY_LIST_VAULT,
+  FLASHQUERY_RETRY,
   FLASHQUERY_SET_CONNECTION,
   FLASHQUERY_STATUS,
   FLASHQUERY_WRITE_DOCUMENT,
@@ -18,6 +19,7 @@ const mocks = vi.hoisted(() => ({
     dispose: ReturnType<typeof vi.fn>
     listVault: ReturnType<typeof vi.fn>
     getDocument: ReturnType<typeof vi.fn>
+    retry: ReturnType<typeof vi.fn>
     writeDocument: ReturnType<typeof vi.fn>
     subscribe: ReturnType<typeof vi.fn>
     subscriptions: Array<{ workspaceId: string; type: string; handler: (payload: unknown) => void }>
@@ -43,6 +45,7 @@ vi.mock('../flashquery/clientManager', () => {
     dispose = vi.fn()
     listVault = vi.fn()
     getDocument = vi.fn()
+    retry = vi.fn()
     writeDocument = vi.fn()
     subscriptions: Array<{ workspaceId: string; type: string; handler: (payload: unknown) => void }> = []
     subscribe = vi.fn((workspaceId: string, type: string, handler: (payload: unknown) => void) => {
@@ -99,14 +102,16 @@ describe('FlashQuery IPC handlers', () => {
 
     registerHandlers()
 
-    expect(mocks.handle).toHaveBeenCalledTimes(4)
+    expect(mocks.handle).toHaveBeenCalledTimes(5)
     expect(mocks.handle.mock.calls.map(([channel]) => channel)).toEqual([
       FLASHQUERY_SET_CONNECTION,
       FLASHQUERY_LIST_VAULT,
       FLASHQUERY_GET_DOCUMENT,
       FLASHQUERY_WRITE_DOCUMENT,
+      FLASHQUERY_RETRY,
     ])
     expect(mocks.handle.mock.calls.map(([, handler]) => handler)).toEqual([
+      expect.any(Function),
       expect.any(Function),
       expect.any(Function),
       expect.any(Function),
@@ -121,7 +126,7 @@ describe('FlashQuery IPC handlers', () => {
     registerHandlers()
     registerHandlers()
 
-    expect(mocks.handle).toHaveBeenCalledTimes(4)
+    expect(mocks.handle).toHaveBeenCalledTimes(5)
   })
 
   it('declares the exact Phase 3 FlashQuery channel strings', () => {
@@ -129,6 +134,7 @@ describe('FlashQuery IPC handlers', () => {
     expect(FLASHQUERY_LIST_VAULT).toBe('flashquery:listVault')
     expect(FLASHQUERY_GET_DOCUMENT).toBe('flashquery:getDocument')
     expect(FLASHQUERY_WRITE_DOCUMENT).toBe('flashquery:writeDocument')
+    expect(FLASHQUERY_RETRY).toBe('flashquery:retry')
     expect(FLASHQUERY_STATUS).toBe('flashquery:status')
   })
 
@@ -336,5 +342,26 @@ describe('FlashQuery IPC handlers', () => {
 
     expect(mocks.managerInstances[0].writeDocument).toHaveBeenNthCalledWith(1, 'workspace-1', 'Plan.md', '')
     expect(mocks.managerInstances[0].writeDocument).toHaveBeenNthCalledWith(2, 'workspace-1', 'Plan.md', '\n  \n')
+  })
+
+  it('registers manual retry and delegates valid workspace IDs to the manager', async () => {
+    const handler = await registeredHandler<(_event: unknown, workspaceId: string) => Promise<void>>(FLASHQUERY_RETRY)
+    mocks.managerInstances[0].retry.mockResolvedValueOnce({ workspaceId: 'workspace-1', status: 'connecting' })
+
+    await expect(handler({}, 'workspace-1')).resolves.toBeUndefined()
+
+    expect(mocks.managerInstances[0].retry).toHaveBeenCalledTimes(1)
+    expect(mocks.managerInstances[0].retry).toHaveBeenCalledWith('workspace-1')
+    expect(mocks.managerInstances[0].connect).not.toHaveBeenCalled()
+  })
+
+  it('rejects invalid manual retry workspace IDs before reaching the manager', async () => {
+    const handler = await registeredHandler<(_event: unknown, workspaceId: unknown) => Promise<void>>(FLASHQUERY_RETRY)
+
+    await expect(handler({}, '')).rejects.toThrow('workspaceId must be a non-empty string')
+    await expect(handler({}, '   ')).rejects.toThrow('workspaceId must be a non-empty string')
+    await expect(handler({}, null)).rejects.toThrow('workspaceId must be a non-empty string')
+
+    expect(mocks.managerInstances[0].retry).not.toHaveBeenCalled()
   })
 })
