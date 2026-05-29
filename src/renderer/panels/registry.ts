@@ -19,6 +19,7 @@ import {
   FileText,
   GitBranch,
   TreeStructure,
+  Vault,
   SquaresFour,
   List,
   FileDoc,
@@ -42,6 +43,7 @@ const EditorPanel = React.lazy(() => import('./EditorPanel'))
 const BrowserPanel = React.lazy(() => import('./BrowserPanel'))
 const GitPanel = React.lazy(() => import('./GitPanel'))
 const FileExplorerPanel = React.lazy(() => import('./FileExplorerPanel'))
+const FlashQueryVaultPanel = React.lazy(() => import('./FlashQueryVaultPanel'))
 const ProjectListPanel = React.lazy(() => import('./ProjectListPanel'))
 const CanvasPanel = React.lazy(() => import('./CanvasPanel'))
 const AgentPanel = React.lazy(() => import('../../agent/renderer/AgentPanel'))
@@ -118,6 +120,13 @@ export const PANEL_REGISTRY: Record<PanelType, RendererPanelDefinition> = {
     Component: FileExplorerPanel,
     create: ({ workspaceId, canvasPoint, placement }) =>
       useAppStore.getState().createFileExplorer(workspaceId, canvasPoint, placement) || null,
+  },
+  flashqueryVault: {
+    ...PANEL_DEFINITIONS.flashqueryVault,
+    icon: Vault,
+    Component: FlashQueryVaultPanel,
+    create: ({ workspaceId, canvasPoint, placement }) =>
+      useAppStore.getState().createFlashQueryVault(workspaceId, canvasPoint, placement) || null,
   },
   projectList: {
     ...PANEL_DEFINITIONS.projectList,
