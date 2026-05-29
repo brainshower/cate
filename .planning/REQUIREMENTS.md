@@ -24,7 +24,7 @@ Cate should let a developer connect a workspace to FlashQuery, browse the FlashQ
 - [ ] **REQ-003: FlashQueryClientManager lifecycle.** A main-process manager owns per-workspace clients, lazily constructs clients on first use, disposes clients when workspaces/configs change, and supports subscription cleanup.
 - [ ] **REQ-004: Connection probe via `GET /mcp/info`.** The manager probes `<url>/mcp/info`, extracts version and instance ID on success, and captures failures for status reporting.
 - [x] **REQ-005: Reconnection strategy.** Failed probes or transport disconnects transition through `connecting`, `live`, and `disconnected` states with exponential-backoff retry and manual retry support.
-- [ ] **REQ-006: Generic subscribe interface.** The manager exposes workspace-scoped event subscriptions, initially for status and shaped to allow future vault-change events.
+- [x] **REQ-006: Generic subscribe interface.** The manager exposes workspace-scoped event subscriptions, initially for status and shaped to allow future vault-change events.
 
 ### IPC Surface
 

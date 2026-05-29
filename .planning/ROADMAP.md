@@ -13,7 +13,7 @@ Prove a Cate workspace can connect to a separately-running FlashQuery HTTP MCP s
 | Phase | Name | Depends On | Key REQs | Test Plan Refs |
 |-------|------|------------|----------|----------------|
 | 1 | Foundation | None | REQ-001, REQ-002, REQ-003, REQ-013 | Test Plan §4.1 |
-| 2 | Connection layer | Phase 1 | REQ-004, REQ-005, REQ-006, REQ-011 | Test Plan §4.2 |
+| 2 | Connection layer | 3/3 | Complete   | 2026-05-29 |
 | 3 | IPC surface | Phase 2 | REQ-007, REQ-008, REQ-009, REQ-010, REQ-012 | Test Plan §4.3 |
 | 4 | Vault panel + shared chip | Phase 3 | REQ-014, REQ-015, REQ-016, REQ-017, REQ-018, REQ-019, REQ-024, REQ-025, REQ-026, REQ-040 | Test Plan §4.4 |
 | 5 | Settings dialog + workspace menu entry | Phase 3 | REQ-034, REQ-035, REQ-036, REQ-037, REQ-038, REQ-039 | Test Plan §4.5 |
@@ -55,11 +55,11 @@ Prove a Cate workspace can connect to a separately-running FlashQuery HTTP MCP s
 - Failures transition to `disconnected` with error context and schedule exponential backoff.
 - Manual retry clears backoff, immediately probes, and broadcasts status transitions to subscribers.
 
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 - [x] `02-01-PLAN.md` — Probe transport: implement the HTTP probe path and response/error classification.
 - [x] `02-02-PLAN.md` — State machine and retry: implement connection states, exponential backoff, manual retry, and disposal cleanup.
-- [ ] `02-03-PLAN.md` — Subscription events: finalize status event production and cross-workspace subscriber isolation.
+- [x] `02-03-PLAN.md` — Subscription events: finalize status event production and cross-workspace subscriber isolation.
 
 ## Phase 3: IPC Surface
 
