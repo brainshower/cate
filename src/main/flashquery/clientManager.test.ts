@@ -3,6 +3,19 @@ import { FlashQueryClientManager } from './clientManager'
 import type { FlashQueryStatusPayload } from './clientManager'
 import type { FlashQueryConnection } from '../../shared/types'
 
+const workspaceMock = vi.hoisted(() => ({
+  workspaces: [] as Array<{ id: string; name: string; color: string; rootPath: string; flashqueryConnection?: FlashQueryConnection }>,
+  token: null as string | null,
+}))
+
+vi.mock('../workspaceManager', () => ({
+  listWorkspaces: () => workspaceMock.workspaces,
+}))
+
+vi.mock('./credentials', () => ({
+  getWorkspaceToken: vi.fn(async () => workspaceMock.token),
+}))
+
 const originalFetch = globalThis.fetch
 
 function installFetchMock() {
@@ -41,6 +54,8 @@ afterEach(() => {
   Object.defineProperty(globalThis, 'fetch', { value: originalFetch, configurable: true })
   vi.restoreAllMocks()
   vi.useRealTimers()
+  workspaceMock.workspaces = []
+  workspaceMock.token = null
 })
 
 describe('FlashQueryClientManager', () => {
@@ -585,4 +600,120 @@ describe('FlashQueryClientManager', () => {
       expect(payload).not.toHaveProperty('error')
     }
   })
+
+  it('REQ-008 calls list_vault with root and folder arguments and normalizes entries', async () => {
+    const callTool = vi.fn()
+      .mockResolvedValueOnce({
+        content: [{ type: 'text', text: JSON.stringify({
+          entries: [
+            { name: 'Projects', path: 'Projects', type: 'directory' },
+            { name: 'Plan.md', path: 'Plan.md', type: 'file', title: 'Plan' },
+          ],
+        }) }],
+      })
+      .mockResolvedValueOnce({
+        content: [{ type: 'text', text: JSON.stringify({
+          entries: [{ name: 'Alpha.md', path: 'Projects/Alpha.md', type: 'file', title: 'Alpha' }],
+        }) }],
+      })
+    workspaceMock.workspaces = [workspaceInfo()]
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
+    await expect(manager.listVault('workspace-1')).resolves.toEqual([
+      { name: 'Projects', type: 'folder', vaultPath: 'Projects' },
+      { name: 'Plan.md', type: 'document', vaultPath: 'Plan.md', title: 'Plan' },
+    ])
+    await expect(manager.listVault('workspace-1', 'Projects')).resolves.toEqual([
+      { name: 'Alpha.md', type: 'document', vaultPath: 'Projects/Alpha.md', title: 'Alpha' },
+    ])
+
+    expect(callTool).toHaveBeenNthCalledWith(1, {
+      name: 'list_vault',
+      arguments: { path: '/', include: ['tracking'] },
+    })
+    expect(callTool).toHaveBeenNthCalledWith(2, {
+      name: 'list_vault',
+      arguments: { path: 'Projects', include: ['tracking'] },
+    })
+  })
+
+  it('REQ-008 returns an empty vault listing for unconfigured or disconnected workspaces', async () => {
+    const fetchMock = installFetchMock()
+    fetchMock.mockResolvedValue(okInfoResponse())
+    const callTool = vi.fn()
+    workspaceMock.workspaces = []
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
+    await expect(manager.listVault('workspace-1')).resolves.toEqual([])
+
+    workspaceMock.workspaces = [workspaceInfo()]
+    await manager.connect('workspace-1', { transport: 'http', url: 'http://127.0.0.1:3100' })
+    ;(manager as unknown as { workspaceStates: Map<string, { status: FlashQueryStatusPayload }> })
+      .workspaceStates.get('workspace-1')!.status = { workspaceId: 'workspace-1', status: 'disconnected', error: 'offline' }
+
+    await expect(manager.listVault('workspace-1')).resolves.toEqual([])
+  })
+
+  it('T-U-046 and T-U-047 calls get_document with body-only include and returns document body metadata', async () => {
+    const callTool = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({
+        body: '# Body',
+        version_token: 'v1',
+        modified: '2026-05-01T00:00:00Z',
+      }) }],
+    })
+    workspaceMock.workspaces = [workspaceInfo()]
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
+    await expect(manager.getDocument('workspace-1', 'Plan.md')).resolves.toEqual({
+      body: '# Body',
+      version_token: 'v1',
+      modified: '2026-05-01T00:00:00Z',
+    })
+
+    expect(callTool).toHaveBeenCalledWith({
+      name: 'get_document',
+      arguments: { identifiers: 'Plan.md', include: ['body'] },
+    })
+    const args = callTool.mock.calls[0][0].arguments
+    expect(args.include).toEqual(['body'])
+    expect(args.include).not.toContain('frontmatter')
+    expect(args.include).not.toContain('headings')
+  })
+
+  it('T-U-048 through T-U-050 calls write_document update-only with body content and forbidden keys absent', async () => {
+    const callTool = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({ modified: '2026-05-03T00:00:00Z' }) }],
+    })
+    workspaceMock.workspaces = [workspaceInfo()]
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
+    await expect(manager.writeDocument('workspace-1', 'Plan.md', 'body')).resolves.toEqual({
+      success: true,
+      modified: '2026-05-03T00:00:00Z',
+    })
+
+    expect(callTool).toHaveBeenCalledWith({
+      name: 'write_document',
+      arguments: { mode: 'update', identifier: 'Plan.md', content: 'body' },
+    })
+    const args = callTool.mock.calls[0][0].arguments
+    expect(args.mode).toBe('update')
+    expect(args.mode).not.toBe('create')
+    expect(args).not.toHaveProperty('frontmatter')
+    expect(args).not.toHaveProperty('title')
+    expect(args).not.toHaveProperty('tags')
+    expect(args).not.toHaveProperty('expected_version')
+    expect(args).not.toHaveProperty('if_match')
+  })
 })
+
+function workspaceInfo(connection: FlashQueryConnection = { transport: 'http', url: 'http://127.0.0.1:3100' }) {
+  return {
+    id: 'workspace-1',
+    name: 'Workspace',
+    color: '#00aaff',
+    rootPath: '/tmp/workspace',
+    flashqueryConnection: connection,
+  }
+}
