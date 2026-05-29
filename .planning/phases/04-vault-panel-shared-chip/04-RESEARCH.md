@@ -218,6 +218,7 @@ src/
 │       └── FlashQueryVaultPanel.test.tsx
 ├── shared/
 │   ├── types.ts
+│   ├── flashqueryUri.ts
 │   ├── panels.ts
 │   └── panels.test.ts
 └── renderer/
@@ -289,7 +290,7 @@ const result = await window.electronAPI.showContextMenu([
 | FlashQuery transport | Renderer MCP client or HTTP calls | Phase 3 preload/main IPC methods | Renderer must not own MCP or privileged I/O. [CITED: product Requirements INV-01] [VERIFIED: codebase grep] |
 | Panel lifecycle | Custom panel placement logic | `appStore` factory + `placePanel` path | Existing panel creation handles dock/canvas placement and rollback on placement failure. [VERIFIED: codebase grep] |
 | Context menus | React dropdown component | `window.electronAPI.showContextMenu` | Native menu is the Cate convention and v1 invariant. [CITED: product Requirements INV-11] [VERIFIED: codebase grep] |
-| URI construction | String concatenation | `buildVaultUri(workspaceId, vaultPath)` | Helper preserves encoding and folder separators. [VERIFIED: codebase grep] |
+| URI construction | String concatenation | shared `buildVaultUri(workspaceId, vaultPath)` from `src/shared/flashqueryUri.ts` | Helper preserves encoding and folder separators while remaining safe for renderer imports. Main-side `src/main/flashquery/uri.ts` should re-export the shared helper for existing code compatibility. [VERIFIED: codebase grep] |
 | Component test utilities | Ad hoc DOM renderer | `@testing-library/react` if adding RTL | Product Test Plan specifies jsdom + React Testing Library; official RTL docs provide render/screen/fireEvent patterns. [CITED: product Test Plan §4.4] [CITED: /testing-library/react-testing-library] |
 
 **Key insight:** The vault panel should copy file-tree behavior, not file-tree implementation wholesale; the existing file tree is filesystem-mutating and therefore unsafe to reuse directly for vault rows. [VERIFIED: codebase grep] [CITED: product Requirements INV-03, REQ-040]
@@ -361,7 +362,7 @@ onFileOpen(pathsToOpen, 'canvas')
 ### FlashQuery URI Construction
 
 ```typescript
-// Source: src/main/flashquery/uri.ts
+// Source: planned shared helper src/shared/flashqueryUri.ts
 buildVaultUri(workspaceId, entry.vaultPath)
 ```
 
@@ -384,17 +385,15 @@ buildVaultUri(workspaceId, entry.vaultPath)
 | A1 | A warning sign for missing retry is UI code attempting to misuse `flashquerySetConnection` as retry. | Common Pitfalls | Low; planner can still require a narrow retry IPC. |
 | A2 | Import failures or manual DOM dispatch are likely if RTL is not installed. | Common Pitfalls | Low; planner can choose either dependency install or lower-level tests. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Should Phase 4 add a narrow `flashqueryRetry` IPC method?**  
+1. **RESOLVED: Phase 4 adds a narrow `flashqueryRetry` IPC method.**
    What we know: manager has `retry(workspaceId)`, but preload/types do not expose it. [VERIFIED: codebase grep]  
-   What's unclear: whether Phase 3 intentionally deferred the renderer retry surface or expected retry through an existing method. [ASSUMED]  
-   Recommendation: Plan the narrow method because REQ-025 and T-I-028 require manual retry from renderer. [CITED: product Requirements §6.5.2] [CITED: product Test Plan §4.4]
+   Chosen decision: Plan 03 exposes `flashqueryRetry(workspaceId)` through shared IPC channel, preload, `ElectronAPI`, and main IPC, delegating to `FlashQueryClientManager.retry`. This satisfies REQ-025 and T-I-028 without exposing a generic manager or MCP executor. [CITED: product Requirements §6.5.2] [CITED: product Test Plan §4.4]
 
-2. **Should the plan install React Testing Library dev dependencies?**  
+2. **RESOLVED: Phase 4 installs React Testing Library dev dependencies.**
    What we know: product Test Plan names jsdom + React Testing Library, Vitest jsdom is configured, and packages are legitimate. [CITED: product Test Plan §4.4] [VERIFIED: npm registry]  
-   What's unclear: whether the owner prefers no new dev test dependency. [ASSUMED]  
-   Recommendation: Add `@testing-library/react` and `@testing-library/dom` as dev dependencies in the chip/test slice, with a human-review checkpoint if dependency churn is sensitive. [VERIFIED: npm registry]
+   Chosen decision: Plan 01 installs `@testing-library/react` and `@testing-library/dom` as approved dev dependencies in the chip/test slice, using the Package Legitimacy Audit above. [VERIFIED: npm registry]
 
 ## Environment Availability
 

@@ -95,11 +95,12 @@ Prove a Cate workspace can connect to a separately-running FlashQuery HTTP MCP s
 - The vault panel renders all five product states with the specified empty, connecting, disconnected, empty-vault, and populated behavior.
 - Document-row interactions match local file-tree conventions and never expose create-new-document affordances.
 
-**Plans:**
+**Plans:** 4 plans
 
-- [ ] **4.1 Shared chip primitive.** Implement reusable chip/status component and tests.
-- [ ] **4.2 Panel registration.** Register `flashqueryVault` across shared panel definitions, renderer registry, and app-store factories.
-- [ ] **4.3 Vault tree UX.** Implement panel header, state rendering, lazy tree loading, refresh, and row/context-menu interactions.
+- [ ] `04-01-PLAN.md` — Shared chip primitive and React Testing Library setup.
+- [ ] `04-02-PLAN.md` — Panel registration and app-store factory.
+- [ ] `04-03-PLAN.md` — Narrow renderer hooks for manual retry and future settings dialog open state.
+- [ ] `04-04-PLAN.md` — FlashQueryVaultPanel header, five states, lazy tree, row/context-menu behavior, refresh, and tests.
 
 ## Phase 5: Settings Dialog + Workspace Menu Entry
 
