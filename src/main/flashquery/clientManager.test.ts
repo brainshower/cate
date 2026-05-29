@@ -2,6 +2,28 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { FlashQueryClientManager } from './clientManager'
 import type { FlashQueryStatusPayload } from './clientManager'
 import type { FlashQueryConnection } from '../../shared/types'
+import { getWorkspaceToken } from './credentials'
+
+const sdkMock = vi.hoisted(() => ({
+  clientConnect: vi.fn(),
+  clientCallTool: vi.fn(),
+  Client: vi.fn(),
+  StreamableHTTPClientTransport: vi.fn(),
+}))
+
+vi.mock('@modelcontextprotocol/sdk/client/index.js', () => ({
+  Client: sdkMock.Client.mockImplementation(() => ({
+    connect: sdkMock.clientConnect,
+    callTool: sdkMock.clientCallTool,
+  })),
+}))
+
+vi.mock('@modelcontextprotocol/sdk/client/streamableHttp.js', () => ({
+  StreamableHTTPClientTransport: sdkMock.StreamableHTTPClientTransport.mockImplementation((url: URL, options?: unknown) => ({
+    url,
+    options,
+  })),
+}))
 
 const workspaceMock = vi.hoisted(() => ({
   workspaces: [] as Array<{ id: string; name: string; color: string; rootPath: string; flashqueryConnection?: FlashQueryConnection }>,
@@ -52,7 +74,7 @@ function statusPayloads(handler: ReturnType<typeof vi.fn>): FlashQueryStatusPayl
 
 afterEach(() => {
   Object.defineProperty(globalThis, 'fetch', { value: originalFetch, configurable: true })
-  vi.restoreAllMocks()
+  vi.clearAllMocks()
   vi.useRealTimers()
   workspaceMock.workspaces = []
   workspaceMock.token = null
@@ -654,6 +676,63 @@ describe('FlashQueryClientManager', () => {
     await expect(manager.listVault('workspace-1')).resolves.toEqual([])
   })
 
+  it('returns an empty vault listing when configured client creation fails before disconnected status exists', async () => {
+    workspaceMock.workspaces = [workspaceInfo()]
+    workspaceMock.token = 'secret-token'
+    const statusHandler = vi.fn()
+    const manager = new FlashQueryClientManager({
+      createMcpClient: async () => {
+        throw new Error('Authorization failed for secret-token')
+      },
+    })
+    manager.subscribe('workspace-1', 'status', statusHandler)
+
+    await expect(manager.listVault('workspace-1')).resolves.toEqual([])
+
+    expect(statusPayloads(statusHandler)).toEqual([
+      { workspaceId: 'workspace-1', status: 'disconnected', error: 'Authorization failed for [redacted]' },
+    ])
+  })
+
+  it('returns an empty vault listing when a live workspace loses transport during list_vault', async () => {
+    const fetchMock = installFetchMock()
+    fetchMock.mockResolvedValue(okInfoResponse())
+    workspaceMock.workspaces = [workspaceInfo()]
+    workspaceMock.token = 'secret-token'
+    const callTool = vi.fn().mockRejectedValue(new Error('transport failed for secret-token'))
+    const statusHandler = vi.fn()
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+    manager.subscribe('workspace-1', 'status', statusHandler)
+
+    await manager.connect('workspace-1', { transport: 'http', url: 'http://127.0.0.1:3100' })
+    await expect(manager.listVault('workspace-1')).resolves.toEqual([])
+
+    expect(statusPayloads(statusHandler)).toEqual([
+      { workspaceId: 'workspace-1', status: 'connecting' },
+      { workspaceId: 'workspace-1', status: 'live', version: '1.2.3', instanceId: 'fq-instance-1' },
+      { workspaceId: 'workspace-1', status: 'disconnected', error: 'transport failed for [redacted]' },
+    ])
+  })
+
+  it('T-I-005 omits malformed list_vault entries while returning valid entries', async () => {
+    const callTool = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({
+        entries: [
+          { name: 'Plan.md', path: 'Plan.md', type: 'file', title: 'Plan' },
+          { name: 'Broken.md', type: 'file' },
+          { name: 'Ideas', path: 'Ideas', type: 'directory' },
+        ],
+      }) }],
+    })
+    workspaceMock.workspaces = [workspaceInfo()]
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
+    await expect(manager.listVault('workspace-1')).resolves.toEqual([
+      { name: 'Plan.md', type: 'document', vaultPath: 'Plan.md', title: 'Plan' },
+      { name: 'Ideas', type: 'folder', vaultPath: 'Ideas' },
+    ])
+  })
+
   it('T-U-046 and T-U-047 calls get_document with body-only include and returns document body metadata', async () => {
     const callTool = vi.fn().mockResolvedValue({
       content: [{ type: 'text', text: JSON.stringify({
@@ -681,7 +760,7 @@ describe('FlashQueryClientManager', () => {
     expect(args.include).not.toContain('headings')
   })
 
-  it('T-U-048 through T-U-050 calls write_document update-only with body content and forbidden keys absent', async () => {
+  it('T-U-048 through T-U-050 and T-U-099 through T-U-101 calls write_document update-only with body content and forbidden keys absent', async () => {
     const callTool = vi.fn().mockResolvedValue({
       content: [{ type: 'text', text: JSON.stringify({ modified: '2026-05-03T00:00:00Z' }) }],
     })
@@ -705,6 +784,60 @@ describe('FlashQueryClientManager', () => {
     expect(args).not.toHaveProperty('tags')
     expect(args).not.toHaveProperty('expected_version')
     expect(args).not.toHaveProperty('if_match')
+  })
+
+  it('passes an empty body through to write_document unchanged', async () => {
+    const callTool = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({ modified: '2026-05-04T00:00:00Z' }) }],
+    })
+    workspaceMock.workspaces = [workspaceInfo()]
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
+    await expect(manager.writeDocument('workspace-1', 'Plan.md', '')).resolves.toEqual({
+      success: true,
+      modified: '2026-05-04T00:00:00Z',
+    })
+
+    expect(callTool).toHaveBeenCalledWith({
+      name: 'write_document',
+      arguments: { mode: 'update', identifier: 'Plan.md', content: '' },
+    })
+  })
+
+  it('T-U-023 positive half sends the rehydrated bearer token on MCP transport calls only', async () => {
+    workspaceMock.workspaces = [workspaceInfo({
+      transport: 'http',
+      url: 'http://127.0.0.1:3100/',
+      auth: { type: 'bearer', token: 'inline-token' },
+    })]
+    workspaceMock.token = 'stored-token'
+    sdkMock.clientConnect.mockResolvedValue(undefined)
+    sdkMock.clientCallTool.mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({ entries: [] }) }],
+    })
+    const manager = new FlashQueryClientManager()
+
+    await expect(manager.listVault('workspace-1')).resolves.toEqual([])
+
+    expect(getWorkspaceToken).toHaveBeenCalledWith('workspace-1')
+    expect(sdkMock.StreamableHTTPClientTransport).toHaveBeenCalledTimes(1)
+    const [url, options] = sdkMock.StreamableHTTPClientTransport.mock.calls[0] as [URL, { requestInit?: { headers?: Headers } }]
+    expect(url.toString()).toBe('http://127.0.0.1:3100/mcp')
+    expect(options.requestInit?.headers?.get('Authorization')).toBe('Bearer stored-token')
+    expect(JSON.stringify(sdkMock.StreamableHTTPClientTransport.mock.calls)).not.toContain('inline-token')
+  })
+
+  it('redacts token-bearing getDocument failures before they reach the renderer', async () => {
+    workspaceMock.workspaces = [workspaceInfo()]
+    workspaceMock.token = 'secret-token'
+    const manager = new FlashQueryClientManager({
+      createMcpClient: async () => ({
+        callTool: vi.fn().mockRejectedValue(new Error('Authorization failed for secret-token')),
+      }),
+    })
+
+    await expect(manager.getDocument('workspace-1', 'Plan.md'))
+      .rejects.toThrow('Authorization failed for [redacted]')
   })
 
   it('returns safe write failures for malformed JSON and token-bearing transport errors', async () => {

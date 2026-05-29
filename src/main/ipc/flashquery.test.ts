@@ -318,4 +318,23 @@ describe('FlashQuery IPC handlers', () => {
     })
     expect(mocks.managerInstances[0].writeDocument).toHaveBeenCalledWith('workspace-1', 'Plan.md', 'body')
   })
+
+  it('allows empty and whitespace-only document body writes', async () => {
+    const handler = await registeredHandler<(_event: unknown, workspaceId: string, vaultPath: string, content: string) => Promise<unknown>>(FLASHQUERY_WRITE_DOCUMENT)
+    mocks.managerInstances[0].writeDocument
+      .mockResolvedValueOnce({ success: true, modified: '2026-05-04T00:00:00Z' })
+      .mockResolvedValueOnce({ success: true, modified: '2026-05-04T00:00:01Z' })
+
+    await expect(handler({}, 'workspace-1', 'Plan.md', '')).resolves.toEqual({
+      success: true,
+      modified: '2026-05-04T00:00:00Z',
+    })
+    await expect(handler({}, 'workspace-1', 'Plan.md', '\n  \n')).resolves.toEqual({
+      success: true,
+      modified: '2026-05-04T00:00:01Z',
+    })
+
+    expect(mocks.managerInstances[0].writeDocument).toHaveBeenNthCalledWith(1, 'workspace-1', 'Plan.md', '')
+    expect(mocks.managerInstances[0].writeDocument).toHaveBeenNthCalledWith(2, 'workspace-1', 'Plan.md', '\n  \n')
+  })
 })

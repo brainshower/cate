@@ -110,6 +110,13 @@ function requireNonEmptyString(value: unknown, field: string): string {
   return value
 }
 
+function requireString(value: unknown, field: string): string {
+  if (typeof value !== 'string') {
+    throw new Error(`${field} must be a string`)
+  }
+  return value
+}
+
 async function listVault(workspaceId: string, vaultPath?: string) {
   requireNonEmptyString(workspaceId, 'workspaceId')
   if (vaultPath !== undefined && typeof vaultPath !== 'string') {
@@ -130,7 +137,7 @@ async function writeDocument(workspaceId: string, vaultPath: string, content: st
     return await flashQueryClientManager.writeDocument(
       requireNonEmptyString(workspaceId, 'workspaceId'),
       requireNonEmptyString(vaultPath, 'vaultPath'),
-      requireNonEmptyString(content, 'content'),
+      requireString(content, 'content'),
     )
   } catch (error) {
     return {

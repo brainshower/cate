@@ -114,40 +114,56 @@ export class FlashQueryClientManager {
   }
 
   async listVault(workspaceId: string, vaultPath?: string): Promise<FlashQueryVaultEntry[]> {
-    const state = this.workspaceStates.get(workspaceId)
+    let state = this.workspaceStates.get(workspaceId)
     if (state?.status?.status === 'disconnected') return []
 
-    const client = await this.getOrCreateMcpClient(workspaceId)
-    if (!client) return []
+    try {
+      const client = await this.getOrCreateMcpClient(workspaceId)
+      if (!client) return []
 
-    const payload = await this.callJsonTool(client, 'list_vault', {
-      path: vaultPath && vaultPath.length > 0 ? vaultPath : '/',
-      include: ['tracking'],
-    })
+      const payload = await this.callJsonTool(client, 'list_vault', {
+        path: vaultPath && vaultPath.length > 0 ? vaultPath : '/',
+        include: ['tracking'],
+      })
 
-    const entries = Array.isArray(payload.entries) ? payload.entries : []
-    return entries.flatMap((entry) => this.normalizeVaultEntry(entry))
+      const entries = Array.isArray(payload.entries) ? payload.entries : []
+      return entries.flatMap((entry) => this.normalizeVaultEntry(entry))
+    } catch (error) {
+      state = this.workspaceStates.get(workspaceId)
+      const connection = state?.connection ?? this.getConfiguredConnection(workspaceId)
+      const message = this.errorToSafeMessage(error, connection, state?.token)
+      if (state && connection) {
+        this.failConnection(workspaceId, state, connection, message)
+      }
+      return []
+    }
   }
 
   async getDocument(workspaceId: string, vaultPath: string): Promise<FlashQueryDocumentBody> {
-    const client = await this.requireMcpClient(workspaceId)
-    const payload = await this.callJsonTool(client, 'get_document', {
-      identifiers: vaultPath,
-      include: ['body'],
-    })
+    try {
+      const client = await this.requireMcpClient(workspaceId)
+      const payload = await this.callJsonTool(client, 'get_document', {
+        identifiers: vaultPath,
+        include: ['body'],
+      })
 
-    if (this.isErrorEnvelope(payload)) {
-      throw new Error(this.errorEnvelopeMessage(payload))
-    }
+      if (this.isErrorEnvelope(payload)) {
+        throw new Error(this.errorEnvelopeMessage(payload))
+      }
 
-    if (typeof payload.body !== 'string') {
-      throw new Error(`FlashQuery get_document returned no body for ${vaultPath}`)
-    }
+      if (typeof payload.body !== 'string') {
+        throw new Error(`FlashQuery get_document returned no body for ${vaultPath}`)
+      }
 
-    return {
-      body: payload.body,
-      ...(typeof payload.version_token === 'string' ? { version_token: payload.version_token } : {}),
-      ...(typeof payload.modified === 'string' ? { modified: payload.modified } : {}),
+      return {
+        body: payload.body,
+        ...(typeof payload.version_token === 'string' ? { version_token: payload.version_token } : {}),
+        ...(typeof payload.modified === 'string' ? { modified: payload.modified } : {}),
+      }
+    } catch (error) {
+      const state = this.workspaceStates.get(workspaceId)
+      const connection = state?.connection ?? this.getConfiguredConnection(workspaceId)
+      throw new Error(this.errorToSafeMessage(error, connection, state?.token))
     }
   }
 
