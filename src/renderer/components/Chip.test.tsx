@@ -1,8 +1,12 @@
 import React from 'react'
-import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { Chip } from './Chip'
+
+afterEach(() => {
+  cleanup()
+})
 
 describe('Chip', () => {
   it('renders the connecting state with a spinner and exact label', () => {
@@ -81,6 +85,8 @@ describe('Chip', () => {
       'bg-hover',
     ].join(' ')
 
-    expect(`${rendered}\n${sourceClasses}`).not.toMatch(/\b(?:gray|slate|zinc)\b/)
+    const forbiddenStockNeutralPattern = /\b(?:gray|slate|zinc)\b/
+
+    expect(`${rendered}\n${sourceClasses}`).not.toMatch(forbiddenStockNeutralPattern)
   })
 })
