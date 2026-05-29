@@ -194,6 +194,109 @@ describe('FlashQueryConnectionDialog shell', () => {
     expect(await screen.findByText('Auth failed')).toBeTruthy()
   })
 
+  it('T-I-067 saves the current values through setConnection and closes on success', async () => {
+    const api = makeElectronApi()
+    setElectronApi(api)
+    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+
+    renderDialog()
+
+    fireEvent.change(screen.getByLabelText('FlashQuery URL'), { target: { value: 'https://flashquery.local' } })
+    fireEvent.change(screen.getByLabelText('Bearer token'), { target: { value: 'save-token' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => {
+      expect(api.flashquerySetConnection).toHaveBeenCalledWith(workspaceId, {
+        transport: 'http',
+        url: 'https://flashquery.local',
+        auth: { type: 'bearer', token: 'save-token' },
+      })
+      expect(useUIStore.getState().showFlashQueryConnectionDialog).toBe(false)
+    })
+  })
+
+  it('T-I-068 and T-I-069 blocks invalid saves and keeps save failures open with a one-line error', async () => {
+    const api = makeElectronApi()
+    api.flashquerySetConnection.mockRejectedValueOnce(new Error('Token rejected\nsecret-token'))
+    setElectronApi(api)
+    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+
+    renderDialog()
+
+    fireEvent.change(screen.getByLabelText('FlashQuery URL'), { target: { value: 'ftp://flashquery.local' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText('Enter a valid http:// or https:// URL.')).toBeTruthy()
+    expect(api.flashquerySetConnection).not.toHaveBeenCalled()
+
+    fireEvent.change(screen.getByLabelText('FlashQuery URL'), { target: { value: 'https://flashquery.local' } })
+    fireEvent.change(screen.getByLabelText('Bearer token'), { target: { value: 'secret-token' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('Token rejected')).toBeTruthy()
+    expect(screen.queryByText('secret-token')).toBeNull()
+    expect(useUIStore.getState().showFlashQueryConnectionDialog).toBe(true)
+  })
+
+  it('T-I-070 cancel closes without write IPC and discards local edits on reopen', async () => {
+    const api = makeElectronApi()
+    setElectronApi(api)
+    seedWorkspace('Cate Workspace', { transport: 'http', url: 'https://flashquery.local' })
+    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+
+    const { rerender } = renderDialog()
+
+    fireEvent.change(screen.getByLabelText('FlashQuery URL'), { target: { value: 'https://unsaved.local' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(useUIStore.getState().showFlashQueryConnectionDialog).toBe(false)
+    expect(api.flashquerySetConnection).not.toHaveBeenCalled()
+
+    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    rerender(<FlashQueryConnectionDialog />)
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('FlashQuery URL')).toHaveProperty('value', 'https://flashquery.local')
+    })
+  })
+
+  it('T-I-071 through T-I-074 handles disabled remove, confirmation, yes/no, and reset on reopen', async () => {
+    const api = makeElectronApi()
+    setElectronApi(api)
+    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+
+    const { rerender } = renderDialog()
+
+    const disabledRemove = screen.getByRole('button', { name: 'Remove connection' })
+    expect(disabledRemove).toHaveProperty('disabled', true)
+    expect(disabledRemove.getAttribute('title')).toBe('Currently no connection to remove.')
+
+    seedWorkspace('Cate Workspace', { transport: 'http', url: 'https://flashquery.local' })
+    useUIStore.setState({ showFlashQueryConnectionDialog: false })
+    rerender(<FlashQueryConnectionDialog />)
+    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    rerender(<FlashQueryConnectionDialog />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove connection' }))
+    expect(screen.getByText('Really remove?')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'No' }))
+    expect(screen.queryByText('Really remove?')).toBeNull()
+    expect(api.flashquerySetConnection).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove connection' }))
+    useUIStore.setState({ showFlashQueryConnectionDialog: false })
+    rerender(<FlashQueryConnectionDialog />)
+    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    rerender(<FlashQueryConnectionDialog />)
+    expect(screen.queryByText('Really remove?')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove connection' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
+
+    await waitFor(() => {
+      expect(api.flashquerySetConnection).toHaveBeenCalledWith(workspaceId, null)
+      expect(useUIStore.getState().showFlashQueryConnectionDialog).toBe(false)
+    })
+  })
+
   it('closes with Escape, overlay click, and close button without calling FlashQuery IPC', () => {
     const api = makeElectronApi()
     setElectronApi(api)
