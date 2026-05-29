@@ -99,7 +99,7 @@ Prove a Cate workspace can connect to a separately-running FlashQuery HTTP MCP s
 
 - [x] `04-01-PLAN.md` — Shared chip primitive and React Testing Library setup.
 - [ ] `04-02-PLAN.md` — Panel registration and app-store factory.
-- [ ] `04-03-PLAN.md` — Narrow renderer hooks for manual retry and future settings dialog open state.
+- [x] `04-03-PLAN.md` — Narrow renderer hooks for manual retry and future settings dialog open state.
 - [ ] `04-04-PLAN.md` — FlashQueryVaultPanel header, five states, lazy tree, row/context-menu behavior, refresh, and tests.
 
 ## Phase 5: Settings Dialog + Workspace Menu Entry

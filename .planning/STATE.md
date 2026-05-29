@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Vault Connect, Read, Edit
 status: executing
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-05-29T15:50:46.318Z"
+stopped_at: Completed 04-03-PLAN.md
+last_updated: "2026-05-29T15:51:12.653Z"
 last_activity: 2026-05-29
 progress:
   total_phases: 7
@@ -28,20 +28,20 @@ See: `.planning/PROJECT.md`
 
 Phase: 4
 Plan: 04-02 next
-Status: Phase 4 in progress — Plan 04-01 complete
+Status: Phase 4 in progress — Plan 04-03 complete
 Last activity: 2026-05-29
 
 Progress: [█████████░] 85%
 
 ## Session Continuity
 
-Last session: 2026-05-29T15:50:46.246Z
-Stopped At: Completed 04-01-PLAN.md
+Last session: 2026-05-29T15:51:11.916Z
+Stopped At: Completed 04-03-PLAN.md
 Resume File: None
 
 ## Next Up
 
-Execute Phase 04 plan 04-02: panel registration and app-store factory.
+Execute remaining Phase 04 plans: 04-02 panel registration/app-store factory and 04-04 vault panel behavior.
 
 ## Decisions
 
@@ -52,6 +52,9 @@ Execute Phase 04 plan 04-02: panel registration and app-store factory.
 - Type FlashQueryClientEventHandler<T> as receiving FlashQueryClientEvent<T> so payload generics match the runtime event wrapper.
 - [Phase ?]: 04-01 used Node 22 via npx for install and verification because default Node v24.7.0 is outside Cate's >=20 <23 engine.
 - [Phase ?]: 04-01 established src/renderer/components/Chip.tsx as the reusable FlashQuery connection-status chip primitive.
+- [Phase 04]: Expose FlashQuery manual retry only as flashqueryRetry(workspaceId), delegating to FlashQueryClientManager.retry after non-empty string validation.
+- [Phase 04]: Keep FlashQuery URI parsing/building as dependency-free shared TypeScript and preserve main imports with a compatibility re-export.
+- [Phase 04]: Add only UI-store visibility state for the future FlashQuery connection dialog; defer Phase 5 dialog and workspace menu behavior.
 
 ## Performance Metrics
 
@@ -63,3 +66,4 @@ Execute Phase 04 plan 04-02: panel registration and app-store factory.
 | Phase 03 P02 | 14 min | 4 tasks | 3 files |
 | Phase 03 P03 | 18 min | 4 tasks | 6 files |
 | Phase 04 P01 | 12min | 2 tasks | 4 files |
+| Phase 04 P03 | 6min | 3 tasks | 11 files |
