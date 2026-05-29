@@ -24,6 +24,15 @@ function okInfoResponse(version = '1.2.3', instanceId = 'fq-instance-1') {
   }
 }
 
+function failedInfoResponse(status = 503, statusText = 'Service Unavailable') {
+  return {
+    ok: false,
+    status,
+    statusText,
+    json: vi.fn(),
+  }
+}
+
 function statusPayloads(handler: ReturnType<typeof vi.fn>): FlashQueryStatusPayload[] {
   return handler.mock.calls.map((call) => (call[0] as FlashQueryClientEvent<FlashQueryStatusPayload>).payload)
 }
@@ -31,6 +40,7 @@ function statusPayloads(handler: ReturnType<typeof vi.fn>): FlashQueryStatusPayl
 afterEach(() => {
   Object.defineProperty(globalThis, 'fetch', { value: originalFetch, configurable: true })
   vi.restoreAllMocks()
+  vi.useRealTimers()
 })
 
 describe('FlashQueryClientManager', () => {
@@ -226,5 +236,151 @@ describe('FlashQueryClientManager', () => {
     expect(result).toEqual({ status: 'disconnected', error: 'connection refused' })
     expect(JSON.stringify(statusHandler.mock.calls)).not.toContain('secret-token')
     expect(statusPayloads(statusHandler)).toEqual([{ status: 'connecting' }, result])
+  })
+
+  it('T-U-026 through T-U-028 emits connecting first, live on success, and disconnected with error on failure', async () => {
+    const fetchMock = installFetchMock()
+    fetchMock.mockResolvedValueOnce(okInfoResponse('2.1.0', 'fq-live'))
+    fetchMock.mockResolvedValueOnce(failedInfoResponse(502, 'Bad Gateway'))
+    const manager = new FlashQueryClientManager()
+    const liveHandler = vi.fn()
+    const failedHandler = vi.fn()
+    manager.subscribe('workspace-live', 'status', liveHandler)
+    manager.subscribe('workspace-failed', 'status', failedHandler)
+
+    const liveResult = await manager.connect('workspace-live', {
+      transport: 'http',
+      url: 'http://127.0.0.1:3100',
+    })
+    const failedResult = await manager.connect('workspace-failed', {
+      transport: 'http',
+      url: 'http://127.0.0.1:3200',
+    })
+
+    expect(liveResult).toEqual({ status: 'live', version: '2.1.0', instanceId: 'fq-live' })
+    expect(failedResult.status).toBe('disconnected')
+    expect(failedResult.error).toContain('502')
+    expect(statusPayloads(liveHandler)).toEqual([
+      { status: 'connecting' },
+      { status: 'live', version: '2.1.0', instanceId: 'fq-live' },
+    ])
+    expect(statusPayloads(failedHandler)).toEqual([
+      { status: 'connecting' },
+      failedResult,
+    ])
+  })
+
+  it('T-U-029 schedules repeated failures at 2s, 4s, 8s, and caps retry at 60s', async () => {
+    vi.useFakeTimers()
+    const fetchMock = installFetchMock()
+    fetchMock.mockResolvedValue(failedInfoResponse())
+    const manager = new FlashQueryClientManager()
+    const connection: FlashQueryConnection = { transport: 'http', url: 'http://127.0.0.1:3100' }
+
+    await manager.connect('workspace-1', connection)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+
+    await vi.advanceTimersByTimeAsync(1_999)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+
+    await vi.advanceTimersByTimeAsync(3_999)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+
+    await vi.advanceTimersByTimeAsync(7_999)
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(fetchMock).toHaveBeenCalledTimes(4)
+
+    for (const delay of [16_000, 32_000, 60_000, 60_000]) {
+      await vi.advanceTimersByTimeAsync(delay - 1)
+      const beforeBoundary = fetchMock.mock.calls.length
+      await vi.advanceTimersByTimeAsync(1)
+      expect(fetchMock).toHaveBeenCalledTimes(beforeBoundary + 1)
+    }
+  })
+
+  it('T-U-030 manual retry clears the pending backoff timer and probes immediately', async () => {
+    vi.useFakeTimers()
+    const fetchMock = installFetchMock()
+    fetchMock.mockResolvedValue(failedInfoResponse())
+    const manager = new FlashQueryClientManager()
+    const connection: FlashQueryConnection = { transport: 'http', url: 'http://127.0.0.1:3100' }
+
+    await manager.connect('workspace-1', connection)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+
+    await vi.advanceTimersByTimeAsync(1_000)
+    await manager.retry('workspace-1')
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+
+    await vi.advanceTimersByTimeAsync(999)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    await vi.advanceTimersByTimeAsync(2_000)
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+  })
+
+  it('T-U-031 successful probe after failure resets the next retry delay to 2s', async () => {
+    vi.useFakeTimers()
+    const fetchMock = installFetchMock()
+    fetchMock
+      .mockResolvedValueOnce(failedInfoResponse())
+      .mockResolvedValueOnce(okInfoResponse('2.2.0', 'fq-reset'))
+      .mockResolvedValue(failedInfoResponse())
+    const manager = new FlashQueryClientManager()
+    const connection: FlashQueryConnection = { transport: 'http', url: 'http://127.0.0.1:3100' }
+
+    await manager.connect('workspace-1', connection)
+    await vi.advanceTimersByTimeAsync(2_000)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(manager.getStatus('workspace-1')).toEqual({
+      status: 'live',
+      version: '2.2.0',
+      instanceId: 'fq-reset',
+    })
+
+    await manager.connect('workspace-1', connection)
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    await vi.advanceTimersByTimeAsync(1_999)
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(fetchMock).toHaveBeenCalledTimes(4)
+  })
+
+  it('T-U-032 dispose cancels retry timers and suppresses late in-flight status events', async () => {
+    vi.useFakeTimers()
+    const fetchMock = installFetchMock()
+    fetchMock.mockResolvedValueOnce(failedInfoResponse())
+    const manager = new FlashQueryClientManager()
+    const statusHandler = vi.fn()
+    manager.subscribe('workspace-1', 'status', statusHandler)
+
+    await manager.connect('workspace-1', { transport: 'http', url: 'http://127.0.0.1:3100' })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    manager.dispose('workspace-1')
+    await vi.advanceTimersByTimeAsync(2_000)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+
+    let resolveFetch: (response: ReturnType<typeof okInfoResponse>) => void = () => {}
+    fetchMock.mockReturnValueOnce(new Promise((resolve) => {
+      resolveFetch = resolve
+    }))
+    const lateHandler = vi.fn()
+    manager.subscribe('workspace-late', 'status', lateHandler)
+    const connectPromise = manager.connect('workspace-late', {
+      transport: 'http',
+      url: 'http://127.0.0.1:3100',
+    })
+    expect(statusPayloads(lateHandler)).toEqual([{ status: 'connecting' }])
+    manager.dispose('workspace-late')
+    resolveFetch(okInfoResponse('9.9.9', 'fq-late'))
+    await connectPromise
+    expect(statusPayloads(lateHandler)).toEqual([{ status: 'connecting' }])
+    expect(manager.getStatus('workspace-late')).toBeNull()
   })
 })
