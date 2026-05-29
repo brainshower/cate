@@ -21,6 +21,7 @@ export interface FlashQueryStatusPayload {
 
 const INITIAL_RETRY_DELAY_MS = 2_000
 const MAX_RETRY_DELAY_MS = 60_000
+const PROBE_TIMEOUT_MS = 10_000
 
 interface WorkspaceClientState {
   subscribers: Map<FlashQueryClientEventType, Set<FlashQueryClientEventHandler>>
@@ -100,10 +101,16 @@ export class FlashQueryClientManager {
 
     this.emitStatus(workspaceId, state, { status: 'connecting' })
 
+    const abortController = new AbortController()
+    const timeout = setTimeout(() => {
+      abortController.abort(new Error('FlashQuery info probe timed out'))
+    }, PROBE_TIMEOUT_MS)
+
     try {
       const response = await globalThis.fetch(this.buildInfoUrl(connection.url), {
         method: 'GET',
         headers: { Accept: 'application/json' },
+        signal: abortController.signal,
       })
 
       if (!this.isCurrentAttempt(workspaceId, state, attemptId)) {
@@ -148,6 +155,8 @@ export class FlashQueryClientManager {
       }
 
       return this.failConnection(workspaceId, state, connection, this.errorToSafeMessage(error, connection))
+    } finally {
+      clearTimeout(timeout)
     }
   }
 
@@ -177,7 +186,11 @@ export class FlashQueryClientManager {
       payload,
     }
     for (const handler of subscribers) {
-      handler(event)
+      try {
+        handler(event)
+      } catch {
+        // Subscriber failures must not alter connection state or suppress later handlers.
+      }
     }
   }
 

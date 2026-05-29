@@ -106,10 +106,12 @@ describe('FlashQueryClientManager', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(1, 'http://127.0.0.1:3100/mcp/info', {
       method: 'GET',
       headers: { Accept: 'application/json' },
+      signal: expect.any(AbortSignal),
     })
     expect(fetchMock).toHaveBeenNthCalledWith(2, 'http://127.0.0.1:3100/mcp/info', {
       method: 'GET',
       headers: { Accept: 'application/json' },
+      signal: expect.any(AbortSignal),
     })
   })
 
@@ -236,6 +238,45 @@ describe('FlashQueryClientManager', () => {
     expect(result).toEqual({ status: 'disconnected', error: 'connection refused' })
     expect(JSON.stringify(statusHandler.mock.calls)).not.toContain('secret-token')
     expect(statusPayloads(statusHandler)).toEqual([{ status: 'connecting' }, result])
+  })
+
+  it('times out a hung info probe and schedules retry', async () => {
+    vi.useFakeTimers()
+    const fetchMock = installFetchMock()
+    fetchMock.mockImplementation((_, init?: RequestInit) => new Promise((_resolve, reject) => {
+      init?.signal?.addEventListener('abort', () => {
+        reject(init.signal?.reason)
+      })
+    }))
+    const manager = new FlashQueryClientManager()
+    const statusHandler = vi.fn()
+    manager.subscribe('workspace-1', 'status', statusHandler)
+
+    const connectPromise = manager.connect('workspace-1', {
+      transport: 'http',
+      url: 'http://127.0.0.1:3100',
+    })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      signal: expect.any(AbortSignal),
+    })
+
+    await vi.advanceTimersByTimeAsync(9_999)
+    expect(statusPayloads(statusHandler)).toEqual([{ status: 'connecting' }])
+    await vi.advanceTimersByTimeAsync(1)
+    await expect(connectPromise).resolves.toEqual({
+      status: 'disconnected',
+      error: 'FlashQuery info probe timed out',
+    })
+    expect(statusPayloads(statusHandler)).toEqual([
+      { status: 'connecting' },
+      { status: 'disconnected', error: 'FlashQuery info probe timed out' },
+    ])
+
+    await vi.advanceTimersByTimeAsync(2_000)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
   it('T-U-026 through T-U-028 emits connecting first, live on success, and disconnected with error on failure', async () => {
@@ -417,6 +458,34 @@ describe('FlashQueryClientManager', () => {
     for (const call of firstHandler.mock.calls) {
       expect(call[0]).toMatchObject({ workspaceId: 'workspace-1', type: 'status' })
     }
+  })
+
+  it('isolates throwing status subscribers from connection state and other subscribers', async () => {
+    const fetchMock = installFetchMock()
+    fetchMock.mockResolvedValue(okInfoResponse('3.0.1', 'fq-subscriber-safe'))
+    const manager = new FlashQueryClientManager()
+    const throwingHandler = vi.fn(() => {
+      throw new Error('subscriber failed')
+    })
+    const healthyHandler = vi.fn()
+    manager.subscribe('workspace-1', 'status', throwingHandler)
+    manager.subscribe('workspace-1', 'status', healthyHandler)
+
+    await expect(manager.connect('workspace-1', {
+      transport: 'http',
+      url: 'http://127.0.0.1:3100',
+    })).resolves.toEqual({ status: 'live', version: '3.0.1', instanceId: 'fq-subscriber-safe' })
+
+    expect(statusPayloads(healthyHandler)).toEqual([
+      { status: 'connecting' },
+      { status: 'live', version: '3.0.1', instanceId: 'fq-subscriber-safe' },
+    ])
+    expect(throwingHandler).toHaveBeenCalledTimes(2)
+    expect(manager.getStatus('workspace-1')).toEqual({
+      status: 'live',
+      version: '3.0.1',
+      instanceId: 'fq-subscriber-safe',
+    })
   })
 
   it('T-U-034 stops invoking an unsubscribed status handler', async () => {
