@@ -117,6 +117,18 @@ export const PANEL_DEFINITIONS: Record<PanelType, SharedPanelDefinition> = {
     ghostSvg: ghost('rgb(90,200,250)', '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>'),
     canLiveOnCanvas: true,
   },
+  flashqueryVault: {
+    type: 'flashqueryVault',
+    label: 'FlashQuery Vault',
+    brandColor: '#5AD8B8',
+    switcherColor: '#5AD8B8',
+    mutedColor: '#4a9080',
+    tintClass: 'text-teal-400',
+    defaultSize: { width: 320, height: 500 },
+    minimumSize: { width: 180, height: 200 },
+    ghostSvg: ghost('rgb(90,216,184)', '<path d="M5 10V7a7 7 0 0 1 14 0v3"/><rect x="4" y="10" width="16" height="11" rx="2"/><circle cx="12" cy="15.5" r="1.5"/><path d="M12 17v2"/>'),
+    canLiveOnCanvas: true,
+  },
   projectList: {
     type: 'projectList',
     label: 'Projects',
