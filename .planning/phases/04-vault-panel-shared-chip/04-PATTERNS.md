@@ -433,7 +433,7 @@ For Phase 4, use a 22 px pill, `rounded-[999px]`, 11 px system font, subtle tran
 
 ### `src/renderer/panels/FlashQueryVaultPanel.tsx` and tests (component, request-response + lazy tree)
 
-**Analogs:** `src/renderer/panels/FileExplorerPanel.tsx`, `src/renderer/sidebar/FileExplorer.tsx`, `src/renderer/sidebar/FileTreeNode.tsx`, `src/main/flashquery/uri.ts`
+**Analogs:** `src/renderer/panels/FileExplorerPanel.tsx`, `src/renderer/sidebar/FileExplorer.tsx`, `src/renderer/sidebar/FileTreeNode.tsx`, current `src/main/flashquery/uri.ts` implementation to be extracted to `src/shared/flashqueryUri.ts`
 
 **Panel wrapper pattern** (`FileExplorerPanel.tsx` lines 11-20):
 ```typescript
@@ -586,9 +586,9 @@ const handleFileOpen = useCallback(
 )
 ```
 
-For vault documents, use `useAppStore.getState().createEditor(workspaceId, buildVaultUri(workspaceId, entry.vaultPath), undefined, placement)`.
+For vault documents, use `useAppStore.getState().createEditor(workspaceId, buildVaultUri(workspaceId, entry.vaultPath), undefined, placement)` with `buildVaultUri` imported from the shared module created by Plan 03.
 
-**URI helper** (`src/main/flashquery/uri.ts` lines 19-21):
+**URI helper** (current implementation in `src/main/flashquery/uri.ts`, to move to `src/shared/flashqueryUri.ts` in Plan 03):
 ```typescript
 export function buildVaultUri(workspaceId: string, vaultPath: string): string {
   return `flashquery://${encodeURIComponent(workspaceId)}/${encodePath(vaultPath)}`
@@ -599,7 +599,7 @@ export function buildVaultUri(workspaceId: string, vaultPath: string): string {
 
 - `src/renderer/sidebar/WorkspaceTab.test.tsx` lines 25-48: render components into jsdom with `createRoot`/`act`.
 - `src/main/ipc/flashquery.test.ts` lines 257-277: mock list-vault results for root and folder calls.
-- `src/main/flashquery/uri.test.ts` lines 12-27: assert canonical URI construction for document open behavior.
+- `src/main/flashquery/uri.test.ts` lines 12-27: assert canonical URI construction for document open behavior; after Plan 03, mirror these assertions in `src/shared/flashqueryUri.test.ts` and keep the main test as a compatibility re-export check.
 
 ## Shared Patterns
 

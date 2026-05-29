@@ -460,7 +460,7 @@ Nyquist validation is explicitly disabled in `.planning/config.json`, so the for
 
 ### Secondary (MEDIUM confidence)
 - npm registry for `@testing-library/react` and `@testing-library/dom` versions, repository URLs, publish dates, no postinstall scripts, and download API counts. [VERIFIED: npm registry]
-- Local code inspection of `src/shared/types.ts`, `src/shared/panels.ts`, `src/renderer/panels/registry.ts`, `src/renderer/stores/appStore.ts`, `src/renderer/sidebar/FileTreeNode.tsx`, `src/renderer/sidebar/FileExplorer.tsx`, `src/renderer/stores/uiStore.ts`, `src/shared/electron-api.d.ts`, `src/preload/index.ts`, and `src/main/flashquery/uri.ts`. [VERIFIED: codebase grep]
+- Local code inspection of `src/shared/types.ts`, `src/shared/panels.ts`, `src/renderer/panels/registry.ts`, `src/renderer/stores/appStore.ts`, `src/renderer/sidebar/FileTreeNode.tsx`, `src/renderer/sidebar/FileExplorer.tsx`, `src/renderer/stores/uiStore.ts`, `src/shared/electron-api.d.ts`, `src/preload/index.ts`, and the current URI helper implementation in `src/main/flashquery/uri.ts` that Plan 03 will extract to `src/shared/flashqueryUri.ts`. [VERIFIED: codebase grep]
 
 ### Tertiary (LOW confidence)
 - None beyond assumptions listed in the Assumptions Log. [VERIFIED: codebase grep]

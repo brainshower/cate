@@ -95,7 +95,7 @@ This phase does not build the settings dialog, workspace context-menu entry, edi
 - `.planning/ROADMAP.md` — Phase 4 boundary, success criteria, and plan breakdown.
 - `.planning/STATE.md` — Confirms Phase 3 completion and Phase 4 readiness.
 - `.planning/phases/03-ipc-surface/03-CONTEXT.md` — Locked decisions for Phase 3 IPC contracts consumed by Phase 4.
-- `.planning/phases/03-ipc-surface/03-03-SUMMARY.md` — Confirms `listVault`, `getDocument`, `writeDocument`, and `flashquery://` URI helper behavior available to the vault panel.
+- `.planning/phases/03-ipc-surface/03-03-SUMMARY.md` — Confirms `listVault`, `getDocument`, `writeDocument`, and the existing `flashquery://` URI helper behavior that Plan 03 will move to a renderer-safe shared module.
 
 ### Codebase Maps And Existing Code
 - `.planning/codebase/ARCHITECTURE.md` — Electron layering, renderer/store/panel boundaries, and shared contracts.
@@ -110,7 +110,8 @@ This phase does not build the settings dialog, workspace context-menu entry, edi
 - `src/renderer/panels/FileExplorerPanel.tsx` — Panel chrome and file-tree panel structure precedent.
 - `src/renderer/sidebar/FileTreeNode.tsx` — Row interaction and context-menu source of truth.
 - `src/renderer/stores/uiStore.ts` — Dialog visibility slice pattern for the settings button/edit action.
-- `src/main/flashquery/uri.ts` — `buildVaultUri` helper for document open actions.
+- `src/shared/flashqueryUri.ts` — Planned renderer-safe home for `buildVaultUri` / `parseVaultUri` after Plan 03 extracts the current main-process helper implementation.
+- `src/main/flashquery/uri.ts` — Current compatibility path for URI helpers; after Plan 03 it should re-export from `src/shared/flashqueryUri.ts`, not be imported by renderer code.
 - `src/shared/electron-api.d.ts` — Renderer API type shape for FlashQuery IPC and context-menu calls.
 - `src/preload/index.ts` — Preload-exposed FlashQuery API names to call from renderer tests/components.
 
@@ -122,7 +123,7 @@ This phase does not build the settings dialog, workspace context-menu entry, edi
 - The external product docs are mandatory first reads for downstream agents; this is an explicit project-owner instruction, not planner preference.
 - Phase 4 should likely plan as three executable slices: shared chip primitive, panel registration/factory, and vault tree UX. The third slice may be large enough to split into state rendering and row/refresh interactions if the planner wants smaller test-first units.
 - `src/renderer/components/` does not currently exist in the Cate tree. Product docs approve creating it for the reusable chip; keep it small and avoid migrating unrelated UI.
-- Existing Phase 3 summaries confirm the manager now exposes domain-shaped `listVault`, `getDocument`, and `writeDocument` methods, and the IPC layer returns normalized vault entries.
+- Existing Phase 3 code and gap fixes confirm the manager exposes domain-shaped `listVault`, `getDocument`, and `writeDocument` methods; `listVault` now fails closed to `[]` while recording disconnected status on transport/tool errors, and the IPC layer returns normalized vault entries.
 - The local default Node has previously been outside Cate's supported engine range; verification should use Node 20 or 22 if needed.
 
 </specifics>
