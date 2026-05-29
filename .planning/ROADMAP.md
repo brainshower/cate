@@ -15,7 +15,7 @@ Prove a Cate workspace can connect to a separately-running FlashQuery HTTP MCP s
 | 1 | Foundation | None | REQ-001, REQ-002, REQ-003, REQ-013 | Test Plan §4.1 |
 | 2 | Connection layer | 3/3 | Complete   | 2026-05-29 |
 | 3 | IPC surface | 3/3 | Complete   | 2026-05-29 |
-| 4 | Vault panel + shared chip | Phase 3 | REQ-014, REQ-015, REQ-016, REQ-017, REQ-018, REQ-019, REQ-024, REQ-025, REQ-026, REQ-040 | Test Plan §4.4 |
+| 4 | Vault panel + shared chip | 2/4 | In Progress|  |
 | 5 | Settings dialog + workspace menu entry | Phase 3 | REQ-034, REQ-035, REQ-036, REQ-037, REQ-038, REQ-039 | Test Plan §4.5 |
 | 6 | Editor URI-awareness + vault badge | Phase 3 + Phase 4 | REQ-027, REQ-028, REQ-029, REQ-030, REQ-031, REQ-032, REQ-033, REQ-041, REQ-042 | Test Plan §4.6 |
 | 7 | Cross-cutting + regression | All | REQ-043, REQ-044, REQ-045 | Test Plan §4.7 |
@@ -95,9 +95,9 @@ Prove a Cate workspace can connect to a separately-running FlashQuery HTTP MCP s
 - The vault panel renders all five product states with the specified empty, connecting, disconnected, empty-vault, and populated behavior.
 - Document-row interactions match local file-tree conventions and never expose create-new-document affordances.
 
-**Plans:** 4 plans
+**Plans:** 2/4 plans executed
 
-- [ ] `04-01-PLAN.md` — Shared chip primitive and React Testing Library setup.
+- [x] `04-01-PLAN.md` — Shared chip primitive and React Testing Library setup.
 - [ ] `04-02-PLAN.md` — Panel registration and app-store factory.
 - [ ] `04-03-PLAN.md` — Narrow renderer hooks for manual retry and future settings dialog open state.
 - [ ] `04-04-PLAN.md` — FlashQueryVaultPanel header, five states, lazy tree, row/context-menu behavior, refresh, and tests.

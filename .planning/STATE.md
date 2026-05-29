@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Vault Connect, Read, Edit
-status: ready_to_plan
-stopped_at: Phase 03 complete (3/3) — ready to discuss Phase 4
-last_updated: "2026-05-29T14:50:00.000Z"
+status: executing
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-05-29T15:50:46.318Z"
 last_activity: 2026-05-29
 progress:
   total_phases: 7
   completed_phases: 3
-  total_plans: 9
-  completed_plans: 9
-  percent: 43
+  total_plans: 13
+  completed_plans: 11
+  percent: 85
 ---
 
 # Project State
@@ -27,21 +27,21 @@ See: `.planning/PROJECT.md`
 ## Current Position
 
 Phase: 4
-Plan: Not started
-Status: Ready to discuss Phase 4
+Plan: 04-02 next
+Status: Phase 4 in progress — Plan 04-01 complete
 Last activity: 2026-05-29
 
-Progress: [██████████] 100%
+Progress: [█████████░] 85%
 
 ## Session Continuity
 
-Last session: 2026-05-29T14:14:49.644Z
-Stopped At: Phase 03 complete (3/3) — ready to discuss Phase 4
+Last session: 2026-05-29T15:50:46.246Z
+Stopped At: Completed 04-01-PLAN.md
 Resume File: None
 
 ## Next Up
 
-Discuss Phase 04 vault panel + shared chip.
+Execute Phase 04 plan 04-02: panel registration and app-store factory.
 
 ## Decisions
 
@@ -50,6 +50,8 @@ Discuss Phase 04 vault panel + shared chip.
 - Stale FlashQuery probe completions are suppressed with workspace state identity and attempt-generation checks.
 - Keep Phase 2 manager events status-only while accepting registration for future event type strings.
 - Type FlashQueryClientEventHandler<T> as receiving FlashQueryClientEvent<T> so payload generics match the runtime event wrapper.
+- [Phase ?]: 04-01 used Node 22 via npx for install and verification because default Node v24.7.0 is outside Cate's >=20 <23 engine.
+- [Phase ?]: 04-01 established src/renderer/components/Chip.tsx as the reusable FlashQuery connection-status chip primitive.
 
 ## Performance Metrics
 
@@ -60,3 +62,4 @@ Discuss Phase 04 vault panel + shared chip.
 | Phase 03 P01 | 12 min | 4 tasks | 7 files |
 | Phase 03 P02 | 14 min | 4 tasks | 3 files |
 | Phase 03 P03 | 18 min | 4 tasks | 6 files |
+| Phase 04 P01 | 12min | 2 tasks | 4 files |
