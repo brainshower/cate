@@ -194,7 +194,7 @@ export function removeWorkspace(id: string): boolean {
 // Broadcast helper — notify all windows of workspace list change
 // -----------------------------------------------------------------------------
 
-function broadcastWorkspaceChange(originWindowId?: number): void {
+export function broadcastWorkspaceChange(originWindowId?: number): void {
   broadcastToAll(WORKSPACE_CHANGED, listWorkspaces(), originWindowId ?? null)
 }
 

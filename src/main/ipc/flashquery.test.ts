@@ -34,21 +34,23 @@ vi.mock('../windowRegistry', () => ({
   broadcastToAll: mocks.broadcastToAll,
 }))
 
-vi.mock('../flashquery/clientManager', () => ({
-  FlashQueryClientManager: vi.fn().mockImplementation(() => {
-    const instance = {
-      connect: vi.fn().mockResolvedValue({ workspaceId: 'workspace-1', status: 'live' }),
-      dispose: vi.fn(),
-      subscribe: vi.fn((workspaceId: string, type: string, handler: (payload: unknown) => void) => {
-        instance.subscriptions.push({ workspaceId, type, handler })
-        return vi.fn()
-      }),
-      subscriptions: [] as Array<{ workspaceId: string; type: string; handler: (payload: unknown) => void }>,
+vi.mock('../flashquery/clientManager', () => {
+  class MockFlashQueryClientManager {
+    connect = vi.fn().mockResolvedValue({ workspaceId: 'workspace-1', status: 'live' })
+    dispose = vi.fn()
+    subscriptions: Array<{ workspaceId: string; type: string; handler: (payload: unknown) => void }> = []
+    subscribe = vi.fn((workspaceId: string, type: string, handler: (payload: unknown) => void) => {
+      this.subscriptions.push({ workspaceId, type, handler })
+      return vi.fn()
+    })
+
+    constructor() {
+      mocks.managerInstances.push(this)
     }
-    mocks.managerInstances.push(instance)
-    return instance
-  }),
-}))
+  }
+
+  return { FlashQueryClientManager: MockFlashQueryClientManager }
+})
 
 describe('FlashQuery IPC handlers', () => {
   beforeEach(() => {
