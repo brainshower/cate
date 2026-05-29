@@ -55,11 +55,11 @@ Prove a Cate workspace can connect to a separately-running FlashQuery HTTP MCP s
 - Failures transition to `disconnected` with error context and schedule exponential backoff.
 - Manual retry clears backoff, immediately probes, and broadcasts status transitions to subscribers.
 
-**Plans:**
+**Plans:** 3 plans
 
-- [ ] **2.1 Probe transport.** Implement the HTTP probe path and response/error classification.
-- [ ] **2.2 State machine and retry.** Implement connection states, exponential backoff, manual retry, and disposal cleanup.
-- [ ] **2.3 Subscription events.** Finalize status event production and cross-workspace subscriber isolation.
+- [ ] `02-01-PLAN.md` — Probe transport: implement the HTTP probe path and response/error classification.
+- [ ] `02-02-PLAN.md` — State machine and retry: implement connection states, exponential backoff, manual retry, and disposal cleanup.
+- [ ] `02-03-PLAN.md` — Subscription events: finalize status event production and cross-workspace subscriber isolation.
 
 ## Phase 3: IPC Surface
 
