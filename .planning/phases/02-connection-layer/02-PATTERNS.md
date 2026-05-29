@@ -23,9 +23,9 @@
 
 **Current imports pattern:** no imports yet. Phase 2 should add type-only imports from shared contracts if needed, matching local relative/shared alias style.
 
-**Event contract pattern** (lines 1-9):
+**Event contract pattern** (lines 1-9, updated by Phase 1 gap fixes):
 ```typescript
-export type FlashQueryClientEventType = 'status' | 'vault-changed'
+export type FlashQueryClientEventType = 'status' | 'vault-changed' | 'tools-changed' | (string & {})
 
 export interface FlashQueryClientEvent {
   workspaceId: string
@@ -33,7 +33,7 @@ export interface FlashQueryClientEvent {
   payload?: unknown
 }
 
-export type FlashQueryClientEventHandler = (event: FlashQueryClientEvent) => void
+export type FlashQueryClientEventHandler<T = unknown> = (event: T) => void
 ```
 
 **Workspace-scoped state pattern** (lines 11-17):
@@ -48,10 +48,10 @@ export class FlashQueryClientManager {
 
 **Subscription pattern** (lines 18-34):
 ```typescript
-subscribe(
+subscribe<T = unknown>(
   workspaceId: string,
   type: FlashQueryClientEventType,
-  handler: FlashQueryClientEventHandler,
+  handler: FlashQueryClientEventHandler<T>,
 ): () => void {
   const state = this.getOrCreateWorkspaceState(workspaceId)
   let subscribers = state.subscribers.get(type)
@@ -59,10 +59,11 @@ subscribe(
     subscribers = new Set()
     state.subscribers.set(type, subscribers)
   }
-  subscribers.add(handler)
+  const storedHandler = handler as FlashQueryClientEventHandler
+  subscribers.add(storedHandler)
 
   return () => {
-    subscribers?.delete(handler)
+    subscribers?.delete(storedHandler)
   }
 }
 ```

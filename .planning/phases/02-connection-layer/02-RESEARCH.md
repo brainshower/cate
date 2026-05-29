@@ -301,12 +301,12 @@ if (state.retryTimer) {
 **How to avoid:** Centralize timer clearing before any manual retry or successful probe. [ASSUMED]
 **Warning signs:** Fetch call count increases unexpectedly after advancing fake timers. [ASSUMED]
 
-### Pitfall 4: Event Type Is Too Narrow
+### Pitfall 4: Event Type Must Stay Wide
 
-**What goes wrong:** The current local type allows only `'status' | 'vault-changed'`, while the spec also names `'tools-changed' | (string & {})`. [VERIFIED: `src/main/flashquery/clientManager.ts:1`; external Requirements.md §6.1.6]
-**Why it happens:** Phase 1 skeleton was intentionally minimal. [VERIFIED: Phase 1 summary 01-03]
-**How to avoid:** Widen the event type in Phase 2 while continuing to emit only `status`. [VERIFIED: external Test Plan §4.2.3]
-**Warning signs:** T-U-037 cannot compile for future event strings. [VERIFIED: external Test Plan §4.2.3]
+**What goes wrong:** A later edit narrows `FlashQueryClientEventType` back to only `'status' | 'vault-changed'`, losing the Phase 1 gap fix that already added `'tools-changed' | (string & {})`. [VERIFIED: `src/main/flashquery/clientManager.ts:1`; external Requirements.md §6.1.6]
+**Why it happens:** Phase 2 work touches the same manager type while adding status payloads and emit helpers. [VERIFIED: Phase 2 plans]
+**How to avoid:** Preserve the current widened `FlashQueryClientEventType` name and union while continuing to emit only `status` in Phase 2. [VERIFIED: external Test Plan §4.2.3]
+**Warning signs:** T-U-037 no longer compiles for `'tools-changed'` or future event strings. [VERIFIED: external Test Plan §4.2.3]
 
 ## Code Examples
 
