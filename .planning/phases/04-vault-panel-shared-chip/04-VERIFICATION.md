@@ -1,16 +1,23 @@
 ---
 phase: 04-vault-panel-shared-chip
 verified: 2026-05-29T16:24:41Z
-status: human_needed
+human_uat_completed: 2026-05-30T05:45:00Z
+status: passed
 score: 11/11 must-haves verified
 overrides_applied: 0
 human_verification:
   - test: "Open Cate and inspect the FlashQuery Vault panel header and five states in a real renderer."
     expected: "Header, chip, refresh affordance, no-connection, connecting, disconnected, empty-vault, and populated tree states match the product mockup intent with no clipping, overlap, or visually broken controls."
     why_human: "Visual fit, truncation quality, and desktop-panel polish cannot be fully verified by grep or jsdom tests."
+    result: pass
+    completed: 2026-05-30
+    evidence: "See 04-HUMAN-UAT.md Test 1. Exercised in 2026-05-30 milestone v1.0 close-out session against live FlashQuery server; surfaced Gaps 9, 10, 11 (vault editor tab badge layout) — all RESOLVED on main in commits a3829fb, 8221e0b, 7caa565."
   - test: "Exercise the panel against a real or fixture FlashQuery connection: create/open the panel, receive live/disconnected status, expand a folder, open a document in dock and canvas, and refresh."
     expected: "The end-to-end flow works from the user's perspective without exposing create-new-vault-document actions."
     why_human: "The automated tests mock Electron and FlashQuery APIs; real renderer IPC timing and user flow completion need UAT."
+    result: pass
+    completed: 2026-05-30
+    evidence: "See 04-HUMAN-UAT.md Test 2. Full configure → connect → browse → open (dock and canvas) → edit → Cmd+S → reopen flow exercised against localhost:3100 FlashQuery server; no create-new-vault-document affordance present anywhere."
 ---
 
 # Phase 4: Vault Panel + Shared Chip Verification Report
