@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: Vault Connect, Read, Edit
 status: executing
 stopped_at: Completed 07-01-PLAN.md
-last_updated: "2026-05-30T01:03:21.149Z"
+last_updated: "2026-05-30T01:38:45.632Z"
 last_activity: 2026-05-30
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 23
-  completed_plans: 21
-  percent: 91
+  completed_plans: 22
+  percent: 86
 ---
 
 # Project State
@@ -27,16 +27,16 @@ See: `.planning/PROJECT.md`
 ## Current Position
 
 Phase: 07 (cross-cutting-regression) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-05-30
 
-Progress: [█████████░] 91%
+Progress: [██████████] 96%
 
 ## Session Continuity
 
-Last session: 2026-05-30T01:03:21.131Z
-Stopped At: Completed 07-01-PLAN.md
+Last session: 2026-05-30T01:38:45.606Z
+Stopped At: Completed 07-02-PLAN.md
 Resume File: None
 
 ## Next Up
@@ -72,6 +72,9 @@ Plan Phase 07: cross-cutting + regression.
 - [Phase 06]: Render vault source as inert title chrome. — The shared chip surface powers a `Vault . <host>` badge with decoded path tooltip and no revision/conflict/frontmatter UI.
 - [Phase 07]: Treat GET /mcp/info as public discovery/readiness traffic and never send bearer auth on it; keep bearer auth on MCP POST transport only.
 - [Phase 07]: Existing E2E baseline was left unchanged; current environment blocks Electron launch with bad option --remote-debugging-port=0 before app boot.
+- [Phase 07]: Use SDK-backed MCP server transport for FlashQuery E2E stubs to avoid protocol drift from Cate's StreamableHTTPClientTransport.
+- [Phase 07]: Preserve project-local workspaceId so workspace-scoped FlashQuery credentials remain available after restart.
+- [Phase 07]: Trigger lazy reconnect from restored vault panels only on first panel use, preserving zero eager post-restart info probes.
 
 ## Performance Metrics
 
@@ -92,3 +95,4 @@ Plan Phase 07: cross-cutting + regression.
 | Phase 05 review fixes | 48min | 4 review cycles | 8 files |
 | Phase 06 | 60min | 8 tasks | 12 source/test files |
 | Phase 07 P01 | 14min | 2 tasks | 5 files |
+| Phase 07 P02 | 30min | 3 tasks | 16 files |

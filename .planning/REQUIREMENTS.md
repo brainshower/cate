@@ -76,7 +76,7 @@ Cate should let a developer connect a workspace to FlashQuery, browse the FlashQ
 - [ ] **REQ-041: Frontmatter not exposed.** Reads and writes operate on document body only; frontmatter, headings, tags, and title editing stay outside v1.
 - [ ] **REQ-042: No conflict detection.** v1 does not send expected-version/if-match data and uses last-write-wins semantics while leaving conflict detection for a later milestone.
 - [ ] **REQ-043: No regression of existing Cate panels.** Existing editor, terminal, browser, Git, workspace, layout, and panel tests continue to pass unchanged.
-- [ ] **REQ-044: Connection persists across Cate restart.** Workspace connection metadata and token are available after restart, but the manager does not eagerly probe on startup.
+- [x] **REQ-044: Connection persists across Cate restart.** Workspace connection metadata and token are available after restart, but the manager does not eagerly probe on startup.
 - [ ] **REQ-045: Cate design-token discipline.** New UI follows Cate's design tokens, spacing, interaction, and visual conventions rather than introducing stock/default styling.
 
 ## Reserved Requirement IDs
