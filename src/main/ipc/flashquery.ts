@@ -227,12 +227,11 @@ async function writeDocument(workspaceId: string, vaultPath: string, content: st
   }
 }
 
-async function retry(workspaceId: string): Promise<FlashQueryStatusBroadcastPayload> {
+async function retry(workspaceId: string): Promise<void> {
   const id = requireNonEmptyString(workspaceId, 'workspaceId')
   subscribeWorkspaceStatus(id)
   const payload = await flashQueryClientManager.retry(id)
   broadcastStatus(payload)
-  return payload
 }
 
 export function registerHandlers(): void {
