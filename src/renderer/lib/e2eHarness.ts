@@ -7,8 +7,10 @@
 
 import { useAppStore } from '../stores/appStore'
 import { getOrCreateCanvasStoreForPanel } from '../stores/canvasStore'
+import { useDockStore } from '../stores/dockStore'
 import { useDragStore } from '../drag/store'
 import { useUIStore } from '../stores/uiStore'
+import { buildVaultUri } from '../../shared/flashqueryUri'
 import type { FlashQueryConnection, PanelPlacement, Point } from '../../shared/types'
 
 declare global {
@@ -21,6 +23,10 @@ declare global {
       openFlashQueryConnectionDialog(workspaceId?: string): void
       workspaceFlashQueryConnection(workspaceId: string): FlashQueryConnection | undefined
       createFlashQueryVault(point: Point, placement?: PanelPlacement): string
+      openVaultDocument(vaultPath: string, mode: 'dock' | 'canvas'): string
+      writeVaultDocument(vaultPath: string, content: string): Promise<void>
+      retryFlashQuery(workspaceId?: string): Promise<void>
+      panelLocation(panelId: string): string | null
       createTerminal(point: Point): string
       createCanvasPanel(point: Point): string
       nodes(): { id: string; panelId: string; origin: Point; size: { width: number; height: number } }[]
@@ -90,6 +96,33 @@ export function installE2EHarness(): void {
     return useAppStore.getState().createFlashQueryVault(selectedWorkspaceId(), point, placement)
   }
 
+  const openVaultDocument = (vaultPath: string, mode: 'dock' | 'canvas'): string => {
+    const workspaceId = selectedWorkspaceId()
+    return useAppStore.getState().createEditor(
+      workspaceId,
+      buildVaultUri(workspaceId, vaultPath),
+      undefined,
+      mode === 'dock' ? { target: 'dock', zone: 'center' } : { target: 'canvas' },
+    )
+  }
+
+  const writeVaultDocument = async (vaultPath: string, content: string): Promise<void> => {
+    const result = await window.electronAPI.flashqueryWriteDocument(selectedWorkspaceId(), vaultPath, content)
+    if (!result.success) {
+      throw new Error(result.error)
+    }
+  }
+
+  const retryFlashQuery = async (workspaceId?: string): Promise<void> => {
+    await window.electronAPI.flashqueryRetry(workspaceId ?? selectedWorkspaceId())
+  }
+
+  const panelLocation = (panelId: string): string | null => {
+    return useDockStore.getState().getPanelLocation(panelId)?.kind ?? (
+      nodes().some((node) => node.panelId === panelId) ? 'canvas' : null
+    )
+  }
+
   const createCanvasPanel = (point: Point): string => {
     const wsId = useAppStore.getState().selectedWorkspaceId
     useAppStore.getState().createCanvas(wsId, point)
@@ -139,6 +172,10 @@ export function installE2EHarness(): void {
     openFlashQueryConnectionDialog,
     workspaceFlashQueryConnection,
     createFlashQueryVault,
+    openVaultDocument,
+    writeVaultDocument,
+    retryFlashQuery,
+    panelLocation,
     createTerminal,
     createCanvasPanel,
     nodes,
