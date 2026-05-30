@@ -45,7 +45,7 @@ export function ChipSurface({
   const Component = as
   return (
     <Component
-      className={`relative inline-flex items-center gap-1.5 px-2 whitespace-nowrap select-none ${className}`}
+      className={`relative inline-flex items-center gap-1.5 px-2 whitespace-nowrap select-none min-w-0 ${className}`}
       style={{
         ...chipSurfaceStyle,
         cursor: interactive ? 'pointer' : 'default',

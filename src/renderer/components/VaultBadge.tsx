@@ -56,7 +56,7 @@ export function VaultBadge({ filePath, connectionUrl }: VaultBadgeProps) {
       />
       <span className="text-primary">Vault</span>
       {host && (
-        <span className="text-muted" data-testid="vault-badge-host">
+        <span className="text-muted truncate min-w-0" data-testid="vault-badge-host">
           · {host}
         </span>
       )}
