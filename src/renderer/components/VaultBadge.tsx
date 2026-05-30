@@ -40,6 +40,7 @@ export function VaultBadge({ filePath, connectionUrl }: VaultBadgeProps) {
     <ChipSurface
       data-testid="vault-badge"
       aria-label={host ? `Vault · ${host}` : 'Vault'}
+      className="max-w-[120px]"
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
       onFocus={() => setHovering(true)}
