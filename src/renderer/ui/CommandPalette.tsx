@@ -19,6 +19,7 @@ import {
   Square,
   FloppyDisk,
   GitBranch,
+  Vault,
 } from '@phosphor-icons/react'
 import type { PanelType } from '../../shared/types'
 import { CateLogo } from './CateLogo'
@@ -56,6 +57,7 @@ const ZoomToFitIcon = () => <ArrowsOutSimple size={ICON_SIZE} />
 const RectangleIcon = () => <Square size={ICON_SIZE} />
 const SaveIcon = () => <FloppyDisk size={ICON_SIZE} />
 const AgentIcon = () => <CateLogo size={ICON_SIZE} />
+const VaultIcon = () => <Vault size={ICON_SIZE} />
 
 // -----------------------------------------------------------------------------
 // Search result types (merged from GlobalSearch)
@@ -90,6 +92,7 @@ export const CommandPalette: React.FC = () => {
   const createEditor = useAppStore((s) => s.createEditor)
   const createCanvas = useAppStore((s) => s.createCanvas)
   const createAgent = useAppStore((s) => s.createAgent)
+  const createFlashQueryVault = useAppStore((s) => s.createFlashQueryVault)
   const toggleSidebar = useUIStore((s) => s.toggleSidebar)
   const setActiveRightSidebarView = useUIStore((s) => s.setActiveRightSidebarView)
   const canvasApi = useCanvasStoreApi()
@@ -145,6 +148,13 @@ export const CommandPalette: React.FC = () => {
         shortcutText: '',
         icon: <AgentIcon />,
         action: () => createAgent(selectedWorkspaceId, undefined, dockCenter),
+      },
+      {
+        id: 'newFlashQueryVault',
+        title: 'New FlashQuery Vault',
+        shortcutText: '',
+        icon: <VaultIcon />,
+        action: () => createFlashQueryVault(selectedWorkspaceId, undefined, dockCenter),
       },
       {
         id: 'newCanvas',
@@ -217,6 +227,7 @@ export const CommandPalette: React.FC = () => {
       createEditor,
       createCanvas,
       createAgent,
+      createFlashQueryVault,
       toggleSidebar,
       setActiveRightSidebarView,
       setShowNodeSwitcher,
