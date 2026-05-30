@@ -182,13 +182,18 @@ export function DockTabBar(props: DockTabBarProps) {
         const isActive = i === stack.activeIndex
         const panel = getPanel(panelId)
         const panelType = (panel?.type ?? 'editor') as PanelType
+        // Vault editor tabs need extra room because the VaultBadge claims
+        // ~120 px of chrome; the regular 200 px cap would force both the
+        // filename and the badge to truncate. 280 px fits a normal vault
+        // filename, the badge, and the close X with breathing room.
+        const isVaultEditor = panel?.type === 'editor' && !!panel?.filePath?.startsWith('flashquery://')
         const pill = (
           <TabPill
             key={panelId}
             panelId={panelId}
             className={`
               group relative flex items-center gap-1.5 whitespace-nowrap
-              cursor-grab select-none min-w-0 flex-1 max-w-[200px]
+              cursor-grab select-none min-w-0 flex-1 ${isVaultEditor ? 'max-w-[280px]' : 'max-w-[200px]'}
               border-r border-white/5
               ${compact ? 'pl-2 pr-1.5 text-[11px]' : 'pl-3 pr-2 text-xs'}
               ${isActive ? 'text-primary font-medium' : 'text-secondary hover:text-primary'}
