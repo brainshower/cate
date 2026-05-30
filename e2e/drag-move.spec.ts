@@ -110,8 +110,12 @@ test('source node is hidden while dragging', async () => {
     nodeId,
   )
   expect(parseFloat(opacity)).toBe(0)
-  const attr = await page.getAttribute(`[data-node-id="${nodeId}"]`, 'data-drag-source')
-  expect(attr).toBe('true')
+  const snapshot = await page.evaluate(() => window.__cateE2E!.dragSnapshot())
+  expect(snapshot).toMatchObject({
+    isDragging: true,
+    sourceKind: 'canvas-node',
+    sourceNodeId: nodeId,
+  })
   await page.mouse.up()
 })
 

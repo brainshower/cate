@@ -23,7 +23,7 @@ async function seedTwoTerminals(p: Page): Promise<{ a: string; b: string }> {
   // Seed past the 260px sidebar so both nodes are fully visible in the canvas
   // viewport — A on the left, B on the right with clear separation.
   const a = await seedTerminal(p, { x: 300, y: 100 })
-  const b = await seedTerminal(p, { x: 1000, y: 100 })
+  const b = await seedTerminal(p, { x: 740, y: 100 })
   await p.evaluate(() => window.__cateE2E!.resetViewport())
   await p.waitForTimeout(200)
   return { a, b }
@@ -47,7 +47,11 @@ test('drop on target left edge splits horizontally', async () => {
   const aGrab = await titleBarCentre(page, a)
   const bRect = await getNodeRect(page, b)
   // Left ~12% strip — below the tab-bar height.
-  const dropPoint = { x: bRect!.x + 12, y: bRect!.y + bRect!.height / 2 }
+  const viewport = await page.evaluate(() => ({ height: window.innerHeight }))
+  const dropPoint = {
+    x: bRect!.x + 12,
+    y: Math.min(bRect!.y + bRect!.height / 2, viewport.height - 80),
+  }
   await dragMouse(page, aGrab!, dropPoint, { steps: 25, pauseAtEnd: 50 })
   await page.waitForTimeout(150)
   const aStill = await page.$(`[data-node-id="${a}"]`)
@@ -80,7 +84,11 @@ test('drop on target body centre (safe zone) does not commit', async () => {
   const aGrab = await titleBarCentre(page, a)
   const bRect = await getNodeRect(page, b)
   // Mid-body — outside the 12% edge strips AND below the tab-bar.
-  const dropPoint = { x: bRect!.x + bRect!.width / 2, y: bRect!.y + bRect!.height / 2 }
+  const viewport = await page.evaluate(() => ({ width: window.innerWidth, height: window.innerHeight }))
+  const dropPoint = {
+    x: Math.min(bRect!.x + bRect!.width / 2, viewport.width - 80),
+    y: Math.min(bRect!.y + bRect!.height / 2, viewport.height - 80),
+  }
   await dragMouse(page, aGrab!, dropPoint, { steps: 25, pauseAtEnd: 50 })
   await page.waitForTimeout(150)
   // Source node should STILL exist (it repositioned, not docked).
