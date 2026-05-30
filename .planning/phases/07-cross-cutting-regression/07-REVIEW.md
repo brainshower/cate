@@ -27,10 +27,10 @@ files_reviewed_list:
   - src/shared/types.ts
 findings:
   critical: 0
-  warning: 1
+  warning: 0
   info: 0
-  total: 1
-status: issues_found
+  total: 0
+status: clean
 ---
 
 # Phase 7: Code Review Report
@@ -38,11 +38,11 @@ status: issues_found
 **Reviewed:** 2026-05-30T02:11:53Z
 **Depth:** standard
 **Files Reviewed:** 21
-**Status:** issues_found
+**Status:** clean
 
 ## Summary
 
-Reviewed the Phase 7 FlashQuery connection/persistence path, renderer vault panel behavior, session/workspace persistence changes, E2E launch harness, FlashQuery MCP stub, new FlashQuery E2E specs, drag regression specs, and focused changed tests. No blocking production correctness or security issue was found. One E2E contract gap remains: the stub accepts any bearer token, so it cannot catch wrong-token regressions across workspace-scoped restart persistence.
+Reviewed the Phase 7 FlashQuery connection/persistence path, renderer vault panel behavior, session/workspace persistence changes, E2E launch harness, FlashQuery MCP stub, new FlashQuery E2E specs, drag regression specs, and focused changed tests. The initial review found one E2E contract gap; it has been fixed and verified. No open critical, warning, or info findings remain.
 
 ## Narrative Findings (AI reviewer)
 
@@ -51,6 +51,7 @@ Reviewed the Phase 7 FlashQuery connection/persistence path, renderer vault pane
 ### WR-01: FlashQuery E2E Stub Does Not Validate The Persisted Bearer Token Value
 
 **File:** `e2e/fixtures/flashquery-server.ts:169`
+**Status:** resolved in `d8b8bb2`
 **Issue:** The new MCP stub only checks that `req.headers.authorization` is present before accepting `POST /mcp`. The Phase 7 persistence requirement is specifically about preserving the workspace-scoped stored token across restart, but the E2E server would accept `Bearer wrong-token`, a stale token from another workspace, or any arbitrary bearer value. That leaves the restart specs unable to catch token-mapping regressions that still send some Authorization header.
 **Fix:** Make the stub validate an expected bearer value and pass that expected value from the specs. For example:
 
@@ -77,6 +78,10 @@ export async function startFlashQueryStubServer(
 ```
 
 Then start each FlashQuery E2E server with the token that the test saves in the dialog, such as `startFlashQueryStubServer({ expectedBearerToken: 'persisted-e2e-token' })`, so T-E-006/T-E-007 fail if the wrong workspace token is used after restart.
+
+**Resolution:** `startFlashQueryStubServer` now accepts `expectedBearerToken`, rejects missing/wrong POST authorization, fixture coverage verifies wrong-token failure and caller-provided-token success, and every FlashQuery E2E spec starts the stub with the token it saves in the dialog.
+
+**Verification:** `npx -p node@22 npm run test:e2e -- e2e/fixtures/flashquery-server.spec.ts e2e/flashquery-persistence.spec.ts e2e/flashquery-happy-path.spec.ts e2e/flashquery-disconnect.spec.ts e2e/flashquery-vault-browse.spec.ts` passed with 7 tests.
 
 ---
 
