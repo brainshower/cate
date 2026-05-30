@@ -304,7 +304,7 @@ describe('FlashQuery IPC handlers', () => {
     })
   })
 
-  it('T-I-062 dry-runs the provided URL and bearer token without persisting connection state', async () => {
+  it('T-I-062 dry-runs the provided URL without sending bearer auth or persisting connection state', async () => {
     const handler = await registeredHandler<(
       _event: unknown,
       workspaceId: string,
@@ -327,10 +327,7 @@ describe('FlashQuery IPC handlers', () => {
 
     expect(mocks.fetch).toHaveBeenCalledWith('https://flashquery.local/mcp/info', {
       method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        Authorization: 'Bearer current-token',
-      },
+      headers: { Accept: 'application/json' },
       signal: expect.any(AbortSignal),
     })
     expect(mocks.updateWorkspace).not.toHaveBeenCalled()

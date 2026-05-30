@@ -162,7 +162,7 @@ describe('FlashQueryClientManager', () => {
     })
   })
 
-  it('sends bearer Authorization during the connection info probe', async () => {
+  it('T-U-021 omits bearer Authorization during the public connection info probe', async () => {
     const fetchMock = installFetchMock()
     fetchMock.mockResolvedValue(okInfoResponse())
     const manager = new FlashQueryClientManager()
@@ -175,10 +175,7 @@ describe('FlashQueryClientManager', () => {
 
     expect(fetchMock).toHaveBeenCalledWith('https://flashquery.local/mcp/info', {
       method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        Authorization: 'Bearer secret-token',
-      },
+      headers: { Accept: 'application/json' },
       signal: expect.any(AbortSignal),
     })
   })
@@ -297,7 +294,7 @@ describe('FlashQueryClientManager', () => {
     expect(client.callTool).toHaveBeenCalledTimes(2)
   })
 
-  it('sends bearer auth without performing POST /mcp during the info probe', async () => {
+  it('sends no bearer auth and performs no POST /mcp during the info probe', async () => {
     const fetchMock = installFetchMock()
     fetchMock.mockResolvedValue(okInfoResponse())
     const manager = new FlashQueryClientManager()
@@ -315,10 +312,7 @@ describe('FlashQueryClientManager', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
     const [, init] = fetchMock.mock.calls[0]
     expect(init.method).toBe('GET')
-    expect(init.headers).toEqual({
-      Accept: 'application/json',
-      Authorization: 'Bearer secret-token',
-    })
+    expect(init.headers).toEqual({ Accept: 'application/json' })
     expect(JSON.stringify(statusHandler.mock.calls)).not.toContain('secret-token')
   })
 
