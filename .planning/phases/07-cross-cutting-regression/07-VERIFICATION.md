@@ -36,7 +36,7 @@ PASS. Focused fast-feedback checks, completed manual design evidence, final type
 |---|---|
 | `npx -p node@22 npm run typecheck` | PASS. |
 | `npx -p node@22 npm test` | PASS: 51 Vitest files, 495 passed, 3 skipped. |
-| `npx -p node@22 npm run test:e2e` | PASS: 22 passed, 2 skipped. |
+| `npx -p node@22 npm run test:e2e` | PASS: 23 passed, 2 skipped. |
 
 Observed non-failing noise:
 
@@ -48,8 +48,8 @@ Observed non-failing noise:
 
 | Requirement | Coverage | Evidence |
 |---|---|---|
-| REQ-043: No regression of existing Cate panels | Existing smoke and drag/panel E2E specs pass unchanged after Phase 7 stabilization. | T-E-001 through T-E-005 via `e2e/smoke.spec.ts`, `e2e/drag-detach.spec.ts`, `e2e/drag-move.spec.ts`, `e2e/drag-canvas-into-canvas.spec.ts`, and `e2e/drag-split.spec.ts`; full E2E gate: 22 passed, 2 skipped. |
-| REQ-044: Connection persists across restart without eager startup probe | Restart persistence and lazy reconnect are covered by the FlashQuery E2E harness. | T-E-006 and T-E-007 via `e2e/flashquery-persistence.spec.ts`; final full E2E passed. |
+| REQ-043: No regression of existing Cate panels | Existing smoke and drag/panel E2E specs pass unchanged after Phase 7 stabilization. | T-E-001 through T-E-005 via `e2e/smoke.spec.ts`, `e2e/drag-detach.spec.ts`, `e2e/drag-move.spec.ts`, `e2e/drag-canvas-into-canvas.spec.ts`, and `e2e/drag-split.spec.ts`; full E2E gate: 23 passed, 2 skipped. |
+| REQ-044: Connection persists across restart without eager startup probe | Restart persistence and lazy reconnect are covered by the FlashQuery E2E harness with exact bearer token validation. | T-E-006 and T-E-007 via `e2e/flashquery-persistence.spec.ts`; `e2e/fixtures/flashquery-server.spec.ts` verifies wrong-token rejection; final full E2E passed. |
 | REQ-045: Cate design-token discipline | Automated token invariants and manual design checklist completed. | T-U-102 via `FlashQueryVaultPanel.test.tsx`, T-U-103 via `Chip.test.tsx`, T-U-104 via `FlashQueryConnectionDialog.test.tsx`, additional `VaultBadge.test.tsx` neutral-class invariant, and T-M-001 through T-M-007 in `07-DESIGN-CHECKS.md`. |
 
 ## E2E Coverage
@@ -67,6 +67,10 @@ Observed non-failing noise:
 | T-E-009 | `e2e/flashquery-happy-path.spec.ts` Open on Canvas variant | PASS |
 | T-E-010 | `e2e/flashquery-disconnect.spec.ts` disconnected state and retry | PASS |
 | T-E-011 | `e2e/flashquery-vault-browse.spec.ts` expansion, refresh, empty vault, multi-level browse | PASS |
+
+## Code Review
+
+`07-REVIEW.md` status is `clean`. The initial warning about the FlashQuery E2E stub accepting any bearer token was resolved in `d8b8bb2`; the stub now validates the expected bearer token and the FlashQuery E2E group passed with 7 tests.
 
 ## Design Evidence
 

@@ -85,7 +85,7 @@ Each task was committed atomically:
 - PASS: `npx -p node@22 npm test`
   - 51 Vitest files passed; 495 passed, 3 skipped.
 - PASS: `npx -p node@22 npm run test:e2e`
-  - 22 passed, 2 skipped.
+  - 23 passed, 2 skipped after the code-review bearer-token guard was added.
 
 ## Acceptance Criteria
 
