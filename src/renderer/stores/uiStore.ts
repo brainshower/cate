@@ -8,7 +8,7 @@ import { create } from 'zustand'
 // Store interface
 // -----------------------------------------------------------------------------
 
-export type SidebarView = 'workspaces' | 'explorer' | 'git' | 'parallelWork'
+export type SidebarView = 'workspaces' | 'explorer' | 'flashqueryVault' | 'git' | 'parallelWork'
 export type SidebarSide = 'left' | 'right'
 
 export interface SidebarLayout {
@@ -17,9 +17,9 @@ export interface SidebarLayout {
 }
 
 const LAYOUT_STORAGE_KEY = 'cate.sidebarLayout.v3'
-const ALL_VIEWS: SidebarView[] = ['workspaces', 'explorer', 'git', 'parallelWork']
+const ALL_VIEWS: SidebarView[] = ['workspaces', 'explorer', 'flashqueryVault', 'git', 'parallelWork']
 const DEFAULT_LAYOUT: SidebarLayout = {
-  left: ['workspaces', 'explorer'],
+  left: ['workspaces', 'explorer', 'flashqueryVault'],
   right: ['git', 'parallelWork'],
 }
 
@@ -30,9 +30,16 @@ function loadLayout(): SidebarLayout {
     const parsed = JSON.parse(raw) as SidebarLayout
     const left = (parsed.left ?? []).filter((v) => ALL_VIEWS.includes(v))
     const right = (parsed.right ?? []).filter((v) => ALL_VIEWS.includes(v))
-    // Ensure every view is present exactly once — append missing ones to the right.
+    // Ensure every view is present exactly once. For missing views (e.g. a
+    // newly-added one like `flashqueryVault` after an upgrade), append to
+    // whichever side DEFAULT_LAYOUT specifies so the icon shows up in the
+    // intuitive spot rather than always defaulting to the right.
     const seen = new Set<SidebarView>([...left, ...right])
-    for (const v of ALL_VIEWS) if (!seen.has(v)) right.push(v)
+    for (const v of ALL_VIEWS) {
+      if (seen.has(v)) continue
+      if (DEFAULT_LAYOUT.left.includes(v)) left.push(v)
+      else right.push(v)
+    }
     return { left, right }
   } catch {
     return DEFAULT_LAYOUT
