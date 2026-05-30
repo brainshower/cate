@@ -5,13 +5,13 @@
 // positions, known zoom) and assertions against canvas-space state. Driving
 // the UI for setup is brittle; reaching into stores is reliable.
 
-import { useAppStore } from '../stores/appStore'
+import { useAppStore, type PanelPlacement } from '../stores/appStore'
 import { getOrCreateCanvasStoreForPanel } from '../stores/canvasStore'
 import { useDockStore } from '../stores/dockStore'
 import { useDragStore } from '../drag/store'
 import { useUIStore } from '../stores/uiStore'
 import { buildVaultUri } from '../../shared/flashqueryUri'
-import type { FlashQueryConnection, PanelPlacement, Point } from '../../shared/types'
+import type { FlashQueryConnection, Point } from '../../shared/types'
 
 declare global {
   interface Window {
@@ -118,7 +118,7 @@ export function installE2EHarness(): void {
   }
 
   const panelLocation = (panelId: string): string | null => {
-    return useDockStore.getState().getPanelLocation(panelId)?.kind ?? (
+    return useDockStore.getState().getPanelLocation(panelId)?.type ?? (
       nodes().some((node) => node.panelId === panelId) ? 'canvas' : null
     )
   }
