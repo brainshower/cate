@@ -1,4 +1,6 @@
 import { ipcMain } from 'electron'
+import { Client } from '@modelcontextprotocol/sdk/client/index.js'
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import {
   FLASHQUERY_GET_DOCUMENT,
   FLASHQUERY_LIST_VAULT,
@@ -73,6 +75,39 @@ function normalizeConnection(connection: FlashQueryConnection): FlashQueryConnec
 
 function buildInfoUrl(url: string): string {
   return `${url.replace(/\/+$/, '')}/mcp/info`
+}
+
+function buildMcpUrl(url: string): string {
+  return `${url.replace(/\/+$/, '')}/mcp`
+}
+
+// Authenticated MCP handshake against POST /mcp using the user-typed bearer.
+// Used by the dialog Test Connection action to validate the token in addition
+// to the public reachability probe — the public `/mcp/info` request never
+// sends auth (Phase 7 Plan 07-01), so without this step the dialog would
+// report "Connected" even with an invalid token (Phase 7 Gap 7).
+async function probeAuthenticatedMcp(
+  connection: FlashQueryConnection,
+  token: string,
+): Promise<FlashQueryProbeResult> {
+  const client = new Client({ name: 'cate', version: '1.0.3' })
+  const transport = new StreamableHTTPClientTransport(new URL(buildMcpUrl(connection.url)), {
+    requestInit: { headers: new Headers({ Authorization: `Bearer ${token}` }) },
+  })
+  try {
+    await client.connect(transport)
+    return { ok: true, version: '', instanceId: '' }
+  } catch (error) {
+    const message = safeOneLineError(error, token)
+    if (/\b401\b|unauthor|invalid.?authoriz|forbidden/i.test(message)) {
+      return { ok: false, error: 'Bearer token rejected by server (401).' }
+    }
+    return { ok: false, error: message }
+  } finally {
+    void Promise.resolve(client.close()).catch(() => {
+      // Best-effort cleanup — connect already settled either way.
+    })
+  }
 }
 
 function parseInfoPayload(value: unknown): { version: string; instanceId: string } | null {
@@ -170,6 +205,11 @@ async function probeConnection(workspaceId: string, connection: unknown): Promis
       const info = parseInfoPayload(await response.json())
       if (!info) {
         return { ok: false, error: 'FlashQuery probe returned an invalid response' }
+      }
+
+      if (token) {
+        const authResult = await probeAuthenticatedMcp(nextConnection, token)
+        if (!authResult.ok) return authResult
       }
 
       return { ok: true, version: info.version, instanceId: info.instanceId }
