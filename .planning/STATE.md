@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Vault Connect, Read, Edit
 status: executing
-stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-05-30T00:58:48.696Z"
-last_activity: 2026-05-30 -- Phase 07 execution started
+stopped_at: Completed 07-01-PLAN.md
+last_updated: "2026-05-30T01:03:21.149Z"
+last_activity: 2026-05-30
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 23
-  completed_plans: 20
-  percent: 86
+  completed_plans: 21
+  percent: 91
 ---
 
 # Project State
@@ -27,16 +27,16 @@ See: `.planning/PROJECT.md`
 ## Current Position
 
 Phase: 07 (cross-cutting-regression) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 07
-Last activity: 2026-05-30 -- Phase 07 execution started
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-05-30
 
-Progress: [██████████] 100%
+Progress: [█████████░] 91%
 
 ## Session Continuity
 
-Last session: 2026-05-29T18:28:03.043Z
-Stopped At: Completed 05-02-PLAN.md
+Last session: 2026-05-30T01:03:21.131Z
+Stopped At: Completed 07-01-PLAN.md
 Resume File: None
 
 ## Next Up
@@ -70,6 +70,8 @@ Plan Phase 07: cross-cutting + regression.
 - [Phase 06]: Keep vault unsaved buffers in Monaco memory only. — No vault body is persisted to PanelState.unsavedContent or temp files.
 - [Phase 06]: Git diff mode is local-file-only. — Vault diff requests log a warning and render standard editor mode without local Git/file IPC.
 - [Phase 06]: Render vault source as inert title chrome. — The shared chip surface powers a `Vault . <host>` badge with decoded path tooltip and no revision/conflict/frontmatter UI.
+- [Phase 07]: Treat GET /mcp/info as public discovery/readiness traffic and never send bearer auth on it; keep bearer auth on MCP POST transport only.
+- [Phase 07]: Existing E2E baseline was left unchanged; current environment blocks Electron launch with bad option --remote-debugging-port=0 before app boot.
 
 ## Performance Metrics
 
@@ -89,3 +91,4 @@ Plan Phase 07: cross-cutting + regression.
 | Phase 05 P03 | 10min | 2 tasks | 3 files |
 | Phase 05 review fixes | 48min | 4 review cycles | 8 files |
 | Phase 06 | 60min | 8 tasks | 12 source/test files |
+| Phase 07 P01 | 14min | 2 tasks | 5 files |
