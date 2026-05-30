@@ -214,11 +214,7 @@ export class FlashQueryClientManager {
     }, PROBE_TIMEOUT_MS)
 
     try {
-      const token = connection.auth?.type === 'bearer' ? connection.auth.token.trim() : ''
       const headers: Record<string, string> = { Accept: 'application/json' }
-      if (token) {
-        headers.Authorization = `Bearer ${token}`
-      }
 
       const response = await globalThis.fetch(this.buildInfoUrl(connection.url), {
         method: 'GET',

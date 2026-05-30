@@ -153,14 +153,9 @@ async function probeConnection(workspaceId: string, connection: unknown): Promis
     }, DIALOG_PROBE_TIMEOUT_MS)
 
     try {
-      const headers: Record<string, string> = { Accept: 'application/json' }
-      if (token) {
-        headers.Authorization = `Bearer ${token}`
-      }
-
       const response = await globalThis.fetch(buildInfoUrl(nextConnection.url), {
         method: 'GET',
-        headers,
+        headers: { Accept: 'application/json' },
         signal: abortController.signal,
       })
 
