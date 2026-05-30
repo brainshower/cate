@@ -8,13 +8,19 @@
 import { useAppStore } from '../stores/appStore'
 import { getOrCreateCanvasStoreForPanel } from '../stores/canvasStore'
 import { useDragStore } from '../drag/store'
-import type { Point } from '../../shared/types'
+import { useUIStore } from '../stores/uiStore'
+import type { FlashQueryConnection, PanelPlacement, Point } from '../../shared/types'
 
 declare global {
   interface Window {
     __cateE2E?: {
       ready: true
       activeCanvasPanelId(): string | null
+      selectedWorkspaceId(): string
+      ensureWorkspaceRoot(rootPath: string): Promise<string>
+      openFlashQueryConnectionDialog(workspaceId?: string): void
+      workspaceFlashQueryConnection(workspaceId: string): FlashQueryConnection | undefined
+      createFlashQueryVault(point: Point, placement?: PanelPlacement): string
       createTerminal(point: Point): string
       createCanvasPanel(point: Point): string
       nodes(): { id: string; panelId: string; origin: Point; size: { width: number; height: number } }[]
@@ -55,6 +61,33 @@ export function installE2EHarness(): void {
       if (n.panelId === panelId) return n.id
     }
     return panelId
+  }
+
+  const selectedWorkspaceId = (): string => useAppStore.getState().selectedWorkspaceId
+
+  const ensureWorkspaceRoot = async (rootPath: string): Promise<string> => {
+    const app = useAppStore.getState()
+    let workspaceId = app.selectedWorkspaceId
+    if (!workspaceId) {
+      workspaceId = app.addWorkspace('E2E Workspace')
+    }
+    const ok = await useAppStore.getState().setWorkspaceRootPath(workspaceId, rootPath)
+    if (!ok) {
+      throw new Error(`Failed to set E2E workspace root: ${rootPath}`)
+    }
+    return workspaceId
+  }
+
+  const openFlashQueryConnectionDialog = (workspaceId?: string): void => {
+    useUIStore.getState().setShowFlashQueryConnectionDialog(true, workspaceId ?? selectedWorkspaceId())
+  }
+
+  const workspaceFlashQueryConnection = (workspaceId: string): FlashQueryConnection | undefined => {
+    return useAppStore.getState().workspaces.find((workspace) => workspace.id === workspaceId)?.flashqueryConnection
+  }
+
+  const createFlashQueryVault = (point: Point, placement?: PanelPlacement): string => {
+    return useAppStore.getState().createFlashQueryVault(selectedWorkspaceId(), point, placement)
   }
 
   const createCanvasPanel = (point: Point): string => {
@@ -101,6 +134,11 @@ export function installE2EHarness(): void {
   window.__cateE2E = {
     ready: true,
     activeCanvasPanelId,
+    selectedWorkspaceId,
+    ensureWorkspaceRoot,
+    openFlashQueryConnectionDialog,
+    workspaceFlashQueryConnection,
+    createFlashQueryVault,
     createTerminal,
     createCanvasPanel,
     nodes,

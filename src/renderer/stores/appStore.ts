@@ -112,9 +112,10 @@ function createDefaultWorkspace(
   name?: string,
   rootPath?: string,
   flashqueryConnection?: FlashQueryConnection,
+  id?: string,
 ): WorkspaceState {
   return {
-    id: generateId(),
+    id: id ?? generateId(),
     name: name ?? 'Workspace',
     color: '',
     rootPath: rootPath ?? '',
@@ -224,7 +225,9 @@ function syncCreateToMain(ws: WorkspaceState): Promise<WorkspaceMutationResult |
       name: ws.name,
       rootPath: ws.rootPath,
       id: ws.id,
-      flashqueryConnection: ws.flashqueryConnection,
+      flashqueryConnection: ws.flashqueryConnection
+        ? { ...ws.flashqueryConnection, preserveExistingToken: true }
+        : undefined,
     }),
   )
 }
@@ -286,7 +289,7 @@ interface AppStoreState {
 
 interface AppStoreActions {
   // Workspace management
-  addWorkspace: (name?: string, rootPath?: string, flashqueryConnection?: FlashQueryConnection) => string
+  addWorkspace: (name?: string, rootPath?: string, flashqueryConnection?: FlashQueryConnection, id?: string) => string
   selectWorkspace: (id: string) => Promise<void>
   removeWorkspace: (id: string) => void
 
@@ -393,13 +396,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   // --- Workspace management ---
 
-  addWorkspace(name?, rootPath?, flashqueryConnection?) {
+  addWorkspace(name?, rootPath?, flashqueryConnection?, id?) {
     const existingCount = get().workspaces.length
     if (existingCount >= 10) {
       // Cap at 10 workspaces — no-op, return current selection
       return get().selectedWorkspaceId || get().workspaces[0]?.id || ''
     }
-    const ws = createDefaultWorkspace(name, rootPath, flashqueryConnection)
+    const ws = createDefaultWorkspace(name, rootPath, flashqueryConnection, id)
     const isFirst = existingCount === 0
 
     // Note: the new workspace starts with an empty panels map. selectWorkspace

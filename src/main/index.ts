@@ -1084,8 +1084,11 @@ if (!app.isPackaged) {
 if (process.env.CATE_E2E === '1') {
   const fs = require('fs') as typeof import('fs')
   const os = require('os') as typeof import('os')
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cate-e2e-'))
-  app.setPath('userData', tmp)
+  const override = process.env.CATE_E2E_USER_DATA_DIR
+  const userDataDir = override && override.length > 0
+    ? override
+    : fs.mkdtempSync(path.join(os.tmpdir(), 'cate-e2e-'))
+  app.setPath('userData', userDataDir)
 }
 
 // ---------------------------------------------------------------------------
@@ -1258,7 +1261,9 @@ app.whenReady().then(async () => {
     initAutoUpdater()
     // Detect a version change since last launch and emit an app_updated event
     // before app_start, so the upgrade path lands in analytics in order.
-    checkAndReportUpdate(mainWin).catch((err) => log.warn('Update detection failed:', err))
+    if (process.env.CATE_E2E !== '1') {
+      checkAndReportUpdate(mainWin).catch((err) => log.warn('Update detection failed:', err))
+    }
     trackAppStart()
     if (process.env.CATE_SMOKE_TEST === '1') {
       runSmokeAssertions(mainWin)

@@ -369,6 +369,11 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
     void loadRoot()
   }, [connection, loadRoot, status?.kind])
 
+  useEffect(() => {
+    if (!connection || status?.kind !== 'connecting') return
+    void window.electronAPI.flashqueryRetry(workspaceId)
+  }, [connection, status?.kind, workspaceId])
+
   let body: React.ReactNode
   if (!connection) {
     body = (

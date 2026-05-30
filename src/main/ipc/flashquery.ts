@@ -97,6 +97,7 @@ function resetWorkspaceManagerBridge(workspaceId: string): void {
 }
 
 function subscribeWorkspaceStatus(workspaceId: string): void {
+  if (statusUnsubscribers.has(workspaceId)) return
   const unsubscribe = flashQueryClientManager.subscribe<FlashQueryStatusBroadcastPayload>(
     workspaceId,
     'status',
@@ -226,8 +227,12 @@ async function writeDocument(workspaceId: string, vaultPath: string, content: st
   }
 }
 
-async function retry(workspaceId: string): Promise<void> {
-  await flashQueryClientManager.retry(requireNonEmptyString(workspaceId, 'workspaceId'))
+async function retry(workspaceId: string): Promise<FlashQueryStatusBroadcastPayload> {
+  const id = requireNonEmptyString(workspaceId, 'workspaceId')
+  subscribeWorkspaceStatus(id)
+  const payload = await flashQueryClientManager.retry(id)
+  broadcastStatus(payload)
+  return payload
 }
 
 export function registerHandlers(): void {

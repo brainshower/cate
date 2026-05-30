@@ -88,20 +88,19 @@ export class FlashQueryClientManager {
   }
 
   async retry(workspaceId: string): Promise<FlashQueryStatusPayload> {
-    const state = this.workspaceStates.get(workspaceId)
-    const connection = state?.connection
+    const state = this.getOrCreateWorkspaceState(workspaceId)
+    const connection = state.connection ?? this.getConfiguredConnection(workspaceId)
     if (!state || !connection) {
       const payload: FlashQueryStatusPayload = {
         workspaceId,
         status: 'disconnected',
         error: 'No FlashQuery connection is configured for this workspace',
       }
-      if (state) {
-        this.emitStatus(workspaceId, state, payload)
-      }
+      this.emitStatus(workspaceId, state, payload)
       return payload
     }
 
+    state.connection = connection
     return this.probeConnection(workspaceId, state, connection)
   }
 

@@ -14,11 +14,15 @@ async function configureConnection(page: Page, workspaceRoot: string, server: Fl
   await page.evaluate((id) => window.__cateE2E!.openFlashQueryConnectionDialog(id), workspaceId)
   await expect(page.getByRole('dialog', { name: 'FlashQuery Connection' })).toBeVisible()
   await page.getByLabel('FlashQuery URL').fill(server.baseUrl)
-  await page.getByLabel('Bearer token').fill('persisted-e2e-token')
+  await page.getByRole('textbox', { name: 'Bearer token' }).fill('persisted-e2e-token')
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByRole('dialog', { name: 'FlashQuery Connection' })).toBeHidden()
 
   await expect.poll(() => server.counts().infoRequestCount).toBeGreaterThan(0)
+  await expect.poll(async () => {
+    return page.evaluate((id) => window.__cateE2E!.workspaceFlashQueryConnection(id), workspaceId)
+  }).toMatchObject({ transport: 'http', url: server.baseUrl })
+  await page.waitForTimeout(800)
   return workspaceId
 }
 
@@ -52,9 +56,10 @@ test('T-E-006/T-E-007 persists FlashQuery connection across restart without eage
     app = launched.electronApp
     const restartedPage = launched.mainWindow
 
+    const restoredWorkspaceId = await restartedPage.evaluate(() => window.__cateE2E!.selectedWorkspaceId())
     const restoredConnection = await restartedPage.evaluate((id) => {
       return window.__cateE2E!.workspaceFlashQueryConnection(id)
-    }, workspaceId)
+    }, restoredWorkspaceId)
     expect(restoredConnection).toMatchObject({ transport: 'http', url: server.baseUrl })
     expect(server.counts().infoRequestCount).toBe(0)
 

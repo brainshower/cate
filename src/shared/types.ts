@@ -690,6 +690,7 @@ export interface MultiWorkspaceSession {
 
 export interface ProjectWorkspaceFile {
   version: 1
+  workspaceId?: string
   name: string
   color: string
   flashqueryConnection?: FlashQueryConnection

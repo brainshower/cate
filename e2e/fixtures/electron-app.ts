@@ -12,17 +12,27 @@ export interface LaunchResult {
   mainWindow: Page
 }
 
+export interface LaunchAppOptions {
+  userDataDir?: string
+  env?: Record<string, string | undefined>
+}
+
 const REPO_ROOT = path.resolve(__dirname, '..', '..')
 
-export async function launchApp(): Promise<LaunchResult> {
+export async function launchApp(options: LaunchAppOptions = {}): Promise<LaunchResult> {
+  const env = {
+    ...process.env,
+    ...options.env,
+    CATE_E2E: '1',
+    NODE_ENV: 'production',
+    ELECTRON_RUN_AS_NODE: undefined,
+    ...(options.userDataDir ? { CATE_E2E_USER_DATA_DIR: options.userDataDir } : {}),
+  }
+
   const electronApp = await electron.launch({
     args: ['.'],
     cwd: REPO_ROOT,
-    env: {
-      ...process.env,
-      CATE_E2E: '1',
-      NODE_ENV: 'production',
-    },
+    env,
   })
   const mainWindow = await electronApp.firstWindow()
   await mainWindow.waitForLoadState('domcontentloaded')

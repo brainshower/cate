@@ -154,6 +154,7 @@ function buildWorkspaceFile(
 
   return {
     version: 1,
+    workspaceId: snapshot.workspaceId,
     name: snapshot.workspaceName,
     color: color ?? '',
     flashqueryConnection: sanitizeFlashQueryConnection(snapshot.flashqueryConnection),
@@ -462,6 +463,7 @@ async function loadFromProjectFiles(): Promise<MultiWorkspaceSession | null> {
       }
 
       snapshots.push({
+        workspaceId: typeof ws.workspaceId === 'string' ? ws.workspaceId : undefined,
         workspaceName: ws.name,
         rootPath,
         flashqueryConnection: sanitizeFlashQueryConnection(ws.flashqueryConnection),
@@ -738,6 +740,7 @@ export async function restoreMultiWorkspaceSession(session: MultiWorkspaceSessio
       snapshot.workspaceName,
       snapshot.rootPath ?? undefined,
       sanitizeFlashQueryConnection(snapshot.flashqueryConnection),
+      snapshot.workspaceId,
     )
     wsIds.push(wsId)
 
