@@ -41,7 +41,7 @@ Resume File: None
 
 ## Next Up
 
-Plan Phase 07: cross-cutting + regression.
+Milestone v1.0 complete.
 
 ## Decisions
 
@@ -69,7 +69,7 @@ Plan Phase 07: cross-cutting + regression.
 - [Phase 06]: Treat FlashQuery vault documents as existing editor panels with `flashquery://` filePath values. — Preserves local editor behavior while routing vault reads/writes through typed FlashQuery IPC.
 - [Phase 06]: Keep vault unsaved buffers in Monaco memory only. — No vault body is persisted to PanelState.unsavedContent or temp files.
 - [Phase 06]: Git diff mode is local-file-only. — Vault diff requests log a warning and render standard editor mode without local Git/file IPC.
-- [Phase 06]: Render vault source as inert title chrome. — The shared chip surface powers a `Vault . <host>` badge with decoded path tooltip and no revision/conflict/frontmatter UI.
+- [Phase 06]: Render vault source as inert title chrome. — The shared chip surface powers a `Vault · <host>` badge with decoded path tooltip and no revision/conflict/frontmatter UI.
 - [Phase 07]: Treat GET /mcp/info as public discovery/readiness traffic and never send bearer auth on it; keep bearer auth on MCP POST transport only.
 - [Phase 07]: Existing E2E baseline was left unchanged; current environment blocks Electron launch with bad option --remote-debugging-port=0 before app boot.
 - [Phase 07]: Use SDK-backed MCP server transport for FlashQuery E2E stubs to avoid protocol drift from Cate's StreamableHTTPClientTransport.
