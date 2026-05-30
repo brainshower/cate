@@ -18,7 +18,7 @@ Prove a Cate workspace can connect to a separately-running FlashQuery HTTP MCP s
 | 4 | Vault panel + shared chip | 4/4 | Complete   | 2026-05-29 |
 | 5 | Settings dialog + workspace menu entry | 3/3 | Complete   | 2026-05-29 |
 | 6 | Editor URI-awareness + vault badge | 4/4 | Complete   | 2026-05-29 |
-| 7 | Cross-cutting + regression | 2/3 | In Progress|  |
+| 7 | Cross-cutting + regression | 3/3 | Complete   | 2026-05-30 |
 
 ## Phase 1: Foundation ✅ Complete
 
@@ -161,7 +161,7 @@ Prove a Cate workspace can connect to a separately-running FlashQuery HTTP MCP s
 
 - [x] **7.1 Existing E2E regression.** Run and preserve existing smoke/drag/panel coverage.
 - [x] **7.2 FlashQuery E2E harness.** Add stubbed FlashQuery server coverage for happy path, restart, browsing, open-on-canvas, disconnect, and retry.
-- [ ] **7.3 Design and release checks.** Complete manual visual/design-token checklist and final milestone verification.
+- [x] **7.3 Design and release checks.** Complete manual visual/design-token checklist and final milestone verification.
 
 ## Notes
 

@@ -75,9 +75,9 @@ Cate should let a developer connect a workspace to FlashQuery, browse the FlashQ
 - [x] **REQ-040: No vault doc creation.** v1 exposes no create-new-vault-document affordance and never calls FlashQuery write APIs in create mode.
 - [ ] **REQ-041: Frontmatter not exposed.** Reads and writes operate on document body only; frontmatter, headings, tags, and title editing stay outside v1.
 - [ ] **REQ-042: No conflict detection.** v1 does not send expected-version/if-match data and uses last-write-wins semantics while leaving conflict detection for a later milestone.
-- [ ] **REQ-043: No regression of existing Cate panels.** Existing editor, terminal, browser, Git, workspace, layout, and panel tests continue to pass unchanged.
+- [x] **REQ-043: No regression of existing Cate panels.** Existing editor, terminal, browser, Git, workspace, layout, and panel tests continue to pass unchanged.
 - [x] **REQ-044: Connection persists across Cate restart.** Workspace connection metadata and token are available after restart, but the manager does not eagerly probe on startup.
-- [ ] **REQ-045: Cate design-token discipline.** New UI follows Cate's design tokens, spacing, interaction, and visual conventions rather than introducing stock/default styling.
+- [x] **REQ-045: Cate design-token discipline.** New UI follows Cate's design tokens, spacing, interaction, and visual conventions rather than introducing stock/default styling.
 
 ## Reserved Requirement IDs
 
@@ -120,7 +120,7 @@ Every defined requirement has at least one listed test-plan reference. Manual vi
 | REQ-014, REQ-015, REQ-016, REQ-017, REQ-018, REQ-019, REQ-024, REQ-025, REQ-026, REQ-040 | Phase 4: Vault panel + shared chip | Planned |
 | REQ-034, REQ-035, REQ-036, REQ-037, REQ-038, REQ-039 | Phase 5: Settings dialog + workspace menu entry | Complete |
 | REQ-027, REQ-028, REQ-029, REQ-030, REQ-031, REQ-032, REQ-033, REQ-041, REQ-042 | Phase 6: Editor URI-awareness + vault badge | Planned |
-| REQ-043, REQ-044, REQ-045 | Phase 7: Cross-cutting + regression | Planned |
+| REQ-043, REQ-044, REQ-045 | Phase 7: Cross-cutting + regression | Complete |
 
 **Coverage:**
 

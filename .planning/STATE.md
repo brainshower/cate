@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Vault Connect, Read, Edit
-status: executing
-stopped_at: Completed 07-01-PLAN.md
-last_updated: "2026-05-30T01:38:45.632Z"
+status: verifying
+stopped_at: Completed 07-03-PLAN.md
+last_updated: "2026-05-30T02:07:10.879Z"
 last_activity: 2026-05-30
 progress:
   total_phases: 7
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 23
-  completed_plans: 22
-  percent: 86
+  completed_plans: 23
+  percent: 100
 ---
 
 # Project State
@@ -26,17 +26,17 @@ See: `.planning/PROJECT.md`
 
 ## Current Position
 
-Phase: 07 (cross-cutting-regression) — EXECUTING
+Phase: 07 (cross-cutting-regression) — VERIFYING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-05-30
 
-Progress: [██████████] 96%
+Progress: [██████████] 100%
 
 ## Session Continuity
 
-Last session: 2026-05-30T01:38:45.606Z
-Stopped At: Completed 07-02-PLAN.md
+Last session: 2026-05-30T02:06:56.257Z
+Stopped At: Completed 07-03-PLAN.md
 Resume File: None
 
 ## Next Up
@@ -75,6 +75,8 @@ Plan Phase 07: cross-cutting + regression.
 - [Phase 07]: Use SDK-backed MCP server transport for FlashQuery E2E stubs to avoid protocol drift from Cate's StreamableHTTPClientTransport.
 - [Phase 07]: Preserve project-local workspaceId so workspace-scoped FlashQuery credentials remain available after restart.
 - [Phase 07]: Trigger lazy reconnect from restored vault panels only on first panel use, preserving zero eager post-restart info probes.
+- [Phase 07]: Use E2E-driven running-app evidence plus focused component/source tests for manual design checks where native menu screenshots are not reliable. — Visual-regression infrastructure is out of scope for v1, and native OS menus cannot be reliably screenshot-tested in Playwright.
+- [Phase 07]: Keep the editor vault badge invariant exact: Vault · <host> with U+00B7 and no revision/conflict/frontmatter copy. — Phase 6 established the badge as inert source chrome and explicitly excluded revision/conflict/frontmatter UI from v1 scope.
 
 ## Performance Metrics
 
@@ -96,3 +98,4 @@ Plan Phase 07: cross-cutting + regression.
 | Phase 06 | 60min | 8 tasks | 12 source/test files |
 | Phase 07 P01 | 14min | 2 tasks | 5 files |
 | Phase 07 P02 | 30min | 3 tasks | 16 files |
+| Phase 07 P03 | 10min | 4 tasks | 5 files |
