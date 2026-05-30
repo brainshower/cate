@@ -52,6 +52,26 @@ describe('VaultBadge', () => {
     expect(badge.tagName).toBe('SPAN')
   })
 
+  it('uses shared token classes without stock neutral utility classes', () => {
+    vi.useFakeTimers()
+    const { container } = render(
+      <VaultBadge filePath="flashquery://workspace-1/Docs/Plan.md" connectionUrl="https://fq.local:3100/mcp" />,
+    )
+    fireEvent.mouseEnter(screen.getByTestId('vault-badge'))
+    act(() => {
+      vi.advanceTimersByTime(500)
+    })
+
+    const rendered = container.innerHTML
+    const forbiddenStockNeutralPattern = /\b(?:gray|slate|zinc)\b/
+
+    expect(rendered).toContain('text-primary')
+    expect(rendered).toContain('text-muted')
+    expect(rendered).toContain('bg-surface-4')
+    expect(rendered).toContain('border-subtle')
+    expect(rendered).not.toMatch(forbiddenStockNeutralPattern)
+  })
+
   it('omits forbidden revision, conflict, and frontmatter UI copy', () => {
     render(<VaultBadge filePath="flashquery://workspace-1/Docs/Plan.md" connectionUrl="https://fq.local:3100/mcp" />)
 
