@@ -16,7 +16,7 @@ async function configure(page: Page, serverUrl: string, workspaceRoot: string) {
 }
 
 test('T-E-010 shows disconnected state and recovers via retry', async () => {
-  const server = await startFlashQueryStubServer()
+  const server = await startFlashQueryStubServer({ expectedBearerToken: 'retry-token' })
   const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), 'cate-e2e-workspace-'))
   let app: ElectronApplication | null = null
   try {

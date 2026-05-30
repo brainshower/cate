@@ -36,7 +36,7 @@ async function openVaultPanel(page: Page): Promise<string> {
 }
 
 test('T-E-006/T-E-007 persists FlashQuery connection across restart without eager info probe', async () => {
-  const server = await startFlashQueryStubServer()
+  const server = await startFlashQueryStubServer({ expectedBearerToken: 'persisted-e2e-token' })
   const userDataDir = await mkdtemp(path.join(os.tmpdir(), 'cate-e2e-user-data-'))
   const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), 'cate-e2e-workspace-'))
   let app: ElectronApplication | null = null

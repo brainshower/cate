@@ -21,6 +21,11 @@ export interface FlashQueryStubServer {
   documentBody: (vaultPath: string) => string | null
 }
 
+export interface FlashQueryStubServerOptions {
+  expectedBearerToken?: string
+}
+
+const DEFAULT_BEARER_TOKEN = 'fixture-token'
 const DEFAULT_DOCUMENTS: Record<string, string> = {
   'Welcome.md': '# Welcome\n\nThis is the starter document.',
   'Projects/Cate.md': '# Cate\n\nCate integration notes.',
@@ -136,10 +141,13 @@ function makeMcpServer(documents: Map<string, string>): McpServer {
   return server
 }
 
-export async function startFlashQueryStubServer(): Promise<FlashQueryStubServer> {
+export async function startFlashQueryStubServer(
+  options: FlashQueryStubServerOptions = {},
+): Promise<FlashQueryStubServer> {
   let infoRequestCount = 0
   let mcpPostCount = 0
   let available = true
+  const expectedAuthorization = `Bearer ${options.expectedBearerToken ?? DEFAULT_BEARER_TOKEN}`
   const documents = new Map(Object.entries(DEFAULT_DOCUMENTS))
 
   const server: Server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
@@ -166,8 +174,10 @@ export async function startFlashQueryStubServer(): Promise<FlashQueryStubServer>
 
     if (req.method === 'POST' && url.pathname === '/mcp') {
       mcpPostCount += 1
-      if (!req.headers.authorization) {
-        jsonResponse(res, 401, { error: 'missing_authorization' })
+      if (req.headers.authorization !== expectedAuthorization) {
+        jsonResponse(res, 401, {
+          error: req.headers.authorization ? 'invalid_authorization' : 'missing_authorization',
+        })
         return
       }
 

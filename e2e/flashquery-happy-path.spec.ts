@@ -17,7 +17,7 @@ async function configure(page: Page, serverUrl: string, workspaceRoot: string) {
 }
 
 test('T-E-008/T-E-009 completes the FlashQuery happy path and opens on canvas', async () => {
-  const server = await startFlashQueryStubServer()
+  const server = await startFlashQueryStubServer({ expectedBearerToken: 'happy-token' })
   const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), 'cate-e2e-workspace-'))
   let app: ElectronApplication | null = null
   try {

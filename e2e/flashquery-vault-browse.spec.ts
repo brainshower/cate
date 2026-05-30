@@ -16,7 +16,7 @@ async function configure(page: Page, serverUrl: string, workspaceRoot: string) {
 }
 
 test('T-E-011 covers empty vault, refresh, and multi-level browsing', async () => {
-  const server = await startFlashQueryStubServer()
+  const server = await startFlashQueryStubServer({ expectedBearerToken: 'browse-token' })
   const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), 'cate-e2e-workspace-'))
   let app: ElectronApplication | null = null
   try {

@@ -3,10 +3,15 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import { startFlashQueryStubServer } from './flashquery-server'
 
-async function callTool(baseUrl: string, name: string, args: Record<string, unknown>) {
+async function callTool(
+  baseUrl: string,
+  name: string,
+  args: Record<string, unknown>,
+  token = 'fixture-token',
+) {
   const client = new Client({ name: 'cate-e2e-fixture-test', version: '1.0.0' })
   const transport = new StreamableHTTPClientTransport(new URL(`${baseUrl}/mcp`), {
-    requestInit: { headers: new Headers({ Authorization: 'Bearer fixture-token' }) },
+    requestInit: { headers: new Headers({ Authorization: `Bearer ${token}` }) },
   })
   await client.connect(transport)
   try {
@@ -29,6 +34,8 @@ test('FlashQuery stub lists nested vault folders and empty vault state', async (
       headers: { Authorization: 'Bearer should-not-be-sent' },
     })
     expect(unauthorizedInfo.status).toBe(400)
+
+    await expect(callTool(server.baseUrl, 'list_vault', { path: '/' }, 'wrong-token')).rejects.toThrow()
 
     expect(await callTool(server.baseUrl, 'list_vault', { path: '/', include: ['tracking'] })).toMatchObject({
       entries: [
@@ -85,6 +92,18 @@ test('FlashQuery stub reads, update-writes, resets state, and exposes counters',
     server.resetDocuments()
     expect(server.counts()).toEqual({ infoRequestCount: 0, mcpPostCount: 0 })
     expect(server.documentBody('Welcome.md')).toBe('# Welcome\n\nThis is the starter document.')
+  } finally {
+    await server.close()
+  }
+})
+
+test('FlashQuery stub validates a caller-provided expected bearer token', async () => {
+  const server = await startFlashQueryStubServer({ expectedBearerToken: 'persisted-e2e-token' })
+  try {
+    await expect(callTool(server.baseUrl, 'list_vault', { path: '/' }, 'fixture-token')).rejects.toThrow()
+    await expect(callTool(server.baseUrl, 'list_vault', { path: '/' }, 'persisted-e2e-token')).resolves.toMatchObject({
+      entries: expect.any(Array),
+    })
   } finally {
     await server.close()
   }
