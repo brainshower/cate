@@ -81,6 +81,7 @@ Each task was committed atomically:
 5. **Task 3 RED: failing workflow/retry/browse E2E specs** - `530845a` (test)
 6. **Task 3 GREEN: workflow E2E harness helpers** - `4cefc30` (feat)
 7. **Baseline repair: existing smoke/drag E2E stabilization** - `915f1ee` (test)
+8. **Post-wave fix: preserve retry IPC void return contract** - `f6075db` (fix)
 
 ## Files Created/Modified
 
@@ -98,6 +99,7 @@ Each task was committed atomically:
 - `src/renderer/lib/e2eHarness.ts` - Deterministic helpers for workspace setup, vault panels, vault writes, retry, and panel placement inspection.
 - `playwright.config.ts` - Includes nested fixture specs in Playwright discovery.
 - `e2e/drag-move.spec.ts`, `e2e/drag-split.spec.ts` - Existing baseline assertions stabilized after the launch blocker was removed.
+- `src/main/ipc/flashquery.ts` - Manual retry still broadcasts fresh status while preserving the preload/API `Promise<void>` contract.
 
 ## Verification
 
@@ -109,6 +111,8 @@ Each task was committed atomically:
   - 16 passed, 2 skipped.
 - PASS: `npx -p node@22 npm run test:e2e -- e2e/drag-move.spec.ts:101 e2e/drag-split.spec.ts:78`
   - 2 passed after updating the stale drag-source assertion and visible target drop coordinates.
+- PASS: `npx -p node@22 npm test -- src/main/ipc/flashquery.test.ts`
+  - 21 passed after preserving the manual retry return contract.
 
 ## Acceptance Criteria
 
@@ -184,6 +188,7 @@ Each task was committed atomically:
   - `e2e/drag-move.spec.ts:101` expected the removed `data-drag-source` attribute instead of the current drag-store source contract.
   - `e2e/drag-split.spec.ts` used geometric center points that could land outside the viewport after canvas placement/pan settled.
 - Both issues were fixed in `915f1ee`; the full existing smoke/drag baseline now passes with its two pre-existing skips.
+- Post-wave unit gate exposed that manual retry was leaking the manager status payload through an IPC API typed as `Promise<void>`; fixed in `f6075db` while preserving the status broadcast.
 
 ## Known Stubs
 
@@ -210,6 +215,7 @@ Phase 7 Plan 3 can use the new FlashQuery E2E suite and the existing smoke/drag 
 - Summary file exists at `.planning/phases/07-cross-cutting-regression/07-02-SUMMARY.md`.
 - Task commits exist: `61b0743`, `5718bd3`, `b10755a`, `f2c55b3`, `530845a`, `4cefc30`.
 - Baseline repair commit exists: `915f1ee`.
+- Post-wave retry contract fix exists: `f6075db`.
 - Key created files exist: `e2e/fixtures/flashquery-server.ts`, `e2e/fixtures/flashquery-server.spec.ts`, `e2e/flashquery-persistence.spec.ts`, `e2e/flashquery-happy-path.spec.ts`, `e2e/flashquery-disconnect.spec.ts`, `e2e/flashquery-vault-browse.spec.ts`.
 - Focused FlashQuery E2E verification passed under Node 22.
 - Existing smoke/drag baseline passes under Node 22 with 16 passed and 2 skipped.
