@@ -19,7 +19,7 @@ created: 2026-05-29
 |----------|-------|
 | **Framework** | Vitest 3.2.4 and Playwright 1.60.0 |
 | **Config file** | `vitest.config.ts`, `playwright.config.ts` |
-| **Quick run command** | `npm test -- src/renderer/panels/FlashQueryVaultPanel.test.tsx src/renderer/components/Chip.test.tsx src/renderer/dialogs/FlashQueryConnectionDialog.test.tsx src/renderer/components/VaultBadge.test.tsx` |
+| **Quick run command** | `npm test -- src/renderer/panels/FlashQueryVaultPanel.test.tsx src/renderer/components/Chip.test.tsx src/renderer/dialogs/FlashQueryConnectionDialog.test.tsx src/renderer/components/VaultBadge.test.tsx src/renderer/panels/EditorPanel.test.tsx` |
 | **Full suite command** | `npm run typecheck && npm test && npm run test:e2e` |
 | **Estimated runtime** | Full suite runtime depends on Electron E2E; focused E2E specs should be run after each E2E task |
 
@@ -42,7 +42,7 @@ created: 2026-05-29
 | 07-02-01 | 02 | 2 | REQ-044 | T-07-STUB / — | Strict FlashQuery stub exists before persistence or workflow specs depend on request counters, list/read/write, empty-vault, nested folders, and availability toggles | e2e | `npm run test:e2e -- e2e/fixtures/flashquery-server.spec.ts` | no, Wave 0 | pending |
 | 07-02-02 | 02 | 2 | REQ-044 | T-07-AUTH / — | E2E state reuse does not expose production-only userData overrides; lazy probe is observable after restart using the Task 1 stub | unit/e2e | `npm test -- src/main/flashquery/clientManager.test.ts src/main/ipc/flashquery.test.ts && npm run test:e2e -- e2e/fixtures/flashquery-server.spec.ts e2e/flashquery-persistence.spec.ts` | partial | pending |
 | 07-02-03 | 02 | 2 | REQ-043, REQ-044 | T-07-STUB / — | Stub resets documents and request counters between tests | e2e | `npm run test:e2e -- e2e/flashquery-happy-path.spec.ts e2e/flashquery-disconnect.spec.ts e2e/flashquery-vault-browse.spec.ts` | no, Wave 0 | pending |
-| 07-03-01 | 03 | 3 | REQ-045 | T-07-TOKEN / — | UI code continues to avoid forbidden stock neutral color classes | unit/manual | `npm test -- src/renderer/panels/FlashQueryVaultPanel.test.tsx src/renderer/components/Chip.test.tsx src/renderer/dialogs/FlashQueryConnectionDialog.test.tsx` | yes | pending |
+| 07-03-01 | 03 | 3 | REQ-045 | T-07-TOKEN / — | UI code continues to avoid forbidden stock neutral color classes; vault badge keeps `Vault · <host>` and EditorPanel T-I-094/T-I-096 coverage from Phase 6 gap fixes | unit/manual | `npm test -- src/renderer/panels/FlashQueryVaultPanel.test.tsx src/renderer/components/Chip.test.tsx src/renderer/dialogs/FlashQueryConnectionDialog.test.tsx src/renderer/components/VaultBadge.test.tsx src/renderer/panels/EditorPanel.test.tsx` | yes | pending |
 | 07-03-02 | 03 | 3 | REQ-045 | T-07-MANUAL / — | Manual evidence is durable and traceable to T-M-001..007 | manual | Review `.planning/phases/07-cross-cutting-regression/07-DESIGN-CHECKS.md` | no, Wave 0 | pending |
 | 07-03-03 | 03 | 3 | REQ-045 | T-07-MANUAL / — | T-M-001..007 are executed in the running app and recorded with result, evidence, reviewer, date, and explicit failed/blocked outcomes | manual | See `07-03-PLAN.md` Task 3 evidence gate before completion | yes | pending |
 | 07-03-04 | 03 | 3 | REQ-043, REQ-044, REQ-045 | T-07-FINAL / — | Final verification covers typecheck, unit, E2E, and completed manual evidence after focused task-level checks provide fast feedback | full | See `07-03-PLAN.md` Task 4 completed-evidence gate, then `npm run typecheck && npm test && npm run test:e2e` | yes | pending |
@@ -73,7 +73,7 @@ created: 2026-05-29
 | T-M-004 connection chip visual fidelity | REQ-045 | No visual-regression infrastructure in v1 | Compare connecting/live/disconnected chip states against `Designs/FQ Connection status/`; fill `07-DESIGN-CHECKS.md` with result, evidence, reviewer, and date. |
 | T-M-005 settings dialog visual fidelity | REQ-045 | No visual-regression infrastructure in v1 | Compare connection settings dialog passed and failed states against `Designs/Connection settings dialog/`; fill `07-DESIGN-CHECKS.md` with result, evidence, reviewer, and date. |
 | T-M-006 workspace context menu positioning | REQ-045 | Native OS menu visual cannot be reliably snapshot-tested | Verify the FlashQuery Connection entry appears in the UI Spec position; fill `07-DESIGN-CHECKS.md` with result, evidence, reviewer, and date. |
-| T-M-007 editor vault badge visual fidelity | REQ-045 | No visual-regression infrastructure in v1 | Compare editor with vault doc loaded against `Designs/Editor panel/`, excluding the known `rev 42` drift; fill `07-DESIGN-CHECKS.md` with result, evidence, reviewer, and date. |
+| T-M-007 editor vault badge visual fidelity | REQ-045 | No visual-regression infrastructure in v1 | Compare editor with vault doc loaded against `Designs/Editor panel/`, excluding the known `rev 42` drift and expecting `Vault · <host>` with U+00B7; fill `07-DESIGN-CHECKS.md` with result, evidence, reviewer, and date. |
 
 ---
 
