@@ -27,17 +27,44 @@ test('T-E-008/T-E-009 completes the FlashQuery happy path and opens on canvas', 
     await configure(page, server.baseUrl, workspaceRoot)
 
     await page.evaluate(() => window.__cateE2E!.createFlashQueryVault({ x: 260, y: 180 }))
-    await expect(page.getByText('Welcome').first()).toBeVisible()
-    await page.getByText('Welcome').first().dblclick()
+    const welcomeRow = page.getByRole('treeitem', { name: /Welcome/ }).first()
+    await expect(welcomeRow).toBeVisible()
+    await welcomeRow.dblclick()
     await expect(page.getByText('Vault').first()).toBeVisible()
 
-    await page.evaluate(async () => {
-      await window.__cateE2E!.writeVaultDocument('Welcome.md', '# Welcome\n\nEdited through Cate E2E.')
-      await window.__cateE2E!.openVaultDocument('Welcome.md', 'dock')
-    })
-    expect(server.documentBody('Welcome.md')).toBe('# Welcome\n\nEdited through Cate E2E.')
+    const editorPanelId = await page.waitForFunction(() => {
+      return window.__cateE2E!.editorPanelIdsForPath('Welcome.md')[0] ?? null
+    }).then((handle) => handle.jsonValue() as Promise<string>)
+    const editedBody = '# Welcome\n\nEdited through Cate editor save path.'
+    await expect.poll(() => page.evaluate((panelId) => window.__cateE2E!.editorText(panelId), editorPanelId)).toContain('starter document')
+    const postCountBeforeSave = server.counts().mcpPostCount
+    await page.evaluate(async ({ panelId, content }) => {
+      window.__cateE2E!.setEditorText(panelId, content)
+      const result = await window.__cateE2E!.saveEditorPanel(panelId)
+      if (result !== 'saved') throw new Error(`Editor save returned ${result}`)
+    }, { panelId: editorPanelId, content: editedBody })
+    expect(server.documentBody('Welcome.md')).toBe(editedBody)
+    expect(server.counts().mcpPostCount).toBeGreaterThan(postCountBeforeSave)
 
-    const canvasPanelId = await page.evaluate(() => window.__cateE2E!.openVaultDocument('Projects/Cate.md', 'canvas'))
+    await page.evaluate((panelId) => window.__cateE2E!.closePanel(panelId), editorPanelId)
+    await welcomeRow.dblclick()
+    const reopenedPanelId = await page.waitForFunction((previousPanelId) => {
+      return window.__cateE2E!
+        .editorPanelIdsForPath('Welcome.md')
+        .find((panelId) => panelId !== previousPanelId) ?? null
+    }, editorPanelId).then((handle) => handle.jsonValue() as Promise<string>)
+    await expect.poll(() => page.evaluate((panelId) => window.__cateE2E!.editorText(panelId), reopenedPanelId)).toBe(editedBody)
+    await page.evaluate((panelId) => window.__cateE2E!.closePanel(panelId), reopenedPanelId)
+
+    await page.evaluate(() => window.__cateE2E!.chooseNextContextMenuAction('open-on-canvas'))
+    await expect(welcomeRow).toBeVisible()
+    await welcomeRow.click({ button: 'right' })
+    const menuItems = await page.evaluate(() => window.__cateE2E!.lastContextMenuItems())
+    expect(menuItems.map((item) => item.label)).toEqual(['Open', 'Open on Canvas'])
+    const canvasPanelId = await page.waitForFunction(() => {
+      const ids = window.__cateE2E!.editorPanelIdsForPath('Welcome.md')
+      return ids.find((panelId) => window.__cateE2E!.panelLocation(panelId) === 'canvas') ?? null
+    }).then((handle) => handle.jsonValue() as Promise<string>)
     await expect.poll(async () => {
       return page.evaluate((panelId) => window.__cateE2E!.panelLocation(panelId), canvasPanelId)
     }).toBe('canvas')

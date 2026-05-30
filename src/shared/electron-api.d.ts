@@ -545,6 +545,8 @@ export interface ElectronAPI {
 
   /** Show a native context menu. Returns the clicked item id, or null if dismissed. */
   showContextMenu(items: NativeContextMenuItem[]): Promise<string | null>
+  e2eChooseNextContextMenuAction?(action: string | null): void
+  e2eLastContextMenuItems?(): NativeContextMenuItem[]
 
   // ---------------------------------------------------------------------------
   // Orchestrator (cate CLI graph sync)

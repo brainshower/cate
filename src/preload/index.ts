@@ -187,6 +187,9 @@ import {
   FLASHQUERY_WRITE_DOCUMENT,
 } from '../shared/ipc-channels'
 
+let e2eNextContextMenuAction: string | null | undefined
+let e2eLastContextMenuItems: unknown[] = []
+
 // Cache native-fullscreen state so renderer drag handlers can synchronously
 // check it without an IPC round-trip on every mousemove. Main BROADCASTS
 // `WINDOW_FULLSCREEN_STATE` whenever any window enters/leaves fullscreen
@@ -945,7 +948,25 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // ---------------------------------------------------------------------------
 
   showContextMenu(items: unknown): Promise<string | null> {
+    if (process.env.CATE_E2E === '1') {
+      e2eLastContextMenuItems = Array.isArray(items) ? items : []
+      if (e2eNextContextMenuAction !== undefined) {
+        const action = e2eNextContextMenuAction
+        e2eNextContextMenuAction = undefined
+        return Promise.resolve(action)
+      }
+    }
     return ipcRenderer.invoke(MENU_SHOW_CONTEXT, items)
+  },
+
+  e2eChooseNextContextMenuAction(action: string | null): void {
+    if (process.env.CATE_E2E === '1') {
+      e2eNextContextMenuAction = action
+    }
+  },
+
+  e2eLastContextMenuItems(): unknown[] {
+    return process.env.CATE_E2E === '1' ? e2eLastContextMenuItems : []
   },
 
   onMenuOpenSettings(callback: () => void): () => void {

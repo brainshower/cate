@@ -10,8 +10,11 @@ import { getOrCreateCanvasStoreForPanel } from '../stores/canvasStore'
 import { useDockStore } from '../stores/dockStore'
 import { useDragStore } from '../drag/store'
 import { useUIStore } from '../stores/uiStore'
+import { saveEditor } from './editorSaveRegistry'
 import { buildVaultUri } from '../../shared/flashqueryUri'
 import type { FlashQueryConnection, Point } from '../../shared/types'
+import type { NativeContextMenuItem } from '../../shared/electron-api'
+import * as monaco from 'monaco-editor'
 
 declare global {
   interface Window {
@@ -24,8 +27,15 @@ declare global {
       workspaceFlashQueryConnection(workspaceId: string): FlashQueryConnection | undefined
       createFlashQueryVault(point: Point, placement?: PanelPlacement): string
       openVaultDocument(vaultPath: string, mode: 'dock' | 'canvas'): string
+      editorPanelIdsForPath(vaultPath: string): string[]
+      closePanel(panelId: string): void
+      editorText(panelId: string): string | null
+      setEditorText(panelId: string, content: string): void
+      saveEditorPanel(panelId: string): Promise<string>
       writeVaultDocument(vaultPath: string, content: string): Promise<void>
       retryFlashQuery(workspaceId?: string): Promise<void>
+      chooseNextContextMenuAction(action: string | null): void
+      lastContextMenuItems(): NativeContextMenuItem[]
       panelLocation(panelId: string): string | null
       createTerminal(point: Point): string
       createCanvasPanel(point: Point): string
@@ -96,6 +106,22 @@ export function installE2EHarness(): void {
     return useAppStore.getState().createFlashQueryVault(selectedWorkspaceId(), point, placement)
   }
 
+  const panelFilePath = (panelId: string): string => {
+    const panel = useAppStore.getState().workspaces
+      .find((workspace) => workspace.id === selectedWorkspaceId())
+      ?.panels[panelId]
+    if (panel?.type !== 'editor' || !panel.filePath) {
+      throw new Error(`No editor file path found for panel ${panelId}`)
+    }
+    return panel.filePath
+  }
+
+  const editorModel = (panelId: string): monaco.editor.ITextModel | null => {
+    const uri = monaco.Uri.parse(panelFilePath(panelId))
+    const model = monaco.editor.getModel(uri)
+    return model && !model.isDisposed() ? model : null
+  }
+
   const openVaultDocument = (vaultPath: string, mode: 'dock' | 'canvas'): string => {
     const workspaceId = selectedWorkspaceId()
     return useAppStore.getState().createEditor(
@@ -104,6 +130,32 @@ export function installE2EHarness(): void {
       undefined,
       mode === 'dock' ? { target: 'dock', zone: 'center' } : { target: 'canvas' },
     )
+  }
+
+  const editorPanelIdsForPath = (vaultPath: string): string[] => {
+    const workspaceId = selectedWorkspaceId()
+    const uri = buildVaultUri(workspaceId, vaultPath)
+    const workspace = useAppStore.getState().workspaces.find((ws) => ws.id === workspaceId)
+    if (!workspace) return []
+    return Object.values(workspace.panels)
+      .filter((panel) => panel.type === 'editor' && panel.filePath === uri)
+      .map((panel) => panel.id)
+  }
+
+  const closePanel = (panelId: string): void => {
+    useAppStore.getState().closePanel(selectedWorkspaceId(), panelId)
+  }
+
+  const editorText = (panelId: string): string | null => editorModel(panelId)?.getValue() ?? null
+
+  const setEditorText = (panelId: string, content: string): void => {
+    const model = editorModel(panelId)
+    if (!model) throw new Error(`No Monaco model found for panel ${panelId}`)
+    model.setValue(content)
+  }
+
+  const saveEditorPanel = async (panelId: string): Promise<string> => {
+    return saveEditor(panelId)
   }
 
   const writeVaultDocument = async (vaultPath: string, content: string): Promise<void> => {
@@ -153,6 +205,14 @@ export function installE2EHarness(): void {
     activeCanvasStore()?.setState({ viewportOffset: { x: 0, y: 0 } })
   }
 
+  const chooseNextContextMenuAction = (action: string | null): void => {
+    window.electronAPI.e2eChooseNextContextMenuAction?.(action)
+  }
+
+  const lastContextMenuItems = (): NativeContextMenuItem[] => {
+    return window.electronAPI.e2eLastContextMenuItems?.() ?? []
+  }
+
   const dragSnapshot = () => {
     const s = useDragStore.getState()
     return {
@@ -173,8 +233,15 @@ export function installE2EHarness(): void {
     workspaceFlashQueryConnection,
     createFlashQueryVault,
     openVaultDocument,
+    editorPanelIdsForPath,
+    closePanel,
+    editorText,
+    setEditorText,
+    saveEditorPanel,
     writeVaultDocument,
     retryFlashQuery,
+    chooseNextContextMenuAction,
+    lastContextMenuItems,
     panelLocation,
     createTerminal,
     createCanvasPanel,

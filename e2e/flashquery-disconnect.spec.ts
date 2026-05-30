@@ -26,14 +26,20 @@ test('T-E-010 shows disconnected state and recovers via retry', async () => {
     await configure(page, server.baseUrl, workspaceRoot)
     await page.evaluate(() => window.__cateE2E!.createFlashQueryVault({ x: 260, y: 180 }))
     await expect(page.getByText('Welcome').first()).toBeVisible()
+    await expect(page.getByText('Live').first()).toBeVisible()
 
     server.setAvailable(false)
     await page.evaluate(() => window.__cateE2E!.retryFlashQuery())
+    const disconnectedChip = page.getByRole('button', { name: 'Disconnected' })
+    await expect(disconnectedChip).toBeVisible()
+    await disconnectedChip.hover()
+    await expect(page.getByRole('tooltip')).toContainText(/503|unavailable|Failed/i)
     await expect(page.getByText("Can't reach FlashQuery.")).toBeVisible()
     await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible()
 
     server.setAvailable(true)
     await page.getByRole('button', { name: 'Retry' }).click()
+    await expect(page.getByText('Live').first()).toBeVisible()
     await expect(page.getByText('Welcome').first()).toBeVisible()
   } finally {
     if (app) await closeApp(app)

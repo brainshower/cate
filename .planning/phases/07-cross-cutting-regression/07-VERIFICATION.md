@@ -17,7 +17,7 @@ Final milestone verification for Cate FlashQuery Integration v1 cross-cutting re
 
 ## Result
 
-PASS. Focused fast-feedback checks, completed manual design evidence, final typecheck, full unit suite, and full Electron E2E suite passed under Node 22.
+PASS for automated Phase 7 gates. Focused fast-feedback checks, design-token checks, final typecheck, full unit suite, and full Electron E2E suite passed under Node 22. PDF-level visual-fidelity sign-off for T-M-002 through T-M-007 remains deferred; see Design Evidence.
 
 ## Fast Feedback Path
 
@@ -28,7 +28,7 @@ PASS. Focused fast-feedback checks, completed manual design evidence, final type
 | Plan 07-02 FlashQuery E2E group | `npx -p node@22 npm run test:e2e -- e2e/fixtures/flashquery-server.spec.ts e2e/flashquery-persistence.spec.ts e2e/flashquery-happy-path.spec.ts e2e/flashquery-disconnect.spec.ts e2e/flashquery-vault-browse.spec.ts` | PASS: 6 passed. |
 | Task 1 design-token component checks | `npx -p node@22 npm test -- src/renderer/panels/FlashQueryVaultPanel.test.tsx src/renderer/components/Chip.test.tsx src/renderer/dialogs/FlashQueryConnectionDialog.test.tsx src/renderer/components/VaultBadge.test.tsx src/renderer/panels/EditorPanel.test.tsx` | PASS: 5 files, 73 tests. |
 | Task 3 expanded design/menu checks | `npx -p node@22 npm test -- src/renderer/sidebar/WorkspaceTab.test.tsx src/renderer/dialogs/FlashQueryConnectionDialog.test.tsx src/renderer/components/Chip.test.tsx src/renderer/components/VaultBadge.test.tsx src/renderer/panels/FlashQueryVaultPanel.test.tsx src/renderer/panels/EditorPanel.test.tsx` | PASS: 6 files, 84 tests. |
-| Task 3 running-app visual surfaces | `npx -p node@22 npm run test:e2e -- e2e/flashquery-happy-path.spec.ts e2e/flashquery-disconnect.spec.ts e2e/flashquery-vault-browse.spec.ts` plus `07-DESIGN-CHECKS.md` | PASS: 3 Electron tests; T-M-001 through T-M-007 recorded with evidence. |
+| Task 3 running-app visual surfaces | `npx -p node@22 npm run test:e2e -- e2e/flashquery-happy-path.spec.ts e2e/flashquery-disconnect.spec.ts e2e/flashquery-vault-browse.spec.ts` plus `07-DESIGN-CHECKS.md` | PASS for behavioral surfaces; T-M-001 passed, T-M-002 through T-M-007 are marked MANUAL-DEFERRED pending PDF/screenshot visual sign-off. |
 
 ## Final Suite
 
@@ -48,9 +48,9 @@ Observed non-failing noise:
 
 | Requirement | Coverage | Evidence |
 |---|---|---|
-| REQ-043: No regression of existing Cate panels | Existing smoke and drag/panel E2E specs pass unchanged after Phase 7 stabilization. | T-E-001 through T-E-005 via `e2e/smoke.spec.ts`, `e2e/drag-detach.spec.ts`, `e2e/drag-move.spec.ts`, `e2e/drag-canvas-into-canvas.spec.ts`, and `e2e/drag-split.spec.ts`; full E2E gate: 23 passed, 2 skipped. |
+| REQ-043: No regression of existing Cate panels | Existing smoke and drag/panel E2E specs pass after Phase 7 stabilization. Plan 07-02 modified two stale pre-v1 drag specs (`e2e/drag-move.spec.ts`, `e2e/drag-split.spec.ts`) to restore behavior-level coverage after the Electron launch blocker was fixed, so the literal "without modification" wording was not met even though the additive-regression intent was. See `.planning/phases/07-cross-cutting-regression/07-02-SUMMARY.md` stale-baseline notes and `.planning/STATE.md` Phase 07 decision. | T-E-001 through T-E-005 via `e2e/smoke.spec.ts`, `e2e/drag-detach.spec.ts`, `e2e/drag-move.spec.ts`, `e2e/drag-canvas-into-canvas.spec.ts`, and `e2e/drag-split.spec.ts`; full E2E gate: 23 passed, 2 skipped. |
 | REQ-044: Connection persists across restart without eager startup probe | Restart persistence and lazy reconnect are covered by the FlashQuery E2E harness with exact bearer token validation. | T-E-006 and T-E-007 via `e2e/flashquery-persistence.spec.ts`; `e2e/fixtures/flashquery-server.spec.ts` verifies wrong-token rejection; final full E2E passed. |
-| REQ-045: Cate design-token discipline | Automated token invariants and manual design checklist completed. | T-U-102 via `FlashQueryVaultPanel.test.tsx`, T-U-103 via `Chip.test.tsx`, T-U-104 via `FlashQueryConnectionDialog.test.tsx`, additional `VaultBadge.test.tsx` neutral-class invariant, and T-M-001 through T-M-007 in `07-DESIGN-CHECKS.md`. |
+| REQ-045: Cate design-token discipline | Automated token invariants and T-M-001 design-token review are complete. T-M-002 through T-M-007 behavior and token usage are covered by component/E2E checks, but manual visual-fidelity comparison against the design PDFs is deferred because no screenshot/PDF comparison artifact was captured. | T-U-102 via `FlashQueryVaultPanel.test.tsx`, T-U-103 via `Chip.test.tsx`, T-U-104 via `FlashQueryConnectionDialog.test.tsx`, additional `VaultBadge.test.tsx` neutral-class invariant, and T-M-001 in `07-DESIGN-CHECKS.md`; T-M-002 through T-M-007 marked MANUAL-DEFERRED. |
 
 ## E2E Coverage
 
@@ -63,9 +63,9 @@ Observed non-failing noise:
 | T-E-005 | Existing smoke/drag regression group remains enabled in full E2E | PASS |
 | T-E-006 | `e2e/flashquery-persistence.spec.ts` persisted connection metadata/token after restart | PASS |
 | T-E-007 | `e2e/flashquery-persistence.spec.ts` no eager post-restart `/mcp/info` before vault use | PASS |
-| T-E-008 | `e2e/flashquery-happy-path.spec.ts` configure, browse, open, edit, save, reopen | PASS |
-| T-E-009 | `e2e/flashquery-happy-path.spec.ts` Open on Canvas variant | PASS |
-| T-E-010 | `e2e/flashquery-disconnect.spec.ts` disconnected state and retry | PASS |
+| T-E-008 | `e2e/flashquery-happy-path.spec.ts` configure, browse, double-click open, mutate Monaco model, save through the editor save registry, close, reopen from the vault row, and verify persisted body | PASS |
+| T-E-009 | `e2e/flashquery-happy-path.spec.ts` right-click vault row, capture exact native-menu item labels, choose Open on Canvas through the context-menu path, and verify canvas placement | PASS |
+| T-E-010 | `e2e/flashquery-disconnect.spec.ts` disconnected panel state, disconnected chip transition/error tooltip, retry, and live-chip recovery | PASS |
 | T-E-011 | `e2e/flashquery-vault-browse.spec.ts` expansion, refresh, empty vault, multi-level browse | PASS |
 
 ## Code Review
@@ -74,15 +74,15 @@ Observed non-failing noise:
 
 ## Design Evidence
 
-`07-DESIGN-CHECKS.md` is completed manual evidence, not an empty checklist. It records result, evidence, reviewer, and ISO date for:
+`07-DESIGN-CHECKS.md` records completed design-token evidence for T-M-001 and defers PDF-level visual-fidelity evidence for T-M-002 through T-M-007. It records behavior/token evidence, reviewer, and ISO date for the deferred rows, but it does not claim a human screenshot/PDF comparison was captured.
 
 - T-M-001 design-token code review.
-- T-M-002 populated vault panel.
-- T-M-003 vault panel states.
-- T-M-004 connection chip states.
-- T-M-005 connection settings dialog pass/fail states.
-- T-M-006 workspace context menu position.
-- T-M-007 editor vault badge with exact `Vault · <host>` U+00B7 behavior and explicit exclusion of `rev 42`, conflict, expected-version, and frontmatter copy.
+- T-M-002 populated vault panel behavior/token evidence, PDF visual sign-off deferred.
+- T-M-003 vault panel states behavior/token evidence, PDF visual sign-off deferred.
+- T-M-004 connection chip states behavior/token evidence, PDF visual sign-off deferred.
+- T-M-005 connection settings dialog pass/fail behavior/token evidence, PDF visual sign-off deferred.
+- T-M-006 workspace context menu order evidence, native-menu screenshot/PDF sign-off deferred.
+- T-M-007 editor vault badge behavior/token evidence with exact `Vault · <host>` U+00B7 behavior and explicit exclusion of `rev 42`, conflict, expected-version, and frontmatter copy; PDF visual sign-off deferred.
 
 ## Failure Record
 

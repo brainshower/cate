@@ -71,11 +71,11 @@ Milestone v1.0 complete.
 - [Phase 06]: Git diff mode is local-file-only. — Vault diff requests log a warning and render standard editor mode without local Git/file IPC.
 - [Phase 06]: Render vault source as inert title chrome. — The shared chip surface powers a `Vault · <host>` badge with decoded path tooltip and no revision/conflict/frontmatter UI.
 - [Phase 07]: Treat GET /mcp/info as public discovery/readiness traffic and never send bearer auth on it; keep bearer auth on MCP POST transport only.
-- [Phase 07]: Existing E2E baseline was left unchanged; current environment blocks Electron launch with bad option --remote-debugging-port=0 before app boot.
+- [Phase 07]: Plan 07-01 left the existing E2E baseline unchanged while Electron launch was blocked by `--remote-debugging-port=0`; Plan 07-02 then restored two stale pre-v1 drag assertions in `e2e/drag-move.spec.ts` and `e2e/drag-split.spec.ts` after the launch blocker was fixed. Restoration is consistent with REQ-043's additive-regression intent, but the literal "without modification" wording was not met.
 - [Phase 07]: Use SDK-backed MCP server transport for FlashQuery E2E stubs to avoid protocol drift from Cate's StreamableHTTPClientTransport.
 - [Phase 07]: Preserve project-local workspaceId so workspace-scoped FlashQuery credentials remain available after restart.
 - [Phase 07]: Trigger lazy reconnect from restored vault panels only on first panel use, preserving zero eager post-restart info probes.
-- [Phase 07]: Use E2E-driven running-app evidence plus focused component/source tests for manual design checks where native menu screenshots are not reliable. — Visual-regression infrastructure is out of scope for v1, and native OS menus cannot be reliably screenshot-tested in Playwright.
+- [Phase 07]: Use automated design-token checks and E2E-driven running-app behavior checks for Phase 7 UI surfaces, but treat PDF-level visual-fidelity sign-off for T-M-002 through T-M-007 as deferred evidence. Visual-regression infrastructure is out of scope for v1, and native OS menus cannot be reliably screenshot-tested in Playwright.
 - [Phase 07]: Keep the editor vault badge invariant exact: Vault · <host> with U+00B7 and no revision/conflict/frontmatter copy. — Phase 6 established the badge as inert source chrome and explicitly excluded revision/conflict/frontmatter UI from v1 scope.
 
 ## Performance Metrics
