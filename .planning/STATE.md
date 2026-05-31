@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Vault Connect, Read, Edit
-status: milestone_complete
-stopped_at: Milestone complete (Phase 07 was final phase)
-last_updated: 2026-05-30T02:17:29.929Z
-last_activity: 2026-05-30
+status: Awaiting next milestone
+stopped_at: Completed 07-03-PLAN.md
+last_updated: "2026-05-31T00:49:08.240Z"
+last_activity: 2026-05-31 — Milestone v1.0 completed and archived
 progress:
   total_phases: 7
   completed_phases: 7
@@ -26,12 +26,10 @@ See: `.planning/PROJECT.md`
 
 ## Current Position
 
-Phase: 07
-Plan: Not started
-Status: Milestone complete
-Last activity: 2026-05-30
-
-Progress: [██████████] 100%
+Phase: Milestone v1.0 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-05-31 — Milestone v1.0 completed and archived
 
 ## Session Continuity
 
@@ -78,6 +76,14 @@ Milestone v1.0 complete.
 - [Phase 07]: Use automated design-token checks and E2E-driven running-app behavior checks for Phase 7 UI surfaces, but treat PDF-level visual-fidelity sign-off for T-M-002 through T-M-007 as deferred evidence. Visual-regression infrastructure is out of scope for v1, and native OS menus cannot be reliably screenshot-tested in Playwright.
 - [Phase 07]: Keep the editor vault badge invariant exact: Vault · <host> with U+00B7 and no revision/conflict/frontmatter copy. — Phase 6 established the badge as inert source chrome and explicitly excluded revision/conflict/frontmatter UI from v1 scope.
 
+## Deferred Items
+
+Items acknowledged and deferred at milestone close on 2026-05-30:
+
+| Category | Item | Status |
+|----------|------|--------|
+| uat_gap | phase-05-uat-tool-false-positive | acknowledged — Phase 5 UAT is status: passed with 5/5 tests, 0 pending scenarios, 0 issues, 0 gaps. The `gsd-sdk query audit-open` heuristic flagged the file but inspection shows it is fully complete. No remediation needed; flagging the tool behavior for future improvement. |
+
 ## Performance Metrics
 
 | Phase | Plan | Duration | Tasks | Files |
@@ -99,3 +105,7 @@ Milestone v1.0 complete.
 | Phase 07 P01 | 14min | 2 tasks | 5 files |
 | Phase 07 P02 | 30min | 3 tasks | 16 files |
 | Phase 07 P03 | 10min | 4 tasks | 5 files |
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone
