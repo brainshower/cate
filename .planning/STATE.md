@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.1
-milestone_name: Renderer Behavior Audit
+milestone_name: Upstream Value + Visual Evidence Audit
 status: Complete
-stopped_at: Phase 11 renderer-behavior audit complete
-last_updated: "2026-06-01T20:10:00.000Z"
-last_activity: 2026-06-01 — Phase 11 renderer-behavior audit completed with green build, typecheck, unit, and E2E gates
+stopped_at: Phase 12 complete
+last_updated: "2026-06-01T21:18:00.000Z"
+last_activity: 2026-06-01 — Phase 12 upstream-value and visual-evidence audit completed with final build/typecheck/unit/E2E evidence
 progress:
-  total_phases: 11
-  completed_phases: 11
-  total_plans: 38
-  completed_plans: 38
+  total_phases: 12
+  completed_phases: 12
+  total_plans: 41
+  completed_plans: 41
   percent: 100
 ---
 
@@ -21,24 +21,24 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-01 after v1.1 upstream sync planning)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** v1.1 renderer-behavior post-handoff audit complete.
+**Current focus:** v1.1 upstream-value and visual-evidence post-handoff audit complete.
 
 ## Current Position
 
-Phase: 11 — Renderer Behavior Audit
-Plan: 11.3 — Evidence, cumulative gate, and closeout
+Phase: 12 — Upstream Value + Visual Evidence Audit
+Plan: 12.3 — Evidence, cumulative gate, and closeout
 Status: Complete
-Last activity: 2026-06-01 — Phase 11 closed with renderer, E2E, UAT, verification, and final command evidence
+Last activity: 2026-06-01 — Phase 12 closed after visual, upstream-smoke, removed-file, and cumulative command evidence passed
 
 ## Session Continuity
 
-Last session: 2026-06-01T18:49:39.000Z
-Stopped At: Phase 11 renderer-behavior audit complete
+Last session: 2026-06-01T21:18:00.000Z
+Stopped At: Phase 12 upstream-value and visual-evidence audit complete
 Resume File: None
 
 ## Next Up
 
-Phase 11 is complete. Next recommended action: decide whether to create the next explicit milestone or stop the v1.1 post-handoff audit sequence here.
+No active Phase 12 work remains. Phase 12 verification is recorded in `.planning/phases/12-upstream-value-visual-evidence-audit/12-VERIFICATION.md`.
 
 ## Decisions
 
@@ -56,6 +56,9 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table (updated
 | 2026-06-01 | Phase 11 is scoped as a post-handoff renderer-behavior audit/remediation phase. | The product gap analysis originally named Phase 11 as Renderer Behavior, but the live roadmap completed the merge in Phase 8 and handoff in Phase 9; this preserves the intent without replaying completed merge work. |
 | 2026-06-01 | Phase 11 downstream agents must read the upstream-sync requirements and test plan before renderer audit work. | Prevents renderer/evidence decisions from drifting away from the product-defined requirements and canonical test IDs. |
 | 2026-06-01 | Phase 11 closed only after final command evidence passed. | Build, typecheck, unit tests, and full E2E all exited 0 before ROADMAP/STATE were marked complete. |
+| 2026-06-01 | Phase 12 is scoped as a post-handoff upstream-value and visual-evidence audit/remediation phase. | The product gap analysis originally identified this as Phase 12, but the live roadmap completed the merge in Phase 8 and handoff in Phase 9; this preserves the intent without replaying completed merge work. |
+| 2026-06-01 | Phase 12 downstream agents must read the upstream-sync requirements and test plan before theming, visual evidence, smoke, or removed-file audit work. | Prevents evidence decisions from drifting away from REQ-004, REQ-018, REQ-020, REQ-022, REQ-024, REQ-025, and their canonical test IDs. |
+| 2026-06-01 | Phase 12 closed only after final evidence passed. | Visual evidence, upstream-smoke evidence, removed-file decisions, build, typecheck, unit tests, and full E2E all passed or had an explicit not-required rationale before ROADMAP/STATE were marked complete. |
 
 ## Deferred Items
 
@@ -90,7 +93,8 @@ Items acknowledged and deferred at milestone close on 2026-05-30:
 | Phase 10 P10.1 | 12 min | 3 tasks | 3 files |
 | Phase 10 P10.2 | 8 min | 3 tasks | 2 files |
 | Phase 10 P10.3 | 9 min | 3 tasks | 8 files |
+| Phase 12 P12.3 | 8 min | 3 tasks | 10 files |
 
 ## Operator Next Steps
 
-- Review Phase 11 artifacts if desired: `.planning/phases/11-renderer-behavior-audit/11-VERIFICATION.md` and `.planning/phases/11-renderer-behavior-audit/11-UAT.md`.
+- Review Phase 12 artifacts if desired: `.planning/phases/12-upstream-value-visual-evidence-audit/12-VERIFICATION.md` and `.planning/phases/12-upstream-value-visual-evidence-audit/12-UAT.md`.

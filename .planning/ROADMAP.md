@@ -7,6 +7,7 @@
 - ✅ **v1.1 Mainline Handoff** — Phase 9 (completed 2026-06-01)
 - ✅ **v1.1 Shared Contracts Audit** — Phase 10 (completed 2026-06-01)
 - ✅ **v1.1 Renderer Behavior Audit** — Phase 11 (completed 2026-06-01)
+- ✅ **v1.1 Upstream Value + Visual Evidence Audit** — Phase 12 (completed 2026-06-01)
 
 ## Phases
 
@@ -161,6 +162,39 @@ Downstream implementation, QA, and review agents MUST read both documents before
 - [x] `11-02-PLAN.md` — E2E harness and workflow proof audit.
 - [x] `11-03-PLAN.md` — Evidence, cumulative gate, and closeout.
 
+## Completed Milestone: v1.1 Upstream Value + Visual Evidence Audit
+
+**Goal:** Re-audit the post-handoff `main` branch against the upstream-sync upstream-value and visual-evidence requirements, harden any missing proof around theming, automated screenshots, upstream feature smoke, removed-file decisions, and cumulative verification, and leave evidence that downstream agents followed the product docs first.
+
+**Canonical source docs for every downstream agent:**
+
+- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Upstream Sync Report (30-May-2026)/Upstream Sync Requirements.md`
+- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Upstream Sync Report (30-May-2026)/Upstream Sync Test Plan.md`
+
+Downstream implementation, QA, and review agents MUST read both documents before deciding scope, code changes, test coverage, smoke coverage, visual evidence, or acceptance criteria for this phase.
+
+### Phase 12: Upstream Value + Visual Evidence Audit
+
+**Goal:** Treat the original upstream-sync Phase 12 "theming, upstream feature smoke, removed-file decisions, and light/dark visual evidence" scope as a post-handoff audit/remediation pass: prove the final mainline tree still satisfies upstream value capture and visual proof requirements, close any narrow gaps with targeted tests/evidence, and preserve the cumulative regression gate.
+
+**Requirements:** REQ-004, REQ-018, REQ-020, REQ-022, REQ-024, REQ-025
+**Tests:** T-A-002, T-A-003, T-A-005..T-A-009, T-A-011, T-M-001..T-M-004
+**Status:** Complete
+
+**Success criteria:**
+
+- The upstream unified theming adoption remains present and FlashQuery theme-affected surfaces have current light/dark automated screenshot evidence.
+- Vault badge, sidebar vault view, connection dialog, status chip, and editor tabs with vault badge satisfy the visual evidence obligations in the upstream-sync test plan.
+- Upstream packaging/build, terminal/performance, file-exclusion, workspace reload, and editor fixes remain adopted or receive explicit evidence-backed notes.
+- Removed upstream files `src/main/templates/skillTemplate.ts` and `src/renderer/canvas/BulkActionChip.tsx` have deliberate current-state decisions with no dangling imports.
+- Build, typecheck, unit tests, relevant E2E/visual evidence, and upstream feature smoke pass or any non-run is explicitly justified without closing the phase prematurely.
+
+**Plans:**
+
+- [x] `12-01-PLAN.md` — Theme token and visual evidence audit.
+- [x] `12-02-PLAN.md` — Upstream feature smoke and removed-file decision audit.
+- [x] `12-03-PLAN.md` — Evidence, cumulative gate, and closeout.
+
 ## Progress
 
 | Phase                                       | Milestone | Plans Complete | Status   | Completed  |
@@ -176,6 +210,7 @@ Downstream implementation, QA, and review agents MUST read both documents before
 | 9. Upstream Sync Mainline Handoff           | v1.1      | 3/3            | Complete | 2026-06-01 |
 | 10. Shared Contracts Audit                  | v1.1      | 3/3 | Complete   | 2026-06-01 |
 | 11. Renderer Behavior Audit                 | v1.1      | 3/3 | Complete   | 2026-06-01 |
+| 12. Upstream Value + Visual Evidence Audit  | v1.1      | 3/3 | Complete   | 2026-06-01 |
 
 ## Notes
 
@@ -184,3 +219,4 @@ Downstream implementation, QA, and review agents MUST read both documents before
 - Phases 8 and 9 were created from the upstream sync requirements and test plan referenced above; downstream agents should treat those product docs as mandatory first reads.
 - Phase 10 exists because the upstream-sync gap analysis originally identified "Shared Contracts" as Phase 10; after the actual Phase 8/9 compression, this is scoped as a post-handoff audit/remediation phase rather than a second merge.
 - Phase 11 exists because the upstream-sync gap analysis originally identified "Renderer Behavior" as Phase 11; after the actual Phase 8/9 compression, this is scoped as a post-handoff audit/remediation phase rather than another merge.
+- Phase 12 exists because the upstream-sync gap analysis originally identified "theming, upstream feature smoke, removed-file decisions, and light/dark visual evidence" as Phase 12; after the actual Phase 8/9 compression, this is scoped as a post-handoff audit/remediation phase rather than another merge.
