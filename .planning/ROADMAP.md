@@ -5,7 +5,7 @@
 - ✅ **v1.0 Vault Connect, Read, Edit** — Phases 1-7 (shipped 2026-05-30) — [archive](milestones/v1.0-ROADMAP.md)
 - ✅ **v1.1 Upstream Sync** — Phase 8 (completed 2026-06-01)
 - ✅ **v1.1 Mainline Handoff** — Phase 9 (completed 2026-06-01)
-- ◐ **v1.1 Shared Contracts Audit** — Phase 10 (planned 2026-06-01)
+- ✅ **v1.1 Shared Contracts Audit** — Phase 10 (completed 2026-06-01)
 
 ## Phases
 
