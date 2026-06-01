@@ -1,51 +1,64 @@
 {
   "version": 1,
-  "workspaceId": "workspace-premerge-flashquery",
-  "name": "Pre-merge FlashQuery Workspace",
-  "color": "#3fb950",
+  "workspaceId": "workspace-premerge-generated",
+  "name": "Generated Pre-Merge FlashQuery Workspace",
+  "color": "#5ad8b8",
   "flashqueryConnection": {
     "transport": "http",
-    "url": "https://flashquery.local",
-    "auth": {
-      "type": "bearer",
-      "token": "premerge-secret-token"
-    }
+    "url": "https://premerge.flashquery.local/mcp"
   },
   "canvas": {
     "nodes": [
       {
-        "panelId": "panel-vault",
+        "panelId": "panel-generated-vault",
         "panelType": "flashqueryVault",
         "title": "FlashQuery Vault",
-        "origin": { "x": 120, "y": 180 },
-        "size": { "width": 720, "height": 540 }
+        "origin": {
+          "x": 128,
+          "y": 160
+        },
+        "size": {
+          "width": 720,
+          "height": 540
+        },
+        "regionId": "region-generated"
       },
       {
-        "panelId": "panel-welcome-doc",
+        "panelId": "panel-generated-editor",
         "panelType": "editor",
-        "title": "Welcome.md",
-        "origin": { "x": 900, "y": 180 },
-        "size": { "width": 640, "height": 420 },
-        "filePath": "docs/Welcome.md"
+        "title": "Generated.md",
+        "origin": {
+          "x": 900,
+          "y": 160
+        },
+        "size": {
+          "width": 640,
+          "height": 420
+        },
+        "filePath": "docs/Generated.md",
+        "regionId": "region-generated"
       }
     ],
     "regions": [
       {
-        "id": "region-reference",
-        "origin": { "x": 80, "y": 140 },
-        "size": { "width": 1520, "height": 760 },
-        "label": "Reference",
-        "color": "#3fb950",
+        "id": "region-generated",
+        "origin": {
+          "x": 96,
+          "y": 120
+        },
+        "size": {
+          "width": 1520,
+          "height": 760
+        },
+        "label": "Generated Fixture",
+        "color": "#5ad8b8",
         "zOrder": 1
       }
     ],
-    "zoomLevel": 0.9,
-    "viewportOffset": { "x": -40, "y": 32 }
-  },
-  "dockPanels": {
-    "panel-canvas": {
-      "type": "canvas",
-      "title": "Canvas"
+    "zoomLevel": 0.85,
+    "viewportOffset": {
+      "x": -24,
+      "y": 36
     }
   }
 }

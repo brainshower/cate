@@ -33,7 +33,7 @@
 
 - T-A-012 central-file conflict review was re-checked against the full enumerated set. Added missing notes for `src/shared/types.ts`, `src/renderer/sidebar/Sidebar.tsx`, and `src/main/index.ts`.
 - T-U-002 is now backed by `src/shared/ipc-channels.test.ts`, which asserts the exact FlashQuery IPC channel set and verifies no non-FlashQuery export collides with it.
-- T-U-008 is now backed by `src/renderer/lib/__fixtures__/premerge-workspace.json` and `src/renderer/lib/session.test.ts`, covering current deserialization of a pre-merge-style workspace with sanitized FlashQuery metadata.
+- T-U-008 is now backed by `src/renderer/lib/__fixtures__/premerge-workspace.json`, `src/renderer/lib/__fixtures__/premerge-session.json`, `src/renderer/lib/__fixtures__/premerge-workspace.source.md`, and `src/renderer/lib/session.test.ts`, covering current deserialization of a workspace fixture generated from the pre-merge fork parent `318214f^1` (`84edbef07b3b53c2313a999bb19e7ea6a6a950e3`) with sanitized FlashQuery metadata.
 - T-U-017 is now backed by the `T-U-017 opens a FlashQuery Vault from the command palette` Playwright case in `e2e/flashquery-happy-path.spec.ts`.
 - T-M-004 now has an explicit retention justification for `src/main/templates/skillTemplate.ts` and accepted-removal note for `src/renderer/canvas/BulkActionChip.tsx`.
 

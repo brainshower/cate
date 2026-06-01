@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "focusedNodeId": null,
+  "nodes": {
+    "panel-generated-vault": {
+      "panelId": "panel-generated-vault",
+      "zOrder": 0,
+      "creationIndex": 0
+    },
+    "panel-generated-editor": {
+      "panelId": "panel-generated-editor",
+      "zOrder": 1,
+      "creationIndex": 1
+    }
+  }
+}
