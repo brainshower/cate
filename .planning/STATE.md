@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.1
-milestone_name: Upstream Sync
-status: Complete
-stopped_at: Completed Phase 8 upstream sync verification
+milestone_name: Mainline Handoff
+status: Planned
+stopped_at: Phase 9 planned for upstream-sync mainline handoff
 last_updated: "2026-06-01T00:00:00.000Z"
-last_activity: 2026-06-01 — Phase 8 upstream sync to Cate v1.1.0 completed with green verification
+last_activity: 2026-06-01 — Phase 9 upstream-sync mainline handoff planned from canonical product docs
 progress:
-  total_phases: 8
-  completed_phases: 7
-  total_plans: 29
+  total_phases: 9
+  completed_phases: 8
+  total_plans: 32
   completed_plans: 29
-  percent: 100
+  percent: 97
 ---
 
 # Project State
@@ -21,24 +21,24 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-01 after v1.1 upstream sync planning)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** Phase 8 upstream sync to Cate `v1.1.0` complete.
+**Current focus:** Phase 9 upstream-sync mainline handoff.
 
 ## Current Position
 
-Phase: 8 — Upstream Sync to `v1.1.0`
-Plan: 8.6 — Verification, runbook, provenance, and release readiness
-Status: Complete
-Last activity: 2026-06-01 — upstream `v1.1.0` merged and verified on `sync/upstream-v1.1.0`
+Phase: 9 — Upstream Sync Mainline Handoff
+Plan: 9.1 — Handoff preflight and fast-forward
+Status: Planned
+Last activity: 2026-06-01 — Phase 9 planned from upstream-sync requirements and test plan
 
 ## Session Continuity
 
 Last session: 2026-06-01
-Stopped At: Phase 8 verification complete
+Stopped At: Phase 9 planning complete
 Resume File: None
 
 ## Next Up
 
-Review/merge `sync/upstream-v1.1.0` when ready. Phase 8 verification lives at `.planning/phases/08-upstream-sync-v1-1-0/08-VERIFICATION.md`.
+Execute `.planning/phases/09-upstream-sync-mainline-handoff/09-01-PLAN.md` when ready. Phase 9 has three planned handoff plans; Phase 8 verification lives at `.planning/phases/08-upstream-sync-v1-1-0/08-VERIFICATION.md`.
 
 ## Decisions
 
@@ -49,6 +49,7 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table (updated
 | 2026-06-01 | Phase 8 uses the upstream sync requirements/test plan as mandatory source-of-truth docs. | Keeps migration planning aligned to the product spec and ensures implementation agents do not answer scope questions from memory. |
 | 2026-06-01 | Phase 8 is a migration phase, not a new FlashQuery feature phase. | Prevents scope creep while merging upstream `v1.1.0`. |
 | 2026-06-01 | Upstream `v1.1.0` was merged as a real two-parent merge commit. | Preserves future sync provenance and advances the fork's upstream merge base to `5b6549d`. |
+| 2026-06-01 | Phase 9 downstream agents must read the upstream-sync requirements and test plan before handoff work. | Prevents mainline handoff from drifting away from the product-defined process/provenance and verification gates. |
 
 ## Deferred Items
 
@@ -83,4 +84,4 @@ Items acknowledged and deferred at milestone close on 2026-05-30:
 
 ## Operator Next Steps
 
-- Review/merge `sync/upstream-v1.1.0` or start the next milestone.
+- Execute Phase 9 Plan 9.1 to review/merge `sync/upstream-v1.1.0`, rerun handoff gates, and close v1.1 planning state.

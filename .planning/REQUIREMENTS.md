@@ -70,6 +70,9 @@ Merge upstream Cate stable tag `v1.1.0` into the FlashQuery fork with a real two
 | REQ-003, REQ-007, REQ-011, REQ-012, REQ-013, REQ-014, REQ-015, REQ-016, REQ-017, REQ-019, REQ-024, REQ-025 | Phase 8 Plan 8.4: Renderer behavior | Complete |
 | REQ-003, REQ-004, REQ-018, REQ-020, REQ-022, REQ-024, REQ-025 | Phase 8 Plan 8.5: Upstream feature compatibility | Complete |
 | REQ-019, REQ-021, REQ-022, REQ-023, REQ-024, REQ-025, REQ-026 | Phase 8 Plan 8.6: Verification and release readiness | Complete |
+| REQ-021, REQ-023, REQ-026 | Phase 9 Plan 9.1: Handoff preflight and fast-forward | Planned |
+| REQ-024 | Phase 9 Plan 9.2: Post-handoff verification | Planned |
+| REQ-021, REQ-023, REQ-026 | Phase 9 Plan 9.3: Provenance gates and planning closeout | Planned |
 
 ## Out Of Scope
 
@@ -78,6 +81,12 @@ Merge upstream Cate stable tag `v1.1.0` into the FlashQuery fork with a real two
 - Implementing a browser-based test harness.
 - Changing FlashQuery MCP server contracts.
 - Cutting a product release or bumping the app version beyond what the merge itself requires.
+
+## Phase 9 Handoff Addendum
+
+Phase 9 does not add new product requirements beyond the upstream-sync specification. It exists to make the already-verified `sync/upstream-v1.1.0` branch safe to hand off to the mainline by re-reading the canonical source docs, preserving Phase 8 evidence, checking the same process/provenance gates after handoff, and closing planning state only after fresh verification.
+
+Downstream agents MUST continue to treat the two canonical source documents at the top of this file as the first source of truth for handoff and verification questions.
 
 ---
 
