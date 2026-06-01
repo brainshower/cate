@@ -4,7 +4,7 @@
 
 - ✅ **v1.0 Vault Connect, Read, Edit** — Phases 1-7 (shipped 2026-05-30) — [archive](milestones/v1.0-ROADMAP.md)
 - ✅ **v1.1 Upstream Sync** — Phase 8 (completed 2026-06-01)
-- ◆ **v1.1 Mainline Handoff** — Phase 9 (planned)
+- ✅ **v1.1 Mainline Handoff** — Phase 9 (completed 2026-06-01)
 
 ## Phases
 
@@ -59,7 +59,7 @@ See archived roadmap for full phase details: [milestones/v1.0-ROADMAP.md](milest
 - [x] `08-05-PLAN.md` — Upstream feature compatibility, theming, and visual evidence.
 - [x] `08-06-PLAN.md` — Verification, runbook, provenance, and release readiness.
 
-## Planned Milestone: v1.1 Mainline Handoff
+## Completed Milestone: v1.1 Mainline Handoff
 
 **Goal:** Review and merge the verified `sync/upstream-v1.1.0` branch into the fork's mainline without weakening the upstream-sync requirements, then run a post-merge smoke/provenance pass and close the planning state for v1.1.
 
@@ -74,7 +74,7 @@ See archived roadmap for full phase details: [milestones/v1.0-ROADMAP.md](milest
 
 **Requirements:** REQ-021, REQ-023, REQ-024, REQ-026
 **Tests:** T-A-002, T-A-003, T-A-004, T-A-010, T-A-012..T-A-015, T-E-001..T-E-005
-**Status:** Planned
+**Status:** Complete
 
 **Success criteria:**
 
@@ -86,9 +86,9 @@ See archived roadmap for full phase details: [milestones/v1.0-ROADMAP.md](milest
 
 **Plans:**
 
-- [ ] `09-01-PLAN.md` — Handoff preflight and fast-forward.
-- [ ] `09-02-PLAN.md` — Post-handoff verification.
-- [ ] `09-03-PLAN.md` — Provenance gates and planning closeout.
+- [x] `09-01-PLAN.md` — Handoff preflight and fast-forward.
+- [x] `09-02-PLAN.md` — Post-handoff verification.
+- [x] `09-03-PLAN.md` — Provenance gates and planning closeout.
 
 ## Progress
 
@@ -102,7 +102,7 @@ See archived roadmap for full phase details: [milestones/v1.0-ROADMAP.md](milest
 | 6. Editor URI-Awareness + Vault Badge       | v1.0      | 4/4            | Complete | 2026-05-29 |
 | 7. Cross-Cutting + Regression               | v1.0      | 3/3            | Complete | 2026-05-30 |
 | 8. Upstream Sync to v1.1.0                  | v1.1      | 6/6            | Complete | 2026-06-01 |
-| 9. Upstream Sync Mainline Handoff           | v1.1      | 0/3            | Planned  | —          |
+| 9. Upstream Sync Mainline Handoff           | v1.1      | 3/3            | Complete | 2026-06-01 |
 
 ## Notes
 
