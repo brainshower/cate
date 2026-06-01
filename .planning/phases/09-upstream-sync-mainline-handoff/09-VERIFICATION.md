@@ -41,6 +41,18 @@ This verification closes the mainline handoff only. It does not claim an app/pac
 | T-U-017 | Pass | `evidence/final/test-e2e.log` includes `T-U-017 opens a FlashQuery Vault from the command palette` |
 | T-M-004 | Pass | Phase 8 verification and final evidence remain present after fast-forward handoff |
 
+## E2E ID Crosswalk
+
+The upstream-sync test plan names the canonical FlashQuery E2E gates `T-E-001` through `T-E-005`. Cate's shipped E2E specs also retain v1.0-era IDs for narrower scenario rows. The test titles now include the canonical IDs directly, with this crosswalk for traceability:
+
+| Canonical ID | Anchor Spec | Shipped Scenario Evidence |
+|--------------|-------------|---------------------------|
+| T-E-001 | `e2e/flashquery-happy-path.spec.ts` | `T-E-001 happy path / T-E-008 plus T-E-009 opens on canvas` |
+| T-E-002 | `e2e/flashquery-vault-browse.spec.ts` | `T-E-002 vault browse / T-E-011 covers empty vault, refresh, and multi-level browsing` |
+| T-E-003 | `e2e/flashquery-disconnect.spec.ts` | `T-E-003 disconnect and retry / T-E-010 shows disconnected state and recovers via retry` |
+| T-E-004 | `e2e/flashquery-persistence.spec.ts` | `T-E-004 persistence / T-E-006 plus T-E-007 persists connection across restart without eager info probe` |
+| T-E-005 | `e2e/fixtures/flashquery-server.spec.ts` | Three `T-E-005 FlashQuery stub ...` lifecycle/contract cases |
+
 ## Process And Provenance Gates
 
 | Gate | Command / Check | Output | Status |

@@ -23,7 +23,7 @@ async function callTool(
   }
 }
 
-test('FlashQuery stub lists nested vault folders and empty vault state', async () => {
+test('T-E-005 FlashQuery stub lists nested vault folders and empty vault state', async () => {
   const server = await startFlashQueryStubServer()
   try {
     const info = await fetch(`${server.baseUrl}/mcp/info`)
@@ -57,7 +57,7 @@ test('FlashQuery stub lists nested vault folders and empty vault state', async (
   }
 })
 
-test('FlashQuery stub reads, update-writes, resets state, and exposes counters', async () => {
+test('T-E-005 FlashQuery stub reads, update-writes, resets state, and exposes counters', async () => {
   const server = await startFlashQueryStubServer()
   try {
     expect(server.counts()).toEqual({ infoRequestCount: 0, mcpPostCount: 0 })
@@ -97,7 +97,7 @@ test('FlashQuery stub reads, update-writes, resets state, and exposes counters',
   }
 })
 
-test('FlashQuery stub validates a caller-provided expected bearer token', async () => {
+test('T-E-005 FlashQuery stub validates a caller-provided expected bearer token', async () => {
   const server = await startFlashQueryStubServer({ expectedBearerToken: 'persisted-e2e-token' })
   try {
     await expect(callTool(server.baseUrl, 'list_vault', { path: '/' }, 'fixture-token')).rejects.toThrow()

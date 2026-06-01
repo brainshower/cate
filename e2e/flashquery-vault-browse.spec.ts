@@ -15,7 +15,7 @@ async function configure(page: Page, serverUrl: string, workspaceRoot: string) {
   await expect(page.getByRole('dialog', { name: 'FlashQuery Connection' })).toBeHidden()
 }
 
-test('T-E-011 covers empty vault, refresh, and multi-level browsing', async () => {
+test('T-E-002 vault browse / T-E-011 covers empty vault, refresh, and multi-level browsing', async () => {
   const server = await startFlashQueryStubServer({ expectedBearerToken: 'browse-token' })
   const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), 'cate-e2e-workspace-'))
   let app: ElectronApplication | null = null

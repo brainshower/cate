@@ -15,7 +15,7 @@ async function configure(page: Page, serverUrl: string, workspaceRoot: string) {
   await expect(page.getByRole('dialog', { name: 'FlashQuery Connection' })).toBeHidden()
 }
 
-test('T-E-010 shows disconnected state and recovers via retry', async () => {
+test('T-E-003 disconnect and retry / T-E-010 shows disconnected state and recovers via retry', async () => {
   const server = await startFlashQueryStubServer({ expectedBearerToken: 'retry-token' })
   const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), 'cate-e2e-workspace-'))
   let app: ElectronApplication | null = null

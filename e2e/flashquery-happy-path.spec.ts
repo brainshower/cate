@@ -45,7 +45,7 @@ test('T-U-017 opens a FlashQuery Vault from the command palette', async () => {
   }
 })
 
-test('T-E-008/T-E-009 completes the FlashQuery happy path and opens on canvas', async () => {
+test('T-E-001 happy path / T-E-008 plus T-E-009 opens on canvas', async () => {
   const server = await startFlashQueryStubServer({ expectedBearerToken: 'happy-token' })
   const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), 'cate-e2e-workspace-'))
   let app: ElectronApplication | null = null

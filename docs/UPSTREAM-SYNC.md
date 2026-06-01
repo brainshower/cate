@@ -48,6 +48,18 @@ This fork consumes upstream Cate releases and preserves FlashQuery-specific beha
 | Visual evidence | `.planning/phases/08-upstream-sync-v1-1-0/evidence/visual/flashquery-surfaces-{dark,light}.png` | Passed |
 | Provenance | merge-base, ancestor, behind-count, merge commit message | Passed |
 
+## E2E Traceability
+
+The upstream-sync test plan uses canonical E2E IDs `T-E-001` through `T-E-005`. The shipped specs include those IDs in their test titles and preserve the older v1.0 scenario IDs where useful:
+
+| Canonical ID | Spec | Scenario Evidence |
+|--------------|------|-------------------|
+| T-E-001 | `e2e/flashquery-happy-path.spec.ts` | Happy path, editor save/reopen, and open-on-canvas coverage (`T-E-008`/`T-E-009`) |
+| T-E-002 | `e2e/flashquery-vault-browse.spec.ts` | Vault browse, empty vault, refresh, and multi-level folders (`T-E-011`) |
+| T-E-003 | `e2e/flashquery-disconnect.spec.ts` | Disconnect status and retry recovery (`T-E-010`) |
+| T-E-004 | `e2e/flashquery-persistence.spec.ts` | Restart persistence and no eager probe (`T-E-006`/`T-E-007`) |
+| T-E-005 | `e2e/fixtures/flashquery-server.spec.ts` | Stub server list/read/write/reset/auth lifecycle cases |
+
 ## Process Gates
 
 - `.planning/` remains tracked.
