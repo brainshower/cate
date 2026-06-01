@@ -1,0 +1,21 @@
+
+> cate@1.1.0 test:e2e
+> playwright test e2e/flashquery-happy-path.spec.ts e2e/flashquery-vault-browse.spec.ts e2e/flashquery-disconnect.spec.ts e2e/flashquery-persistence.spec.ts e2e/fixtures/flashquery-server.spec.ts
+
+
+Running 8 tests using 1 worker
+
+(node:38116) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:38116) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [electron] › e2e/fixtures/flashquery-server.spec.ts:26:5 › T-E-005 FlashQuery stub lists nested vault folders and empty vault state (155ms)
+  ✓  2 [electron] › e2e/fixtures/flashquery-server.spec.ts:60:5 › T-E-005 FlashQuery stub reads, update-writes, resets state, and exposes counters (66ms)
+  ✓  3 [electron] › e2e/fixtures/flashquery-server.spec.ts:100:5 › T-E-005 FlashQuery stub validates a caller-provided expected bearer token (13ms)
+  ✓  4 [electron] › e2e/flashquery-disconnect.spec.ts:18:5 › T-E-003 disconnect and retry / T-E-010 shows disconnected state and recovers via retry (1.8s)
+  ✓  5 [electron] › e2e/flashquery-happy-path.spec.ts:28:5 › T-U-017 opens a FlashQuery Vault from the command palette (1.5s)
+  ✓  6 [electron] › e2e/flashquery-happy-path.spec.ts:48:5 › T-E-001 happy path / T-E-008 plus T-E-009 opens on canvas (2.1s)
+  ✓  7 [electron] › e2e/flashquery-persistence.spec.ts:60:5 › T-E-004 persistence / T-E-006 plus T-E-007 persists connection across restart without eager info probe (3.5s)
+  ✓  8 [electron] › e2e/flashquery-vault-browse.spec.ts:18:5 › T-E-002 vault browse / T-E-011 covers empty vault, refresh, and multi-level browsing (1.8s)
+
+  8 passed (12.0s)

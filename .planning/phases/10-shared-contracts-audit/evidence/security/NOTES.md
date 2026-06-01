@@ -19,6 +19,7 @@ Evidence:
 - `src/shared/types.test.ts` covers `T-U-004` and the explicit `T-U-009` shape assertion for `WorkspaceInfo`, `WorkspaceState`, `SessionSnapshot`, and `ProjectWorkspaceFile`.
 - `src/renderer/lib/session.test.ts` covers `T-U-008` using the generated pre-merge fixtures and asserts no `premerge-secret-token` or `auth` key leaks into the restored snapshot.
 - `src/main/flashquery/credentials.test.ts` covers token storage, deletion, failure propagation, and workspace isolation.
+- `e2e/flashquery-persistence.spec.ts` covers the end-to-end disk half of `T-E-004` by reading `.cate/workspace.json` and `.cate/session.json` after app close and asserting neither file contains the raw bearer token or any `auth`/`token` keys.
 
 ## Session Compatibility
 
@@ -63,6 +64,7 @@ Evidence:
 | Command | Result |
 |---------|--------|
 | `npm test -- src/shared/types.test.ts src/main/flashquery/credentials.test.ts src/renderer/lib/session.test.ts src/main/ipc/flashquery.test.ts src/renderer/panels/EditorPanel.test.tsx` | Pass, 5 files / 45 tests |
+| `npm run test:e2e -- e2e/flashquery-persistence.spec.ts` | Pass, proves `T-E-004` restart persistence and no-token-on-disk assertion |
 | `rg -n "sanitizeFlashQueryConnection|flashqueryConnection|auth\\.token|premerge|/mcp/info|Authorization|Bearer|401|token rejected|flashqueryWriteDocument|writeDocument" ...` | Pass, expected implementation and test anchors present |
 
 ## Result

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { mkdtemp } from 'node:fs/promises'
+import { mkdtemp, readFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { closeApp, launchApp } from './fixtures/electron-app'
@@ -35,6 +35,28 @@ async function openVaultPanel(page: Page): Promise<string> {
   return panelId
 }
 
+function collectSecretKeys(value: unknown, trail = '$'): string[] {
+  if (!value || typeof value !== 'object') return []
+  if (Array.isArray(value)) {
+    return value.flatMap((entry, index) => collectSecretKeys(entry, `${trail}[${index}]`))
+  }
+
+  return Object.entries(value).flatMap(([key, entry]) => {
+    const childTrail = `${trail}.${key}`
+    const nested = collectSecretKeys(entry, childTrail)
+    return /^(auth|token)$/i.test(key) ? [childTrail, ...nested] : nested
+  })
+}
+
+async function expectNoTokenOnDisk(workspaceRoot: string): Promise<void> {
+  for (const fileName of ['workspace.json', 'session.json']) {
+    const filePath = path.join(workspaceRoot, '.cate', fileName)
+    const raw = await readFile(filePath, 'utf8')
+    expect(raw, `${fileName} must not contain the raw bearer token`).not.toContain('persisted-e2e-token')
+    expect(collectSecretKeys(JSON.parse(raw)), `${fileName} must not persist auth/token keys`).toEqual([])
+  }
+}
+
 test('T-E-004 persistence / T-E-006 plus T-E-007 persists connection across restart without eager info probe', async () => {
   const server = await startFlashQueryStubServer({ expectedBearerToken: 'persisted-e2e-token' })
   const userDataDir = await mkdtemp(path.join(os.tmpdir(), 'cate-e2e-user-data-'))
@@ -48,6 +70,7 @@ test('T-E-004 persistence / T-E-006 plus T-E-007 persists connection across rest
     const workspaceId = await configureConnection(firstPage, workspaceRoot, server)
     await closeApp(app)
     app = null
+    await expectNoTokenOnDisk(workspaceRoot)
 
     server.resetCounts()
     expect(server.counts()).toEqual({ infoRequestCount: 0, mcpPostCount: 0 })

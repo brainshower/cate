@@ -47,6 +47,7 @@ import { applyTheme } from './lib/themeManager'
 import { confirmCloseDirtyPanels } from './lib/confirmCloseDirty'
 import { confirmCloseCanvas } from './lib/confirmCloseCanvas'
 import { isExternalFileDrag } from './lib/importExternalEntries'
+import { installE2EHarnessIfEnabled } from './lib/e2eHarnessGate'
 import pkg from '../../package.json'
 
 // -----------------------------------------------------------------------------
@@ -134,9 +135,7 @@ function MainApp() {
 
   // E2E test harness — exposes window.__cateE2E only when launched by Playwright.
   useEffect(() => {
-    if (window.electronAPI?.isE2E) {
-      import('./lib/e2eHarness').then((m) => m.installE2EHarness())
-    }
+    installE2EHarnessIfEnabled(window.electronAPI, () => import('./lib/e2eHarness'))
   }, [])
 
   // Resource profiler — wires up FPS/long-task observers only under CATE_PERF=1.

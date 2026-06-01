@@ -35,6 +35,7 @@ result: passed
 evidence:
   - `.planning/phases/10-shared-contracts-audit/evidence/contracts/NOTES.md`
   - `src/preload/index.test.ts`
+  - `src/renderer/lib/e2eHarnessGate.test.ts`
   - `src/shared/ipc-channels.test.ts`
   - `src/main/ipc/flashquery.test.ts`
   - `src/shared/types.test.ts`
@@ -61,20 +62,21 @@ evidence:
   - `.planning/phases/10-shared-contracts-audit/evidence/final/typecheck.log`
   - `.planning/phases/10-shared-contracts-audit/evidence/final/test.log`
   - `.planning/phases/10-shared-contracts-audit/evidence/final/test-e2e-persistence.log`
+  - `.planning/phases/10-shared-contracts-audit/evidence/final/test-e2e-full.log`
   - `.planning/phases/10-shared-contracts-audit/evidence/final/NOTES.md`
 
 ## Requirement Results
 
 | Requirement | Result | Evidence |
 |-------------|--------|----------|
-| REQ-005 | Pass | Security notes, `src/shared/types.test.ts`, `src/renderer/lib/session.test.ts`, focused persistence E2E |
+| REQ-005 | Pass | Security notes, `src/shared/types.test.ts`, `src/renderer/lib/session.test.ts`, persistence E2E disk read |
 | REQ-006 | Pass | Security notes, `src/main/ipc/flashquery.test.ts` |
 | REQ-008 | Pass | Contract notes, `src/shared/ipc-channels.test.ts`, `src/main/ipc/flashquery.test.ts`, typecheck |
-| REQ-009 | Pass | Security notes, `src/renderer/lib/session.test.ts`, `src/shared/types.test.ts`, focused persistence E2E |
-| REQ-010 | Pass | Contract notes, `src/preload/index.test.ts`, focused persistence E2E |
+| REQ-009 | Pass | Security notes, `src/renderer/lib/session.test.ts`, `src/shared/types.test.ts`, persistence E2E |
+| REQ-010 | Pass | Contract notes, `src/preload/index.test.ts`, `src/renderer/lib/e2eHarnessGate.test.ts`, full FlashQuery E2E |
 | REQ-019 | Pass | Contract notes, Phase 8/9 verification records |
-| REQ-024 | Pass | Final command logs |
-| REQ-025 | Pass | Full suite and focused E2E exited 0 after Phase 10 changes |
+| REQ-024 | Pass | Final command logs, including full FlashQuery E2E gate |
+| REQ-025 | Pass | Full unit suite and full FlashQuery E2E exited 0 after Phase 10 changes |
 
 ## Gaps
 
