@@ -15,6 +15,7 @@ export interface LaunchResult {
 export interface LaunchAppOptions {
   userDataDir?: string
   env?: Record<string, string | undefined>
+  perf?: boolean
 }
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..')
@@ -26,6 +27,7 @@ export async function launchApp(options: LaunchAppOptions = {}): Promise<LaunchR
     CATE_E2E: '1',
     NODE_ENV: 'production',
     ELECTRON_RUN_AS_NODE: undefined,
+    ...(options.perf ? { CATE_PERF: '1' } : {}),
     ...(options.userDataDir ? { CATE_E2E_USER_DATA_DIR: options.userDataDir } : {}),
   }
 

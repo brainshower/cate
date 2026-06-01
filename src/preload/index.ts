@@ -23,6 +23,7 @@ import {
   FS_WATCH_EVENT,
   FS_STAT,
   GIT_IS_REPO,
+  GIT_INIT,
   GIT_LS_FILES,
   GIT_BRANCH_UPDATE,
   GIT_MONITOR_START,
@@ -38,6 +39,11 @@ import {
   GIT_WORKTREE_PRUNE,
   GIT_WORKTREE_STATUS,
   GIT_WORKTREE_MERGE_TO,
+  GIT_WORKTREE_ADD_FROM_PR,
+  GIT_WORKTREE_UPDATE_FROM,
+  GIT_CREATE_PR,
+  GIT_PR_STATUS,
+  GIT_PR_LIST,
   GIT_PUSH,
   GIT_PULL,
   GIT_FETCH,
@@ -60,10 +66,13 @@ import {
   SETTINGS_SET,
   SETTINGS_GET_ALL,
   SETTINGS_RESET,
+  SETTINGS_CHANGED,
   SESSION_FLUSH_SAVE,
   SESSION_FLUSH_SAVE_DONE,
   PROJECT_STATE_SAVE,
   PROJECT_STATE_LOAD,
+  WORKSPACE_EXTERNAL_EDIT,
+  WORKSPACE_EXTERNAL_EDIT_DISMISS,
   BOOT_SNAPSHOT_WRITE,
   APP_OPEN_PATH,
   MENU_OPEN_SETTINGS,
@@ -73,7 +82,10 @@ import {
   DIALOG_SAVE_FILE,
   DIALOG_CONFIRM_UNSAVED,
   DIALOG_CONFIRM_CLOSE_CANVAS,
+  DIALOG_CONFIRM_RELOAD_WORKSPACE,
   DIALOG_CONFIRM_DELETE_REGION,
+  DIALOG_CONFIRM_IMPORT,
+  DIALOG_TERMINAL_LINK_OPEN,
   RECENT_PROJECTS_GET,
   RECENT_PROJECTS_ADD,
   LAYOUT_SAVE,
@@ -84,6 +96,7 @@ import {
   FS_RENAME,
   FS_MKDIR,
   FS_COPY,
+  FS_IMPORT_ENTRIES,
   FS_SEARCH,
   SHELL_SHOW_IN_FOLDER,
   NOTIFY_OS,
@@ -185,7 +198,9 @@ import {
   FLASHQUERY_SET_CONNECTION,
   FLASHQUERY_STATUS,
   FLASHQUERY_WRITE_DOCUMENT,
+  PERF_GET,
 } from '../shared/ipc-channels'
+import type { AppSettings } from '../shared/types'
 
 let e2eNextContextMenuAction: string | null | undefined
 let e2eLastContextMenuItems: unknown[] = []
@@ -211,6 +226,12 @@ function fullscreenLiveCheck(): boolean {
 
 contextBridge.exposeInMainWorld('electronAPI', {
   isE2E: process.env.CATE_E2E === '1',
+  isPerf: process.env.CATE_PERF === '1',
+
+  /** Pull the latest main-process resource snapshot (null until first sample). */
+  perfGetSnapshot(): Promise<unknown> {
+    return ipcRenderer.invoke(PERF_GET)
+  },
   // ---------------------------------------------------------------------------
   // Terminal
   // ---------------------------------------------------------------------------
@@ -339,6 +360,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return ipcRenderer.invoke(GIT_IS_REPO, dirPath)
   },
 
+  gitInit(dirPath: string): Promise<void> {
+    return ipcRenderer.invoke(GIT_INIT, dirPath)
+  },
+
   gitLsFiles(dirPath: string): Promise<string[]> {
     return ipcRenderer.invoke(GIT_LS_FILES, dirPath)
   },
@@ -402,6 +427,44 @@ contextBridge.exposeInMainWorld('electronAPI', {
     toBranch: string,
   ): Promise<{ ok: true; result: unknown } | { ok: false; conflict: boolean; message: string }> {
     return ipcRenderer.invoke(GIT_WORKTREE_MERGE_TO, repoCwd, fromBranch, toBranch)
+  },
+
+  gitWorktreeUpdateFrom(
+    worktreePath: string,
+    fromBranch: string,
+  ): Promise<{ ok: true; result: unknown } | { ok: false; conflict: boolean; message: string }> {
+    return ipcRenderer.invoke(GIT_WORKTREE_UPDATE_FROM, worktreePath, fromBranch)
+  },
+
+  gitWorktreeAddFromPr(
+    repoCwd: string,
+    prNumber: number,
+    targetPath: string,
+  ): Promise<{ path: string; branch: string }> {
+    return ipcRenderer.invoke(GIT_WORKTREE_ADD_FROM_PR, repoCwd, prNumber, targetPath)
+  },
+
+  gitPrList(
+    repoCwd: string,
+  ): Promise<Array<{ number: number; title: string; headRefName: string; author: string; isFork: boolean }>> {
+    return ipcRenderer.invoke(GIT_PR_LIST, repoCwd)
+  },
+
+  gitCreatePR(
+    worktreePath: string,
+    branch: string,
+  ): Promise<
+    | { ok: true; created: boolean; url: string; fallback?: boolean }
+    | { ok: false; message: string }
+  > {
+    return ipcRenderer.invoke(GIT_CREATE_PR, worktreePath, branch)
+  },
+
+  gitPrStatus(
+    worktreePath: string,
+    branch: string,
+  ): Promise<{ number: number; state: string; url: string; isDraft: boolean } | null> {
+    return ipcRenderer.invoke(GIT_PR_STATUS, worktreePath, branch)
   },
 
   gitPush(cwd: string, remote?: string, branch?: string): Promise<void> {
@@ -580,6 +643,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return ipcRenderer.invoke(SETTINGS_RESET, key)
   },
 
+  onSettingsChanged(callback: (key: keyof AppSettings, value: unknown) => void): () => void {
+    const listener = (_event: Electron.IpcRendererEvent, key: keyof AppSettings, value: unknown): void => {
+      callback(key, value)
+    }
+    ipcRenderer.on(SETTINGS_CHANGED, listener)
+    return () => {
+      ipcRenderer.removeListener(SETTINGS_CHANGED, listener)
+    }
+  },
+
   // ---------------------------------------------------------------------------
   // Session
   // ---------------------------------------------------------------------------
@@ -642,8 +715,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return ipcRenderer.invoke(DIALOG_CONFIRM_CLOSE_CANVAS, payload)
   },
 
+  confirmReloadWorkspace(payload: { name?: string }): Promise<'reload' | 'cancel'> {
+    return ipcRenderer.invoke(DIALOG_CONFIRM_RELOAD_WORKSPACE, payload)
+  },
+
   confirmDeleteRegion(payload: { panelCount: number }): Promise<'with-contents' | 'region-only' | 'cancel'> {
     return ipcRenderer.invoke(DIALOG_CONFIRM_DELETE_REGION, payload)
+  },
+
+  confirmImportEntries(payload: { count: number; destName: string }): Promise<'copy' | 'move' | 'cancel'> {
+    return ipcRenderer.invoke(DIALOG_CONFIRM_IMPORT, payload)
+  },
+
+  promptTerminalLinkOpen(url: string): Promise<'canvas' | 'external' | 'cancel'> {
+    return ipcRenderer.invoke(DIALOG_TERMINAL_LINK_OPEN, { url })
   },
 
   // ---------------------------------------------------------------------------
@@ -708,6 +793,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   fsCopy(srcPath: string, destDir: string): Promise<string> {
     return ipcRenderer.invoke(FS_COPY, srcPath, destDir)
+  },
+
+  fsImportEntries(
+    sources: string[],
+    destDir: string,
+    mode: 'copy' | 'move',
+  ): Promise<{ created: string[]; failed: number }> {
+    return ipcRenderer.invoke(FS_IMPORT_ENTRIES, sources, destDir, mode)
   },
 
   shellShowInFolder(filePath: string): Promise<void> {
@@ -816,6 +909,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }
     ipcRenderer.on(WINDOW_FULLSCREEN_STATE, listener)
     return () => { ipcRenderer.removeListener(WINDOW_FULLSCREEN_STATE, listener) }
+  },
+
+  /** Subscribe to workspace.json external-edit state. Fires whenever a project's
+   *  on-disk workspace file diverges from what Cate last wrote (edited
+   *  externally) or comes back in sync after a reload. */
+  onWorkspaceExternalEdit(callback: (payload: { rootPath: string }) => void): () => void {
+    const listener = (_event: Electron.IpcRendererEvent, payload: { rootPath: string }): void => {
+      callback(payload)
+    }
+    ipcRenderer.on(WORKSPACE_EXTERNAL_EDIT, listener)
+    return () => { ipcRenderer.removeListener(WORKSPACE_EXTERNAL_EDIT, listener) }
+  },
+
+  /** Tell main the user declined the reload prompt — resume saving so the
+   *  current in-app layout overwrites the external edit. */
+  dismissWorkspaceExternalEdit(rootPath: string): Promise<void> {
+    return ipcRenderer.invoke(WORKSPACE_EXTERNAL_EDIT_DISMISS, rootPath)
   },
 
   // ---------------------------------------------------------------------------
@@ -1173,24 +1283,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return ipcRenderer.invoke(AGENT_TOOL_DECISION, panelId, toolCallId, decision, reason)
   },
 
-  agentOpenSkillsFolder(kind: 'agents' | 'prompts' | 'skills'): Promise<void> {
-    return ipcRenderer.invoke(AGENT_OPEN_SKILLS_FOLDER, kind)
+  agentOpenSkillsFolder(cwd: string, kind: 'agents' | 'prompts' | 'skills'): Promise<void> {
+    return ipcRenderer.invoke(AGENT_OPEN_SKILLS_FOLDER, cwd, kind)
   },
 
   agentOpenSkillFile(filePath: string): Promise<void> {
     return ipcRenderer.invoke(AGENT_OPEN_SKILL_FILE, filePath)
   },
 
-  agentDeleteSkillFile(filePath: string): Promise<void> {
-    return ipcRenderer.invoke(AGENT_DELETE_SKILL_FILE, filePath)
+  agentDeleteSkillFile(cwd: string, filePath: string): Promise<void> {
+    return ipcRenderer.invoke(AGENT_DELETE_SKILL_FILE, cwd, filePath)
   },
 
-  agentCreateSkill(kind: 'agents' | 'prompts' | 'skills', name: string): Promise<string> {
-    return ipcRenderer.invoke(AGENT_CREATE_SKILL, kind, name)
+  agentCreateSkill(cwd: string, kind: 'agents' | 'prompts' | 'skills', name: string): Promise<string> {
+    return ipcRenderer.invoke(AGENT_CREATE_SKILL, cwd, kind, name)
   },
 
-  agentListSkillFiles(kind: 'agents' | 'prompts' | 'skills'): Promise<Array<{ name: string; description?: string; path: string }>> {
-    return ipcRenderer.invoke(AGENT_LIST_SKILL_FILES, kind)
+  agentListSkillFiles(cwd: string, kind: 'agents' | 'prompts' | 'skills'): Promise<Array<{ name: string; description?: string; path: string }>> {
+    return ipcRenderer.invoke(AGENT_LIST_SKILL_FILES, cwd, kind)
   },
 
   agentMarketplaceList(
@@ -1199,16 +1309,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return ipcRenderer.invoke(AGENT_MARKETPLACE_LIST, params)
   },
 
-  agentMarketplaceListInstalled(): Promise<unknown[]> {
-    return ipcRenderer.invoke(AGENT_MARKETPLACE_LIST_INSTALLED)
+  agentMarketplaceListInstalled(cwd: string): Promise<unknown[]> {
+    return ipcRenderer.invoke(AGENT_MARKETPLACE_LIST_INSTALLED, cwd)
   },
 
-  agentMarketplaceInstall(name: string): Promise<{ ok: boolean; error?: string }> {
-    return ipcRenderer.invoke(AGENT_MARKETPLACE_INSTALL, name)
+  agentMarketplaceInstall(cwd: string, name: string): Promise<{ ok: boolean; error?: string }> {
+    return ipcRenderer.invoke(AGENT_MARKETPLACE_INSTALL, cwd, name)
   },
 
-  agentMarketplaceUninstall(name: string): Promise<{ ok: boolean; error?: string }> {
-    return ipcRenderer.invoke(AGENT_MARKETPLACE_UNINSTALL, name)
+  agentMarketplaceUninstall(cwd: string, name: string): Promise<{ ok: boolean; error?: string }> {
+    return ipcRenderer.invoke(AGENT_MARKETPLACE_UNINSTALL, cwd, name)
   },
 
   onAgentEvent(callback: (envelope: unknown) => void): () => void {

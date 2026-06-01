@@ -18,7 +18,6 @@ import type { TerminalPanelProps } from './types'
 import { terminalRegistry } from '../lib/terminalRegistry'
 import { useAppStore } from '../stores/appStore'
 import { useCanvasStoreContext, useCanvasStoreApi } from '../stores/CanvasStoreContext'
-import { TerminalUrlPrompt } from './TerminalUrlPrompt'
 
 // ---------------------------------------------------------------------------
 // Component
@@ -91,9 +90,6 @@ export default function TerminalPanel({
   }, [])
 
   const workspaces = useAppStore((state) => state.workspaces)
-  const themePreset = useAppStore(
-    (state) => state.workspaces.find((w) => w.id === workspaceId)?.panels[panelId]?.themePreset,
-  )
   const panelCwd = useAppStore(
     (state) => state.workspaces.find((w) => w.id === workspaceId)?.panels[panelId]?.cwd,
   )
@@ -199,6 +195,18 @@ export default function TerminalPanel({
       const runFit = () => {
         fitTimerRef.current = null
         if (!renderBox) return
+        // Defer fitting while a canvas gesture (panel resize / pan / zoom) is in
+        // flight. Fitting mid-gesture calls terminal.resize() every tick, which
+        // re-sizes the WebGL canvas and makes the panel edge appear to "jump"
+        // (terminals only — editors don't resize a GPU canvas). useNodeResize
+        // and the wheel-pan both hold `canvas-interacting` for the gesture's
+        // duration, so re-check on the same cadence and fit once it settles.
+        if (document.body.classList.contains('canvas-interacting')) {
+          fitTimerRef.current = setTimeout(() => {
+            fitRafRef.current = requestAnimationFrame(runFit)
+          }, DEBOUNCE_MS)
+          return
+        }
         const w = renderBox.clientWidth
         const h = renderBox.clientHeight
         if (w === 0 || h === 0) return
@@ -284,7 +292,6 @@ export default function TerminalPanel({
         workspaceId,
         cwd: rootPathRef.current || undefined,
         initialInput,
-        themePreset,
       })
       .then((entry) => {
         if (cancelled) return
@@ -331,12 +338,6 @@ export default function TerminalPanel({
       detachAndDisconnect()
     }
   }, [panelId, workspaceId, nodeId, initialInput, retryKey])
-
-  // Hot-apply theme preset changes without recreating the terminal.
-  useEffect(() => {
-    if (!terminalRegistry.has(panelId)) return
-    terminalRegistry.setThemePreset(panelId, themePreset)
-  }, [panelId, themePreset])
 
   // -------------------------------------------------------------------------
   // Focus xterm when this node becomes the focused node
@@ -466,6 +467,48 @@ export default function TerminalPanel({
   }, [renderScale, panelId])
 
   // -------------------------------------------------------------------------
+  // Repaint after the zoom settles
+  //
+  // The world div carries `will-change: transform`, so it (and every terminal's
+  // WebGL <canvas>) lives on a GPU compositing layer. The WebGL renderer draws
+  // with preserveDrawingBuffer:false and only repaints dirty rows, so when the
+  // compositor re-rasterizes the layer at a new scale a static terminal's
+  // drawing buffer comes up blank until xterm draws another frame.
+  //
+  // Zoom-IN happens to recover on its own because crossing a render-scale step
+  // runs the fontSize/fit/refresh effect above. Zoom-OUT clamps renderScale to
+  // 1.0 (snapRenderScale), so that effect early-returns and nothing ever
+  // repaints — leaving the terminal blank until the next PTY output or a
+  // zoom-in. Force a full refresh once the gesture settles to cover both
+  // directions. Two idle frames debounce a continuous pinch to a single repaint.
+  // -------------------------------------------------------------------------
+
+  const repaintRafRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (repaintRafRef.current !== null) cancelAnimationFrame(repaintRafRef.current)
+    repaintRafRef.current = requestAnimationFrame(() => {
+      repaintRafRef.current = requestAnimationFrame(() => {
+        repaintRafRef.current = null
+        const renderBox = renderBoxRef.current
+        if (!renderBox || renderBox.offsetParent === null) return
+        const entry = terminalRegistry.getEntry(panelId)
+        if (!entry) return
+        try {
+          entry.terminal.refresh(0, entry.terminal.rows - 1)
+        } catch {
+          // Ignore — refresh can throw mid-layout / mid-dispose.
+        }
+      })
+    })
+    return () => {
+      if (repaintRafRef.current !== null) {
+        cancelAnimationFrame(repaintRafRef.current)
+        repaintRafRef.current = null
+      }
+    }
+  }, [zoomLevel, panelId])
+
+  // -------------------------------------------------------------------------
   // Fix mouse coordinates for CSS-scaled canvas
   //
   // xterm.js measures cell dimensions via OffscreenCanvas.measureText() or
@@ -487,6 +530,17 @@ export default function TerminalPanel({
     // xterm computes hit-testing against its own DOM-space cell metrics, so we
     // must convert the incoming screen-space offset back into DOM space.
     const adjustCoords = (e: MouseEvent) => {
+      // Don't touch coordinates while a canvas gesture (panel resize / pan) is
+      // in flight. This handler runs in the capture phase and rewrites
+      // e.clientX/Y; the node-resize listener is on window (bubble phase) and
+      // would otherwise read the rewritten value, computing its delta from a
+      // moving target (screenEl's rect shifts as the panel resizes). On a
+      // zoomed canvas that feeds back every frame and the dragged edge runs
+      // away from the cursor — the terminal-only "right edge jumps right while
+      // dragging left" bug. xterm only needs adjusted coords for its own
+      // selection, which isn't happening during a resize/pan anyway.
+      if (document.body.classList.contains('canvas-interacting')) return
+
       const effective = zoomLevel / renderScale
       if (Math.abs(effective - 1.0) < 0.001) return
 
@@ -681,7 +735,6 @@ export default function TerminalPanel({
           </div>
         )}
       </div>
-      <TerminalUrlPrompt panelId={panelId} />
     </div>
   )
 }

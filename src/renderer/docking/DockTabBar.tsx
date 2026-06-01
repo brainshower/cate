@@ -14,12 +14,17 @@ import { PANEL_REGISTRY, getPanelDef } from '../panels/registry'
 import { useAppStore } from '../stores/appStore'
 import { useAgentInfoByPanel } from '../hooks/useAgentPanelInfo'
 import { VaultBadge } from '../components/VaultBadge'
+import { worktreeTitleStyle } from '../lib/worktreeTitleStyle'
+import { isMiddleClick } from '../lib/mouse'
 
 const AWAIT_COLOR = '#c08a5a'
 
 // Lookup: panelId → worktree color. Only returns a color when the panel's
 // workspace has 2+ worktrees (matches WorktreePill's visibility rule, so the
-// tab tint and the title-bar pill appear together or not at all).
+// tab title tint and the title-bar pill appear together or not at all). The
+// color is applied to the tab's title text, not its icon — the icon may be an
+// agent logo (an <img>, which ignores `color`), and tinting it would clash
+// with the per-agent icon swap.
 function useWorktreeColorByPanel(): Record<string, string> {
   return useAppStore(useShallow((s) => {
     const out: Record<string, string> = {}
@@ -196,10 +201,25 @@ export function DockTabBar(props: DockTabBarProps) {
               cursor-grab select-none min-w-0 flex-1 ${isVaultEditor ? 'max-w-[280px]' : 'max-w-[200px]'}
               border-r border-white/5
               ${compact ? 'pl-2 pr-1.5 text-[11px]' : 'pl-3 pr-2 text-xs'}
-              ${isActive ? 'text-primary font-medium' : 'text-secondary hover:text-primary'}
+              ${isActive ? 'text-secondary font-medium' : 'text-muted hover:text-secondary'}
             `}
             onClick={() => onTabClick(i)}
-            onMouseDown={(e) => onTabMouseDown(e, panelId)}
+            onMouseDown={(e) => {
+              // Middle button closes the tab on auxclick (below). Suppress the
+              // native middle-click autoscroll and don't start a tab drag.
+              if (isMiddleClick(e)) { e.preventDefault(); return }
+              onTabMouseDown(e, panelId)
+            }}
+            onAuxClick={(e) => {
+              // Middle-click closes the tab — works for both the top dock and
+              // canvas-node mini-docks (both render TabPills with onClosePanel).
+              // Guarded to the middle button so right-click still opens the menu.
+              if (isMiddleClick(e) && onClosePanel) {
+                e.preventDefault()
+                e.stopPropagation()
+                onClosePanel(panelId)
+              }
+            }}
             onContextMenu={(e) => onTabContextMenu(e, panelId)}
             onPointerEnter={() => {
               if (isActive) return
@@ -224,15 +244,8 @@ export function DockTabBar(props: DockTabBarProps) {
             } as React.CSSProperties}
             title={getPanelTitle(panelId)}
           >
-            {isActive && (
-              <span
-                className="absolute left-0 right-0 top-0 h-[2px]"
-                style={{ backgroundColor: 'var(--workspace-accent, var(--node-chrome-accent, #3b82f6))' }}
-              />
-            )}
             <span
-              className={`shrink-0 ${worktreeColorByPanel[panelId] ? '' : isActive ? PANEL_TYPE_TINT[panelType] : 'text-muted'}`}
-              style={worktreeColorByPanel[panelId] ? { color: worktreeColorByPanel[panelId] } : undefined}
+              className={`shrink-0 ${isActive ? PANEL_TYPE_TINT[panelType] : 'text-muted'}`}
             >
               <TabIcon
                 type={panelType}
@@ -259,7 +272,8 @@ export function DockTabBar(props: DockTabBarProps) {
               />
             ) : (
               <span
-                className="truncate flex-1 min-w-0"
+                className={`truncate flex-1 min-w-0 ${agentInfoByPanel[panelId]?.state === 'running' ? 'cate-notif-pulse' : ''}`}
+                style={worktreeTitleStyle(worktreeColorByPanel[panelId], agentInfoByPanel[panelId]?.state === 'running')}
               >{getPanelTitle(panelId)}</span>
             )}
             {panel?.type === 'editor' && (
@@ -267,7 +281,6 @@ export function DockTabBar(props: DockTabBarProps) {
             )}
             {agentInfoByPanel[panelId]?.state === 'waitingForInput' && (
               <span className="cate-await-indicator shrink-0" aria-label="awaiting input">
-                <span className="cate-await-ring" style={{ borderColor: AWAIT_COLOR }} />
                 <span className="cate-await-dot" style={{ backgroundColor: AWAIT_COLOR }} />
               </span>
             )}

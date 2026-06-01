@@ -87,7 +87,10 @@ export const ProjectList: React.FC = () => {
     setMultiSelected(new Set())
   }, [addWorkspace, selectWorkspace])
 
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  // Insertion slot the drop would land in: 0..N where N is "after the last
+  // row". Derived from which half of a row the cursor is over, so the bottom
+  // slot (below the last workspace) is reachable.
+  const [insertIndex, setInsertIndex] = useState<number | null>(null)
 
   const displayWorkspaces = workspaces
 
@@ -108,45 +111,61 @@ export const ProjectList: React.FC = () => {
       />
 
       {/* Scrollable workspace list */}
-      <div className="flex-1 overflow-y-auto px-1 py-1">
+      <div className="flex-1 overflow-y-auto py-1">
         <div className="flex flex-col">
-          {displayWorkspaces.map((ws, index) => (
-            <div
-              key={ws.id}
-              draggable={multiSelected.size === 0}
-              onDragStart={(e) => {
-                e.dataTransfer.setData('text/plain', String(index))
-                e.dataTransfer.effectAllowed = 'move'
-              }}
-              onDragOver={(e) => {
-                e.preventDefault()
-                e.dataTransfer.dropEffect = 'move'
-                setDragOverIndex(index)
-              }}
-              onDragLeave={() => setDragOverIndex(null)}
-              onDrop={(e) => {
-                e.preventDefault()
-                const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10)
-                if (!isNaN(fromIndex) && fromIndex !== index) {
-                  useAppStore.getState().reorderWorkspaces(fromIndex, index)
-                }
-                setDragOverIndex(null)
-              }}
-              style={{
-                borderTop: dragOverIndex === index ? '2px solid rgba(74, 158, 255, 0.6)' : '2px solid transparent',
-                transition: 'border-color 0.15s',
-              }}
-            >
-              <WorkspaceTab
-                workspace={ws}
-                isSelected={ws.id === selectedWorkspaceId}
-                isMultiSelected={multiSelected.has(ws.id)}
-                onClick={(e) => handleWorkspaceClick(index, ws.id, e)}
-                onClose={() => removeWorkspace(ws.id)}
-                onBulkContextMenu={(e) => handleBulkContextMenu(e, ws.id)}
-              />
-            </div>
-          ))}
+          {displayWorkspaces.map((ws, index) => {
+            const isLast = index === displayWorkspaces.length - 1
+            return (
+              <div
+                key={ws.id}
+                className="relative"
+                draggable={multiSelected.size === 0}
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('text/plain', String(index))
+                  e.dataTransfer.effectAllowed = 'move'
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  e.dataTransfer.dropEffect = 'move'
+                  // Top half → insert before this row; bottom half → after it.
+                  // The bottom half of the last row targets the final slot.
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  const after = e.clientY > rect.top + rect.height / 2
+                  setInsertIndex(after ? index + 1 : index)
+                }}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10)
+                  // Recompute the target slot from the drop position rather than
+                  // reading insertIndex state, which can be stale in this closure.
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  const to = e.clientY > rect.top + rect.height / 2 ? index + 1 : index
+                  setInsertIndex(null)
+                  if (!isNaN(fromIndex)) {
+                    useAppStore.getState().reorderWorkspaces(fromIndex, to)
+                  }
+                }}
+                onDragEnd={() => setInsertIndex(null)}
+              >
+                {/* Drop indicators overlay the row edges so cards stay flush
+                    (no reserved border space → no inter-card gap). */}
+                {insertIndex === index && (
+                  <div className="absolute left-0 right-0 top-0 h-0.5 bg-blue-400/60 z-10 pointer-events-none" />
+                )}
+                {isLast && insertIndex === index + 1 && (
+                  <div className="absolute left-0 right-0 bottom-0 h-0.5 bg-blue-400/60 z-10 pointer-events-none" />
+                )}
+                <WorkspaceTab
+                  workspace={ws}
+                  isSelected={ws.id === selectedWorkspaceId}
+                  isMultiSelected={multiSelected.has(ws.id)}
+                  onClick={(e) => handleWorkspaceClick(index, ws.id, e)}
+                  onClose={() => removeWorkspace(ws.id)}
+                  onBulkContextMenu={(e) => handleBulkContextMenu(e, ws.id)}
+                />
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>

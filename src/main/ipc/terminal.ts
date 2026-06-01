@@ -26,6 +26,7 @@ import { sendToWindow, windowFromEvent } from '../windowRegistry'
 import { getShellEnv } from '../shellEnv'
 import { resolveShell, type ResolvedShell } from '../shellResolver'
 import { getSettingSync } from '../store'
+import { countTerminalData } from '../perf/perfMonitor'
 import log from '../logger'
 // Active terminal PTY instances keyed by terminal ID
 const terminals: Map<string, IPty> = new Map()
@@ -266,6 +267,7 @@ function createTerminal(
 
   ptyProcess.onData((data: string) => {
     if (shuttingDown) return
+    countTerminalData(data.length)
     const state = idleState.get(id)
     if (state) {
       state.lastOutputAt = Date.now()
@@ -424,7 +426,9 @@ export function registerHandlers(): void {
     const pid = terminalPids.get(ptyId)
     if (!pid) return null
     return new Promise((resolve) => {
-      execFile('lsof', ['-d', 'cwd', '-p', `${pid}`, '-Fn'], {
+      // `-a` ANDs the filters; without it lsof ORs `-d cwd` with `-p <pid>` and
+      // returns the cwd of every process on the system (we'd parse the wrong one).
+      execFile('lsof', ['-a', '-d', 'cwd', '-p', `${pid}`, '-Fn'], {
         encoding: 'utf-8',
         timeout: 2000,
       }, (err, stdout) => {

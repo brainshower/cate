@@ -30,6 +30,8 @@ import { SettingsWindow } from './settings/SettingsWindow'
 import { SavedLayoutsDialog } from './dialogs/SavedLayoutsDialog'
 import { FlashQueryConnectionDialog } from './dialogs/FlashQueryConnectionDialog'
 import { PostUpdateFeedbackDialog } from './dialogs/PostUpdateFeedbackDialog'
+import PerfHud from './ui/PerfHud'
+import { initPerfClient } from './lib/perf/perfClient'
 import { loadSession, restoreSession, restoreMultiWorkspaceSession, restoreDetachedWindows, setupAutoSave, saveSession } from './lib/session'
 import type { MultiWorkspaceSession } from '../shared/types'
 import { useDockStore } from './stores/dockStore'
@@ -44,6 +46,7 @@ import { applyCanvasChildPanels } from './lib/applyCanvasChildPanels'
 import { applyTheme } from './lib/themeManager'
 import { confirmCloseDirtyPanels } from './lib/confirmCloseDirty'
 import { confirmCloseCanvas } from './lib/confirmCloseCanvas'
+import { isExternalFileDrag } from './lib/importExternalEntries'
 import pkg from '../../package.json'
 
 // -----------------------------------------------------------------------------
@@ -109,6 +112,8 @@ function MainApp() {
   const closeSettings = useUIStore((s) => s.closeSettings)
   const [initializing, setInitializing] = useState(true)
   const initializedRef = useRef(false)
+  // Guards against stacking reload-confirm dialogs when the detector re-fires.
+  const reloadPromptOpenRef = useRef(false)
 
 
   // Store state
@@ -117,17 +122,26 @@ function MainApp() {
   const showNodeSwitcher = useUIStore((s) => s.showNodeSwitcher)
   const showCommandPalette = useUIStore((s) => s.showCommandPalette)
 
-  // Theme — apply on mount and re-apply whenever appearanceMode changes
-  const appearanceMode = useSettingsStore((s) => s.appearanceMode)
+  // Theme — apply on mount and re-apply whenever the selection, the custom-theme
+  // list, or the system light/dark mapping changes (so imports/edits go live).
+  const activeThemeId = useSettingsStore((s) => s.activeThemeId)
+  const customThemes = useSettingsStore((s) => s.customThemes)
+  const systemLightThemeId = useSettingsStore((s) => s.systemLightThemeId)
+  const systemDarkThemeId = useSettingsStore((s) => s.systemDarkThemeId)
   useEffect(() => {
-    applyTheme(appearanceMode)
-  }, [appearanceMode])
+    applyTheme(activeThemeId)
+  }, [activeThemeId, customThemes, systemLightThemeId, systemDarkThemeId])
 
   // E2E test harness — exposes window.__cateE2E only when launched by Playwright.
   useEffect(() => {
     if (window.electronAPI?.isE2E) {
       import('./lib/e2eHarness').then((m) => m.installE2EHarness())
     }
+  }, [])
+
+  // Resource profiler — wires up FPS/long-task observers only under CATE_PERF=1.
+  useEffect(() => {
+    initPerfClient()
   }, [])
 
   // Global hooks
@@ -160,6 +174,35 @@ function MainApp() {
     const api = (window as unknown as { electronAPI?: { windowSetTitle?: (t: string) => Promise<void> } }).electronAPI
     api?.windowSetTitle?.(title).catch(() => { /* noop */ })
   }, [currentWorkspace?.name])
+
+  // When the active workspace's workspace.json is detected to have changed on
+  // disk (edited externally, e.g. by an agent following the .cate skill), prompt
+  // to reload the canvas. The detector (main's autosave guard) fires once per
+  // change via WORKSPACE_EXTERNAL_EDIT.
+  useEffect(() => {
+    return window.electronAPI.onWorkspaceExternalEdit?.(async ({ rootPath }) => {
+      if (reloadPromptOpenRef.current) return
+      const app = useAppStore.getState()
+      const active = app.workspaces.find((w) => w.id === app.selectedWorkspaceId)
+      // Only prompt for the workspace whose canvas is currently shown.
+      if (!active?.rootPath || active.rootPath !== rootPath) return
+
+      reloadPromptOpenRef.current = true
+      try {
+        const choice = await window.electronAPI.confirmReloadWorkspace?.({ name: active.name })
+        if (choice === 'reload') {
+          const { reloadActiveWorkspaceFromDisk } = await import('./lib/session')
+          await reloadActiveWorkspaceFromDisk()
+        } else {
+          // Declined — resume normal saving so the current canvas overwrites the
+          // external edit (the file was held steady only while the prompt was up).
+          await window.electronAPI.dismissWorkspaceExternalEdit?.(rootPath)
+        }
+      } finally {
+        reloadPromptOpenRef.current = false
+      }
+    })
+  }, [])
 
   // ---------------------------------------------------------------------------
   // Initialization — load settings, create first terminal
@@ -358,24 +401,26 @@ function MainApp() {
   }, [])
 
   // ---------------------------------------------------------------------------
-  // Drag-and-drop folder from Finder
+  // Swallow stray EXTERNAL (OS) file drops on the app background so Chromium
+  // doesn't navigate to the file:// URL. The file explorer handles its own
+  // external drops (copy/move into a directory) and stops propagation, so those
+  // never reach here. We deliberately do NOT re-root the workspace on drop.
+  //
+  // Crucially, this only engages for external file drags. Internal drags
+  // (workspace reorder, file-tree moves, sidebar/panel drags) bubble up to this
+  // root element too — touching their dropEffect here would override the inner
+  // handler's effect and make the browser reject the drop (onDrop never fires).
   // ---------------------------------------------------------------------------
   const handleFileDragOver = useCallback((e: React.DragEvent) => {
+    if (!isExternalFileDrag(e)) return
     e.preventDefault()
-    e.dataTransfer.dropEffect = 'copy'
+    e.dataTransfer.dropEffect = 'none'
   }, [])
 
-  const handleFileDrop = useCallback(async (e: React.DragEvent) => {
+  const handleFileDrop = useCallback((e: React.DragEvent) => {
+    if (!isExternalFileDrag(e)) return
     e.preventDefault()
-    const files = Array.from(e.dataTransfer.files)
-    if (files.length === 0) return
-    for (const file of files) {
-      const filePath = window.electronAPI.getPathForFile(file)
-      if (!filePath) continue
-      useAppStore.getState().setWorkspaceRootPath(selectedWorkspaceId, filePath)
-      break
-    }
-  }, [selectedWorkspaceId])
+  }, [])
 
   // ---------------------------------------------------------------------------
   // Dock zone panel helpers
@@ -494,6 +539,7 @@ function MainApp() {
       <SavedLayoutsDialog />
       <FlashQueryConnectionDialog />
       <PostUpdateFeedbackDialog />
+      <PerfHud />
 
       {initializing && (
         <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-surface-4 select-none pointer-events-none">

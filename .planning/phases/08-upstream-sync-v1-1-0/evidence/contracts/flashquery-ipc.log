@@ -1,0 +1,20 @@
+command: npm test -- src/main/ipc/flashquery.test.ts
+timestamp: 2026-06-01T16:36:06Z
+--- output ---
+
+> cate@1.1.0 test
+> vitest run src/main/ipc/flashquery.test.ts
+
+ DEPRECATED  "environmentMatchGlobs" is deprecated. Use `test.projects` to define different configurations instead.
+
+ RUN  v3.2.4 /Users/matt/Documents/Claude/Projects/Cate/cate
+
+ ✓ src/main/ipc/flashquery.test.ts (21 tests) 149ms
+
+ Test Files  1 passed (1)
+      Tests  21 passed (21)
+   Start at  13:36:07
+   Duration  1.05s (transform 197ms, setup 35ms, collect 119ms, tests 149ms, environment 0ms, prepare 76ms)
+
+--- exit-code ---
+0

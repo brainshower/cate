@@ -13,6 +13,7 @@ import { findTabStack, findStackContainingPanel } from '../stores/dockTreeUtils'
 import type { NativeContextMenuItem } from '../../shared/electron-api'
 import type { AgentState } from '../../shared/types'
 import { terminalRegistry } from '../lib/terminalRegistry'
+import { worktreeTitleStyle } from '../lib/worktreeTitleStyle'
 import { PANEL_REGISTRY } from '../panels/registry'
 import { useAgentInfoByPanel } from '../hooks/useAgentPanelInfo'
 
@@ -146,7 +147,7 @@ export const TerminalPanelRow: React.FC<TerminalPanelRowProps> = ({ panel, inden
 
   return (
     <button
-      className={`group/panel flex items-center gap-1.5 h-7 pr-2 rounded text-[13px] hover:bg-hover text-left min-w-0 focus:outline-none ${
+      className={`group/panel flex items-center gap-1.5 h-7 pr-2 text-[13px] hover:bg-hover text-left min-w-0 focus:outline-none ${
         indent ? 'pl-10' : 'pl-7'
       } ${isAwaiting ? 'text-primary' : 'text-muted hover:text-primary'}`}
       onClick={onClick}
@@ -166,15 +167,17 @@ export const TerminalPanelRow: React.FC<TerminalPanelRowProps> = ({ panel, inden
         <Icon
           size={11}
           className="flex-shrink-0"
-          style={worktreeColor ? { color: worktreeColor, opacity: 0.95 } : { opacity: 0.6 }}
+          style={{ opacity: 0.6 }}
         />
       )}
-      <span className={`truncate min-w-0 flex-1 ${isRunning ? 'cate-notif-pulse' : ''}`}>
+      <span
+        className={`truncate min-w-0 flex-1 ${isRunning ? 'cate-notif-pulse' : ''}`}
+        style={worktreeTitleStyle(worktreeColor, isRunning)}
+      >
         {label}
       </span>
       {isAwaiting ? (
         <span className="cate-await-indicator flex-shrink-0" aria-label="awaiting input">
-          <span className="cate-await-ring" style={{ borderColor: AWAIT_COLOR }} />
           <span className="cate-await-dot" style={{ backgroundColor: AWAIT_COLOR }} />
         </span>
       ) : !isRunning && hasPorts ? (
@@ -407,9 +410,9 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({
     }
     return (
       <div
-        className={`group flex items-center gap-2 h-8 px-2 rounded-md cursor-pointer text-muted hover:text-secondary hover:bg-hover transition-colors outline-none ${
+        className={`group flex items-center gap-2 h-8 px-2 cursor-pointer text-muted hover:text-secondary hover:bg-hover transition-colors outline-none ${
           isContextActive ? 'ring-1 ring-strong' : ''
-        } ${isSelected ? 'bg-surface-3' : ''}`}
+        } ${isSelected ? 'bg-surface-6' : ''}`}
         onClick={handlePickFolder}
         onContextMenu={handleContextMenu}
         title={workspace.rootPathError || 'Click to choose a project folder'}
@@ -488,7 +491,7 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({
     return (
       <button
         key={p.id}
-        className={`group/panel flex items-center gap-1.5 h-7 pr-2 rounded text-[13px] text-muted hover:text-primary hover:bg-hover text-left min-w-0 focus:outline-none ${
+        className={`group/panel flex items-center gap-1.5 h-7 pr-2 text-[13px] text-muted hover:text-primary hover:bg-hover text-left min-w-0 focus:outline-none ${
           indent ? 'pl-10' : 'pl-7'
         }`}
         onClick={(e) => handlePanelClick(e, p.id)}
@@ -507,13 +510,13 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({
     <div onContextMenu={handleContextMenu}>
       {/* Project row */}
       <div
-        className={`group flex items-center gap-1 h-8 px-1.5 rounded-md cursor-pointer transition-colors outline-none ${
+        className={`group flex items-center gap-1 h-8 px-1.5 cursor-pointer transition-colors outline-none ${
           isContextActive ? 'ring-1 ring-strong' : ''
         } ${
           isMultiSelected
-            ? 'bg-surface-3 text-primary ring-1 ring-strong'
+            ? 'bg-surface-6 text-primary ring-1 ring-strong'
             : isSelected
-            ? 'bg-surface-3 text-primary'
+            ? 'bg-surface-6 text-primary'
             : 'text-secondary hover:text-primary hover:bg-hover'
         }`}
         style={hasColor ? {

@@ -20,14 +20,19 @@ import {
   FS_RENAME,
   FS_MKDIR,
   FS_COPY,
+  FS_IMPORT_ENTRIES,
   FS_SEARCH,
   FS_READ_BINARY,
 } from '../../shared/ipc-channels'
-import { FileTreeNode, FileSearchResult, FileSearchOptions, FILE_EXCLUSIONS } from '../../shared/types'
+import { FileTreeNode, FileSearchResult, FileSearchOptions } from '../../shared/types'
 import { sendToWindow, windowFromEvent } from '../windowRegistry'
+import { getSettingSync } from '../store'
 
-// Set of exclusion names for fast lookup
-const exclusionSet = new Set(FILE_EXCLUSIONS)
+// Read the user-configured exclusion list live so changes take effect without
+// a relaunch. Built into a Set per call for fast membership checks.
+function currentExclusionSet(): Set<string> {
+  return new Set(getSettingSync('fileExclusions'))
+}
 
 // ---------------------------------------------------------------------------
 // Shared watcher pool — one chokidar watcher per normalised directory path,
@@ -91,7 +96,7 @@ async function writeFile(filePath: string, content: string): Promise<void> {
  * Read a single level of a directory, building FileTreeNode[].
  * Matches FileTreeModel.buildNodes logic from Swift:
  * - Skip hidden files (starting with '.')
- * - Skip entries in FILE_EXCLUSIONS
+ * - Skip entries in the user's fileExclusions setting
  * - Sort directories first, then files, each alphabetically case-insensitive
  * - Children are empty arrays for directories (lazy loading)
  */
@@ -103,6 +108,7 @@ async function readDir(dirPath: string): Promise<FileTreeNode[]> {
     return []
   }
 
+  const exclusionSet = currentExclusionSet()
   const dirs: FileTreeNode[] = []
   const files: FileTreeNode[] = []
 
@@ -173,6 +179,7 @@ async function searchFiles(
   const maxFileBytes = opts.maxFileBytes ?? 1024 * 1024
   const lowerQuery = query.toLowerCase()
   const allowDotFiles = query.startsWith('.')
+  const exclusionSet = currentExclusionSet()
   const results: FileSearchResult[] = []
   const seenPaths = new Set<string>()
 
@@ -278,6 +285,44 @@ async function searchFiles(
   return results
 }
 
+// Chokidar ignore list: always-hidden dotfiles plus the user's exclusions.
+//
+// Each exclusion emits two globs so the watcher's notion of "excluded" matches
+// readDir/searchFiles, which drop any entry whose basename is in the set — a
+// folder, the files inside it, or a same-named file. The first glob (`**/<name>`)
+// matches the entry itself at any depth (picomatch lets a leading `**/` match
+// zero dirs); the second (`**/<name>/**`) matches everything beneath an excluded
+// folder. Glob metacharacters in `name` are rejected at the settings input, so
+// these patterns only ever match a literal path segment.
+function buildIgnoreList(): Array<RegExp | string> {
+  return [
+    /(^|[/\\])\../, // hidden files
+    ...getSettingSync('fileExclusions').flatMap((name) => [`**/${name}`, `**/${name}/**`]),
+  ]
+}
+
+/**
+ * Create a chokidar watcher rooted at `dirPath` and wire its raw events to fan
+ * out to `subscribers`. The Map is captured by reference, so subscribers added
+ * after creation (and across watcher recreation) are honored.
+ */
+function createWatcher(dirPath: string, subscribers: Map<string, SubscriberEntry>): FSWatcher {
+  const watcher = watch(dirPath, {
+    ignoreInitial: true,
+    depth: 1,
+    ignored: buildIgnoreList(),
+  })
+  const fanOut = (type: string, fp: string) => {
+    for (const sub of subscribers.values()) {
+      if (pathHasPrefix(fp, sub.prefix)) sub.dispatch(type, fp)
+    }
+  }
+  watcher.on('add', (fp: string) => fanOut('create', fp))
+  watcher.on('change', (fp: string) => fanOut('update', fp))
+  watcher.on('unlink', (fp: string) => fanOut('delete', fp))
+  return watcher
+}
+
 function watchStart(dirPath: string, ownerWindowId: number): void {
   const key = watcherKey(ownerWindowId, dirPath)
 
@@ -287,35 +332,18 @@ function watchStart(dirPath: string, ownerWindowId: number): void {
   let shared = sharedWatchers.get(dirPath)
 
   if (!shared) {
-    // First subscriber — create the underlying chokidar watcher
-    const watcher = watch(dirPath, {
-      ignoreInitial: true,
-      depth: 1,
-      ignored: [
-        /(^|[/\\])\../, // hidden files
-        ...FILE_EXCLUSIONS.map((name) => `**/${name}/**`),
-      ],
-    })
-
+    // First subscriber — create the underlying chokidar watcher. The fan-out
+    // (in createWatcher) dispatches each raw event only to subscribers whose
+    // `prefix` is an ancestor of the changed path, so IPC consumers (and any
+    // in-process listeners such as the git monitor) aren't woken for changes
+    // in unrelated subtrees that happen to share the same watcher root.
+    const subscribers = new Map<string, SubscriberEntry>()
     shared = {
-      watcher,
+      watcher: createWatcher(dirPath, subscribers),
       refCount: 0,
-      subscribers: new Map(),
+      subscribers,
     }
     sharedWatchers.set(dirPath, shared)
-
-    // Fan out each raw watcher event only to subscribers whose `prefix` is an
-    // ancestor of the changed path. This avoids waking IPC consumers (and any
-    // in-process listeners such as the git monitor) for changes in unrelated
-    // subtrees that happen to share the same watcher root.
-    const fanOut = (type: string, fp: string) => {
-      for (const sub of shared!.subscribers.values()) {
-        if (pathHasPrefix(fp, sub.prefix)) sub.dispatch(type, fp)
-      }
-    }
-    watcher.on('add', (fp: string) => fanOut('create', fp))
-    watcher.on('change', (fp: string) => fanOut('update', fp))
-    watcher.on('unlink', (fp: string) => fanOut('delete', fp))
 
     // Attach any previously-registered in-process subscribers whose prefix
     // falls under this newly-created watcher root.
@@ -386,6 +414,34 @@ function watchStop(dirPath: string, ownerWindowId: number): void {
     }
   }
   watcherKeys.delete(key)
+}
+
+/**
+ * Rebuild every pooled watcher with the current ignore list. Called when the
+ * user edits the fileExclusions setting so already-running watchers honor the
+ * new list without an app restart. Subscribers and ref counts are preserved;
+ * the displayed tree is refreshed separately via the SETTINGS_CHANGED event.
+ */
+export function refreshWatcherIgnores(): void {
+  for (const [dirPath, shared] of sharedWatchers) {
+    const old = shared.watcher
+    let next: FSWatcher
+    try {
+      next = createWatcher(dirPath, shared.subscribers)
+    } catch (err) {
+      // If the rebuild fails (e.g. invalid path / watcher init error), keep the
+      // existing watcher live rather than dropping file events for this root.
+      log.warn('[fs-watch] ignore refresh failed for %s; keeping old watcher: %O', dirPath, err)
+      continue
+    }
+    shared.watcher = next
+    // Detach the old watcher's listeners before closing it. close() is async,
+    // so without this both watchers are briefly live and share the subscribers
+    // map — an event landing in that window would fan out twice. IPC consumers
+    // dedupe by path, but in-process subscribers (the git monitor) don't.
+    old.removeAllListeners()
+    old.close().catch((err) => log.warn('[fs-watch] old watcher close failed:', err))
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -474,6 +530,34 @@ export function stopWatchersForWindow(windowId: number): void {
   }
   for (const [normPath, wid] of toStop) {
     watchStop(normPath, wid)
+  }
+}
+
+/**
+ * Find a non-colliding entry name for `baseName` inside `destDir`. When the item
+ * is landing in the directory it already lives in (`intoSameDir`), the first
+ * candidate gets a " copy" suffix so it doesn't clobber the original; otherwise
+ * the original name is kept. Further collisions add an incrementing counter.
+ */
+async function nextAvailableName(
+  destDir: string,
+  baseName: string,
+  intoSameDir: boolean,
+): Promise<string> {
+  const ext = path.extname(baseName)
+  const stem = ext ? baseName.slice(0, -ext.length) : baseName
+  let candidate = intoSameDir ? `${stem} copy${ext}` : baseName
+  let n = 2
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    try {
+      await fs.lstat(path.join(destDir, candidate))
+    } catch {
+      // ENOENT — safe to use
+      return candidate
+    }
+    candidate = intoSameDir ? `${stem} copy ${n}${ext}` : `${stem} (${n})${ext}`
+    n++
   }
 }
 
@@ -595,32 +679,8 @@ export function registerHandlers(): void {
       const safeSrc = await validatePathStrict(srcPath)
       const safeDestDir = await validatePathStrict(destDir)
 
-      // If copying into the same parent, append "copy" suffix so we don't
-      // collide with the original. Otherwise keep the source name.
-      const srcParent = path.dirname(safeSrc)
-      const baseName = path.basename(safeSrc)
-      const ext = path.extname(baseName)
-      const stem = ext ? baseName.slice(0, -ext.length) : baseName
-
-      const intoSameDir = srcParent === safeDestDir
-      let candidate = intoSameDir ? `${stem} copy${ext}` : baseName
-      let n = 2
-      // Find a non-existing destination name in destDir.
-      // eslint-disable-next-line no-constant-condition
-      while (true) {
-        const target = path.join(safeDestDir, candidate)
-        try {
-          await fs.lstat(target)
-        } catch {
-          // ENOENT — safe to use
-          break
-        }
-        candidate = intoSameDir
-          ? `${stem} copy ${n}${ext}`
-          : `${stem} (${n})${ext}`
-        n++
-      }
-
+      const intoSameDir = path.dirname(safeSrc) === safeDestDir
+      const candidate = await nextAvailableName(safeDestDir, path.basename(safeSrc), intoSameDir)
       const finalDest = await validatePathForCreation(path.join(safeDestDir, candidate))
 
       // Refuse to copy a directory into itself or one of its descendants.
@@ -635,6 +695,62 @@ export function registerHandlers(): void {
       throw error instanceof Error ? error : new Error(String(error))
     }
   })
+
+  // Import external files/folders (dragged in from the OS file manager) into a
+  // workspace directory. The security boundary is the DESTINATION: `destDir`
+  // must resolve inside an allowed workspace root. The SOURCE paths originate
+  // from a user-initiated OS drag (webUtils.getPathForFile) and may live
+  // anywhere — they are only read server-side to copy/move into `destDir`, and
+  // their contents are never returned to the renderer. This mirrors the
+  // explicit per-window grant model used by the native Open/Save dialogs.
+  ipcMain.handle(
+    FS_IMPORT_ENTRIES,
+    async (event, sources: string[], destDir: string, mode: 'copy' | 'move') => {
+      const win = windowFromEvent(event)
+      const safeDestDir = await validatePathStrict(destDir, win?.id)
+      const created: string[] = []
+      let failed = 0
+
+      for (const src of Array.isArray(sources) ? sources : []) {
+        try {
+          // Resolve the real source (also proves it exists). Deliberately not
+          // restricted to allowed roots — this is an explicit user drag.
+          const realSrc = await fs.realpath(src)
+
+          // Never import a folder into itself or one of its own descendants.
+          if (safeDestDir === realSrc || safeDestDir.startsWith(realSrc + path.sep)) {
+            throw new Error('Cannot import a folder into itself')
+          }
+
+          const intoSameDir = path.dirname(realSrc) === safeDestDir
+          const candidate = await nextAvailableName(safeDestDir, path.basename(realSrc), intoSameDir)
+          const finalDest = await validatePathForCreation(path.join(safeDestDir, candidate), win?.id)
+
+          if (mode === 'move') {
+            try {
+              await fs.rename(realSrc, finalDest)
+            } catch (err) {
+              // rename can't cross filesystems/volumes — fall back to copy+delete.
+              if ((err as NodeJS.ErrnoException)?.code === 'EXDEV') {
+                await fs.cp(realSrc, finalDest, { recursive: true, errorOnExist: true, force: false })
+                await fs.rm(realSrc, { recursive: true, force: true })
+              } else {
+                throw err
+              }
+            }
+          } else {
+            await fs.cp(realSrc, finalDest, { recursive: true, errorOnExist: true, force: false })
+          }
+          created.push(finalDest)
+        } catch (error) {
+          failed++
+          log.error(`[${FS_IMPORT_ENTRIES}]`, src, error)
+        }
+      }
+
+      return { created, failed }
+    },
+  )
 
   ipcMain.handle(FS_MKDIR, async (_event, dirPath: string) => {
     try {

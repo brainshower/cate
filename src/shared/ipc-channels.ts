@@ -26,6 +26,7 @@ export const FS_DELETE = 'fs:delete'
 export const FS_RENAME = 'fs:rename'
 export const FS_MKDIR = 'fs:mkdir'
 export const FS_COPY = 'fs:copy'
+export const FS_IMPORT_ENTRIES = 'fs:import-entries'
 export const FS_SEARCH = 'fs:search'
 export const FS_READ_BINARY = 'fs:readBinary'
 
@@ -34,6 +35,7 @@ export const SHELL_SHOW_IN_FOLDER = 'shell:showInFolder'
 
 // Git
 export const GIT_IS_REPO = 'git:isRepo'
+export const GIT_INIT = 'git:init'
 export const GIT_LS_FILES = 'git:lsFiles'
 export const GIT_BRANCH_UPDATE = 'git:branch-update'         // main -> renderer
 export const GIT_MONITOR_START = 'git:monitor-start'
@@ -49,6 +51,11 @@ export const GIT_WORKTREE_REMOVE = 'git:worktreeRemove'
 export const GIT_WORKTREE_PRUNE = 'git:worktreePrune'
 export const GIT_WORKTREE_STATUS = 'git:worktreeStatus'
 export const GIT_WORKTREE_MERGE_TO = 'git:worktreeMergeTo'
+export const GIT_WORKTREE_ADD_FROM_PR = 'git:worktreeAddFromPr'
+export const GIT_WORKTREE_UPDATE_FROM = 'git:worktreeUpdateFrom'
+export const GIT_CREATE_PR = 'git:createPR'
+export const GIT_PR_STATUS = 'git:prStatus'
+export const GIT_PR_LIST = 'git:prList'
 export const GIT_PUSH = 'git:push'
 export const GIT_PULL = 'git:pull'
 export const GIT_FETCH = 'git:fetch'
@@ -77,6 +84,7 @@ export const SETTINGS_GET = 'settings:get'
 export const SETTINGS_SET = 'settings:set'
 export const SETTINGS_GET_ALL = 'settings:getAll'
 export const SETTINGS_RESET = 'settings:reset'
+export const SETTINGS_CHANGED = 'settings:changed' // main -> renderer (broadcast)
 
 // Session
 export const SESSION_FLUSH_SAVE = 'session:flushSave' // main -> renderer
@@ -85,6 +93,12 @@ export const SESSION_FLUSH_SAVE_DONE = 'session:flushSaveDone' // renderer -> ma
 // Project-local workspace persistence (.cate/)
 export const PROJECT_STATE_SAVE = 'project:stateSave'     // renderer -> main
 export const PROJECT_STATE_LOAD = 'project:stateLoad'     // renderer -> main
+// Fired when a project's workspace.json is found to differ on disk from what
+// Cate last wrote (edited externally) — or back in sync after a reload.
+export const WORKSPACE_EXTERNAL_EDIT = 'project:externalEdit' // main -> renderer
+// Renderer tells main the user declined the reload prompt — resume saving so
+// the current in-app layout overwrites the external edit.
+export const WORKSPACE_EXTERNAL_EDIT_DISMISS = 'project:externalEditDismiss' // renderer -> main
 
 // Boot snapshot — a tiny JSON file (geometry, theme, last workspace id, native
 // tabs flag) written by the renderer whenever the relevant settings change.
@@ -146,6 +160,9 @@ export const DIALOG_SAVE_FILE = 'dialog:saveFile'
 export const DIALOG_CONFIRM_UNSAVED = 'dialog:confirmUnsaved'
 export const DIALOG_CONFIRM_CLOSE_CANVAS = 'dialog:confirmCloseCanvas'
 export const DIALOG_CONFIRM_DELETE_REGION = 'dialog:confirmDeleteRegion'
+export const DIALOG_CONFIRM_IMPORT = 'dialog:confirmImport'
+export const DIALOG_CONFIRM_RELOAD_WORKSPACE = 'dialog:confirmReloadWorkspace'
+export const DIALOG_TERMINAL_LINK_OPEN = 'dialog:terminalLinkOpen'
 
 // Panel window: renderer pushes an updated PanelState snapshot to main so
 // the windowRegistry's panel meta (used by session persistence and the
@@ -276,3 +293,7 @@ export const WORKSPACE_CREATE = 'workspace:create'
 export const WORKSPACE_UPDATE = 'workspace:update'
 export const WORKSPACE_REMOVE = 'workspace:remove'
 export const WORKSPACE_CHANGED = 'workspace:changed' // main -> renderer (broadcast)
+
+
+// Performance profiler (only active under CATE_PERF=1)
+export const PERF_GET = 'perf:get' // renderer -> main (pull latest resource snapshot)

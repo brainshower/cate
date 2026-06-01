@@ -1,0 +1,205 @@
+command: npm run build
+timestamp: 2026-06-01T16:28:46Z
+--- output ---
+
+> cate@1.0.3 build
+> electron-vite build
+
+vite v7.3.2 building ssr environment for production...
+transforming...
+✓ 5054 modules transformed.
+rendering chunks...
+[plugin vite:reporter] 
+(!) /Users/matt/Documents/Claude/Projects/Cate/cate/src/main/ipc/terminalLogger.ts is dynamically imported by /Users/matt/Documents/Claude/Projects/Cate/cate/src/main/ipc/terminal.ts, /Users/matt/Documents/Claude/Projects/Cate/cate/src/main/ipc/terminal.ts but also statically imported by /Users/matt/Documents/Claude/Projects/Cate/cate/src/main/ipc/terminal.ts, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter] 
+(!) /Users/matt/Documents/Claude/Projects/Cate/cate/src/main/sentry.ts is dynamically imported by /Users/matt/Documents/Claude/Projects/Cate/cate/src/main/store.ts but also statically imported by /Users/matt/Documents/Claude/Projects/Cate/cate/src/main/index.ts, dynamic import will not move module into another chunk.
+
+dist/main/chunks/sanitize-unicode-DP0y8cmA.js                                                     0.20 kB
+dist/main/chunks/sanitize-unicode-Y0XM2Jqn.js                                                     0.20 kB
+dist/main/chunks/headers-CrLEOpbE.js                                                              0.21 kB
+dist/main/chunks/headers-Cfx4D-fb.js                                                              0.21 kB
+dist/main/chunks/openai-prompt-cache-fUNu9h_M.js                                                  0.39 kB
+dist/main/chunks/openai-prompt-cache-BCARsOZr.js                                                  0.39 kB
+dist/main/chunks/hash-CF2DclNF.js                                                                 0.51 kB
+dist/main/chunks/hash-DS0i-9wE.js                                                                 0.51 kB
+dist/main/chunks/___vite-optional-peer-dep_utf-8-validate_ws_true_commonjs-proxy-BQg2p5Gh.js      0.92 kB
+dist/main/chunks/github-copilot-headers-BqeTokn3.js                                               1.55 kB
+dist/main/chunks/github-copilot-headers-BMZaq5y1.js                                               1.55 kB
+dist/main/chunks/json-parse-BQSLDag_.js                                                           2.50 kB
+dist/main/chunks/json-parse-BHo9SupJ.js                                                           2.51 kB
+dist/main/chunks/index-BXWEbCcd.js                                                                3.63 kB
+dist/main/chunks/skillTemplate-CY28qh6-.js                                                        4.57 kB
+dist/main/chunks/openrouter-B_aC4tSd.js                                                           6.00 kB
+dist/main/chunks/openrouter-Bax7yr79.js                                                           6.00 kB
+dist/main/chunks/transform-messages-BRm_LnKn.js                                                   6.51 kB
+dist/main/chunks/transform-messages-gDPYz5V-.js                                                   6.51 kB
+dist/main/chunks/openai-responses-CqmtBqbn.js                                                    10.12 kB
+dist/main/chunks/openai-responses-sv7kRdvk.js                                                    10.12 kB
+dist/main/chunks/multipart-parser-BewzECyh.js                                                    11.65 kB
+dist/main/chunks/multipart-parser-DJwmsHzB.js                                                    11.65 kB
+dist/main/chunks/azure-openai-responses-puSIlI4L.js                                              14.45 kB
+dist/main/chunks/azure-openai-responses-CbCfeqhE.js                                              14.46 kB
+dist/main/chunks/google-CI3a3ONp.js                                                              14.93 kB
+dist/main/chunks/google-CVMd1BO4.js                                                              14.94 kB
+dist/main/chunks/google-vertex-D7Lc-ID7.js                                                       16.76 kB
+dist/main/chunks/google-vertex-CqLCL5y7.js                                                       16.76 kB
+dist/main/chunks/openai-responses-shared-BjhjwFCh.js                                             17.02 kB
+dist/main/chunks/openai-responses-shared-CF44m54V.js                                             17.02 kB
+dist/main/chunks/openai-completions-BsGjyBEq.js                                                  34.33 kB
+dist/main/chunks/openai-completions-DjtPc2a1.js                                                  34.34 kB
+dist/main/chunks/index-oYlsU5wA.js                                                               36.21 kB
+dist/main/chunks/index-C8w4N-yw.js                                                               36.21 kB
+dist/main/chunks/openai-codex-responses-BLQfG1N3.js                                              38.19 kB
+dist/main/chunks/openai-codex-responses-giqsLKbY.js                                              38.20 kB
+dist/main/chunks/index-C0Rtv__V.js                                                              242.33 kB
+dist/main/chunks/index-Dx-3-YO3.js                                                              242.33 kB
+dist/main/chunks/anthropic-DFxR8ZXx.js                                                          245.06 kB
+dist/main/chunks/anthropic-C27mzqQ5.js                                                          245.29 kB
+dist/main/chunks/client-BVM1u-gP.js                                                             245.40 kB
+dist/main/chunks/client-CMrbGSmL.js                                                             245.40 kB
+dist/main/chunks/mistral-Bb_c4o42.js                                                          1,046.65 kB
+dist/main/chunks/mistral-CAJeXdan.js                                                          1,073.52 kB
+dist/main/chunks/google-shared-7ngBMAxp.js                                                    1,231.34 kB
+dist/main/chunks/google-shared-DKMd3np0.js                                                    1,231.34 kB
+dist/main/index.js                                                                            6,885.80 kB
+✓ built in 11.77s
+vite v7.3.2 building ssr environment for production...
+transforming...
+✓ 2 modules transformed.
+rendering chunks...
+dist/preload/index.js  39.23 kB
+✓ built in 55ms
+vite v7.3.2 building client environment for production...
+transforming...
+✓ 6647 modules transformed.
+rendering chunks...
+[plugin vite:reporter] 
+(!) /Users/matt/Documents/Claude/Projects/Cate/cate/src/shared/pathUtils.ts is dynamically imported by /Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/lib/session.ts but also statically imported by /Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/lib/session.ts, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter] 
+(!) /Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/lib/agentScreenDetector.ts is dynamically imported by /Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/stores/statusStore.ts but also statically imported by /Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/App.tsx, /Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/hooks/useProcessMonitor.ts, /Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/lib/terminalRegistry.ts, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter] 
+(!) /Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/hooks/useProcessMonitor.ts is dynamically imported by /Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/stores/statusStore.ts but also statically imported by /Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/App.tsx, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter] 
+(!) /Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/panels/FlashQueryVaultPanel.tsx is dynamically imported by /Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/panels/registry.ts but also statically imported by /Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/sidebar/Sidebar.tsx, dynamic import will not move module into another chunk.
+
+dist/renderer/assets/noop.worker-DaFf012X.js                0.12 kB
+dist/renderer/index.html                                    2.40 kB
+dist/renderer/assets/antigravity-CStgM9jl.svg              12.33 kB
+dist/renderer/assets/codicon-DCmgc-ay.ttf                  80.34 kB
+dist/renderer/assets/dialog-hero-B8xN2Z8x.jpg             109.37 kB
+dist/renderer/assets/json.worker-BdzgVb0v.js              286.33 kB
+dist/renderer/assets/editorService.worker-CxZe-4rY.js     503.40 kB
+dist/renderer/assets/html.worker-CgShHVgd.js              678.78 kB
+dist/renderer/assets/pdf.worker.min-iDqQPrd3.mjs        1,232.30 kB
+dist/renderer/assets/css.worker-WS04UMDh.js             1,250.08 kB
+dist/renderer/assets/ts.worker-7CkXc5qG.js             11,190.65 kB
+dist/renderer/assets/index-DiyQ26ip.css                    78.09 kB
+dist/renderer/assets/toggleHighContrast-DX_Mo3nX.css      190.98 kB
+dist/renderer/assets/ProjectListPanel-DQnPTN8v.js           0.41 kB │ map:      0.84 kB
+dist/renderer/assets/azcli-NqWUwMbj.js                      1.34 kB │ map:      3.07 kB
+dist/renderer/assets/javascript-BhorgrZT.js                 1.39 kB │ map:      2.94 kB
+dist/renderer/assets/ini-BJB5qsek.js                        1.71 kB │ map:      3.79 kB
+dist/renderer/assets/csp-CoAuTRSr.js                        1.74 kB │ map:      3.55 kB
+dist/renderer/assets/FileExplorerPanel-BEijnC4o.js          1.79 kB │ map:      3.10 kB
+dist/renderer/assets/ArrowRight.es-DEGXdvhB.js              2.23 kB │ map:      3.46 kB
+dist/renderer/assets/ArrowLeft.es-0J7h7eNi.js               2.24 kB │ map:      3.46 kB
+dist/renderer/assets/scheme-eUkpob4e.js                     2.40 kB │ map:      5.31 kB
+dist/renderer/assets/bat-DcI23gAe.js                        2.69 kB │ map:      5.50 kB
+dist/renderer/assets/flow9-BnWFBbhr.js                      2.80 kB │ map:      6.05 kB
+dist/renderer/assets/sb-CNaQ2utT.js                         2.85 kB │ map:      5.82 kB
+dist/renderer/assets/pla-BPRW1roV.js                        2.91 kB │ map:      6.03 kB
+dist/renderer/assets/dockerfile-DTMzry5Y.js                 3.06 kB │ map:      6.46 kB
+dist/renderer/assets/pascaligo-DKd80T8l.js                  3.29 kB │ map:      6.97 kB
+dist/renderer/assets/bicep-DtcRLq2Q.js                      3.47 kB │ map:      7.19 kB
+dist/renderer/assets/lua-j4cpAL3N.js                        3.47 kB │ map:      7.14 kB
+dist/renderer/assets/objective-c-moRSMyNA.js                3.53 kB │ map:      7.48 kB
+dist/renderer/assets/cameligo-CL27Ksq6.js                   3.55 kB │ map:      7.51 kB
+dist/renderer/assets/xml-SI3MxOkk.js                        3.67 kB │ map:      7.22 kB
+dist/renderer/assets/graphql-DYvcB-EO.js                    3.81 kB │ map:      7.36 kB
+dist/renderer/assets/lexon-BQDzo2rB.js                      3.85 kB │ map:      7.68 kB
+dist/renderer/assets/typespec-Bbg_d7Xb.js                   3.92 kB │ map:      8.03 kB
+dist/renderer/assets/sparql-MmsiCt-D.js                     3.98 kB │ map:      8.04 kB
+dist/renderer/assets/mips-Ba5gUUOT.js                       4.18 kB │ map:      8.36 kB
+dist/renderer/assets/m3-6QEnLNSr.js                         4.19 kB │ map:      8.68 kB
+dist/renderer/assets/sophia-Du0vv2kn.js                     4.31 kB │ map:      8.59 kB
+dist/renderer/assets/shell-C8PDI3Cn.js                      4.52 kB │ map:      9.34 kB
+dist/renderer/assets/go-BM-Ldw1l.js                         4.53 kB │ map:      9.09 kB
+dist/renderer/assets/fsharp-CV0ybBnT.js                     4.55 kB │ map:      9.09 kB
+dist/renderer/assets/pascal-JC6FWQE_.js                     4.75 kB │ map:      9.65 kB
+dist/renderer/assets/r-DCA1Wsqk.js                          4.84 kB │ map:      9.70 kB
+dist/renderer/assets/less-DIx6VwBA.js                       5.04 kB │ map:     10.00 kB
+dist/renderer/assets/tcl-l6XH5WSO.js                        5.09 kB │ map:     10.35 kB
+dist/renderer/assets/qsharp-CVGhjZoE.js                     5.18 kB │ map:     10.64 kB
+dist/renderer/assets/cypher-CTWk9WBb.js                     5.19 kB │ map:     10.52 kB
+dist/renderer/assets/java-DhyqKqMC.js                       5.20 kB │ map:     10.02 kB
+dist/renderer/assets/hcl-DIwOK9n3.js                        5.24 kB │ map:      9.45 kB
+dist/renderer/assets/kotlin-D3Rqs7zE.js                     5.28 kB │ map:     10.45 kB
+dist/renderer/assets/redis-eV0Mg5iW.js                      5.29 kB │ map:     10.70 kB
+dist/renderer/assets/restructuredtext-pyuoNwFA.js           5.38 kB │ map:     10.28 kB
+dist/renderer/assets/powershell-D69Q8k50.js                 5.43 kB │ map:     10.43 kB
+dist/renderer/assets/coffee-i0gGrMiH.js                     5.55 kB │ map:     11.13 kB
+dist/renderer/assets/liquid-Vl651rf5.js                     6.00 kB │ map:     11.67 kB
+dist/renderer/assets/css-BaY8rehw.js                        6.14 kB │ map:     12.11 kB
+dist/renderer/assets/rust-DyxxcWzE.js                       6.31 kB │ map:     12.68 kB
+dist/renderer/assets/apex-B3v64HBE.js                       6.42 kB │ map:     12.51 kB
+dist/renderer/assets/e2eHarness-Dn-H-1r_.js                 6.44 kB │ map:     13.82 kB
+dist/renderer/assets/dart-CcV5KfOZ.js                       6.52 kB │ map:     12.59 kB
+dist/renderer/assets/markdown-DYwkZLFp.js                   6.69 kB │ map:     12.03 kB
+dist/renderer/assets/yaml-Bw398h81.js                       6.70 kB │ map:     12.16 kB
+dist/renderer/assets/mdx-BhA3vZle.js                        6.84 kB │ map:     13.28 kB
+dist/renderer/assets/swift-JB8giQ_j.js                      6.96 kB │ map:     13.49 kB
+dist/renderer/assets/msdax-idX1Phn6.js                      6.99 kB │ map:     13.72 kB
+dist/renderer/assets/csharp-el8vYXof.js                     7.02 kB │ map:     13.95 kB
+dist/renderer/assets/python-CjXBkk59.js                     7.33 kB │ map:     13.89 kB
+dist/renderer/assets/ecl-D727E3oE.js                        7.98 kB │ map:     15.82 kB
+dist/renderer/assets/cpp-CjIhHwQI.js                        8.25 kB │ map:     15.54 kB
+dist/renderer/assets/pug-Drwyeo_f.js                        8.30 kB │ map:     16.18 kB
+dist/renderer/assets/vb-D6LxV9FN.js                         8.36 kB │ map:     15.96 kB
+dist/renderer/assets/html-C-fj0q5z.js                       8.47 kB │ map:     15.68 kB
+dist/renderer/assets/typescript-sxkYMups.js                 8.82 kB │ map:     16.24 kB
+dist/renderer/assets/scss-Don-AUbl.js                       9.11 kB │ map:     17.46 kB
+dist/renderer/assets/wgsl-CoUpLbuA.js                       9.79 kB │ map:     15.99 kB
+dist/renderer/assets/st-DOzIDEQU.js                        10.18 kB │ map:     19.95 kB
+dist/renderer/assets/twig-C9bwf_F3.js                      10.30 kB │ map:     18.49 kB
+dist/renderer/assets/julia-BnnJb-CW.js                     10.58 kB │ map:     20.53 kB
+dist/renderer/assets/scala-MJu1svDc.js                     10.74 kB │ map:     19.94 kB
+dist/renderer/assets/handlebars-DbWlL2kM.js                11.26 kB │ map:     20.24 kB
+dist/renderer/assets/systemverilog-BYyg8FCy.js             11.68 kB │ map:     21.91 kB
+dist/renderer/assets/php-BuHkgj2r.js                       12.52 kB │ map:     22.68 kB
+dist/renderer/assets/protobuf-DUw0hVyV.js                  12.72 kB │ map:     24.08 kB
+dist/renderer/assets/perl-dLxS_48J.js                      12.86 kB │ map:     24.12 kB
+dist/renderer/assets/clojure-BBeqxSeO.js                   13.99 kB │ map:     25.32 kB
+dist/renderer/assets/razor-BDOaSMUc.js                     14.18 kB │ map:     25.66 kB
+dist/renderer/assets/ruby-Cmsa1B35.js                      15.35 kB │ map:     26.25 kB
+dist/renderer/assets/sql-DbOW-Cnb.js                       15.60 kB │ map:     28.61 kB
+dist/renderer/assets/mysql-CmCUoyqf.js                     16.20 kB │ map:     29.45 kB
+dist/renderer/assets/redshift-Tk9xGWSb.js                  16.37 kB │ map:     28.62 kB
+dist/renderer/assets/pgsql-XSC4sF7M.js                     18.29 kB │ map:     31.07 kB
+dist/renderer/assets/BrowserPanel-DE2gAF9T.js              18.53 kB │ map:     32.57 kB
+dist/renderer/assets/elixir-rNjIOb_Y.js                    18.78 kB │ map:     30.50 kB
+dist/renderer/assets/postiats-EK9oaxoQ.js                  19.35 kB │ map:     32.14 kB
+dist/renderer/assets/TerminalPanel-B8pN2ae3.js             19.69 kB │ map:     41.42 kB
+dist/renderer/assets/powerquery-Z7oDbkCx.js                21.69 kB │ map:     34.94 kB
+dist/renderer/assets/abap-CF7a_MxT.js                      23.01 kB │ map:     41.88 kB
+dist/renderer/assets/GitPanel-BpRM7o7v.js                  25.05 kB │ map:     37.43 kB
+dist/renderer/assets/EditorPanel-BGSFzHWU.js               25.16 kB │ map:     49.67 kB
+dist/renderer/assets/solidity-CqXZ6l2m.js                  26.07 kB │ map:     45.49 kB
+dist/renderer/assets/tsMode-DNpAjCCM.js                    42.92 kB │ map:     72.99 kB
+dist/renderer/assets/freemarker2-Dea_DTi7.js               43.05 kB │ map:     64.89 kB
+dist/renderer/assets/cssMode-CbOwSS4I.js                   68.59 kB │ map:    117.78 kB
+dist/renderer/assets/htmlMode-BiVc67Ek.js                  69.61 kB │ map:    119.33 kB
+dist/renderer/assets/jsonMode-CTsD1dR7.js                  91.43 kB │ map:    157.96 kB
+dist/renderer/assets/CanvasPanel-xF9PNAoD.js              167.55 kB │ map:    308.59 kB
+dist/renderer/assets/AgentPanel-BHGRJ6Tn.js               234.25 kB │ map:    402.91 kB
+dist/renderer/assets/index-n4DkbNBN.js                    372.45 kB │ map:    964.95 kB
+dist/renderer/assets/DocumentPanel-BsWep-Mq.js            817.02 kB │ map:  1,436.72 kB
+dist/renderer/assets/index-CtWDT85Q.js                    890.90 kB │ map:  1,525.60 kB
+dist/renderer/assets/index-Dm34QkHn.js                  1,901.85 kB │ map:  3,382.21 kB
+dist/renderer/assets/toggleHighContrast-Cn5YXsZW.js     6,351.66 kB │ map: 12,765.44 kB
+✓ built in 18.66s
+--- exit-code ---
+0

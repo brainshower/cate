@@ -1,0 +1,144 @@
+command: npm test -- src/renderer/panels/EditorPanel.test.tsx src/renderer/dialogs/FlashQueryConnectionDialog.test.tsx src/renderer/panels/FlashQueryVaultPanel.test.tsx src/renderer/components/VaultBadge.test.tsx src/renderer/docking/DockTabBar.test.tsx src/renderer/sidebar/WorkspaceTab.test.tsx
+timestamp: 2026-06-01T16:36:10Z
+--- output ---
+
+> cate@1.1.0 test
+> vitest run src/renderer/panels/EditorPanel.test.tsx src/renderer/dialogs/FlashQueryConnectionDialog.test.tsx src/renderer/panels/FlashQueryVaultPanel.test.tsx src/renderer/components/VaultBadge.test.tsx src/renderer/docking/DockTabBar.test.tsx src/renderer/sidebar/WorkspaceTab.test.tsx
+
+ DEPRECATED  "environmentMatchGlobs" is deprecated. Use `test.projects` to define different configurations instead.
+
+ RUN  v3.2.4 /Users/matt/Documents/Claude/Projects/Cate/cate
+
+ ✓ src/renderer/docking/DockTabBar.test.tsx (2 tests) 8ms
+stderr | src/renderer/panels/EditorPanel.test.tsx
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+stderr | src/renderer/panels/EditorPanel.test.tsx
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+stderr | src/renderer/dialogs/FlashQueryConnectionDialog.test.tsx
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+stderr | src/renderer/panels/FlashQueryVaultPanel.test.tsx
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+stderr | src/renderer/dialogs/FlashQueryConnectionDialog.test.tsx
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+stderr | src/renderer/panels/FlashQueryVaultPanel.test.tsx
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > TerminalPanelRow rendered indicators > no agent state → no shimmer, no await
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > TerminalPanelRow rendered indicators > no agent state → no shimmer, no await
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > TerminalPanelRow rendered indicators > notRunning → no shimmer, no await
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > TerminalPanelRow rendered indicators > notRunning → no shimmer, no await
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > TerminalPanelRow rendered indicators > running → shimmer visible, no await
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > TerminalPanelRow rendered indicators > running → shimmer visible, no await
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > TerminalPanelRow rendered indicators > waitingForInput → await visible, no shimmer
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > TerminalPanelRow rendered indicators > waitingForInput → await visible, no shimmer
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > TerminalPanelRow rendered indicators > finished → no shimmer, no await
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > TerminalPanelRow rendered indicators > finished → no shimmer, no await
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > state transitions render correctly > full lifecycle: each re-render shows the right indicator
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > state transitions render correctly > full lifecycle: each re-render shows the right indicator
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > includes FlashQuery Connection in the native workspace menu
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+    at WorkspaceTab (/Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/sidebar/WorkspaceTab.tsx:208:3)
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > includes FlashQuery Connection in the native workspace menu
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > includes FlashQuery Connection in the native workspace menu
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > places FlashQuery Connection between copy-cwd and duplicate with separators
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+    at WorkspaceTab (/Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/sidebar/WorkspaceTab.tsx:208:3)
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > places FlashQuery Connection between copy-cwd and duplicate with separators
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > places FlashQuery Connection between copy-cwd and duplicate with separators
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > opens the FlashQuery connection dialog without mutating the selected workspace
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+    at WorkspaceTab (/Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/sidebar/WorkspaceTab.tsx:208:3)
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > opens the FlashQuery connection dialog without mutating the selected workspace
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > opens the FlashQuery connection dialog without mutating the selected workspace
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > opens the clicked workspace FlashQuery connection dialog without changing selection
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+    at WorkspaceTab (/Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/sidebar/WorkspaceTab.tsx:208:3)
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > opens the clicked workspace FlashQuery connection dialog without changing selection
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > opens the clicked workspace FlashQuery connection dialog without changing selection
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > does not render a custom React context-menu element
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+    at WorkspaceTab (/Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/sidebar/WorkspaceTab.tsx:208:3)
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > does not render a custom React context-menu element
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > does not render a custom React context-menu element
+Warning: The current testing environment is not configured to support act(...)
+
+ ✓ src/renderer/sidebar/WorkspaceTab.test.tsx (11 tests) 205ms
+ ✓ src/renderer/components/VaultBadge.test.tsx (7 tests) 386ms
+ ✓ src/renderer/panels/EditorPanel.test.tsx (14 tests) 734ms
+ ✓ src/renderer/dialogs/FlashQueryConnectionDialog.test.tsx (20 tests) 909ms
+ ✓ src/renderer/panels/FlashQueryVaultPanel.test.tsx (23 tests) 991ms
+
+ Test Files  6 passed (6)
+      Tests  77 passed (77)
+   Start at  13:36:11
+   Duration  6.71s (transform 1.70s, setup 298ms, collect 16.30s, tests 3.23s, environment 10.48s, prepare 702ms)
+
+--- exit-code ---
+0

@@ -4,6 +4,71 @@ All notable changes to Cate will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+## [1.1.0] - 2026-05-29
+
+Feature release: unified theming, a redesigned parallel-work flow, clickable terminal links, and configurable file exclusions.
+
+### Added
+
+- **Unified theming**: a single data-driven theme system covering app chrome, the terminal ANSI palette, and Monaco editor syntax tokens, alongside canvas tools, spatial navigation, and command palette polish. (#174)
+- **Configurable file exclusions**: a new **File Explorer** settings section lets you edit the list of folder/file names hidden from the file explorer, file search, and change watching. The list persists across sessions, applies to every project, and updates open explorers live without a relaunch. Includes a "Restore defaults" action. (#155)
+- **Redesigned parallel work**: a reworked tab, drag-to-canvas, PR support, and worktrees stored in `.cate`. (#182)
+- **Open file paths from the terminal**: Cmd+Click a file path in the terminal to open it in the editor. (#180)
+- **Clickable terminal links**: links in the terminal are now clickable, with a dialog to choose where to open them. (#178)
+- **Close tab on middle-click**: middle-clicking a tab closes it. (#176)
+- **Reload workspace from disk**: the `.cate` skill can configure the IDE, with a reload-from-disk action. (#170)
+- **Per-workspace pi agent config**: pi agent configuration is scoped per workspace, with accordion provider settings. (#168)
+- **Terminal scroll-speed setting**: a new setting controls xterm scroll sensitivity. (#185)
+
+### Changed
+
+- **Trimmed default file exclusions**: `dist` and `build` are no longer hidden by default. They are common names for hand-written source and config, and the previous exact-name match could silently hide files you wanted to see. The remaining defaults are unchanged: `.git`, `.DS_Store`, `.Trash`, `node_modules`, `__pycache__`, `.npm`, `.cache`, `.build`, `.swiftpm`, `DerivedData`, `Pods`. (#155)
+- **UI polish**: squared top-level and nested cards, de-blued and softened pane glow, and calmer active-tab and terminal highlights. (#181, #179)
+- **Performance tooling**: added a profiler and stress harness, and fixed zoom re-renders and terminal log I/O. (#173)
+
+### Fixed
+
+- **Markdown preview reset**: switching files now resets the markdown preview. (#186)
+- **macOS line-editing chords**: line-editing chords are now delivered to the shell. (#177)
+- **Split-terminal divider**: the divider no longer jumps on resize. (#171)
+- **Terminal scroll under resize strips**: terminal scroll and scrollbar keep working under resize strips. (#160)
+- **Drag and drop**: fixed canvas/workspace drag and drop and the empty-workspace note blink. (#166)
+- **Terminal CPU usage**: cut sustained CPU and WindowServer usage from terminals. (#161)
+- **Parallel-work title tint**: tint the title text rather than the icon. (#169)
+
+## [1.0.4] - 2026-05-28
+
+Patch release focused on agent process detection, parallel-work ergonomics, and a critical packaging fix for extension installs.
+
+### Added
+
+- **Broader agent detection**: the terminal now recognizes more coding agents as running, including Antigravity CLI, Forge Code, and node-script based agents (detected via `ps -o args`), in addition to the existing set.
+- **Agent-aware terminal tabs**: terminal tabs running an agent show a dedicated icon and title, plus an awaiting-input dot when the agent is waiting on you.
+- **Choose any base branch for worktrees**: when creating a new worktree for parallel work, you can now select any branch as the base instead of being limited to the default.
+- **Project-local workspace state**: workspace layout is now stored in a `.cate/` directory inside the project, so canvas state travels with the repository.
+- **Rename any panel from the tab menu**: the tab context menu gains a Rename action that works for all panel types, including panels in detached dock windows.
+- **Unified accent palette**: workspaces and canvas regions now share a single consistent accent color palette.
+- **Multilingual README**: added French, Simplified Chinese, and German translations of the README.
+
+### Changed
+
+- **Search folded into the command palette**: `Cmd+Shift+F` search is consolidated into the `Cmd+K` palette, giving one entry point for find and commands.
+- **More reliable agent running state**: the agent's running indicator is now derived from PTY output streaming and the agent's own spinner, rather than brittle process heuristics, so it reflects activity more accurately.
+- **Docs**: noted the deprecation of the Gemini CLI in favor of Antigravity.
+
+### Fixed
+
+- **Extension install crash in the packaged app**: installing an extension no longer fails with `ERR_MODULE_NOT_FOUND` (e.g. `cross-spawn`). The pi coding agent's full dependency tree is now unpacked from the asar so its modules resolve on disk regardless of npm's hoisting layout. (#150)
+- **New Terminal worktree submenu**: the submenu now reflects the live git worktree list instead of a stale snapshot. (#145)
+- **Forgiving resize hitbox**: floating panels are easier to grab and resize from their edges. (#147)
+- **Dismissed terminal URLs stay dismissed**: URLs you dismiss from a terminal are no longer re-queued for confirmation. (#138)
+- **Parallel tool-call shimmer**: all parallel agent tool calls now shimmer during the loading gap, not just the first. (#133)
+- **Ctrl+C in terminal on Windows/Linux**: copies the selected text when there is a selection instead of always sending SIGINT. (#125)
+- **Tab bar cursors**: clearer cursor feedback on the canvas-node tab bar. (#120)
+- **Drag release tracking**: the window blur listener is bound in the bubble phase so drags end cleanly when focus leaves the window. (#119)
+
 ## [1.0.3] - 2026-05-26
 
 Patch release with Save-As for untitled editors, agent panel visual polish, and session persistence fixes.

@@ -1,15 +1,19 @@
 import { ipcMain, app } from 'electron'
 import fs from 'fs/promises'
 import fsSync from 'fs'
+import crypto from 'crypto'
 import path from 'path'
 import log from './logger'
 import {
   PROJECT_STATE_SAVE,
   PROJECT_STATE_LOAD,
+  WORKSPACE_EXTERNAL_EDIT,
+  WORKSPACE_EXTERNAL_EDIT_DISMISS,
 } from '../shared/ipc-channels'
 import type { ProjectWorkspaceFile, ProjectSessionFile, MultiWorkspaceSession, SessionSnapshot, DockLayoutNode, WindowDockState } from '../shared/types'
 import { sanitizeFlashQueryConnection } from '../shared/types'
 import { toRelativePath } from '../shared/pathUtils'
+import { broadcastToAll } from './windowRegistry'
 
 const CATE_DIR = '.cate'
 const WORKSPACE_FILE = 'workspace.json'
@@ -27,9 +31,67 @@ function sessionPath(rootPath: string): string {
   return path.join(rootPath, CATE_DIR, SESSION_FILE)
 }
 
+// ---------------------------------------------------------------------------
+// External-edit guard for workspace.json
+//
+// workspace.json is committable and meant to be hand- or agent-edited (e.g. via
+// the .cate skill) to reconfigure the canvas. But the renderer also autosaves
+// the live layout back over it (~30s + on quit), which would clobber any edit
+// made while the app is running. To prevent that, we remember the hash of the
+// content we last wrote/read per project; before any autosave overwrite we
+// compare it against what's on disk. A mismatch means the file was edited
+// behind our back, so we skip the overwrite and preserve the edit until the
+// user reloads the workspace from disk.
+// ---------------------------------------------------------------------------
+
+const lastWrittenWorkspaceHash = new Map<string, string>()
+
+function hashContent(content: string): string {
+  return crypto.createHash('sha1').update(content).digest('hex')
+}
+
+/** Record the hash of the exact content now living on disk for this project. */
+function rememberWorkspaceContent(rootPath: string, content: string): void {
+  lastWrittenWorkspaceHash.set(rootPath, hashContent(content))
+}
+
+/**
+ * True iff the on-disk workspace.json differs from what we last wrote/read —
+ * i.e. it was edited externally and an autosave would clobber that edit. When
+ * we've never tracked this project, or the file is gone, returns false (nothing
+ * to protect, let the write proceed).
+ */
+function workspaceEditedExternallyAsync(rootPath: string): Promise<boolean> {
+  const known = lastWrittenWorkspaceHash.get(rootPath)
+  if (known === undefined) return Promise.resolve(false)
+  return fs
+    .readFile(workspacePath(rootPath), 'utf-8')
+    .then((current) => hashContent(current) !== known)
+    .catch(() => false)
+}
+
+function workspaceEditedExternallySync(rootPath: string): boolean {
+  const known = lastWrittenWorkspaceHash.get(rootPath)
+  if (known === undefined) return false
+  try {
+    return hashContent(fsSync.readFileSync(workspacePath(rootPath), 'utf-8')) !== known
+  } catch {
+    return false
+  }
+}
+
+// Per-write unique temp suffix. A shared `<file>.tmp` name is unsafe when two
+// saves for the same path overlap: one consumes the tmp, the other's rename
+// fails with ENOENT. Uniquify so each write owns its own tmp file.
+let tmpSeq = 0
+function uniqueTmpPath(filePath: string): string {
+  tmpSeq = (tmpSeq + 1) & 0x7fffffff
+  return `${filePath}.${process.pid}.${tmpSeq}.tmp`
+}
+
 async function atomicWrite(filePath: string, json: string): Promise<void> {
   const dir = path.dirname(filePath)
-  const tmpPath = filePath + '.tmp'
+  const tmpPath = uniqueTmpPath(filePath)
   const bakPath = filePath + '.bak'
 
   await fs.mkdir(dir, { recursive: true })
@@ -39,13 +101,16 @@ async function atomicWrite(filePath: string, json: string): Promise<void> {
     await fs.unlink(tmpPath).catch(() => {})
     throw new Error('tmp file is empty after write')
   }
-  await fs.rename(filePath, bakPath).catch(() => {})
+  // Back up by *copying* (not renaming) the current file so it never vanishes
+  // if this rename races a concurrent writer. The rename below is atomic and
+  // overwrites the target in place.
+  await fs.copyFile(filePath, bakPath).catch(() => {})
   await fs.rename(tmpPath, filePath)
 }
 
 function atomicWriteSync(filePath: string, json: string): void {
   const dir = path.dirname(filePath)
-  const tmpPath = filePath + '.tmp'
+  const tmpPath = uniqueTmpPath(filePath)
   const bakPath = filePath + '.bak'
 
   fsSync.mkdirSync(dir, { recursive: true })
@@ -54,7 +119,7 @@ function atomicWriteSync(filePath: string, json: string): void {
   if (stat.size === 0) {
     throw new Error('tmp file is empty after write')
   }
-  try { fsSync.renameSync(filePath, bakPath) } catch { /* OK */ }
+  try { fsSync.copyFileSync(filePath, bakPath) } catch { /* OK */ }
   fsSync.renameSync(tmpPath, filePath)
 }
 
@@ -107,6 +172,13 @@ export async function loadProjectState(rootPath: string): Promise<{
 } | null> {
   const ws = await tryReadWithFallback<ProjectWorkspaceFile>(workspacePath(rootPath))
   if (!ws || !isValidWorkspace(ws)) return null
+  // Track the on-disk content so a later autosave can tell our own writes apart
+  // from an external edit. Hash the raw file (not a re-serialization) so the
+  // comparison is byte-exact.
+  await fs
+    .readFile(workspacePath(rootPath), 'utf-8')
+    .then((raw) => rememberWorkspaceContent(rootPath, raw))
+    .catch(() => {})
   const sess = await tryReadWithFallback<ProjectSessionFile>(sessionPath(rootPath))
   return {
     workspace: {
@@ -123,8 +195,13 @@ let lastSavedProjectStates: Map<string, { workspace: string; session: string }> 
 export function saveProjectStateSync(): void {
   for (const [rootPath, { workspace, session }] of lastSavedProjectStates) {
     try {
-      atomicWriteSync(workspacePath(rootPath), workspace)
       atomicWriteSync(sessionPath(rootPath), session)
+      if (workspaceEditedExternallySync(rootPath)) {
+        log.info('Skipping workspace.json sync overwrite for %s — edited externally', cateDir(rootPath))
+      } else {
+        atomicWriteSync(workspacePath(rootPath), workspace)
+        rememberWorkspaceContent(rootPath, workspace)
+      }
     } catch (err) {
       log.warn('Sync project state save failed for %s: %O', rootPath, err)
     }
@@ -312,6 +389,23 @@ async function seedSkillFile(rootPath: string): Promise<void> {
   }
 }
 
+// Serialize saves per root. Overlapping saves for the same project would race
+// on disk and, worse, desync the remembered-hash guard (one write finishes
+// last on disk while another finishes last in memory), spuriously flagging
+// workspace.json as edited-externally. A per-root promise chain keeps them
+// strictly ordered.
+const saveQueues = new Map<string, Promise<unknown>>()
+
+function enqueueSave(rootPath: string, task: () => Promise<void>): Promise<void> {
+  const prev = saveQueues.get(rootPath) ?? Promise.resolve()
+  const next = prev.catch(() => {}).then(task)
+  saveQueues.set(rootPath, next)
+  next.finally(() => {
+    if (saveQueues.get(rootPath) === next) saveQueues.delete(rootPath)
+  })
+  return next
+}
+
 export function registerProjectStateHandlers(): void {
   ipcMain.handle(
     PROJECT_STATE_SAVE,
@@ -319,16 +413,32 @@ export function registerProjectStateHandlers(): void {
       const wsJson = JSON.stringify(workspace, null, 2)
       const sessJson = JSON.stringify(session, null, 2)
       lastSavedProjectStates.set(rootPath, { workspace: wsJson, session: sessJson })
-      await Promise.all([
-        atomicWrite(workspacePath(rootPath), wsJson),
-        atomicWrite(sessionPath(rootPath), sessJson),
-      ])
-      seedSkillFile(rootPath).catch(() => {})
-      log.debug('Project state saved to %s', cateDir(rootPath))
+      await enqueueSave(rootPath, async () => {
+        // session.json is machine-local and never hand-edited, so always write it.
+        const writes: Promise<void>[] = [atomicWrite(sessionPath(rootPath), sessJson)]
+        if (await workspaceEditedExternallyAsync(rootPath)) {
+          // Hold the overwrite and ask the renderer to prompt for a reload. The
+          // file stays steady until the user reloads or dismisses the prompt.
+          log.info('Skipping workspace.json overwrite for %s — edited externally; prompting reload', cateDir(rootPath))
+          broadcastToAll(WORKSPACE_EXTERNAL_EDIT, { rootPath })
+        } else {
+          writes.push(atomicWrite(workspacePath(rootPath), wsJson).then(() => rememberWorkspaceContent(rootPath, wsJson)))
+        }
+        await Promise.all(writes)
+        seedSkillFile(rootPath).catch(() => {})
+        log.debug('Project state saved to %s', cateDir(rootPath))
+      })
     },
   )
 
   ipcMain.handle(PROJECT_STATE_LOAD, async (_event, rootPath: string) => {
     return loadProjectState(rootPath)
+  })
+
+  // User dismissed the "reload?" prompt (chose to keep the in-app layout).
+  // Drop the tracked hash so the next autosave overwrites the external edit —
+  // i.e. resume normal saving with the current canvas winning.
+  ipcMain.handle(WORKSPACE_EXTERNAL_EDIT_DISMISS, async (_event, rootPath: string) => {
+    lastWrittenWorkspaceHash.delete(rootPath)
   })
 }

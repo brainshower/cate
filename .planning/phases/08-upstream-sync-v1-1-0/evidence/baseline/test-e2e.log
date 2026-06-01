@@ -1,0 +1,44 @@
+command: npm run test:e2e
+timestamp: 2026-06-01T16:29:41Z
+--- output ---
+
+> cate@1.0.3 test:e2e
+> playwright test
+
+
+Running 25 tests using 1 worker
+
+(node:63965) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:63965) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  -   1 [electron] › e2e/drag-canvas-into-canvas.spec.ts:23:5 › canvas panel cannot be docked into a canvas-node mini-dock
+  ✓   2 [electron] › e2e/drag-canvas-into-canvas.spec.ts:47:5 › non-canvas tab is accepted into a canvas-node mini-dock (3.3s)
+  ✓   3 [electron] › e2e/drag-detach.spec.ts:20:5 › drag past the window edge detaches into a new panel window (3.2s)
+  ✓   4 [electron] › e2e/drag-detach.spec.ts:58:5 › release without leaving the window does not detach (3.1s)
+  ✓   5 [electron] › e2e/drag-move.spec.ts:29:5 › moves a node within the canvas (zoom 1) (2.6s)
+  -   6 [electron] › e2e/drag-move.spec.ts:40:5 › zoom-aware: canvas-space delta == screen-delta ÷ zoom (zoom 0.5)
+  ✓   7 [electron] › e2e/drag-move.spec.ts:65:5 › zoom-aware: canvas-space delta == screen-delta ÷ zoom (zoom 2) (3.0s)
+  ✓   8 [electron] › e2e/drag-move.spec.ts:82:5 › ghost follows cursor with the grab offset (zoom 1) (2.3s)
+  ✓   9 [electron] › e2e/drag-move.spec.ts:101:5 › source node is hidden while dragging (2.5s)
+  ✓  10 [electron] › e2e/drag-move.spec.ts:122:5 › tiny drag inside dead zone does not move the node (2.5s)
+  ✓  11 [electron] › e2e/drag-move.spec.ts:133:5 › Cmd+Z restores position after a drag (2.8s)
+  ✓  12 [electron] › e2e/drag-split.spec.ts:32:5 › drop on target tab-bar tabs the source into target stack (3.3s)
+  ✓  13 [electron] › e2e/drag-split.spec.ts:45:5 › drop on target left edge splits horizontally (3.4s)
+  ✓  14 [electron] › e2e/drag-split.spec.ts:67:5 › drop on target top edge splits vertically (3.4s)
+  ✓  15 [electron] › e2e/drag-split.spec.ts:82:5 › drop on target body centre (safe zone) does not commit (3.4s)
+  ✓  16 [electron] › e2e/fixtures/flashquery-server.spec.ts:26:5 › FlashQuery stub lists nested vault folders and empty vault state (164ms)
+  ✓  17 [electron] › e2e/fixtures/flashquery-server.spec.ts:60:5 › FlashQuery stub reads, update-writes, resets state, and exposes counters (44ms)
+  ✓  18 [electron] › e2e/fixtures/flashquery-server.spec.ts:100:5 › FlashQuery stub validates a caller-provided expected bearer token (12ms)
+  ✓  19 [electron] › e2e/flashquery-disconnect.spec.ts:18:5 › T-E-010 shows disconnected state and recovers via retry (1.8s)
+  ✓  20 [electron] › e2e/flashquery-happy-path.spec.ts:19:5 › T-E-008/T-E-009 completes the FlashQuery happy path and opens on canvas (2.0s)
+  ✓  21 [electron] › e2e/flashquery-persistence.spec.ts:38:5 › T-E-006/T-E-007 persists FlashQuery connection across restart without eager info probe (3.8s)
+  ✓  22 [electron] › e2e/flashquery-vault-browse.spec.ts:18:5 › T-E-011 covers empty vault, refresh, and multi-level browsing (1.9s)
+  ✓  23 [electron] › e2e/smoke.spec.ts:13:5 › app boots with E2E harness installed (1.2s)
+  ✓  24 [electron] › e2e/smoke.spec.ts:18:5 › a canvas is mounted (1.3s)
+  ✓  25 [electron] › e2e/smoke.spec.ts:25:5 › seeding a terminal puts a node on the canvas (1.7s)
+
+  2 skipped
+  23 passed (59.7s)
+--- exit-code ---
+0

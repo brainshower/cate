@@ -41,6 +41,7 @@ vi.mock('@xterm/xterm', () => {
     onTitleChange(): { dispose: () => void } { return { dispose: () => {} } }
     hasSelection(): boolean { return false }
     attachCustomKeyEventHandler(): void { /* no-op */ }
+    registerLinkProvider(): { dispose: () => void } { return { dispose: () => {} } }
     refresh(): void { /* no-op */ }
     scrollToBottom(): void { /* no-op */ }
     resize(c: number, r: number): void { this.cols = c; this.rows = r }
@@ -66,25 +67,25 @@ vi.mock('../stores/settingsStore', () => ({
   useSettingsStore: {
     getState: () => ({
       terminalScrollback: 2000,
-      defaultTerminalTheme: undefined,
-      terminalCustomThemes: [],
+      terminalCursorBlink: false,
+      terminalScrollSpeed: 1.0,
     }),
     subscribe: () => () => {},
   },
 }))
 vi.mock('../stores/appStore', () => ({
   awaitWorkspaceSync: async () => {},
+  useAppStore: { getState: () => ({ workspaces: [] }) },
 }))
 vi.mock('./session', () => ({
   terminalRestoreData: new Map(),
   replayTerminalLog: async () => {},
 }))
-vi.mock('./terminalUrlAutoOpen', () => ({
-  scanTerminalChunkForUrls: () => {},
-  clearTerminalUrlBuffer: () => {},
+vi.mock('./terminalUrlOpen', () => ({
+  openTerminalUrl: () => {},
 }))
 vi.mock('./themeManager', () => ({
-  getResolvedTheme: () => 'dark-warm',
+  getActiveTheme: () => ({ terminal: {} }),
   subscribeTheme: () => () => {},
 }))
 vi.mock('./logger', () => ({ default: { warn: () => {}, info: () => {}, error: () => {}, debug: () => {} } }))
@@ -182,6 +183,33 @@ describe('isTerminalCopyChord', () => {
     const { isTerminalCopyChord } = await import('./terminalRegistry')
     const up = new KeyboardEvent('keyup', { ctrlKey: true, key: 'c' })
     expect(isTerminalCopyChord(up, withSelection, false)).toBe(false)
+  })
+})
+
+describe('clampScrollSensitivity', () => {
+  it('passes through 1.0 (xterm default)', async () => {
+    const { clampScrollSensitivity } = await import('./terminalRegistry')
+    expect(clampScrollSensitivity(1.0)).toBe(1.0)
+  })
+
+  it('allows the slider bounds 0.25 and 3.0', async () => {
+    const { clampScrollSensitivity } = await import('./terminalRegistry')
+    expect(clampScrollSensitivity(0.25)).toBe(0.25)
+    expect(clampScrollSensitivity(3.0)).toBe(3.0)
+  })
+
+  it('clamps below the floor up to 0.25 and above the ceiling down to 3.0', async () => {
+    const { clampScrollSensitivity } = await import('./terminalRegistry')
+    expect(clampScrollSensitivity(0.1)).toBe(0.25)
+    expect(clampScrollSensitivity(5)).toBe(3.0)
+  })
+
+  it('falls back to 1.0 for invalid or missing values', async () => {
+    const { clampScrollSensitivity } = await import('./terminalRegistry')
+    expect(clampScrollSensitivity(0)).toBe(1.0)
+    expect(clampScrollSensitivity(-1)).toBe(1.0)
+    expect(clampScrollSensitivity(NaN)).toBe(1.0)
+    expect(clampScrollSensitivity(undefined as unknown as number)).toBe(1.0)
   })
 })
 

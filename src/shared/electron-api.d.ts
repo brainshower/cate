@@ -2,7 +2,7 @@
 // Type declaration for window.electronAPI exposed via contextBridge
 // =============================================================================
 
-import type { AgentCreateOptions, AgentEventEnvelope, AgentExtensionUIResponse, AgentImageAttachment, AgentModelRef, AgentRpcState, AgentSessionListEntry, AgentSessionStats, AgentSlashCommand, AgentThinkingLevel, AgentToolApprovalRequest, AppSettings, AgentState, AuthProviderDescriptor, AuthProviderStatus, CateWindowParams, DockWindowInitPayload, DetachedDockWindowSnapshot, DockStateSnapshot, FileSearchOptions, FileSearchResult, FileTreeNode, FlashQueryConnection, FlashQueryDocumentBody, FlashQueryProbeResult, FlashQueryStatusBroadcastPayload, FlashQueryVaultEntry, FlashQueryWriteResult, GitInfo, NotificationAction, OAuthFlowEvent, PanelState, PanelTransferSnapshot, PanelWindowSnapshot, Point, SessionSnapshot, TerminalActivity, WorkspaceInfo, WorkspaceMutationResult } from './types'
+import type { AgentCreateOptions, AgentEventEnvelope, AgentExtensionUIResponse, AgentImageAttachment, AgentModelRef, AgentRpcState, AgentSessionListEntry, AgentSessionStats, AgentSlashCommand, AgentThinkingLevel, AgentToolApprovalRequest, AppSettings, AgentState, AuthProviderDescriptor, AuthProviderStatus, CateWindowParams, DockWindowInitPayload, DetachedDockWindowSnapshot, DockStateSnapshot, FileSearchOptions, FileSearchResult, FileTreeNode, FlashQueryConnection, FlashQueryDocumentBody, FlashQueryProbeResult, FlashQueryStatusBroadcastPayload, FlashQueryVaultEntry, FlashQueryWriteResult, GitInfo, NotificationAction, OAuthFlowEvent, PanelState, PanelTransferSnapshot, PanelWindowSnapshot, PerfSnapshot, Point, SessionSnapshot, TerminalActivity, WorkspaceInfo, WorkspaceMutationResult } from './types'
 
 export interface NativeContextMenuItem {
   id?: string
@@ -17,6 +17,12 @@ export interface ElectronAPI {
   /** True when launched with CATE_E2E=1 (Playwright). Renderer uses this to
    *  install the test harness on window.__cateE2E. */
   isE2E: boolean
+
+  /** True when launched with CATE_PERF=1. Renderer mounts the resource HUD. */
+  isPerf: boolean
+
+  /** Pull the latest main-process resource snapshot (null until first sample). */
+  perfGetSnapshot(): Promise<PerfSnapshot | null>
 
   // ---------------------------------------------------------------------------
   // Terminal
@@ -98,6 +104,9 @@ export interface ElectronAPI {
   /** Check if a path is inside a git repository. */
   gitIsRepo(dirPath: string): Promise<boolean>
 
+  /** Initialize a new git repository at the given directory. */
+  gitInit(dirPath: string): Promise<void>
+
   /** List tracked + untracked files (git ls-files --cached --others --exclude-standard). */
   gitLsFiles(dirPath: string): Promise<string[]>
 
@@ -165,6 +174,43 @@ export interface ElectronAPI {
     fromBranch: string,
     toBranch: string,
   ): Promise<{ ok: true; result: unknown } | { ok: false; conflict: boolean; message: string }>
+
+  /** Fetch + merge `fromBranch` (the primary branch) into a worktree's own
+   *  branch, run inside the worktree so the primary checkout is untouched. */
+  gitWorktreeUpdateFrom(
+    worktreePath: string,
+    fromBranch: string,
+  ): Promise<{ ok: true; result: unknown } | { ok: false; conflict: boolean; message: string }>
+
+  /** Check out an open pull request (including fork branches) into its own
+   *  worktree via `gh pr checkout`. Requires the `gh` CLI. */
+  gitWorktreeAddFromPr(
+    repoCwd: string,
+    prNumber: number,
+    targetPath: string,
+  ): Promise<{ path: string; branch: string }>
+
+  /** List open pull requests for the branch picker. Returns [] without `gh`. */
+  gitPrList(
+    repoCwd: string,
+  ): Promise<Array<{ number: number; title: string; headRefName: string; author: string; isFork: boolean }>>
+
+  /** Push the branch (with upstream) and open a GitHub PR via the `gh` CLI,
+   *  falling back to a github.com compare URL when `gh` is unavailable. */
+  gitCreatePR(
+    worktreePath: string,
+    branch: string,
+  ): Promise<
+    | { ok: true; created: boolean; url: string; fallback?: boolean }
+    | { ok: false; message: string }
+  >
+
+  /** Look up the PR for a branch via `gh`. Returns null when `gh` is missing
+   *  or the branch has no PR. */
+  gitPrStatus(
+    worktreePath: string,
+    branch: string,
+  ): Promise<{ number: number; state: string; url: string; isDraft: boolean } | null>
 
   /** Push to remote. */
   gitPush(cwd: string, remote?: string, branch?: string): Promise<void>
@@ -284,6 +330,9 @@ export interface ElectronAPI {
   /** Reset all settings to defaults. */
   settingsReset(): Promise<void>
 
+  /** Subscribe to setting-change broadcasts from main (key + new value). Returns unsubscribe. */
+  onSettingsChanged(callback: (key: keyof AppSettings, value: unknown) => void): () => void
+
   // ---------------------------------------------------------------------------
   // Session
   // ---------------------------------------------------------------------------
@@ -342,10 +391,24 @@ export interface ElectronAPI {
    *  Otherwise returns 'close' | 'cancel'. */
   confirmCloseCanvas(payload: { panelCount: number; isLast: boolean }): Promise<'move' | 'delete' | 'close' | 'cancel'>
 
+  /** Confirm reloading the canvas after workspace.json changed on disk. */
+  confirmReloadWorkspace(payload: { name?: string }): Promise<'reload' | 'cancel'>
+
   /** Native confirmation shown when deleting a region that has panels inside.
    *  Returns 'with-contents' (delete region + contents), 'region-only' (keep
    *  contents, just remove the region around them), or 'cancel'. */
   confirmDeleteRegion(payload: { panelCount: number }): Promise<'with-contents' | 'region-only' | 'cancel'>
+
+  /** Native confirmation shown when external files/folders are dropped onto the
+   *  file explorer. Returns 'copy' (duplicate into the directory), 'move'
+   *  (relocate into the directory, removing the originals), or 'cancel'. */
+  confirmImportEntries(payload: { count: number; destName: string }): Promise<'copy' | 'move' | 'cancel'>
+
+  /** Native dialog asking where a Cmd/Ctrl+clicked terminal link should open,
+   *  shown the first time while the terminalLinkOpenTarget setting is 'ask'.
+   *  Returns 'canvas' (in-app browser panel), 'external' (system browser), or
+   *  'cancel'. The renderer remembers the choice by writing the setting. */
+  promptTerminalLinkOpen(url: string): Promise<'canvas' | 'external' | 'cancel'>
 
   // ---------------------------------------------------------------------------
   // Recent Projects
@@ -390,6 +453,10 @@ export interface ElectronAPI {
   fsRename(oldPath: string, newPath: string): Promise<void>
   fsMkdir(dirPath: string): Promise<void>
   fsCopy(srcPath: string, destDir: string): Promise<string>
+  /** Import external files/folders (dragged in from the OS) into `destDir`,
+   *  which must resolve inside a workspace root. `mode` is 'copy' or 'move'.
+   *  Returns the created destination paths and a count of entries that failed. */
+  fsImportEntries(sources: string[], destDir: string, mode: 'copy' | 'move'): Promise<{ created: string[]; failed: number }>
   shellShowInFolder(filePath: string): Promise<void>
 
   // ---------------------------------------------------------------------------
@@ -459,6 +526,15 @@ export interface ElectronAPI {
   /** Subscribe to native-fullscreen state changes. Fires with the new boolean
    *  whenever any Cate window enters or leaves macOS native fullscreen. */
   onFullscreenChange(callback: (isFullscreen: boolean) => void): () => void
+
+  /** Subscribe to external edits of a project's workspace.json. Fires when the
+   *  on-disk file is found to differ from what Cate last wrote (i.e. a reload
+   *  should be offered). */
+  onWorkspaceExternalEdit(callback: (payload: { rootPath: string }) => void): () => void
+
+  /** Tell main the user declined the reload prompt — resume normal saving so
+   *  the current in-app layout overwrites the external edit. */
+  dismissWorkspaceExternalEdit(rootPath: string): Promise<void>
 
   // ---------------------------------------------------------------------------
   // Dock window management
@@ -703,20 +779,20 @@ export interface ElectronAPI {
   /** Approve or deny a pending tool call. */
   agentToolDecision(panelId: string, toolCallId: string, decision: 'allow' | 'deny', reason?: string): Promise<void>
 
-  /** Open ~/.pi/agent/{agents|prompts} in the OS file manager. */
-  agentOpenSkillsFolder(kind: 'agents' | 'prompts' | 'skills'): Promise<void>
+  /** Open <cwd>/.cate/pi-agent/{agents|prompts} in the OS file manager. */
+  agentOpenSkillsFolder(cwd: string, kind: 'agents' | 'prompts' | 'skills'): Promise<void>
 
   /** Open a single skill/prompt/agent file in the OS default editor. */
   agentOpenSkillFile(filePath: string): Promise<void>
 
-  /** Delete a skill/prompt/agent file. Only allowed under ~/.pi/agent. */
-  agentDeleteSkillFile(filePath: string): Promise<void>
+  /** Delete a skill/prompt/agent file. Only allowed under the workspace's pi-agent dir. */
+  agentDeleteSkillFile(cwd: string, filePath: string): Promise<void>
 
   /** Create a new skill/prompt file from a template, then open it. */
-  agentCreateSkill(kind: 'agents' | 'prompts' | 'skills', name: string): Promise<string>
+  agentCreateSkill(cwd: string, kind: 'agents' | 'prompts' | 'skills', name: string): Promise<string>
 
-  /** List user files under ~/.pi/agent/{agents|prompts}. */
-  agentListSkillFiles(kind: 'agents' | 'prompts' | 'skills'): Promise<Array<{ name: string; description?: string; path: string }>>
+  /** List user files under <cwd>/.cate/pi-agent/{agents|prompts}. */
+  agentListSkillFiles(cwd: string, kind: 'agents' | 'prompts' | 'skills'): Promise<Array<{ name: string; description?: string; path: string }>>
 
   /** Browse-able marketplace catalog backed by a live scrape of pi.dev/packages
    *  (~2.9k entries, paginated). Returns an empty list when pi.dev is
@@ -739,8 +815,8 @@ export interface ElectronAPI {
     page: number
   }>
 
-  /** List extensions currently present in ~/.pi/agent/extensions/. */
-  agentMarketplaceListInstalled(): Promise<Array<{
+  /** List extensions currently present in <cwd>/.cate/pi-agent/extensions/. */
+  agentMarketplaceListInstalled(cwd: string): Promise<Array<{
     name: string
     description?: string
     requiresTerminal: boolean
@@ -748,10 +824,10 @@ export interface ElectronAPI {
   }>>
 
   /** Install an extension via `pi install npm:<name>`. Streams output to the log. */
-  agentMarketplaceInstall(name: string): Promise<{ ok: boolean; error?: string }>
+  agentMarketplaceInstall(cwd: string, name: string): Promise<{ ok: boolean; error?: string }>
 
   /** Uninstall an extension via `pi remove npm:<name>`. */
-  agentMarketplaceUninstall(name: string): Promise<{ ok: boolean; error?: string }>
+  agentMarketplaceUninstall(cwd: string, name: string): Promise<{ ok: boolean; error?: string }>
 
   /** Stream of agent events forwarded from the main process. */
   onAgentEvent(callback: (envelope: AgentEventEnvelope) => void): () => void
