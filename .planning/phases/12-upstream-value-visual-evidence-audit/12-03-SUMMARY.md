@@ -35,7 +35,7 @@ key-decisions:
   - "T-A-011 remains not required because Phase 12 made no packaging or Electron dependency changes."
 patterns-established:
   - "Final closeout docs cite Phase 12 evidence first, with Phase 8/11 history only as supporting context."
-requirements-completed: [REQ-004, REQ-018, REQ-020, REQ-022, REQ-024, REQ-025]
+requirements-completed: [REQ-003, REQ-004, REQ-018, REQ-020, REQ-022, REQ-024, REQ-025]
 duration: 8min
 completed: 2026-06-01
 ---
@@ -54,7 +54,7 @@ completed: 2026-06-01
 
 ## Accomplishments
 
-- Reconciled REQ-004, REQ-018, REQ-020, REQ-022, REQ-024, REQ-025, and the REQ-013 carry-forward against current Phase 12 evidence.
+- Reconciled REQ-003, REQ-004, REQ-018, REQ-020, REQ-022, REQ-024, REQ-025, and the REQ-013 carry-forward against current Phase 12 evidence.
 - Archived final `npm run build`, `npm run typecheck`, `npm test`, and `npm run test:e2e` logs with `exit_code: 0`.
 - Wrote Phase 12 UAT and verification reports with canonical test ID coverage and `## VERIFICATION PASSED`.
 - Updated `.planning/ROADMAP.md` and `.planning/STATE.md` to complete only after the final evidence gates were green.

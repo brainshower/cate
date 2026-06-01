@@ -177,15 +177,15 @@ Downstream implementation, QA, and review agents MUST read both documents before
 
 **Goal:** Treat the original upstream-sync Phase 12 "theming, upstream feature smoke, removed-file decisions, and light/dark visual evidence" scope as a post-handoff audit/remediation pass: prove the final mainline tree still satisfies upstream value capture and visual proof requirements, close any narrow gaps with targeted tests/evidence, and preserve the cumulative regression gate.
 
-**Requirements:** REQ-004, REQ-018, REQ-020, REQ-022, REQ-024, REQ-025
-**Tests:** T-A-002, T-A-003, T-A-005..T-A-009, T-A-011, T-M-001..T-M-004
+**Requirements:** REQ-003, REQ-004, REQ-018, REQ-020, REQ-022, REQ-024, REQ-025
+**Tests:** T-A-002, T-A-003, T-A-005..T-A-009, T-A-011, T-M-001..T-M-005
 **Status:** Complete
 
 **Success criteria:**
 
 - The upstream unified theming adoption remains present and FlashQuery theme-affected surfaces have current light/dark automated screenshot evidence.
 - Vault badge, sidebar vault view, connection dialog, status chip, and editor tabs with vault badge satisfy the visual evidence obligations in the upstream-sync test plan.
-- Upstream packaging/build, terminal/performance, file-exclusion, workspace reload, and editor fixes remain adopted or receive explicit evidence-backed notes.
+- Upstream agent/provider UI, packaging/build, terminal/performance, file-exclusion, workspace reload, and editor fixes remain adopted or receive explicit evidence-backed notes.
 - Removed upstream files `src/main/templates/skillTemplate.ts` and `src/renderer/canvas/BulkActionChip.tsx` have deliberate current-state decisions with no dangling imports.
 - Build, typecheck, unit tests, relevant E2E/visual evidence, and upstream feature smoke pass or any non-run is explicitly justified without closing the phase prematurely.
 

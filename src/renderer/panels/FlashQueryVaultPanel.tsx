@@ -201,6 +201,7 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
   const rootLoadingRef = useRef(false)
   const childrenByPathRef = useRef<Record<string, FlashQueryVaultEntry[]>>({})
   const folderRequestRef = useRef<Record<string, number>>({})
+  const e2eInjectedStatusRef = useRef(false)
 
   const host = useMemo(() => connection ? hostFromUrl(connection.url) : '', [connection])
   const chipState = statusToChip(status)
@@ -360,8 +361,24 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
   useEffect(() => {
     return window.electronAPI.onFlashQueryStatus((payload) => {
       if (payload.workspaceId !== workspaceId) return
+      e2eInjectedStatusRef.current = false
       setStatus({ kind: payload.status, error: payload.error })
     })
+  }, [workspaceId])
+
+  useEffect(() => {
+    const handleE2EStatus = (event: Event) => {
+      const payload = (event as CustomEvent<{
+        workspaceId: string
+        status: FlashQueryConnectionStatus
+        error?: string
+      }>).detail
+      if (payload.workspaceId !== workspaceId) return
+      e2eInjectedStatusRef.current = true
+      setStatus({ kind: payload.status, error: payload.error })
+    }
+    window.addEventListener('cate:e2e-flashquery-status', handleE2EStatus)
+    return () => window.removeEventListener('cate:e2e-flashquery-status', handleE2EStatus)
   }, [workspaceId])
 
   useEffect(() => {
@@ -371,6 +388,7 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
 
   useEffect(() => {
     if (!connection || status?.kind !== 'connecting') return
+    if (e2eInjectedStatusRef.current) return
     void window.electronAPI.flashqueryRetry(workspaceId)
   }, [connection, status?.kind, workspaceId])
 

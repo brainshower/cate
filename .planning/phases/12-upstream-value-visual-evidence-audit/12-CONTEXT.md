@@ -41,6 +41,7 @@ The goal is to prove the final post-handoff `main` tree still satisfies the upst
 
 ### Requirements In Scope
 
+- REQ-003 adopt the upstream agent/provider refactor fully while preserving FlashQuery panel behavior.
 - REQ-004 adopt upstream unified theming and re-fit FlashQuery surfaces to tokens where clean.
 - REQ-018 retain upstream packaging/build, terminal/performance, file-exclusion, workspace reload, and editor fixes.
 - REQ-020 resolve upstream file removals deliberately with no dangling imports.
@@ -54,7 +55,7 @@ The goal is to prove the final post-handoff `main` tree still satisfies the upst
 - T-A-003 deterministic install/build proof.
 - T-A-005 through T-A-009 light/dark visual evidence.
 - T-A-011 packaged-app smoke if packaging/Electron dependencies changed during Phase 12.
-- T-M-001 through T-M-004 upstream terminal/editor/file-git/removed-file smoke.
+- T-M-001 through T-M-005 upstream terminal/editor/file-git/removed-file/agent-provider smoke.
 - Supporting gates: `npm run build`, `npm run typecheck`, focused tests for touched code, `npm run test:e2e -- e2e/flashquery-visual-evidence.spec.ts`, and either full `npm run test:e2e` or a documented scoped rationale.
 
 </decisions>

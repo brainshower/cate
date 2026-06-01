@@ -9,7 +9,7 @@ requires:
   - phase: 11-renderer-behavior-audit
     provides: renderer baseline and REQ-013 carry-forward context
 provides:
-  - Phase 12 upstream feature smoke evidence for T-M-001 through T-M-004
+  - Phase 12 upstream feature smoke evidence for T-M-001 through T-M-005
   - current removed-file decisions for skillTemplate.ts and BulkActionChip.tsx
   - build.log with T-A-003 exit_code 0 and T-A-011 conditional handling
 affects: [phase-12, upstream-sync, removed-file-audit, verification]
@@ -46,7 +46,7 @@ completed: 2026-06-01
 
 ## Accomplishments
 
-- Created `evidence/upstream-smoke/NOTES.md` with source-doc acknowledgement and evidence rows for `T-M-001`, `T-M-002`, `T-M-003`, and `T-M-004`.
+- Created `evidence/upstream-smoke/NOTES.md` with source-doc acknowledgement and evidence rows for `T-M-001`, `T-M-002`, `T-M-003`, `T-M-004`, and `T-M-005`.
 - Closed the Phase 11 `REQ-013 carry-forward` in `T-M-002` by checking upstream editor-fix coexistence for `063b61d` and `0822786` alongside FlashQuery vault edit/save routing.
 - Re-checked `skillTemplate.ts` and `BulkActionChip.tsx` decisions with `rg`, `npm run build`, and `npm run typecheck`.
 - Captured `npm run build` output in `evidence/upstream-smoke/build.log` with `exit_code: 0`.
@@ -74,7 +74,7 @@ completed: 2026-06-01
 | `npm run build` | Passed, exit 0. |
 | `npm run typecheck` | Passed, exit 0. |
 | `grep -q "exit_code: 0" .planning/phases/12-upstream-value-visual-evidence-audit/evidence/upstream-smoke/build.log` | Passed. |
-| `rg -n "T-M-001|T-M-002|T-M-003|T-M-004|T-A-003|T-A-011|REQ-013|REQ-018|REQ-020|063b61d|0822786" .planning/phases/12-upstream-value-visual-evidence-audit/evidence/upstream-smoke/NOTES.md` | Passed. |
+| `rg -n "T-M-001|T-M-002|T-M-003|T-M-004|T-M-005|T-A-003|T-A-011|REQ-003|REQ-013|REQ-018|REQ-020|063b61d|0822786" .planning/phases/12-upstream-value-visual-evidence-audit/evidence/upstream-smoke/NOTES.md` | Passed. |
 | `git diff --name-only -- package.json package-lock.json electron-builder.yml .github/workflows/release.yml` | Passed; no Phase 12 packaging/Electron dependency changes. |
 
 ## Decisions Made

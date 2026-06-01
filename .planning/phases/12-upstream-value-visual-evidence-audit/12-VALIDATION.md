@@ -31,7 +31,7 @@ updated: 2026-06-01
 | 12.2.1 | 12.2 | REQ-013 carry-forward, REQ-018 | T-M-001, T-M-002, T-M-003 | `rg -n "terminal|reload|file-exclusion|exclude|preview|FlashQuery|063b61d|0822786" src docs .planning/phases/08-upstream-sync-v1-1-0` plus smoke notes | passed |
 | 12.2.2 | 12.2 | REQ-020 | T-M-004 | `rg -n "skillTemplate|BulkActionChip" src && npm run build && npm run typecheck` | passed |
 | 12.2.3 | 12.2 | REQ-018, REQ-024 | T-A-003, T-A-011 | `npm run build` and conditional packaging-smoke rationale | passed |
-| 12.3.1 | 12.3 | REQ-004, REQ-018, REQ-020, REQ-022 | all in scope | `rg -n "REQ-004|REQ-018|REQ-020|REQ-022|T-A-005|T-A-009|T-M-004" .planning/phases/12-upstream-value-visual-evidence-audit` | passed |
+| 12.3.1 | 12.3 | REQ-003, REQ-004, REQ-018, REQ-020, REQ-022 | all in scope | `rg -n "REQ-003|REQ-004|REQ-018|REQ-020|REQ-022|T-A-005|T-A-009|T-M-004|T-M-005" .planning/phases/12-upstream-value-visual-evidence-audit` | passed |
 | 12.3.2 | 12.3 | REQ-024, REQ-025 | T-A-002 | `npm run build && npm run typecheck && npm test && npm run test:e2e` | passed |
 | 12.3.3 | 12.3 | all in scope | all in scope | UAT/verification docs plus roadmap/state status checks | passed |
 

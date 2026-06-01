@@ -39,9 +39,45 @@ async function prepareVisualSurfaces(page: Page, serverUrl: string, workspaceRoo
   await expect(page.getByTestId('vault-panel-header')).toBeVisible()
   await expect(page.getByRole('treeitem', { name: /Welcome/ }).first()).toBeVisible()
   await page.evaluate(() => window.__cateE2E!.openVaultDocument('Welcome.md', 'dock'))
-  await expect(page.getByTestId('vault-badge')).toBeVisible()
+  await expect(page.getByTestId('vault-badge').first()).toBeVisible()
   await page.evaluate((id) => window.__cateE2E!.openFlashQueryConnectionDialog(id), workspaceId)
   await expect(page.getByRole('dialog', { name: 'FlashQuery Connection' })).toBeVisible()
+}
+
+async function captureStatusChipStates(
+  page: Page,
+  workspaceId: string,
+  label: 'dark' | 'light',
+) {
+  await page.getByLabel('Close FlashQuery connection dialog').click()
+  await expect(page.getByRole('dialog', { name: 'FlashQuery Connection' })).toBeHidden()
+
+  const header = page.getByTestId('vault-panel-header')
+
+  await expect(page.getByText('Live')).toBeVisible()
+  await header.screenshot({ path: path.join(EVIDENCE_DIR, `flashquery-status-chip-live-${label}.png`) })
+
+  await page.evaluate((id) => {
+    window.dispatchEvent(new CustomEvent('cate:e2e-flashquery-status', {
+      detail: { workspaceId: id, status: 'connecting' },
+    }))
+  }, workspaceId)
+  await expect(page.getByText('Connecting…')).toBeVisible()
+  await header.screenshot({ path: path.join(EVIDENCE_DIR, `flashquery-status-chip-connecting-${label}.png`) })
+
+  await page.evaluate((id) => {
+    window.dispatchEvent(new CustomEvent('cate:e2e-flashquery-status', {
+      detail: {
+        workspaceId: id,
+        status: 'disconnected',
+        error: 'Visual evidence disconnected state',
+      },
+    }))
+  }, workspaceId)
+  await expect(page.getByRole('button', { name: 'Disconnected' })).toBeVisible()
+  await page.getByRole('button', { name: 'Disconnected' }).hover()
+  await expect(page.getByRole('tooltip')).toBeVisible()
+  await header.screenshot({ path: path.join(EVIDENCE_DIR, `flashquery-status-chip-disconnected-${label}.png`) })
 }
 
 test('T-A-005..T-A-009 captures FlashQuery visual evidence in light and dark themes', async () => {
@@ -61,10 +97,12 @@ test('T-A-005..T-A-009 captures FlashQuery visual evidence in light and dark the
     ] as const) {
       await switchTheme(page, themeId)
       await prepareVisualSurfaces(page, server.baseUrl, workspaceRoot)
+      const workspaceId = await page.evaluate(() => window.__cateE2E!.selectedWorkspaceId())
       await page.screenshot({
         path: path.join(EVIDENCE_DIR, `flashquery-surfaces-${label}.png`),
         fullPage: true,
       })
+      await captureStatusChipStates(page, workspaceId, label)
     }
   } finally {
     if (app) await closeApp(app)

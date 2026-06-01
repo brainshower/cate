@@ -74,7 +74,7 @@ The phase needs three layers:
 
 - **Evidence over-claim:** Citing old Phase 8 screenshots without confirming current post-handoff state would undercut REQ-022.
 - **Conditional smoke ambiguity:** T-A-011 is conditional; it should be explicitly marked not required if no packaging/Electron config changes occur during Phase 12.
-- **Manual smoke fuzziness:** T-M-001..T-M-004 need concrete notes and commands where possible, not vague "looks good" statements.
+- **Manual smoke fuzziness:** T-M-001..T-M-005 need concrete notes and commands where possible, not vague "looks good" statements.
 - **Scope creep:** Phase 12 must not become a redesign or another upstream merge.
 
 ## Open Questions
