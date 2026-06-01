@@ -22,10 +22,12 @@ This Plan 12.2 evidence checks REQ-018 high-value upstream fix retention, REQ-02
 
 T-M-004 covers REQ-020. Live state on 2026-06-01:
 
-- `rg -n "skillTemplate|SKILL_TEMPLATE|BulkActionChip" src || true` returns `src/main/templates/skillTemplate.ts` and the dynamic `SKILL_TEMPLATE` import/use in `src/main/projectWorkspaceStore.ts`; it returns no `BulkActionChip` import or use.
+- `rg -n "skillTemplate|SKILL_TEMPLATE|BulkActionChip" src || true` returned only `src/main/templates/skillTemplate.ts` and the dynamic `SKILL_TEMPLATE` import/use in `src/main/projectWorkspaceStore.ts`; it returned no `BulkActionChip` import or use.
 - `src/main/templates/skillTemplate.ts` exists.
 - `src/renderer/canvas/BulkActionChip.tsx` does not exist.
 - `src/renderer/canvas/Canvas.tsx` has no `BulkActionChip` import.
+- `npm run build` exited 0.
+- `npm run typecheck` exited 0.
 
 skillTemplate.ts decision: retained. This matches the Phase 8 conflict-review decision because `src/main/projectWorkspaceStore.ts` still dynamically imports `SKILL_TEMPLATE` when installing the project-local Cate workspace skill. Retention preserves the `.cate/workspace.json` authoring/reload workflow and avoids a dangling import.
 
@@ -33,6 +35,5 @@ BulkActionChip.tsx decision: removed. The live tree has no `src/renderer/canvas/
 
 ## Build And Package Evidence
 
-- T-A-003 / REQ-018: `build.log` captures `npm run build`; expected acceptance is `exit_code: 0`.
+- T-A-003 / REQ-018: `build.log` captures `npm run build`; acceptance is `exit_code: 0`.
 - T-A-011: not required. No Phase 12 packaging or Electron dependency changes. `git diff --name-only -- package.json package-lock.json electron-builder.yml .github/workflows/release.yml` returned no files during Plan 12.2.
-
