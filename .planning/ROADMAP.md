@@ -140,7 +140,7 @@ Downstream implementation, QA, and review agents MUST read both documents before
 | 7. Cross-Cutting + Regression               | v1.0      | 3/3            | Complete | 2026-05-30 |
 | 8. Upstream Sync to v1.1.0                  | v1.1      | 6/6            | Complete | 2026-06-01 |
 | 9. Upstream Sync Mainline Handoff           | v1.1      | 3/3            | Complete | 2026-06-01 |
-| 10. Shared Contracts Audit                  | v1.1      | 1/3 | In Progress|  |
+| 10. Shared Contracts Audit                  | v1.1      | 2/3 | In Progress|  |
 
 ## Notes
 
