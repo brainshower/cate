@@ -367,6 +367,8 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
   }, [workspaceId])
 
   useEffect(() => {
+    if (!window.electronAPI.isE2E) return
+
     const handleE2EStatus = (event: Event) => {
       const payload = (event as CustomEvent<{
         workspaceId: string
