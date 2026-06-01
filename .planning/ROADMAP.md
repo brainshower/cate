@@ -6,6 +6,7 @@
 - ✅ **v1.1 Upstream Sync** — Phase 8 (completed 2026-06-01)
 - ✅ **v1.1 Mainline Handoff** — Phase 9 (completed 2026-06-01)
 - ✅ **v1.1 Shared Contracts Audit** — Phase 10 (completed 2026-06-01)
+- ✅ **v1.1 Renderer Behavior Audit** — Phase 11 (completed 2026-06-01)
 
 ## Phases
 
@@ -91,7 +92,7 @@ See archived roadmap for full phase details: [milestones/v1.0-ROADMAP.md](milest
 - [x] `09-02-PLAN.md` — Post-handoff verification.
 - [x] `09-03-PLAN.md` — Provenance gates and planning closeout.
 
-## Active Milestone: v1.1 Shared Contracts Audit
+## Completed Milestone: v1.1 Shared Contracts Audit
 
 **Goal:** Re-audit the post-handoff `main` branch against the upstream-sync shared-contract requirements, harden any missing assertions, and preserve FlashQuery token, IPC, preload, session, and E2E-gating invariants after the v1.1 merge landed on main.
 
@@ -127,6 +128,39 @@ Downstream implementation, QA, and review agents MUST read both documents before
 - [x] `10-02-PLAN.md` — Security/session assertion hardening.
 - [x] `10-03-PLAN.md` — Evidence, cumulative gate, and closeout.
 
+## Completed Milestone: v1.1 Renderer Behavior Audit
+
+**Goal:** Re-audit the post-handoff `main` branch against the upstream-sync renderer-behavior requirements, harden any missing proof around appStore, editor, sidebar, dock tab, command palette, connection dialog, and E2E harness behavior, and leave evidence that downstream agents followed the product docs first.
+
+**Canonical source docs for every downstream agent:**
+
+- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Upstream Sync Report (30-May-2026)/Upstream Sync Requirements.md`
+- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Upstream Sync Report (30-May-2026)/Upstream Sync Test Plan.md`
+
+Downstream implementation, QA, and review agents MUST read both documents before deciding scope, code changes, test coverage, or acceptance criteria for this phase.
+
+### Phase 11: Renderer Behavior Audit
+
+**Goal:** Treat the original upstream-sync Phase 11 "Renderer Behavior" scope as a post-handoff audit/remediation pass: prove the final mainline tree still satisfies FlashQuery renderer workflow, discoverability, editor save, command palette, connection dialog, and E2E harness invariants.
+
+**Requirements:** REQ-003, REQ-007, REQ-011, REQ-012, REQ-013, REQ-014, REQ-015, REQ-016, REQ-017, REQ-019, REQ-024, REQ-025
+**Tests:** T-U-010..T-U-017, T-E-001..T-E-005, T-A-002, T-A-012
+**Status:** Complete
+
+**Success criteria:**
+
+- `createFlashQueryVault(workspaceId)` and the `flashqueryVault` panel type remain intact after upstream appStore/provider refactors.
+- FlashQuery sidebar, workspace tab, dock tab badge, command palette, editor vault URI save path, and connection dialog behavior remain discoverable and functional.
+- FlashQuery E2E harness capabilities remain additive and real Electron flows pass for happy path, vault browse, disconnect/retry, persistence, and stub-server lifecycle.
+- Renderer/harness central-file conflict-review evidence is complete or receives a Phase 11 addendum.
+- Build, typecheck, unit tests, and E2E coverage pass or any non-run is explicitly justified without closing the phase prematurely.
+
+**Plans:**
+
+- [x] `11-01-PLAN.md` — Renderer surface proof audit.
+- [x] `11-02-PLAN.md` — E2E harness and workflow proof audit.
+- [x] `11-03-PLAN.md` — Evidence, cumulative gate, and closeout.
+
 ## Progress
 
 | Phase                                       | Milestone | Plans Complete | Status   | Completed  |
@@ -141,6 +175,7 @@ Downstream implementation, QA, and review agents MUST read both documents before
 | 8. Upstream Sync to v1.1.0                  | v1.1      | 6/6            | Complete | 2026-06-01 |
 | 9. Upstream Sync Mainline Handoff           | v1.1      | 3/3            | Complete | 2026-06-01 |
 | 10. Shared Contracts Audit                  | v1.1      | 3/3 | Complete   | 2026-06-01 |
+| 11. Renderer Behavior Audit                 | v1.1      | 3/3 | Complete   | 2026-06-01 |
 
 ## Notes
 
@@ -148,3 +183,4 @@ Downstream implementation, QA, and review agents MUST read both documents before
 - REQ-020 through REQ-023 are active upstream-sync requirements covering removed-file resolution, `.planning/` tracking, visual evidence, and the future-sync runbook.
 - Phases 8 and 9 were created from the upstream sync requirements and test plan referenced above; downstream agents should treat those product docs as mandatory first reads.
 - Phase 10 exists because the upstream-sync gap analysis originally identified "Shared Contracts" as Phase 10; after the actual Phase 8/9 compression, this is scoped as a post-handoff audit/remediation phase rather than a second merge.
+- Phase 11 exists because the upstream-sync gap analysis originally identified "Renderer Behavior" as Phase 11; after the actual Phase 8/9 compression, this is scoped as a post-handoff audit/remediation phase rather than another merge.

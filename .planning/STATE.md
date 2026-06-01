@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.1
-milestone_name: Shared Contracts Audit
+milestone_name: Renderer Behavior Audit
 status: Complete
-stopped_at: Phase 10 shared-contracts audit complete
-last_updated: "2026-06-01T18:49:39.000Z"
-last_activity: 2026-06-01 — Phase 10 shared-contracts audit passed final verification
+stopped_at: Phase 11 renderer-behavior audit complete
+last_updated: "2026-06-01T20:10:00.000Z"
+last_activity: 2026-06-01 — Phase 11 renderer-behavior audit completed with green build, typecheck, unit, and E2E gates
 progress:
-  total_phases: 10
-  completed_phases: 10
-  total_plans: 35
-  completed_plans: 35
+  total_phases: 11
+  completed_phases: 11
+  total_plans: 38
+  completed_plans: 38
   percent: 100
 ---
 
@@ -21,24 +21,24 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-01 after v1.1 upstream sync planning)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** v1.1 shared-contracts post-handoff audit complete.
+**Current focus:** v1.1 renderer-behavior post-handoff audit complete.
 
 ## Current Position
 
-Phase: 10 — Shared Contracts Audit
-Plan: 10.3 — Evidence, cumulative gate, and closeout
+Phase: 11 — Renderer Behavior Audit
+Plan: 11.3 — Evidence, cumulative gate, and closeout
 Status: Complete
-Last activity: 2026-06-01 — build, typecheck, full unit suite, and focused persistence E2E passed
+Last activity: 2026-06-01 — Phase 11 closed with renderer, E2E, UAT, verification, and final command evidence
 
 ## Session Continuity
 
 Last session: 2026-06-01T18:49:39.000Z
-Stopped At: Phase 10 shared-contracts audit complete
+Stopped At: Phase 11 renderer-behavior audit complete
 Resume File: None
 
 ## Next Up
 
-Phase 10 is complete. Next recommended GSD action: `$gsd-complete-milestone` for v1.1 if no additional phases are desired.
+Phase 11 is complete. Next recommended action: decide whether to create the next explicit milestone or stop the v1.1 post-handoff audit sequence here.
 
 ## Decisions
 
@@ -53,6 +53,9 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table (updated
 | 2026-06-01 | Mainline handoff used fast-forward only from `sync/upstream-v1.1.0`. | Preserves the real upstream merge commit and avoids rewriting, squashing, or cherry-picking the sync history. |
 | 2026-06-01 | Phase 10 is scoped as a post-handoff shared-contract audit/remediation phase. | The product gap analysis originally named Phase 10 as Shared Contracts, but the live roadmap completed the merge in Phase 8 and handoff in Phase 9; this preserves the intent without replaying completed merge work. |
 | 2026-06-01 | Phase 10 completion requires fresh final command evidence. | The audit closes only after build, typecheck, full unit tests, and focused FlashQuery persistence E2E all exit 0 with archived logs. |
+| 2026-06-01 | Phase 11 is scoped as a post-handoff renderer-behavior audit/remediation phase. | The product gap analysis originally named Phase 11 as Renderer Behavior, but the live roadmap completed the merge in Phase 8 and handoff in Phase 9; this preserves the intent without replaying completed merge work. |
+| 2026-06-01 | Phase 11 downstream agents must read the upstream-sync requirements and test plan before renderer audit work. | Prevents renderer/evidence decisions from drifting away from the product-defined requirements and canonical test IDs. |
+| 2026-06-01 | Phase 11 closed only after final command evidence passed. | Build, typecheck, unit tests, and full E2E all exited 0 before ROADMAP/STATE were marked complete. |
 
 ## Deferred Items
 
@@ -90,4 +93,4 @@ Items acknowledged and deferred at milestone close on 2026-05-30:
 
 ## Operator Next Steps
 
-- Review Phase 10 final evidence under `.planning/phases/10-shared-contracts-audit/evidence/final/`, then complete the v1.1 milestone if no additional phases are needed.
+- Review Phase 11 artifacts if desired: `.planning/phases/11-renderer-behavior-audit/11-VERIFICATION.md` and `.planning/phases/11-renderer-behavior-audit/11-UAT.md`.
