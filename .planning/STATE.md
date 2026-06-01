@@ -1,50 +1,58 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: Vault Connect, Read, Edit
-status: Awaiting next milestone
-stopped_at: Completed 07-03-PLAN.md
-last_updated: "2026-05-31T00:49:08.240Z"
-last_activity: 2026-05-31 — Milestone v1.0 completed and archived
+milestone: v1.1
+milestone_name: Upstream Sync
+status: Planning
+stopped_at: Created Phase 8 PLAN.md files
+last_updated: "2026-06-01T00:00:00.000Z"
+last_activity: 2026-06-01 — Phase 8 upstream sync planning created from product requirements and test plan
 progress:
-  total_phases: 7
+  total_phases: 8
   completed_phases: 7
-  total_plans: 23
+  total_plans: 29
   completed_plans: 23
-  percent: 100
+  percent: 79
 ---
 
 # Project State
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-05-30 after v1.0 shipped)
+See: `.planning/PROJECT.md` (updated 2026-06-01 after v1.1 upstream sync planning)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** Planning next milestone (run `/gsd:new-milestone`).
+**Current focus:** Phase 8 upstream sync to Cate `v1.1.0`.
 
 ## Current Position
 
-Phase: —
-Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-05-30 — v1.0 Vault Connect, Read, Edit shipped and archived
+Phase: 8 — Upstream Sync to `v1.1.0`
+Plan: 8.1 — Baseline and branch setup
+Status: Planned
+Last activity: 2026-06-01 — Phase 8 planning created from upstream sync requirements/test plan
 
 ## Session Continuity
 
-Last session: 2026-05-30
-Stopped At: v1.0 milestone complete
+Last session: 2026-06-01
+Stopped At: Phase 8 plans created
 Resume File: None
 
 ## Next Up
 
-Milestone v1.0 complete. Run `/gsd:new-milestone` to start v1.1. Candidate themes captured in PROJECT.md "Current State" → "Next Milestone Goals" and ROADMAP.md "Next Milestone".
+Start Phase 8 execution from `.planning/phases/08-upstream-sync-v1-1-0/08-01-PLAN.md`.
+
+Downstream agents must read these source docs before implementation:
+
+- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Upstream Sync Report (30-May-2026)/Upstream Sync Requirements.md`
+- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Upstream Sync Report (30-May-2026)/Upstream Sync Test Plan.md`
 
 ## Decisions
 
 Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table (updated after each phase transition and milestone). v1.0 phase-level decisions are also preserved verbatim in `.planning/milestones/v1.0-phases/*/SUMMARY.md` `key-decisions:` frontmatter. STATE.md begins fresh with the next active milestone.
 
-*(Active milestone decisions will accumulate here as v1.1+ runs.)*
+| Date | Decision | Rationale |
+|------|----------|-----------|
+| 2026-06-01 | Phase 8 uses the upstream sync requirements/test plan as mandatory source-of-truth docs. | Keeps migration planning aligned to the product spec and ensures implementation agents do not answer scope questions from memory. |
+| 2026-06-01 | Phase 8 is a migration phase, not a new FlashQuery feature phase. | Prevents scope creep while merging upstream `v1.1.0`. |
 
 ## Deferred Items
 
@@ -78,4 +86,4 @@ Items acknowledged and deferred at milestone close on 2026-05-30:
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Execute Phase 8 Plan 8.1 from `.planning/phases/08-upstream-sync-v1-1-0/08-01-PLAN.md`.

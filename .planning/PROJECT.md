@@ -24,7 +24,16 @@ A Cate workspace can connect to a separately-running FlashQuery HTTP MCP server,
 - **Debt-01:** REQ-035.3 / REQ-037.1 spec contradiction with §11.5 token-flow rule.
 - **Debt-02:** T-M-002..T-M-007 PDF-level visual-fidelity capture deferred.
 
-**Next Milestone Goals (provisional, awaiting `/gsd:new-milestone`):**
+**Active milestone:** v1.1 Upstream Sync (planned 2026-06-01).
+
+The active work is a controlled merge of upstream Cate stable tag `v1.1.0` into the FlashQuery fork. This is a migration milestone, not a new FlashQuery feature milestone. It must preserve v1.0 behavior and security guarantees while adopting upstream architecture/fixes and producing a future-sync runbook.
+
+Canonical source docs for this milestone:
+
+- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Upstream Sync Report (30-May-2026)/Upstream Sync Requirements.md`
+- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Upstream Sync Report (30-May-2026)/Upstream Sync Test Plan.md`
+
+**Next Feature Milestone Goals (deferred until after upstream sync):**
 
 Strong candidates surfaced during the v1.0 close-out testing session:
 
@@ -59,7 +68,7 @@ Strong candidates surfaced during the v1.0 close-out testing session:
 
 ### Active
 
-Empty. v1.1 requirements TBD — see "Next Milestone Goals" under "Current State" for candidates.
+- Controlled upstream sync from the FlashQuery fork to upstream Cate stable tag `v1.1.0`, preserving FlashQuery v1 behavior/security/E2E guarantees and recording future-sync provenance.
 
 ### Out of Scope
 
@@ -140,6 +149,8 @@ Known codebase concerns that affect ongoing work:
 | Test Connection probes URL+token (not just URL) | UX trap during live testing — user typed correct token, server logged wrong token; Test Connection said success either way | ✓ Good — post-milestone `9820189` (Gap 7) |
 | Treat T-M-002..T-M-007 visual-fidelity capture as deferred debt | Visual-regression infrastructure (Percy/Chromatic) out of scope for v1; live testing surfaced Gaps 9/10/11 that the deferred check would have caught | ⚠️ Revisit in v1.1 — Debt-02 |
 | Treat REQ-035.3 / REQ-037.1 spec contradiction with §11.5 as deferred debt | Implementation chose the right invariant; spec wording lags | ⚠️ Revisit in v1.1 — Debt-01 |
+| Treat upstream sync product docs as source of truth for Phase 8 | The migration has a purpose-built requirements spec and paired test plan with resolved decisions and traceability | Planned — Phase 08 |
+| Keep Phase 8 as migration-only scope | Avoids mixing upstream sync risk with new FlashQuery feature work | Planned — Phase 08 |
 
 ## Planning Preference
 
@@ -163,4 +174,4 @@ This document evolves at milestone boundaries and, once explicitly created, phas
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-30 after shipping v1.0 Vault Connect, Read, Edit*
+*Last updated: 2026-06-01 after creating v1.1 upstream sync planning*

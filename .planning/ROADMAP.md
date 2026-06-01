@@ -3,6 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 Vault Connect, Read, Edit** — Phases 1-7 (shipped 2026-05-30) — [archive](milestones/v1.0-ROADMAP.md)
+- ◆ **v1.1 Upstream Sync** — Phase 8 (planned 2026-06-01)
 
 ## Phases
 
@@ -23,19 +24,39 @@ See archived roadmap for full phase details: [milestones/v1.0-ROADMAP.md](milest
 
 </details>
 
-### Next Milestone
+## Active Milestone: v1.1 Upstream Sync
 
-No active milestone. Run `/gsd:new-milestone` to plan the next milestone.
+**Goal:** Merge upstream Cate stable tag `v1.1.0` into the FlashQuery fork with a real two-parent merge, preserve all FlashQuery v1 behavior/security/E2E guarantees, adopt upstream fixes and architecture changes, and leave a future-sync runbook for the next merge.
 
-Candidate themes surfaced during v1.0 close-out testing (see `.planning/PROJECT.md` "Current State" → "Next Milestone Goals"):
+**Canonical source docs for every downstream agent:**
 
-- Reload-from-FlashQuery affordance for vault editor docs.
-- "Live vault notifications" subscription (server-push for vault changes).
-- New-vault-document creation flow.
-- Conflict detection / expected-version round-trip (defers REQ-042 invariant).
-- Visual-fidelity capture for T-M-002..T-M-007 (close Debt-02).
-- Spec amendment workflow for REQ-035.3 / REQ-037.1 (close Debt-01).
-- Renderer Sentry gating on DSN (silence sentry-ipc:// DevTools noise).
+- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Upstream Sync Report (30-May-2026)/Upstream Sync Requirements.md`
+- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Upstream Sync Report (30-May-2026)/Upstream Sync Test Plan.md`
+
+### Phase 8: Upstream Sync to `v1.1.0`
+
+**Goal:** Execute and verify the controlled upstream sync migration in the sequence defined by the product requirements and test plan.
+
+**Requirements:** REQ-001..REQ-026
+**Tests:** T-A-001..T-A-015, T-U-001..T-U-017, T-E-001..T-E-005, T-M-001..T-M-005
+**Status:** Planned
+
+**Success criteria:**
+
+- Baseline output for build, typecheck, unit, and E2E is captured before merge.
+- Upstream `v1.1.0` is merged as a real two-parent merge with provenance recorded.
+- FlashQuery token, IPC, session, write-payload, sidebar, editor, dialog, panel, command palette, and E2E harness invariants are preserved.
+- Upstream build/packaging, theming, terminal/perf, agent/provider, file-exclusion, workspace-reload, and editor fixes are adopted.
+- Full automated matrix, visual evidence, product smoke, conflict-review notes, `.planning/` tracking, and future-sync runbook gates pass.
+
+**Plans:**
+
+- [ ] `08-01-PLAN.md` — Baseline and branch setup.
+- [ ] `08-02-PLAN.md` — Build, dependency, and packaging migration.
+- [ ] `08-03-PLAN.md` — Shared contracts and security invariants.
+- [ ] `08-04-PLAN.md` — Renderer behavior and E2E harness preservation.
+- [ ] `08-05-PLAN.md` — Upstream feature compatibility, theming, and visual evidence.
+- [ ] `08-06-PLAN.md` — Verification, runbook, provenance, and release readiness.
 
 ## Progress
 
@@ -48,8 +69,10 @@ Candidate themes surfaced during v1.0 close-out testing (see `.planning/PROJECT.
 | 5. Settings Dialog + Workspace Menu Entry   | v1.0      | 3/3            | Complete | 2026-05-29 |
 | 6. Editor URI-Awareness + Vault Badge       | v1.0      | 4/4            | Complete | 2026-05-29 |
 | 7. Cross-Cutting + Regression               | v1.0      | 3/3            | Complete | 2026-05-30 |
+| 8. Upstream Sync to v1.1.0                  | v1.1      | 0/6            | Planned  | —          |
 
 ## Notes
 
 - Roadmap phases exist only when the project owner explicitly creates a milestone.
 - REQ-020 through REQ-023 are intentionally reserved/vacant in the source product docs.
+- Phase 8 was created from the upstream sync requirements and test plan referenced above; downstream agents should treat those product docs as mandatory first reads.

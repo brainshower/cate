@@ -1,5 +1,18 @@
 # Milestones
 
+## v1.1 Upstream Sync (Planned: 2026-06-01)
+
+**Phases planned:** 1 phase, 6 plans
+
+**Goal:** Merge upstream Cate stable tag `v1.1.0` into the FlashQuery fork while preserving FlashQuery v1 behavior, security guarantees, E2E coverage, and planning history.
+
+**Canonical source docs:**
+
+- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Upstream Sync Report (30-May-2026)/Upstream Sync Requirements.md`
+- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Upstream Sync Report (30-May-2026)/Upstream Sync Test Plan.md`
+
+**Phase plan:** `.planning/phases/08-upstream-sync-v1-1-0/`
+
 ## v1.0 Vault Connect, Read, Edit (Shipped: 2026-05-31)
 
 **Phases completed:** 7 phases, 23 plans, 61 tasks
