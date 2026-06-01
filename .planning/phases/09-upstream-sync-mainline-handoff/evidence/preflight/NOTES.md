@@ -55,3 +55,16 @@ Phase 8 verification records `Status: Passed`, a final green matrix, and a gap-c
 ## Handoff Decision
 
 Proceed with a fast-forward-only handoff from `sync/upstream-v1.1.0` to `main` only. Do not rebase, squash, cherry-pick, or create a new merge commit during handoff. If `main` cannot fast-forward, stop for operator review.
+
+## Handoff Result
+
+Completed on 2026-06-01T17:58:11Z.
+
+- Switched to `main`.
+- Ran `git pull --ff-only`; result: already up to date.
+- Verified `main` was an ancestor of `sync/upstream-v1.1.0`.
+- Ran `git merge --ff-only sync/upstream-v1.1.0`.
+- Final branch: `main`.
+- Final `main` tip: `151e13dacbc0eb53589906c48e0a1a1e6a55383f`.
+- `git status --short`: clean after fast-forward.
+- Existing upstream merge commit remains: `318214f93c35b1056a17c256966897fb4c941a3a`.
