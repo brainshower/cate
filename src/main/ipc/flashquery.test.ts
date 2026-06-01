@@ -18,6 +18,16 @@ const mocks = vi.hoisted(() => ({
   getWorkspaceToken: vi.fn(),
   setWorkspaceToken: vi.fn(),
   fetch: vi.fn(),
+  mcpClientConnect: vi.fn(),
+  mcpClientClose: vi.fn(),
+  mcpTransport: vi.fn(function MockStreamableHTTPClientTransport(
+    this: { url: URL; options: unknown },
+    url: URL,
+    options: unknown,
+  ) {
+    this.url = url
+    this.options = options
+  }),
   managerInstances: [] as Array<{
     connect: ReturnType<typeof vi.fn>
     dispose: ReturnType<typeof vi.fn>
@@ -32,6 +42,17 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('electron', () => ({
   ipcMain: { handle: mocks.handle },
+}))
+
+vi.mock('@modelcontextprotocol/sdk/client/index.js', () => ({
+  Client: vi.fn(() => ({
+    connect: mocks.mcpClientConnect,
+    close: mocks.mcpClientClose,
+  })),
+}))
+
+vi.mock('@modelcontextprotocol/sdk/client/streamableHttp.js', () => ({
+  StreamableHTTPClientTransport: mocks.mcpTransport,
 }))
 
 vi.mock('../workspaceManager', () => ({
@@ -79,6 +100,11 @@ describe('FlashQuery IPC handlers', () => {
     mocks.getWorkspaceToken.mockReset()
     mocks.setWorkspaceToken.mockReset()
     mocks.fetch.mockReset()
+    mocks.mcpClientConnect.mockReset()
+    mocks.mcpClientClose.mockReset()
+    mocks.mcpTransport.mockClear()
+    mocks.mcpClientConnect.mockResolvedValue(undefined)
+    mocks.mcpClientClose.mockResolvedValue(undefined)
     mocks.managerInstances.length = 0
     vi.stubGlobal('fetch', mocks.fetch)
   })
@@ -330,6 +356,15 @@ describe('FlashQuery IPC handlers', () => {
       headers: { Accept: 'application/json' },
       signal: expect.any(AbortSignal),
     })
+    expect(mocks.mcpTransport).toHaveBeenCalledWith(new URL('https://flashquery.local/mcp'), {
+      requestInit: { headers: expect.any(Headers) },
+    })
+    const [, transportOptions] = mocks.mcpTransport.mock.calls[0]
+    expect((transportOptions as { requestInit: { headers: Headers } }).requestInit.headers.get('Authorization'))
+      .toBe('Bearer current-token')
+    expect(mocks.mcpClientConnect).toHaveBeenCalledWith(expect.objectContaining({
+      url: new URL('https://flashquery.local/mcp'),
+    }))
     expect(mocks.updateWorkspace).not.toHaveBeenCalled()
     expect(mocks.broadcastWorkspaceChange).not.toHaveBeenCalled()
     expect(mocks.setWorkspaceToken).not.toHaveBeenCalled()
