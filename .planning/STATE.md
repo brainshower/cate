@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.1
-milestone_name: Mainline Handoff
-status: Complete
-stopped_at: Phase 9 upstream-sync mainline handoff complete
-last_updated: "2026-06-01T18:06:00.000Z"
-last_activity: 2026-06-01 — Phase 9 mainline handoff completed with green post-handoff verification
+milestone_name: Shared Contracts Audit
+status: Planned
+stopped_at: Phase 10 planned
+last_updated: "2026-06-01T18:45:41.549Z"
+last_activity: 2026-06-01 — phase plan created from the upstream-sync requirements and test plan
 progress:
-  total_phases: 9
-  completed_phases: 9
-  total_plans: 32
-  completed_plans: 32
-  percent: 100
+  total_phases: 3
+  completed_phases: 2
+  total_plans: 12
+  completed_plans: 10
+  percent: 67
 ---
 
 # Project State
@@ -21,24 +21,24 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-01 after v1.1 upstream sync planning)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** v1.1 upstream-sync mainline handoff complete.
+**Current focus:** v1.1 shared-contracts post-handoff audit planned.
 
 ## Current Position
 
-Phase: 9 — Upstream Sync Mainline Handoff
-Plan: 9.3 — Provenance gates and planning closeout
-Status: Complete
-Last activity: 2026-06-01 — main fast-forwarded and post-handoff gates passed
+Phase: 10 — Shared Contracts Audit
+Plan: 10.1 — Contract inventory and proof audit
+Status: Planned
+Last activity: 2026-06-01 — phase plan created from the upstream-sync requirements and test plan
 
 ## Session Continuity
 
-Last session: 2026-06-01T18:06:00.000Z
-Stopped At: Phase 9 complete
+Last session: 2026-06-01T18:30:00.000Z
+Stopped At: Phase 10 planned
 Resume File: None
 
 ## Next Up
 
-v1.1 mainline handoff is complete. Phase 9 verification lives at `.planning/phases/09-upstream-sync-mainline-handoff/09-VERIFICATION.md`.
+Execute `.planning/phases/10-shared-contracts-audit/10-01-PLAN.md`. Implementation agents must read the upstream-sync requirements and test plan before touching code or tests.
 
 ## Decisions
 
@@ -51,6 +51,7 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table (updated
 | 2026-06-01 | Upstream `v1.1.0` was merged as a real two-parent merge commit. | Preserves future sync provenance and advances the fork's upstream merge base to `5b6549d`. |
 | 2026-06-01 | Phase 9 downstream agents must read the upstream-sync requirements and test plan before handoff work. | Prevents mainline handoff from drifting away from the product-defined process/provenance and verification gates. |
 | 2026-06-01 | Mainline handoff used fast-forward only from `sync/upstream-v1.1.0`. | Preserves the real upstream merge commit and avoids rewriting, squashing, or cherry-picking the sync history. |
+| 2026-06-01 | Phase 10 is scoped as a post-handoff shared-contract audit/remediation phase. | The product gap analysis originally named Phase 10 as Shared Contracts, but the live roadmap completed the merge in Phase 8 and handoff in Phase 9; this preserves the intent without replaying completed merge work. |
 
 ## Deferred Items
 
@@ -82,7 +83,8 @@ Items acknowledged and deferred at milestone close on 2026-05-30:
 | Phase 07 P02 | 30min | 3 tasks | 16 files |
 | Phase 07 P03 | 10min | 4 tasks | 5 files |
 | Phase 08 | 90min | 25 tasks | upstream merge + evidence |
+| Phase 10 P10.1 | 12 min | 3 tasks | 3 files |
 
 ## Operator Next Steps
 
-- Push `main` when ready and start the next milestone when product direction is set.
+- Execute Phase 10 Plan 10.1, then continue through Plans 10.2 and 10.3 if gaps are found or evidence needs closeout.

@@ -73,6 +73,7 @@ Merge upstream Cate stable tag `v1.1.0` into the FlashQuery fork with a real two
 | REQ-021, REQ-023, REQ-026 | Phase 9 Plan 9.1: Handoff preflight and fast-forward | Planned |
 | REQ-024 | Phase 9 Plan 9.2: Post-handoff verification | Planned |
 | REQ-021, REQ-023, REQ-026 | Phase 9 Plan 9.3: Provenance gates and planning closeout | Planned |
+| REQ-005, REQ-006, REQ-008, REQ-009, REQ-010, REQ-019, REQ-024, REQ-025 | Phase 10 Plans 10.1..10.3: Shared-contracts post-handoff audit | Planned |
 
 ## Out Of Scope
 
@@ -87,6 +88,14 @@ Merge upstream Cate stable tag `v1.1.0` into the FlashQuery fork with a real two
 Phase 9 does not add new product requirements beyond the upstream-sync specification. It exists to make the already-verified `sync/upstream-v1.1.0` branch safe to hand off to the mainline by re-reading the canonical source docs, preserving Phase 8 evidence, checking the same process/provenance gates after handoff, and closing planning state only after fresh verification.
 
 Downstream agents MUST continue to treat the two canonical source documents at the top of this file as the first source of truth for handoff and verification questions.
+
+## Phase 10 Shared Contracts Audit Addendum
+
+Phase 10 does not repeat the upstream merge. It preserves the original upstream-sync gap-analysis intent for "Phase 10: Shared Contracts" as a post-handoff audit/remediation pass on `main`.
+
+Downstream implementation, QA, and review agents MUST read the two canonical source documents at the top of this file before deciding scope, code changes, test coverage, or acceptance criteria. If those documents and local planning artifacts disagree, the product requirements document controls behavior and the paired test plan controls verification IDs and pass/fail criteria.
+
+Phase 10 is limited to REQ-005, REQ-006, REQ-008, REQ-009, REQ-010, REQ-019, REQ-024, and REQ-025 plus their mapped tests T-U-001 through T-U-009, T-E-004, T-A-002, T-A-004, and T-A-012. New product features, a second upstream merge, unreleased upstream `main` commits, and app/package release work remain out of scope.
 
 ---
 

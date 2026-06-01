@@ -5,6 +5,7 @@
 - ✅ **v1.0 Vault Connect, Read, Edit** — Phases 1-7 (shipped 2026-05-30) — [archive](milestones/v1.0-ROADMAP.md)
 - ✅ **v1.1 Upstream Sync** — Phase 8 (completed 2026-06-01)
 - ✅ **v1.1 Mainline Handoff** — Phase 9 (completed 2026-06-01)
+- ◐ **v1.1 Shared Contracts Audit** — Phase 10 (planned 2026-06-01)
 
 ## Phases
 
@@ -90,6 +91,42 @@ See archived roadmap for full phase details: [milestones/v1.0-ROADMAP.md](milest
 - [x] `09-02-PLAN.md` — Post-handoff verification.
 - [x] `09-03-PLAN.md` — Provenance gates and planning closeout.
 
+## Active Milestone: v1.1 Shared Contracts Audit
+
+**Goal:** Re-audit the post-handoff `main` branch against the upstream-sync shared-contract requirements, harden any missing assertions, and preserve FlashQuery token, IPC, preload, session, and E2E-gating invariants after the v1.1 merge landed on main.
+
+**Canonical source docs for every downstream agent:**
+
+- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Upstream Sync Report (30-May-2026)/Upstream Sync Requirements.md`
+- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Upstream Sync Report (30-May-2026)/Upstream Sync Test Plan.md`
+
+Downstream implementation, QA, and review agents MUST read both documents before deciding scope, code changes, test coverage, or acceptance criteria for this phase.
+
+### Phase 10: Shared Contracts Audit
+
+**Goal:** Treat the original upstream-sync Phase 10 "Shared Contracts" scope as a post-handoff audit/remediation pass: prove the final mainline tree still satisfies the shared IPC/type/preload/session invariants and close any gaps with targeted tests or documentation.
+
+**Requirements:** REQ-005, REQ-006, REQ-008, REQ-009, REQ-010, REQ-019, REQ-024, REQ-025
+**Tests:** T-U-001..T-U-009, T-E-004, T-A-002, T-A-004, T-A-012
+**Status:** Planned
+
+**Success criteria:**
+
+- The seven `flashquery:*` IPC channel strings remain exact and collision-free in the post-handoff mainline tree.
+- FlashQuery renderer/preload API types still expose the expected methods without widening privileged payloads.
+- Bearer tokens remain main-process only: not returned to renderer, logged, or persisted to workspace/session files.
+- `/mcp/info` remains unauthenticated while private MCP calls remain bearer-authenticated and 401-specific.
+- Pre-merge workspace/session fixtures still load with sanitized FlashQuery metadata.
+- E2E-only preload and renderer harness surfaces remain gated by `CATE_E2E`.
+- Central contract conflict-review evidence remains present and references the relevant test IDs.
+- Build, typecheck, unit tests, and focused E2E persistence coverage pass or any non-run is explicitly justified.
+
+**Plans:**
+
+- [ ] `10-01-PLAN.md` — Contract inventory and proof audit.
+- [ ] `10-02-PLAN.md` — Security/session assertion hardening.
+- [ ] `10-03-PLAN.md` — Evidence, cumulative gate, and closeout.
+
 ## Progress
 
 | Phase                                       | Milestone | Plans Complete | Status   | Completed  |
@@ -103,9 +140,11 @@ See archived roadmap for full phase details: [milestones/v1.0-ROADMAP.md](milest
 | 7. Cross-Cutting + Regression               | v1.0      | 3/3            | Complete | 2026-05-30 |
 | 8. Upstream Sync to v1.1.0                  | v1.1      | 6/6            | Complete | 2026-06-01 |
 | 9. Upstream Sync Mainline Handoff           | v1.1      | 3/3            | Complete | 2026-06-01 |
+| 10. Shared Contracts Audit                  | v1.1      | 1/3 | In Progress|  |
 
 ## Notes
 
 - Roadmap phases exist only when the project owner explicitly creates a milestone.
 - REQ-020 through REQ-023 are active upstream-sync requirements covering removed-file resolution, `.planning/` tracking, visual evidence, and the future-sync runbook.
 - Phases 8 and 9 were created from the upstream sync requirements and test plan referenced above; downstream agents should treat those product docs as mandatory first reads.
+- Phase 10 exists because the upstream-sync gap analysis originally identified "Shared Contracts" as Phase 10; after the actual Phase 8/9 compression, this is scoped as a post-handoff audit/remediation phase rather than a second merge.
