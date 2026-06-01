@@ -17,7 +17,7 @@ Phase 10's final full FlashQuery E2E gate is treated as a baseline being recheck
 | REQ-007 | `evidence/renderer/NOTES.md` confirms body-only renderer write payload coverage through `EditorPanel.test.tsx` and IPC tests. | Passed |
 | REQ-011 | `evidence/renderer/NOTES.md` and `evidence/e2e/NOTES.md` confirm sidebar/vault browse discoverability. | Passed |
 | REQ-012 | `evidence/renderer/NOTES.md` confirms `createFlashQueryVault()` and `flashqueryVault` default panel sizing. | Passed |
-| REQ-013 | `evidence/renderer/NOTES.md` and full E2E confirm vault URI read/write/save/dirty behavior. | Passed |
+| REQ-013 | `evidence/renderer/NOTES.md` and full E2E confirm vault URI read/write/save/dirty behavior for the Phase 11 FlashQuery-preservation half. The upstream-editor-fix coexistence smoke (`T-M-002`, commits `063b61d`/`0822786`) is Phase 12 scope and remains an explicit carry-forward. | Passed in Phase 11 scope |
 | REQ-014 | `evidence/renderer/NOTES.md` confirms `VaultBadge` and dock tab treatment remain covered. | Passed |
 | REQ-015 | `evidence/renderer/NOTES.md`, `evidence/e2e/NOTES.md`, and full E2E confirm `New FlashQuery Vault` command-palette behavior. | Passed |
 | REQ-016 | `evidence/renderer/NOTES.md` and `evidence/e2e/NOTES.md` confirm connection dialog probe/save plus disconnect/retry behavior. | Passed |
@@ -49,3 +49,7 @@ Phase 10's final full FlashQuery E2E gate is treated as a baseline being recheck
 ## UAT Result
 
 Passed. No unresolved renderer behavior gaps remain in Phase 11 scope.
+
+## AI Dev Agent Follow-Up
+
+GPT-5 Codex closed the Phase 11 gap-analysis findings by adding behavioral component coverage for `T-U-011`, `T-U-012`, and `T-U-015`, and by qualifying REQ-013 as passed in Phase 11 scope with `T-M-002` carried to Phase 12. Fresh verification on 2026-06-01 passed `npm run build`, `npm run typecheck`, `npm test` (602 passed, 3 skipped), and `npm run test:e2e` (32 passed, 2 skipped).

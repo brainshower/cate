@@ -28,7 +28,7 @@ Phase 10's full FlashQuery E2E gate is the baseline being rechecked, not a subst
 | REQ-007 | Passed | body-only write proof in renderer evidence and IPC/editor tests. |
 | REQ-011 | Passed | sidebar/vault browse proof in renderer and E2E evidence. |
 | REQ-012 | Passed | `createFlashQueryVault()` and `flashqueryVault` proof in renderer evidence. |
-| REQ-013 | Passed | editor URI save/dirty proof and happy-path E2E. |
+| REQ-013 | Passed in Phase 11 scope; Phase 12 carry-forward noted | Phase 11 verifies the FlashQuery-preservation half with editor URI save/dirty proof, URI helper tests, and happy-path E2E. The upstream-editor-fix coexistence smoke (`T-M-002`, commits `063b61d`/`0822786`) is Phase 12 scope and must remain carried there. |
 | REQ-014 | Passed | VaultBadge/DockTabBar proof and component tests. |
 | REQ-015 | Passed | command-palette `New FlashQuery Vault` proof and T-U-017 E2E. |
 | REQ-016 | Passed | connection dialog and disconnect/retry proof. |
@@ -49,5 +49,16 @@ Phase 10's full FlashQuery E2E gate is the baseline being rechecked, not a subst
 ## Open Gaps
 
 None.
+
+## AI Dev Agent Follow-Up Verification
+
+After closing the Phase 11 gap-analysis findings for `T-U-011`, `T-U-012`, `T-U-015`, and REQ-013 verdict precision, GPT-5 Codex reran the cumulative gates on 2026-06-01:
+
+| Command | Result |
+| --- | --- |
+| `npm run build` | Passed, exit 0 |
+| `npm run typecheck` | Passed, exit 0 |
+| `npm test` | Passed: 65 files, 602 passed, 3 skipped |
+| `npm run test:e2e` | Passed: 32 passed, 2 skipped |
 
 ## VERIFICATION PASSED

@@ -30,18 +30,18 @@ No focused remediation was needed.
 
 | Proof ID | Requirement | Evidence | Status |
 | --- | --- | --- | --- |
-| T-U-011 | REQ-011 | `src/renderer/sidebar/Sidebar.tsx` keeps `flashqueryVault` in `VIEW_META` with `Vault` icon and `FlashQuery Vault` title, and routes the view to `FlashQueryVaultPanel`. | Passed |
-| T-U-012 | REQ-014 | `src/renderer/components/VaultBadge.tsx` renders vault URI context, and `src/renderer/docking/DockTabBar.tsx` reserves extra tab width and renders `VaultBadge` for vault editor tabs. | Passed |
-| T-U-015 | REQ-011 | `src/renderer/sidebar/WorkspaceTab.tsx` remains covered by focused tests for FlashQuery workspace menu behavior and panel navigation surfaces. | Passed |
+| T-U-011 | REQ-011 | `src/renderer/panels/FlashQueryVaultPanel.test.tsx` now imports `VIEW_META` / `SidebarViewContent`, asserts the `flashqueryVault` entry uses the `Vault` icon and `FlashQuery Vault` title, then mounts the sidebar view and drives the live status path to prove it resolves to `FlashQueryVaultPanel`. | Passed |
+| T-U-012 | REQ-014 | `src/renderer/docking/DockTabBar.test.tsx` now renders `DockTabBar` with a `flashquery://` editor tab, asserts `VaultBadge` appears in the tab chrome with the workspace connection host, and asserts the vault-editor widened tab treatment (`max-w-[280px]`) is applied. `VaultBadge.test.tsx` continues to cover the badge itself. | Passed |
+| T-U-015 | REQ-011 | `src/renderer/sidebar/WorkspaceTab.test.tsx` now seeds a `flashqueryVault` panel, expands the workspace tree, asserts the panel row is listed, clicks it, and verifies the dock stack becomes visible with the vault panel active. | Passed |
 | T-U-017 | REQ-015 | `src/renderer/ui/CommandPalette.tsx` includes `New FlashQuery Vault` and invokes `createFlashQueryVault(selectedWorkspaceId, undefined, dockCenter)`. `e2e/flashquery-happy-path.spec.ts` contains a dedicated `T-U-017` command-palette path. | Passed |
 
 Fresh verification:
 
-- `npm test -- src/renderer/panels/FlashQueryVaultPanel.test.tsx src/renderer/components/VaultBadge.test.tsx src/renderer/sidebar/WorkspaceTab.test.tsx` -> 3 files, 41 tests passed.
+- `npm test -- src/renderer/sidebar/WorkspaceTab.test.tsx src/renderer/docking/DockTabBar.test.tsx src/renderer/panels/FlashQueryVaultPanel.test.tsx` -> 3 files, 38 tests passed.
 - `npm run test:e2e -- e2e/flashquery-happy-path.spec.ts` -> 2 Playwright tests passed, including `T-U-017 opens a FlashQuery Vault from the command palette` and `T-E-001 happy path / T-E-008 plus T-E-009 opens on canvas`.
 - `rg -n "flashqueryVault|FlashQuery Vault|New FlashQuery Vault|VaultBadge|T-U-017" ...` confirmed all audited renderer entry points.
 
-No focused remediation was needed.
+Focused remediation added behavioral coverage for T-U-011, T-U-012, and T-U-015 after the Phase 11 gap audit found those IDs had been marked Pass using static/proxy evidence.
 
 ## Editor, URI, And Connection Dialog
 

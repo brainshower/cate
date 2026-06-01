@@ -22,6 +22,7 @@ vi.mock('../hooks/useAgentPanelInfo', () => ({
 import { TerminalPanelRow, WorkspaceTab } from './WorkspaceTab'
 import { useAppStore } from '../stores/appStore'
 import { useUIStore } from '../stores/uiStore'
+import { useDockStore } from '../stores/dockStore'
 import type { AgentState, WorkspaceState } from '../../shared/types'
 import type { ElectronAPI, NativeContextMenuItem } from '../../shared/electron-api'
 
@@ -281,5 +282,84 @@ describe('WorkspaceTab FlashQuery native context menu', () => {
     expect(host.querySelector('[role="menu"]')).toBeNull()
     expect(host.querySelector('[data-testid*="context-menu"]')).toBeNull()
     expect(host.querySelector('.context-menu')).toBeNull()
+  })
+})
+
+describe('WorkspaceTab FlashQuery panel jump', () => {
+  it('T-U-015 lists flashqueryVault panels and focuses them through the dock stack', async () => {
+    const api = makeElectronApi()
+    const selectWorkspace = vi.fn().mockResolvedValue(undefined)
+    const stack = { type: 'tabs' as const, id: 'stack-1', panelIds: ['editor-1', 'vault-1'], activeIndex: 0 }
+    const workspaceWithVault: WorkspaceState = {
+      ...workspace,
+      panels: {
+        'editor-1': {
+          id: 'editor-1',
+          type: 'editor',
+          title: 'Plan.md',
+          isDirty: false,
+          filePath: '/Users/matt/project/Plan.md',
+        },
+        'vault-1': {
+          id: 'vault-1',
+          type: 'flashqueryVault',
+          title: 'FlashQuery Vault',
+          isDirty: false,
+        },
+      },
+    }
+
+    setElectronApi(api)
+    useAppStore.setState({
+      selectedWorkspaceId: workspace.id,
+      workspaces: [workspaceWithVault],
+      selectWorkspace,
+    })
+    useDockStore.setState({
+      zones: {
+        ...useDockStore.getState().zones,
+        left: {
+          ...useDockStore.getState().zones.left,
+          visible: false,
+          layout: stack,
+        },
+      },
+      panelLocations: {
+        'editor-1': { type: 'dock', zone: 'left', stackId: 'stack-1' },
+        'vault-1': { type: 'dock', zone: 'left', stackId: 'stack-1' },
+      },
+    })
+
+    act(() => {
+      root.render(
+        <WorkspaceTab
+          workspace={workspaceWithVault}
+          isSelected={true}
+          onClick={() => {}}
+          onClose={() => {}}
+        />,
+      )
+    })
+
+    await act(async () => {
+      host.querySelector<HTMLButtonElement>('button[title="Expand"]')?.click()
+      await Promise.resolve()
+    })
+
+    const vaultPanelRow = Array.from(host.querySelectorAll('button'))
+      .find((button) => button.textContent === 'FlashQuery Vault')
+    expect(vaultPanelRow).toBeTruthy()
+
+    await act(async () => {
+      vaultPanelRow!.click()
+      await Promise.resolve()
+    })
+
+    expect(selectWorkspace).not.toHaveBeenCalled()
+    expect(useDockStore.getState().zones.left.visible).toBe(true)
+    expect(useDockStore.getState().zones.left.layout).toMatchObject({
+      id: 'stack-1',
+      activeIndex: 1,
+    })
   })
 })

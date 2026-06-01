@@ -23,7 +23,7 @@ import pkg from '../../../package.json'
 // View metadata — icon + title for each possible sidebar view
 // ---------------------------------------------------------------------------
 
-const VIEW_META: Record<SidebarView, { icon: PhosphorIcon; title: string }> = {
+export const VIEW_META: Record<SidebarView, { icon: PhosphorIcon; title: string }> = {
   workspaces: { icon: Stack, title: 'Workspaces' },
   explorer: { icon: FolderOpen, title: 'Explorer' },
   flashqueryVault: { icon: Vault, title: 'FlashQuery Vault' },
@@ -35,7 +35,7 @@ const VIEW_META: Record<SidebarView, { icon: PhosphorIcon; title: string }> = {
 // Content renderer — renders whichever view is active, regardless of side
 // ---------------------------------------------------------------------------
 
-const SidebarViewContent: React.FC<{ view: SidebarView; rootPath: string }> = ({
+export const SidebarViewContent: React.FC<{ view: SidebarView; rootPath: string }> = ({
   view,
   rootPath,
 }) => {

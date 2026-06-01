@@ -12,9 +12,11 @@ vi.mock('../lib/logger', () => ({
 }))
 
 import FlashQueryVaultPanel from './FlashQueryVaultPanel'
+import { SidebarViewContent, VIEW_META } from '../sidebar/Sidebar'
 import { useAppStore } from '../stores/appStore'
 import { useUIStore } from '../stores/uiStore'
 import type { FlashQueryStatusBroadcastPayload, FlashQueryVaultEntry } from '../../shared/types'
+import { Vault } from '@phosphor-icons/react'
 
 type ElectronApiMock = Pick<
   Window['electronAPI'],
@@ -118,6 +120,19 @@ afterEach(() => {
 })
 
 describe('FlashQueryVaultPanel Header', () => {
+  it('T-U-011 keeps the Sidebar flashqueryVault icon/title and mount path wired to FlashQueryVaultPanel', async () => {
+    expect(VIEW_META.flashqueryVault).toEqual({
+      icon: Vault,
+      title: 'FlashQuery Vault',
+    })
+
+    render(<SidebarViewContent view="flashqueryVault" rootPath="/workspace" />)
+
+    expect(screen.getByTestId('vault-panel-header')).toBeTruthy()
+    statusListener?.({ workspaceId, status: 'live' })
+    await waitFor(() => expect(window.electronAPI.flashqueryListVault).toHaveBeenCalledWith(workspaceId))
+  })
+
   it('renders only net-new header chrome while wrapper owns the vault identity', async () => {
     renderPanel()
 
