@@ -43,7 +43,7 @@ Phase 10 implementation, QA, and review agents read:
 | T-U-004 | Pass | Sanitization assertions in `src/shared/types.test.ts` |
 | T-U-005 | Pass | Public/private auth assertions in `src/main/ipc/flashquery.test.ts` |
 | T-U-006 | Pass | Supporting body-only write assertions in `src/renderer/panels/EditorPanel.test.tsx` and `src/main/ipc/flashquery.test.ts` |
-| T-U-007 | Pass | `src/preload/index.test.ts` for preload `e2e*` absence/presence; `src/renderer/lib/e2eHarnessGate.test.ts` for `window.__cateE2E` harness gate; full FlashQuery E2E positive path |
+| T-U-007 | Pass | `src/preload/index.test.ts` for preload `e2e*` absence/presence; `src/renderer/lib/e2eHarnessGate.test.ts` for gate branching; `src/renderer/lib/e2eHarness.test.tsx` for direct real-harness `window.__cateE2E` absence/presence; full FlashQuery E2E positive path |
 | T-U-008 | Pass | `src/renderer/lib/session.test.ts` pre-merge fixture |
 | T-U-009 | Pass | `src/shared/types.test.ts` explicit shape retention test |
 | T-E-004 | Pass | `evidence/final/test-e2e-persistence.log`; `e2e/flashquery-persistence.spec.ts` title contains `T-E-004 persistence` and reads `.cate/workspace.json` / `.cate/session.json` to assert no token on disk |

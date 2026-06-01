@@ -47,13 +47,14 @@ Evidence:
 
 - `src/preload/index.test.ts` covers preload helper absence/presence under `CATE_E2E` (`T-U-007`).
 - `src/renderer/lib/e2eHarnessGate.test.ts` covers the renderer harness half of `T-U-007`: when `isE2E` is false the harness importer is not called, and when `isE2E` is true the installer runs.
+- `src/renderer/lib/e2eHarness.test.tsx` loads the real `./e2eHarness` module through `installE2EHarnessIfEnabled()` in jsdom and directly asserts `window.__cateE2E` is `undefined` when `isE2E` is false and defined with expected helpers when `isE2E` is true.
 - `rg -n "CATE_E2E|__cateE2E|e2eHarness"` shows the gate in preload, App, harness, and Electron fixture surfaces.
 
 ## Phase 10 Preload Change Review
 
 `src/preload/index.ts` is part of the `REQ-019` / `T-A-012` central conflict-review set. Phase 10 edited it to close a strict `REQ-010` reachability gap: the old production bridge exposed two inert-but-callable `e2e*` properties, while the current bridge assembles those properties only under `CATE_E2E=1`.
 
-The local FlashQuery preload methods and channel wiring were preserved unchanged; only the E2E-only context-menu helper placement changed. The resolution is semantically correct because normal launches now have no reachable preload `e2e*` API, while Playwright launches still receive the same helper behavior through the `CATE_E2E` fixture path. Evidence is `src/preload/index.test.ts`, `src/renderer/lib/e2eHarnessGate.test.ts`, and the FlashQuery happy-path E2E context-menu flow included in the full FlashQuery E2E gate.
+The local FlashQuery preload methods and channel wiring were preserved unchanged; only the E2E-only context-menu helper placement changed. The resolution is semantically correct because normal launches now have no reachable preload `e2e*` API, while Playwright launches still receive the same helper behavior through the `CATE_E2E` fixture path. Evidence is `src/preload/index.test.ts`, `src/renderer/lib/e2eHarnessGate.test.ts`, `src/renderer/lib/e2eHarness.test.tsx`, and the FlashQuery happy-path E2E context-menu flow included in the full FlashQuery E2E gate.
 
 ## Conflict Review Addendum
 
