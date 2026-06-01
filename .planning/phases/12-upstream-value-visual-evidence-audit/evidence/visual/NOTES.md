@@ -51,3 +51,15 @@ The current tree still has retained hard-coded color values in FlashQuery-adjace
 ## Task 12.1.1 Result
 
 No source remediation was required during the theme-token inventory. Current code mostly uses unified theme tokens for app chrome and text, with the retained FlashQuery accent/status color exceptions listed above pending fresh Phase 12 visual evidence.
+
+## Phase 12 Source Changes
+
+Plan 12.1 required a narrow source change in `e2e/flashquery-visual-evidence.spec.ts` after visual inspection showed the first fresh screenshots captured the startup canvas rather than the FlashQuery surfaces promised by T-A-005 through T-A-009. The spec now writes directly to the Phase 12 evidence directory and prepares the FlashQuery connection, sidebar vault view, vault editor tab with `VaultBadge`, live status chip, and `FlashQueryConnectionDialog` after each light/dark theme reload.
+
+This source change supports REQ-004 and REQ-022 by making `visual-evidence.log`, `flashquery-surfaces-dark.png`, and `flashquery-surfaces-light.png` prove the current FlashQuery theme-affected surfaces rather than stale or incomplete visual state.
+
+Verification commands and results:
+
+- `npm run test:e2e -- e2e/flashquery-visual-evidence.spec.ts` -> passed; `visual-evidence.log` records `1 passed` and `exit_code: 0`.
+- `npm test -- src/renderer/components/VaultBadge.test.tsx src/renderer/docking/DockTabBar.test.tsx src/renderer/panels/FlashQueryVaultPanel.test.tsx src/renderer/sidebar/WorkspaceTab.test.tsx src/renderer/dialogs/FlashQueryConnectionDialog.test.tsx src/renderer/panels/EditorPanel.test.tsx` -> passed; 6 files and 79 tests passed.
+- `npm run typecheck` -> passed; `tsc --noEmit` exited 0.
