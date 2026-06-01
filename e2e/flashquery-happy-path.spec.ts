@@ -16,6 +16,35 @@ async function configure(page: Page, serverUrl: string, workspaceRoot: string) {
   return workspaceId
 }
 
+async function openFlashQueryVaultFromCommandPalette(page: Page) {
+  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+K' : 'Control+K')
+  const commandSearch = page.getByPlaceholder('Search files, panels, terminals and more by name')
+  await expect(commandSearch).toBeVisible()
+  await commandSearch.fill('New FlashQuery Vault')
+  await page.getByText('New FlashQuery Vault').click()
+  await expect(commandSearch).toBeHidden()
+}
+
+test('T-U-017 opens a FlashQuery Vault from the command palette', async () => {
+  const server = await startFlashQueryStubServer({ expectedBearerToken: 'happy-token' })
+  const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), 'cate-e2e-command-palette-'))
+  let app: ElectronApplication | null = null
+  try {
+    const launched = await launchApp()
+    app = launched.electronApp
+    const page = launched.mainWindow
+    await configure(page, server.baseUrl, workspaceRoot)
+
+    await openFlashQueryVaultFromCommandPalette(page)
+
+    await expect(page.getByRole('treeitem', { name: /Welcome/ }).first()).toBeVisible()
+    await expect(page.getByText('FlashQuery Vault').first()).toBeVisible()
+  } finally {
+    if (app) await closeApp(app)
+    await server.close()
+  }
+})
+
 test('T-E-008/T-E-009 completes the FlashQuery happy path and opens on canvas', async () => {
   const server = await startFlashQueryStubServer({ expectedBearerToken: 'happy-token' })
   const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), 'cate-e2e-workspace-'))

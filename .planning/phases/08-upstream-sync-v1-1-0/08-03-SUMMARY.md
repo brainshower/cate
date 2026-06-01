@@ -6,6 +6,7 @@ tags: [upstream-sync, flashquery, security]
 key-files:
   modified:
     - src/shared/ipc-channels.ts
+    - src/shared/types.ts
     - src/shared/electron-api.d.ts
     - src/preload/index.ts
     - src/renderer/lib/session.ts

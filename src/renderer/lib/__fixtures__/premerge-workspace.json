@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "workspaceId": "workspace-premerge-flashquery",
+  "name": "Pre-merge FlashQuery Workspace",
+  "color": "#3fb950",
+  "flashqueryConnection": {
+    "transport": "http",
+    "url": "https://flashquery.local",
+    "auth": {
+      "type": "bearer",
+      "token": "premerge-secret-token"
+    }
+  },
+  "canvas": {
+    "nodes": [
+      {
+        "panelId": "panel-vault",
+        "panelType": "flashqueryVault",
+        "title": "FlashQuery Vault",
+        "origin": { "x": 120, "y": 180 },
+        "size": { "width": 720, "height": 540 }
+      },
+      {
+        "panelId": "panel-welcome-doc",
+        "panelType": "editor",
+        "title": "Welcome.md",
+        "origin": { "x": 900, "y": 180 },
+        "size": { "width": 640, "height": 420 },
+        "filePath": "docs/Welcome.md"
+      }
+    ],
+    "regions": [
+      {
+        "id": "region-reference",
+        "origin": { "x": 80, "y": 140 },
+        "size": { "width": 1520, "height": 760 },
+        "label": "Reference",
+        "color": "#3fb950",
+        "zOrder": 1
+      }
+    ],
+    "zoomLevel": 0.9,
+    "viewportOffset": { "x": -40, "y": 32 }
+  },
+  "dockPanels": {
+    "panel-canvas": {
+      "type": "canvas",
+      "title": "Canvas"
+    }
+  }
+}
