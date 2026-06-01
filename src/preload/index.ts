@@ -224,7 +224,7 @@ function fullscreenLiveCheck(): boolean {
   }
 }
 
-contextBridge.exposeInMainWorld('electronAPI', {
+const electronAPI = {
   isE2E: process.env.CATE_E2E === '1',
   isPerf: process.env.CATE_PERF === '1',
 
@@ -1069,16 +1069,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return ipcRenderer.invoke(MENU_SHOW_CONTEXT, items)
   },
 
-  e2eChooseNextContextMenuAction(action: string | null): void {
-    if (process.env.CATE_E2E === '1') {
-      e2eNextContextMenuAction = action
-    }
-  },
-
-  e2eLastContextMenuItems(): unknown[] {
-    return process.env.CATE_E2E === '1' ? e2eLastContextMenuItems : []
-  },
-
   onMenuOpenSettings(callback: () => void): () => void {
     const listener = (): void => { callback() }
     ipcRenderer.on(MENU_OPEN_SETTINGS, listener)
@@ -1369,4 +1359,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return ipcRenderer.invoke(AUTH_DELETE, providerId)
   },
 
-})
+}
+
+if (process.env.CATE_E2E === '1') {
+  Object.assign(electronAPI, {
+    e2eChooseNextContextMenuAction(action: string | null): void {
+      e2eNextContextMenuAction = action
+    },
+
+    e2eLastContextMenuItems(): unknown[] {
+      return e2eLastContextMenuItems
+    },
+  })
+}
+
+contextBridge.exposeInMainWorld('electronAPI', electronAPI)
