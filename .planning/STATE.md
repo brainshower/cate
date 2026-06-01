@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Upstream Sync
-status: Planning
-stopped_at: Created Phase 8 PLAN.md files
+status: Complete
+stopped_at: Completed Phase 8 upstream sync verification
 last_updated: "2026-06-01T00:00:00.000Z"
-last_activity: 2026-06-01 — Phase 8 upstream sync planning created from product requirements and test plan
+last_activity: 2026-06-01 — Phase 8 upstream sync to Cate v1.1.0 completed with green verification
 progress:
   total_phases: 8
   completed_phases: 7
   total_plans: 29
-  completed_plans: 23
-  percent: 79
+  completed_plans: 29
+  percent: 100
 ---
 
 # Project State
@@ -21,29 +21,24 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-01 after v1.1 upstream sync planning)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** Phase 8 upstream sync to Cate `v1.1.0`.
+**Current focus:** Phase 8 upstream sync to Cate `v1.1.0` complete.
 
 ## Current Position
 
 Phase: 8 — Upstream Sync to `v1.1.0`
-Plan: 8.1 — Baseline and branch setup
-Status: Planned
-Last activity: 2026-06-01 — Phase 8 planning created from upstream sync requirements/test plan
+Plan: 8.6 — Verification, runbook, provenance, and release readiness
+Status: Complete
+Last activity: 2026-06-01 — upstream `v1.1.0` merged and verified on `sync/upstream-v1.1.0`
 
 ## Session Continuity
 
 Last session: 2026-06-01
-Stopped At: Phase 8 plans created
+Stopped At: Phase 8 verification complete
 Resume File: None
 
 ## Next Up
 
-Start Phase 8 execution from `.planning/phases/08-upstream-sync-v1-1-0/08-01-PLAN.md`.
-
-Downstream agents must read these source docs before implementation:
-
-- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Upstream Sync Report (30-May-2026)/Upstream Sync Requirements.md`
-- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Upstream Sync Report (30-May-2026)/Upstream Sync Test Plan.md`
+Review/merge `sync/upstream-v1.1.0` when ready. Phase 8 verification lives at `.planning/phases/08-upstream-sync-v1-1-0/08-VERIFICATION.md`.
 
 ## Decisions
 
@@ -53,6 +48,7 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table (updated
 |------|----------|-----------|
 | 2026-06-01 | Phase 8 uses the upstream sync requirements/test plan as mandatory source-of-truth docs. | Keeps migration planning aligned to the product spec and ensures implementation agents do not answer scope questions from memory. |
 | 2026-06-01 | Phase 8 is a migration phase, not a new FlashQuery feature phase. | Prevents scope creep while merging upstream `v1.1.0`. |
+| 2026-06-01 | Upstream `v1.1.0` was merged as a real two-parent merge commit. | Preserves future sync provenance and advances the fork's upstream merge base to `5b6549d`. |
 
 ## Deferred Items
 
@@ -83,7 +79,8 @@ Items acknowledged and deferred at milestone close on 2026-05-30:
 | Phase 07 P01 | 14min | 2 tasks | 5 files |
 | Phase 07 P02 | 30min | 3 tasks | 16 files |
 | Phase 07 P03 | 10min | 4 tasks | 5 files |
+| Phase 08 | 90min | 25 tasks | upstream merge + evidence |
 
 ## Operator Next Steps
 
-- Execute Phase 8 Plan 8.1 from `.planning/phases/08-upstream-sync-v1-1-0/08-01-PLAN.md`.
+- Review/merge `sync/upstream-v1.1.0` or start the next milestone.

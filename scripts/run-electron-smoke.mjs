@@ -6,6 +6,7 @@ const child = spawn(electron, ['.'], {
   env: {
     ...process.env,
     CATE_SMOKE_TEST: '1',
+    ELECTRON_RUN_AS_NODE: undefined,
   },
 })
 

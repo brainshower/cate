@@ -1,0 +1,9 @@
+command: npm run typecheck
+timestamp: 2026-06-01T16:38:08Z
+--- output ---
+
+> cate@1.1.0 typecheck
+> tsc --noEmit
+
+--- exit-code ---
+0

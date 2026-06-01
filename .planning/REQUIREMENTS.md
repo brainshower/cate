@@ -2,7 +2,7 @@
 
 **Defined:** 2026-06-01
 **Milestone:** v1.1 Upstream Sync
-**Status:** Approved for phase planning
+**Status:** Completed
 
 ## Canonical Source Documents
 
@@ -64,12 +64,12 @@ Merge upstream Cate stable tag `v1.1.0` into the FlashQuery fork with a real two
 
 | Requirement IDs | Phase | Status |
 |-----------------|-------|--------|
-| REQ-001, REQ-002 | Phase 8 Plan 8.1: Baseline and branch setup | Planned |
-| REQ-001, REQ-018, REQ-024, REQ-025 | Phase 8 Plan 8.2: Build/dependency/packaging migration | Planned |
-| REQ-005, REQ-006, REQ-008, REQ-009, REQ-010, REQ-019, REQ-024, REQ-025 | Phase 8 Plan 8.3: Shared contracts | Planned |
-| REQ-003, REQ-007, REQ-011, REQ-012, REQ-013, REQ-014, REQ-015, REQ-016, REQ-017, REQ-019, REQ-024, REQ-025 | Phase 8 Plan 8.4: Renderer behavior | Planned |
-| REQ-003, REQ-004, REQ-018, REQ-020, REQ-022, REQ-024, REQ-025 | Phase 8 Plan 8.5: Upstream feature compatibility | Planned |
-| REQ-019, REQ-021, REQ-022, REQ-023, REQ-024, REQ-025, REQ-026 | Phase 8 Plan 8.6: Verification and release readiness | Planned |
+| REQ-001, REQ-002 | Phase 8 Plan 8.1: Baseline and branch setup | Complete |
+| REQ-001, REQ-018, REQ-024, REQ-025 | Phase 8 Plan 8.2: Build/dependency/packaging migration | Complete |
+| REQ-005, REQ-006, REQ-008, REQ-009, REQ-010, REQ-019, REQ-024, REQ-025 | Phase 8 Plan 8.3: Shared contracts | Complete |
+| REQ-003, REQ-007, REQ-011, REQ-012, REQ-013, REQ-014, REQ-015, REQ-016, REQ-017, REQ-019, REQ-024, REQ-025 | Phase 8 Plan 8.4: Renderer behavior | Complete |
+| REQ-003, REQ-004, REQ-018, REQ-020, REQ-022, REQ-024, REQ-025 | Phase 8 Plan 8.5: Upstream feature compatibility | Complete |
+| REQ-019, REQ-021, REQ-022, REQ-023, REQ-024, REQ-025, REQ-026 | Phase 8 Plan 8.6: Verification and release readiness | Complete |
 
 ## Out Of Scope
 

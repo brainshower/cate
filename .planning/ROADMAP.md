@@ -3,7 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 Vault Connect, Read, Edit** — Phases 1-7 (shipped 2026-05-30) — [archive](milestones/v1.0-ROADMAP.md)
-- ◆ **v1.1 Upstream Sync** — Phase 8 (planned 2026-06-01)
+- ✅ **v1.1 Upstream Sync** — Phase 8 (completed 2026-06-01)
 
 ## Phases
 
@@ -24,7 +24,7 @@ See archived roadmap for full phase details: [milestones/v1.0-ROADMAP.md](milest
 
 </details>
 
-## Active Milestone: v1.1 Upstream Sync
+## Completed Milestone: v1.1 Upstream Sync
 
 **Goal:** Merge upstream Cate stable tag `v1.1.0` into the FlashQuery fork with a real two-parent merge, preserve all FlashQuery v1 behavior/security/E2E guarantees, adopt upstream fixes and architecture changes, and leave a future-sync runbook for the next merge.
 
@@ -39,7 +39,7 @@ See archived roadmap for full phase details: [milestones/v1.0-ROADMAP.md](milest
 
 **Requirements:** REQ-001..REQ-026
 **Tests:** T-A-001..T-A-015, T-U-001..T-U-017, T-E-001..T-E-005, T-M-001..T-M-005
-**Status:** Planned
+**Status:** Complete
 
 **Success criteria:**
 
@@ -51,12 +51,12 @@ See archived roadmap for full phase details: [milestones/v1.0-ROADMAP.md](milest
 
 **Plans:**
 
-- [ ] `08-01-PLAN.md` — Baseline and branch setup.
-- [ ] `08-02-PLAN.md` — Build, dependency, and packaging migration.
-- [ ] `08-03-PLAN.md` — Shared contracts and security invariants.
-- [ ] `08-04-PLAN.md` — Renderer behavior and E2E harness preservation.
-- [ ] `08-05-PLAN.md` — Upstream feature compatibility, theming, and visual evidence.
-- [ ] `08-06-PLAN.md` — Verification, runbook, provenance, and release readiness.
+- [x] `08-01-PLAN.md` — Baseline and branch setup.
+- [x] `08-02-PLAN.md` — Build, dependency, and packaging migration.
+- [x] `08-03-PLAN.md` — Shared contracts and security invariants.
+- [x] `08-04-PLAN.md` — Renderer behavior and E2E harness preservation.
+- [x] `08-05-PLAN.md` — Upstream feature compatibility, theming, and visual evidence.
+- [x] `08-06-PLAN.md` — Verification, runbook, provenance, and release readiness.
 
 ## Progress
 
@@ -69,7 +69,7 @@ See archived roadmap for full phase details: [milestones/v1.0-ROADMAP.md](milest
 | 5. Settings Dialog + Workspace Menu Entry   | v1.0      | 3/3            | Complete | 2026-05-29 |
 | 6. Editor URI-Awareness + Vault Badge       | v1.0      | 4/4            | Complete | 2026-05-29 |
 | 7. Cross-Cutting + Regression               | v1.0      | 3/3            | Complete | 2026-05-30 |
-| 8. Upstream Sync to v1.1.0                  | v1.1      | 0/6            | Planned  | —          |
+| 8. Upstream Sync to v1.1.0                  | v1.1      | 6/6            | Complete | 2026-06-01 |
 
 ## Notes
 

@@ -2,7 +2,7 @@
 phase: 8
 phase_slug: upstream-sync-v1-1-0
 date: 2026-06-01
-status: planned
+status: passed
 ---
 
 # Phase 8 Validation Strategy
@@ -41,3 +41,28 @@ Every implementation plan must cite the relevant test IDs from that document and
 - Any `.planning/` tracking regression.
 - Any merge strategy that rebases/squashes upstream instead of recording `v1.1.0` ancestry.
 
+## Validation Audit 2026-06-01
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 0 |
+| Resolved | 0 |
+| Escalated | 0 |
+
+## Gate Results
+
+| Gate | Status | Evidence |
+|------|--------|----------|
+| Baseline capture | Pass | `evidence/baseline/` |
+| Per-phase cumulative regression | Pass | `evidence/build/`, `evidence/contracts/`, `evidence/renderer/`, `evidence/final/` |
+| Build/typecheck | Pass | `evidence/final/build.log`, `evidence/final/typecheck.log` |
+| Contract/security/session unit tests | Pass | `evidence/contracts/` |
+| Renderer unit/component tests | Pass | `evidence/renderer/` |
+| FlashQuery E2E | Pass | `evidence/final/test-e2e.log` |
+| Visual evidence | Pass | `evidence/visual/flashquery-surfaces-dark.png`, `evidence/visual/flashquery-surfaces-light.png` |
+| Upstream smoke | Pass | build/typecheck/unit/E2E/Electron smoke and conflict notes |
+| Product acceptance | Pass | `.planning/phases/08-upstream-sync-v1-1-0/08-UAT.md` |
+| Packaged smoke | Pass | `evidence/final/smoke-electron.log` |
+| Process/provenance | Pass | `08-VERIFICATION.md` |
+
+Nyquist conclusion: Phase 8 is compliant for the migration scope. Required behavioral surfaces have automated verification or explicit process/provenance evidence.

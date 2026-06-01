@@ -1,0 +1,11 @@
+command: npm run test:smoke:electron
+timestamp: 2026-06-01T16:40:42Z
+--- output ---
+
+> cate@1.1.0 test:smoke:electron
+> node scripts/run-electron-smoke.mjs
+
+(node:85908) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+--- exit-code ---
+0
