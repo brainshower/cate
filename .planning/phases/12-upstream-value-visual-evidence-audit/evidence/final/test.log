@@ -1,0 +1,328 @@
+command: npm test
+timestamp: 2026-06-01T21:12:34Z
+output:
+
+> cate@1.1.0 test
+> vitest run
+
+ DEPRECATED  "environmentMatchGlobs" is deprecated. Use `test.projects` to define different configurations instead.
+
+ RUN  v3.2.4 /Users/matt/Documents/Claude/Projects/Cate/cate
+
+ ✓ src/preload/index.test.ts (2 tests) 140ms
+ ✓ src/main/flashquery/clientManager.test.ts (37 tests) 119ms
+ ✓ src/agent/main/nodeShim.test.ts (6 tests) 184ms
+ ✓ src/main/ipc/terminal.test.ts (2 tests) 327ms
+ ✓ src/main/ipc/flashquery.test.ts (21 tests) 473ms
+ ✓ src/main/ipc/fileExclusions.test.ts (5 tests) 118ms
+ ✓ src/main/workspaceManager.test.ts (3 tests) 75ms
+ ✓ src/main/ipc/pathValidation.test.ts (5 tests) 109ms
+ ✓ src/main/ipc/filesystem.test.ts (5 tests) 105ms
+ ✓ src/renderer/hooks/notificationDebouncer.test.ts (7 tests) 22ms
+ ✓ src/main/shellResolver.test.ts (18 tests) 35ms
+ ✓ src/renderer/drag/commit.test.ts (17 tests) 40ms
+ ✓ src/main/flashquery/credentials.test.ts (5 tests) 22ms
+ ✓ src/renderer/drag/runtime.test.ts (20 tests) 28ms
+ ✓ src/shared/theme.test.ts (23 tests) 47ms
+ ✓ src/renderer/panels/BrowserPanel.test.ts (15 tests) 25ms
+ ✓ src/renderer/stores/canvasStore.test.ts (15 tests) 17ms
+ ✓ src/renderer/stores/appStore.test.ts (4 tests) 15ms
+ ✓ src/renderer/lib/terminalFileLinks.test.ts (22 tests) 14ms
+ ✓ src/renderer/lib/terminalLinks.test.ts (8 tests) 5ms
+ ✓ src/renderer/drag/registry.test.ts (8 tests) 7ms
+ ✓ src/renderer/drag/geometry.test.ts (12 tests) 10ms
+ ✓ src/renderer/drag/resolve.test.ts (19 tests) 30ms
+ ✓ src/main/ipc/git.test.ts (2 tests) 3190ms
+   ✓ createBranch > creates a branch from current HEAD when no start point is provided  1439ms
+   ✓ createBranch > creates a branch from an explicit start point  1749ms
+ ✓ src/main/flashquery/uri.test.ts (7 tests) 15ms
+ ✓ src/main/analytics.test.ts (17 tests) 17ms
+ ✓ src/renderer/lib/terminalKeymap.test.ts (13 tests) 46ms
+ ✓ src/renderer/panels/registry.test.ts (4 tests) 192ms
+ ✓ src/main/dragLogic.test.ts (31 tests) 13ms
+ ✓ src/shared/flashqueryUri.test.ts (7 tests) 32ms
+ ✓ src/renderer/drag/__tests__/terminalRemount.test.ts (4 tests) 11ms
+ ✓ src/renderer/lib/agentTitleParser.test.ts (7 tests) 3ms
+ ✓ src/renderer/lib/coordinates.test.ts (8 tests) 5ms
+ ✓ src/renderer/canvas/CanvasToolbar.test.ts (3 tests) 8ms
+ ✓ src/renderer/shells/DockWindowShell.test.ts (9 tests) 7ms
+ ✓ src/renderer/lib/session.test.ts (1 test) 8ms
+ ✓ src/renderer/lib/e2eHarnessGate.test.ts (2 tests) 4ms
+ ✓ src/renderer/lib/wheelIntent.test.ts (5 tests) 4ms
+ ✓ src/renderer/drag/__tests__/remoteGrab.test.ts (4 tests) 6ms
+ ✓ src/renderer/lib/editorReveal.test.ts (4 tests) 5ms
+ ✓ src/shared/ipc-channels.test.ts (1 test) 6ms
+ ✓ src/renderer/hooks/useNodeResize.test.ts (9 tests) 8ms
+ ✓ src/shared/types.test.ts (4 tests) 5ms
+ ✓ src/renderer/lib/mouse.test.ts (3 tests) 12ms
+ ✓ src/renderer/stores/canvasSyncGuard.test.ts (4 tests) 3ms
+ ✓ src/renderer/lib/osNotifications.test.ts (4 tests) 3ms
+ ✓ src/main/sessionTrust.test.ts (1 test) 3ms
+ ✓ src/renderer/drag/__tests__/grabOffset.test.ts (5 tests) 5ms
+ ✓ src/shared/panels.test.ts (4 tests) 12ms
+ ✓ src/renderer/stores/uiStore.test.ts (3 tests) 4ms
+ ✓ src/renderer/drag/__tests__/terminalRoundTrip.test.ts (2 tests) 6ms
+stderr | src/renderer/panels/EditorPanel.test.tsx
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+stderr | src/renderer/panels/EditorPanel.test.tsx
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+ ✓ src/renderer/lib/terminalRegistry.test.ts (18 tests) 502ms
+stderr | src/renderer/drag/__tests__/scenarios.test.tsx > drag integration — canvas-node scenarios > 1: moves a node by exact client delta at zoom=1
+Warning: `ReactDOMTestUtils.act` is deprecated in favor of `React.act`. Import `act` from `react` instead of `react-dom/test-utils`. See https://react.dev/warnings/react-dom-test-utils for more info.
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/scenarios.test.tsx > drag integration — canvas-node scenarios > 1: moves a node by exact client delta at zoom=1
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/scenarios.test.tsx > drag integration — canvas-node scenarios > 2a: at zoom=0.5, a 100px screen delta becomes a 200-unit canvas delta
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/scenarios.test.tsx > drag integration — canvas-node scenarios > 2a: at zoom=0.5, a 100px screen delta becomes a 200-unit canvas delta
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/scenarios.test.tsx > drag integration — canvas-node scenarios > 2b: at zoom=2, a 100px screen delta becomes a 50-unit canvas delta
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/scenarios.test.tsx > drag integration — canvas-node scenarios > 2b: at zoom=2, a 100px screen delta becomes a 50-unit canvas delta
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/scenarios.test.tsx > drag integration — canvas-node scenarios > 3: a 3px nudge does not arm the drag
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/scenarios.test.tsx > drag integration — canvas-node scenarios > 3: a 3px nudge does not arm the drag
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/scenarios.test.tsx > drag integration — canvas-node scenarios > 4: ghost size for a maximized node equals preMaximizeSize
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/scenarios.test.tsx > drag integration — canvas-node scenarios > 4: ghost size for a maximized node equals preMaximizeSize
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/scenarios.test.tsx > drag integration — canvas-node scenarios > 5: grab on a maximized node is projected proportionally into the pre-maximize rect
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/scenarios.test.tsx > drag integration — canvas-node scenarios > 5: grab on a maximized node is projected proportionally into the pre-maximize rect
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/scenarios.test.tsx > drag integration — canvas-node scenarios > 8: dropping across two canvases routes commit to the destination store
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/scenarios.test.tsx > drag integration — canvas-node scenarios > 8: dropping across two canvases routes commit to the destination store
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/scenarios.test.tsx > drag integration — canvas-node scenarios > 9: while dragging, drag.source identifies the source node by id
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/scenarios.test.tsx > drag integration — canvas-node scenarios > 9: while dragging, drag.source identifies the source node by id
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/scenarios.test.tsx > drag integration — canvas-node scenarios > 12: window blur mid-drag clears drag state
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/scenarios.test.tsx > drag integration — canvas-node scenarios > 12: window blur mid-drag clears drag state
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/scenarios.test.tsx > drag integration — canvas-node scenarios > 11: drop outside window triggers dragDetach + removes source
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/scenarios.test.tsx > drag integration — canvas-node scenarios > 11: drop outside window triggers dragDetach + removes source
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/scenarios.test.tsx > drag integration — canvas-node scenarios > 13: second mousedown during active drag is ignored
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/scenarios.test.tsx > drag integration — canvas-node scenarios > 13: second mousedown during active drag is ignored
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/scenarios.test.tsx > drag integration — canvas-node scenarios > 14: mouseup after a completed drag is a no-op
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/scenarios.test.tsx > drag integration — canvas-node scenarios > 14: mouseup after a completed drag is a no-op
+Warning: The current testing environment is not configured to support act(...)
+
+ ✓ src/renderer/drag/__tests__/scenarios.test.tsx (15 tests | 3 skipped) 338ms
+stderr | src/renderer/panels/FlashQueryVaultPanel.test.tsx
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+stderr | src/renderer/dialogs/FlashQueryConnectionDialog.test.tsx
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+stderr | src/renderer/panels/FlashQueryVaultPanel.test.tsx
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+stderr | src/renderer/dialogs/FlashQueryConnectionDialog.test.tsx
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+ ✓ src/renderer/components/VaultBadge.test.tsx (7 tests) 479ms
+ ✓ src/renderer/components/Chip.test.tsx (9 tests) 642ms
+ ✓ src/renderer/panels/EditorPanel.test.tsx (14 tests) 934ms
+   ✓ EditorPanel FlashQuery save and dirty behavior > T-I-086 failed vault save preserves dirty state and surfaces a visible error  370ms
+ ✓ src/renderer/dialogs/FlashQueryConnectionDialog.test.tsx (20 tests) 1505ms
+   ✓ FlashQueryConnectionDialog shell > renders accessible title, workspace subtitle, close control, and URL focus target while open  501ms
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > TerminalPanelRow rendered indicators > no agent state → no shimmer, no await
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > TerminalPanelRow rendered indicators > no agent state → no shimmer, no await
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > TerminalPanelRow rendered indicators > notRunning → no shimmer, no await
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > TerminalPanelRow rendered indicators > notRunning → no shimmer, no await
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > TerminalPanelRow rendered indicators > running → shimmer visible, no await
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > TerminalPanelRow rendered indicators > running → shimmer visible, no await
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > TerminalPanelRow rendered indicators > waitingForInput → await visible, no shimmer
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > TerminalPanelRow rendered indicators > waitingForInput → await visible, no shimmer
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > TerminalPanelRow rendered indicators > finished → no shimmer, no await
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > TerminalPanelRow rendered indicators > finished → no shimmer, no await
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > state transitions render correctly > full lifecycle: each re-render shows the right indicator
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > state transitions render correctly > full lifecycle: each re-render shows the right indicator
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > includes FlashQuery Connection in the native workspace menu
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+    at WorkspaceTab (/Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/sidebar/WorkspaceTab.tsx:208:3)
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > includes FlashQuery Connection in the native workspace menu
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > includes FlashQuery Connection in the native workspace menu
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > places FlashQuery Connection between copy-cwd and duplicate with separators
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+    at WorkspaceTab (/Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/sidebar/WorkspaceTab.tsx:208:3)
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > places FlashQuery Connection between copy-cwd and duplicate with separators
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > places FlashQuery Connection between copy-cwd and duplicate with separators
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > opens the FlashQuery connection dialog without mutating the selected workspace
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+    at WorkspaceTab (/Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/sidebar/WorkspaceTab.tsx:208:3)
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > opens the FlashQuery connection dialog without mutating the selected workspace
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > opens the FlashQuery connection dialog without mutating the selected workspace
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > opens the clicked workspace FlashQuery connection dialog without changing selection
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+    at WorkspaceTab (/Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/sidebar/WorkspaceTab.tsx:208:3)
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > opens the clicked workspace FlashQuery connection dialog without changing selection
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > opens the clicked workspace FlashQuery connection dialog without changing selection
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > does not render a custom React context-menu element
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+    at WorkspaceTab (/Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/sidebar/WorkspaceTab.tsx:208:3)
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > does not render a custom React context-menu element
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery native context menu > does not render a custom React context-menu element
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery panel jump > T-U-015 lists flashqueryVault panels and focuses them through the dock stack
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+    at WorkspaceTab (/Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/sidebar/WorkspaceTab.tsx:208:3)
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/sidebar/WorkspaceTab.test.tsx > WorkspaceTab FlashQuery panel jump > T-U-015 lists flashqueryVault panels and focuses them through the dock stack
+Warning: The current testing environment is not configured to support act(...)
+
+ ✓ src/renderer/sidebar/WorkspaceTab.test.tsx (12 tests) 441ms
+ ✓ src/renderer/panels/FlashQueryVaultPanel.test.tsx (24 tests) 1688ms
+   ✓ FlashQueryVaultPanel Header > T-U-011 keeps the Sidebar flashqueryVault icon/title and mount path wired to FlashQueryVaultPanel  321ms
+ ✓ src/renderer/lib/e2eHarness.test.tsx (2 tests) 48ms
+ ✓ src/renderer/docking/DockTabBar.test.tsx (2 tests) 233ms
+stderr | src/renderer/drag/__tests__/crossWindow.test.tsx > cross-window — local drag boundary > cursor leaves window → crossWindowDragStart fired with snapshot
+Warning: `ReactDOMTestUtils.act` is deprecated in favor of `React.act`. Import `act` from `react` instead of `react-dom/test-utils`. See https://react.dev/warnings/react-dom-test-utils for more info.
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/crossWindow.test.tsx > cross-window — local drag boundary > cursor leaves window → crossWindowDragStart fired with snapshot
+[useDragOp] commitDrop failed TypeError: Cannot destructure property 'claimed' of '(intermediate value)' as it is undefined.
+    at commitDrop (/Users/matt/Documents/Claude/Projects/Cate/cate/src/renderer/drag/commit.ts:98:15)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+
+stderr | src/renderer/drag/__tests__/crossWindow.test.tsx > cross-window — local drag boundary > cursor leaves window → crossWindowDragStart fired with snapshot
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/crossWindow.test.tsx > cross-window — local drag boundary > cursor returns to window → crossWindowDragCancel fired
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/crossWindow.test.tsx > cross-window — local drag boundary > cursor returns to window → crossWindowDragCancel fired
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/crossWindow.test.tsx > cross-window — remote drag > drop on canvas surface → onDrop fires with canvas target + IPC claim sent
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/crossWindow.test.tsx > cross-window — remote drag > drop on canvas surface → onDrop fires with canvas target + IPC claim sent
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/crossWindow.test.tsx > cross-window — remote drag > terminal snapshot drop deposits PTY transfer before any host mutation
+Warning: The current testing environment is not configured to support act(...)
+
+stderr | src/renderer/drag/__tests__/crossWindow.test.tsx > cross-window — remote drag > terminal snapshot drop deposits PTY transfer before any host mutation
+Warning: The current testing environment is not configured to support act(...)
+
+ ✓ src/renderer/drag/__tests__/crossWindow.test.tsx (10 tests) 244ms
+ ✓ src/renderer/lib/agentScreenDetector.test.ts (20 tests) 41ms
+ ✓ src/renderer/lib/panelTransfer.test.ts (3 tests) 4ms
+ ✓ src/renderer/shells/PanelWindowShell.test.tsx (2 tests) 4ms
+
+ Test Files  65 passed (65)
+      Tests  602 passed | 3 skipped (605)
+   Start at  18:12:35
+   Duration  16.20s (transform 4.43s, setup 1.08s, collect 37.21s, tests 12.71s, environment 15.53s, prepare 7.96s)
+
+exit_code: 0

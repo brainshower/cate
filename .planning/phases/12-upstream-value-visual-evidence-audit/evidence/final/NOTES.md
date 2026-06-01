@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-01
 **Plan:** 12.3 Evidence, Cumulative Gate, And Closeout
-**Status:** Pending final command matrix
+**Status:** Passed
 
 ## Source Documents Read
 
@@ -20,14 +20,14 @@ The requirements document controls REQ-004, REQ-018, REQ-020, REQ-022, REQ-024, 
 | REQ-018 | Pass | `evidence/upstream-smoke/NOTES.md` records T-M-001, T-M-002, T-M-003, T-A-003, and T-A-011 evidence for terminal/perf, editor, file/git/workspace reload, build, and conditional packaged-smoke handling. | Phase 8 `08-VERIFICATION.md` records original upstream feature smoke and Electron smoke pass. |
 | REQ-020 | Pass | `evidence/upstream-smoke/NOTES.md` T-M-004 records current removed-file decisions: `skillTemplate.ts` retained because `projectWorkspaceStore.ts` still imports `SKILL_TEMPLATE`; `BulkActionChip.tsx` remains removed with no live references. | Phase 8 `08-VERIFICATION.md` records the original removed-file gap closure. |
 | REQ-022 | Pass | `evidence/visual/REVIEW.md` passes T-A-005 through T-A-009 against current Phase 12 dark/light screenshots. | Phase 8 visual evidence is supporting history only; Phase 12 screenshots are the current acceptance evidence. |
-| REQ-024 | Pending final gate | Final `build.log`, `typecheck.log`, `test.log`, and `test-e2e.log` will be written under `evidence/final/` by Task 12.3.2. | Phase 11 final matrix passed build, typecheck, unit, and E2E before Phase 12 began. |
-| REQ-025 | Pending final gate | Final cumulative T-A-002 evidence will be the Task 12.3.2 command matrix. | Phase 11 final matrix passed cumulative renderer behavior gates. |
+| REQ-024 | Pass | Final `build.log`, `typecheck.log`, `test.log`, and `test-e2e.log` exist under `evidence/final/`; each contains `exit_code: 0`. | Phase 11 final matrix passed build, typecheck, unit, and E2E before Phase 12 began. |
+| REQ-025 | Pass | Final cumulative T-A-002 evidence passed: build, typecheck, unit tests, and full Electron E2E all exited 0. | Phase 11 final matrix passed cumulative renderer behavior gates. |
 
 ## Canonical Test ID Matrix
 
 | Test ID | Result | Evidence path or rationale |
 | --- | --- | --- |
-| T-A-002 | Pending final gate | Task 12.3.2 will write `evidence/final/build.log`, `typecheck.log`, `test.log`, and `test-e2e.log`; all must contain `exit_code: 0` before closeout passes. |
+| T-A-002 | Pass | `evidence/final/build.log`, `typecheck.log`, `test.log`, and `test-e2e.log` all contain `exit_code: 0`; `test-e2e.log` includes the Phase 12 visual evidence spec row. |
 | T-A-003 | Pass | `evidence/upstream-smoke/build.log` records `npm run build` with `exit_code: 0`; Task 12.3.2 will rerun and archive final `evidence/final/build.log`. |
 | T-A-005 | Pass | `evidence/visual/REVIEW.md` vault badge contrast row; screenshots: `evidence/visual/flashquery-surfaces-dark.png` and `evidence/visual/flashquery-surfaces-light.png`. |
 | T-A-006 | Pass | `evidence/visual/REVIEW.md` sidebar vault view row; screenshots: `evidence/visual/flashquery-surfaces-dark.png` and `evidence/visual/flashquery-surfaces-light.png`. |
@@ -42,15 +42,13 @@ The requirements document controls REQ-004, REQ-018, REQ-020, REQ-022, REQ-024, 
 
 ## Final Command Matrix
 
-Task 12.3.2 will populate this section after running the final cumulative commands.
-
 | Command | Log | Result |
 | --- | --- | --- |
-| `npm run build` | `evidence/final/build.log` | Pending |
-| `npm run typecheck` | `evidence/final/typecheck.log` | Pending |
-| `npm test` | `evidence/final/test.log` | Pending |
-| `npm run test:e2e` | `evidence/final/test-e2e.log` | Pending |
+| `npm run build` | `evidence/final/build.log` | Pass, `exit_code: 0` |
+| `npm run typecheck` | `evidence/final/typecheck.log` | Pass, `exit_code: 0` |
+| `npm test` | `evidence/final/test.log` | Pass, `65 passed`, `602 passed`, `3 skipped`, `exit_code: 0` |
+| `npm run test:e2e` | `evidence/final/test-e2e.log` | Pass, `32 passed`, `2 skipped`, includes `T-A-005..T-A-009`, `exit_code: 0` |
 
 ## Current Closeout Gate
 
-Phase 12 remains open until Task 12.3.2 final logs all exist and required logs contain `exit_code: 0`.
+Phase 12 evidence gates are green. Task 12.3.3 may write UAT/verification and update planning state to complete.
