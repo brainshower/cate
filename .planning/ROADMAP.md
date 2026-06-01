@@ -108,7 +108,7 @@ Downstream implementation, QA, and review agents MUST read both documents before
 
 **Requirements:** REQ-005, REQ-006, REQ-008, REQ-009, REQ-010, REQ-019, REQ-024, REQ-025
 **Tests:** T-U-001..T-U-009, T-E-004, T-A-002, T-A-004, T-A-012
-**Status:** Planned
+**Status:** Complete
 
 **Success criteria:**
 
@@ -123,9 +123,9 @@ Downstream implementation, QA, and review agents MUST read both documents before
 
 **Plans:**
 
-- [ ] `10-01-PLAN.md` — Contract inventory and proof audit.
-- [ ] `10-02-PLAN.md` — Security/session assertion hardening.
-- [ ] `10-03-PLAN.md` — Evidence, cumulative gate, and closeout.
+- [x] `10-01-PLAN.md` — Contract inventory and proof audit.
+- [x] `10-02-PLAN.md` — Security/session assertion hardening.
+- [x] `10-03-PLAN.md` — Evidence, cumulative gate, and closeout.
 
 ## Progress
 
@@ -140,7 +140,7 @@ Downstream implementation, QA, and review agents MUST read both documents before
 | 7. Cross-Cutting + Regression               | v1.0      | 3/3            | Complete | 2026-05-30 |
 | 8. Upstream Sync to v1.1.0                  | v1.1      | 6/6            | Complete | 2026-06-01 |
 | 9. Upstream Sync Mainline Handoff           | v1.1      | 3/3            | Complete | 2026-06-01 |
-| 10. Shared Contracts Audit                  | v1.1      | 2/3 | In Progress|  |
+| 10. Shared Contracts Audit                  | v1.1      | 3/3 | Complete   | 2026-06-01 |
 
 ## Notes
 
