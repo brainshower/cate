@@ -8,7 +8,7 @@ import type { ElectronApplication, Page } from 'playwright'
 
 const EVIDENCE_DIR = path.resolve(
   process.cwd(),
-  '.planning/phases/08-upstream-sync-v1-1-0/evidence/visual',
+  '.planning/phases/12-upstream-value-visual-evidence-audit/evidence/visual',
 )
 
 async function configure(page: Page, serverUrl: string, workspaceRoot: string) {
@@ -18,6 +18,7 @@ async function configure(page: Page, serverUrl: string, workspaceRoot: string) {
   await page.getByRole('textbox', { name: 'Bearer token' }).fill('visual-token')
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByRole('dialog', { name: 'FlashQuery Connection' })).toBeHidden()
+  return workspaceId
 }
 
 async function switchTheme(page: Page, themeId: 'dark-warm' | 'light-subtle') {
@@ -32,6 +33,17 @@ async function switchTheme(page: Page, themeId: 'dark-warm' | 'light-subtle') {
   )
 }
 
+async function prepareVisualSurfaces(page: Page, serverUrl: string, workspaceRoot: string) {
+  const workspaceId = await configure(page, serverUrl, workspaceRoot)
+  await page.getByTitle('FlashQuery Vault').click()
+  await expect(page.getByTestId('vault-panel-header')).toBeVisible()
+  await expect(page.getByRole('treeitem', { name: /Welcome/ }).first()).toBeVisible()
+  await page.evaluate(() => window.__cateE2E!.openVaultDocument('Welcome.md', 'dock'))
+  await expect(page.getByTestId('vault-badge')).toBeVisible()
+  await page.evaluate((id) => window.__cateE2E!.openFlashQueryConnectionDialog(id), workspaceId)
+  await expect(page.getByRole('dialog', { name: 'FlashQuery Connection' })).toBeVisible()
+}
+
 test('T-A-005..T-A-009 captures FlashQuery visual evidence in light and dark themes', async () => {
   await mkdir(EVIDENCE_DIR, { recursive: true })
   const server = await startFlashQueryStubServer({ expectedBearerToken: 'visual-token' })
@@ -42,17 +54,13 @@ test('T-A-005..T-A-009 captures FlashQuery visual evidence in light and dark the
     const launched = await launchApp()
     app = launched.electronApp
     const page = launched.mainWindow
-    await configure(page, server.baseUrl, workspaceRoot)
-    await page.evaluate(() => window.__cateE2E!.createFlashQueryVault({ x: 260, y: 180 }))
-    await expect(page.getByTestId('vault-panel-header')).toBeVisible()
-    await page.getByRole('treeitem', { name: /Welcome/ }).first().dblclick()
-    await expect(page.getByText('Vault').first()).toBeVisible()
 
     for (const [themeId, label] of [
       ['dark-warm', 'dark'],
       ['light-subtle', 'light'],
     ] as const) {
       await switchTheme(page, themeId)
+      await prepareVisualSurfaces(page, server.baseUrl, workspaceRoot)
       await page.screenshot({
         path: path.join(EVIDENCE_DIR, `flashquery-surfaces-${label}.png`),
         fullPage: true,

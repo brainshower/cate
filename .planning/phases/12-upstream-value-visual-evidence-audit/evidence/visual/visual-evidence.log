@@ -1,0 +1,18 @@
+command: npm run test:e2e -- e2e/flashquery-visual-evidence.spec.ts
+timestamp: 2026-06-01T20:56:37Z
+output:
+
+> cate@1.1.0 test:e2e
+> playwright test e2e/flashquery-visual-evidence.spec.ts
+
+
+Running 1 test using 1 worker
+
+(node:16477) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16477) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [electron] › e2e/flashquery-visual-evidence.spec.ts:47:5 › T-A-005..T-A-009 captures FlashQuery visual evidence in light and dark themes (3.0s)
+
+  1 passed (4.2s)
+exit_code: 0
