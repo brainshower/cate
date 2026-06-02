@@ -27,8 +27,14 @@ declare global {
       openFlashQueryConnectionDialog(workspaceId?: string): void
       workspaceFlashQueryConnection(workspaceId: string): FlashQueryConnection | undefined
       createFlashQueryVault(point: Point, placement?: PanelPlacement): string
+      createAgent(point: Point, placement?: PanelPlacement): string
+      openFileEditor(workspaceId: string, filePath: string): string
+      editorPanelIdsForFilePath(filePath: string): string[]
       openVaultDocument(vaultPath: string, mode: 'dock' | 'canvas'): string
       editorPanelIdsForPath(vaultPath: string): string[]
+      openSettings(initialTab?: string): void
+      closeSettings(): void
+      openSidebarView(view: 'workspaces' | 'explorer' | 'flashqueryVault' | 'git' | 'parallelWork'): void
       closePanel(panelId: string): void
       editorText(panelId: string): string | null
       setEditorText(panelId: string, content: string): void
@@ -48,6 +54,7 @@ declare global {
       terminalPtyId(nodeId: string): string | null
       /** Write raw data to a terminal node's PTY (e.g. a flooding command). */
       writeTerminal(nodeId: string, data: string): boolean
+      terminalLog(nodeId: string): Promise<string | null>
       dragSnapshot(): {
         isDragging: boolean
         sourceKind: string | null
@@ -111,6 +118,16 @@ export function installE2EHarness(): void {
     return useAppStore.getState().createFlashQueryVault(selectedWorkspaceId(), point, placement)
   }
 
+  const createAgent = (point: Point, placement?: PanelPlacement): string => {
+    const panelId = useAppStore.getState().createAgent(selectedWorkspaceId(), point, placement)
+    const cs = activeCanvasStore()
+    if (!cs) return panelId
+    for (const n of Object.values(cs.getState().nodes)) {
+      if (n.panelId === panelId) return n.id
+    }
+    return panelId
+  }
+
   const panelFilePath = (panelId: string): string => {
     const panel = useAppStore.getState().workspaces
       .find((workspace) => workspace.id === selectedWorkspaceId())
@@ -137,6 +154,23 @@ export function installE2EHarness(): void {
     )
   }
 
+  const openFileEditor = (workspaceId: string, filePath: string): string => {
+    return useAppStore.getState().createEditor(
+      workspaceId,
+      filePath,
+      undefined,
+      { target: 'dock', zone: 'center' },
+    )
+  }
+
+  const editorPanelIdsForFilePath = (filePath: string): string[] => {
+    const workspace = useAppStore.getState().workspaces.find((ws) => ws.id === selectedWorkspaceId())
+    if (!workspace) return []
+    return Object.values(workspace.panels)
+      .filter((panel) => panel.type === 'editor' && panel.filePath === filePath)
+      .map((panel) => panel.id)
+  }
+
   const editorPanelIdsForPath = (vaultPath: string): string[] => {
     const workspaceId = selectedWorkspaceId()
     const uri = buildVaultUri(workspaceId, vaultPath)
@@ -149,6 +183,23 @@ export function installE2EHarness(): void {
 
   const closePanel = (panelId: string): void => {
     useAppStore.getState().closePanel(selectedWorkspaceId(), panelId)
+  }
+
+  const openSettings = (initialTab?: string): void => {
+    useUIStore.getState().openSettings(initialTab)
+  }
+
+  const closeSettings = (): void => {
+    useUIStore.getState().closeSettings()
+  }
+
+  const openSidebarView = (view: 'workspaces' | 'explorer' | 'flashqueryVault' | 'git' | 'parallelWork'): void => {
+    const ui = useUIStore.getState()
+    if (ui.sidebarLayout.left.includes(view)) {
+      ui.setActiveLeftSidebarView(view)
+    } else {
+      ui.setActiveRightSidebarView(view)
+    }
   }
 
   const editorText = (panelId: string): string | null => editorModel(panelId)?.getValue() ?? null
@@ -233,6 +284,12 @@ export function installE2EHarness(): void {
     return true
   }
 
+  const terminalLog = async (nodeId: string): Promise<string | null> => {
+    const ptyId = terminalPtyId(nodeId)
+    if (!ptyId) return null
+    return window.electronAPI?.terminalLogRead(ptyId) ?? null
+  }
+
   const dragSnapshot = () => {
     const s = useDragStore.getState()
     return {
@@ -252,8 +309,14 @@ export function installE2EHarness(): void {
     openFlashQueryConnectionDialog,
     workspaceFlashQueryConnection,
     createFlashQueryVault,
+    createAgent,
+    openFileEditor,
+    editorPanelIdsForFilePath,
     openVaultDocument,
     editorPanelIdsForPath,
+    openSettings,
+    closeSettings,
+    openSidebarView,
     closePanel,
     editorText,
     setEditorText,
@@ -271,6 +334,7 @@ export function installE2EHarness(): void {
     resetViewport,
     terminalPtyId,
     writeTerminal,
+    terminalLog,
     dragSnapshot,
   }
 }
