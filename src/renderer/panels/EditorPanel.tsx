@@ -246,6 +246,22 @@ function basenameForEditorTitle(filePath: string): string {
   return sourcePath.split(/[\\/]/).pop() || 'Untitled'
 }
 
+function cleanCurrentPanelTitle(workspaceId: string, panelId: string): string | null {
+  const workspace = useAppStore.getState().workspaces.find((item) => item.id === workspaceId)
+  const title = workspace?.panels[panelId]?.title
+  if (!title) return null
+  return title.endsWith(' \u2022') ? title.slice(0, -2) : title
+}
+
+function titleForExistingEditor(workspaceId: string, panelId: string, filePath: string): string {
+  const fallback = basenameForEditorTitle(filePath)
+  const currentTitle = cleanCurrentPanelTitle(workspaceId, panelId)
+  if (!currentTitle || currentTitle === fallback || currentTitle === encodeURIComponent(fallback)) {
+    return fallback
+  }
+  return currentTitle
+}
+
 // -----------------------------------------------------------------------------
 // Helper: reconstruct original content from current content + unified diff
 // -----------------------------------------------------------------------------
@@ -420,7 +436,9 @@ export default function EditorPanel({
     isDirtyRef.current = false
     useAppStore.getState().setPanelDirty(workspaceId, panelId, false)
 
-    const fileName = basenameForEditorTitle(targetPath)
+    const fileName = isInitialSave
+      ? basenameForEditorTitle(targetPath)
+      : titleForExistingEditor(workspaceId, panelId, targetPath)
     useAppStore.getState().updatePanelTitle(workspaceId, panelId, fileName)
 
     if (isInitialSave) {
@@ -660,7 +678,7 @@ export default function EditorPanel({
         useAppStore.getState().setPanelDirty(workspaceId, panelId, true)
 
         if (filePathRef.current) {
-          const fileName = basenameForEditorTitle(filePathRef.current)
+          const fileName = titleForExistingEditor(workspaceId, panelId, filePathRef.current)
           useAppStore
             .getState()
             .updatePanelTitle(workspaceId, panelId, `${fileName} \u2022`)

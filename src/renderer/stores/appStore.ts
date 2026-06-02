@@ -31,6 +31,7 @@ import { terminalRegistry } from '../lib/terminalRegistry'
 import { useDockStore } from './dockStore'
 import { createCanvasOps } from '../lib/canvasBridge'
 import { getOrCreateCanvasStoreForPanel, releaseCanvasStoreForPanel } from './canvasStore'
+import { parseVaultUri } from '../../shared/flashqueryUri'
 
 // -----------------------------------------------------------------------------
 // Canvas operations callback — injected at init to decouple from canvasStore
@@ -786,7 +787,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   createEditor(workspaceId, filePath?, position?, placement?) {
     const panelId = generateId()
-    const fileName = filePath ? filePath.split('/').pop() ?? 'Untitled' : 'Untitled'
+    const sourcePath = filePath ? parseVaultUri(filePath)?.vaultPath ?? filePath : undefined
+    const fileName = sourcePath ? sourcePath.split(/[\\/]/).pop() ?? 'Untitled' : 'Untitled'
     const panel: PanelState = {
       id: panelId,
       type: 'editor',

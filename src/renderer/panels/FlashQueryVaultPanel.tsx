@@ -142,7 +142,7 @@ function VaultTree({
         const isExpanded = expandedPaths.has(entry.vaultPath)
         const isLoading = loadingPaths.has(entry.vaultPath)
         const Icon = isFolder ? (isExpanded ? FolderOpen : Folder) : FileText
-        const label = entry.type === 'document' ? entry.title ?? entry.name : entry.name
+        const label = entry.name
         const isSelected = selectedPaths.has(entry.vaultPath)
         return (
           <div
@@ -295,12 +295,13 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
     const placement = mode === 'dock'
       ? { target: 'dock' as const, zone: 'center' as const }
       : { target: 'canvas' as const }
-    useAppStore.getState().createEditor(
+    const panelId = useAppStore.getState().createEditor(
       workspaceId,
       buildVaultUri(workspaceId, entry.vaultPath),
       undefined,
       placement,
     )
+    useAppStore.getState().updatePanelTitle(workspaceId, panelId, entry.name)
   }, [workspaceId])
 
   const handleRowClick = useCallback((entry: FlashQueryVaultEntry, event: React.MouseEvent) => {

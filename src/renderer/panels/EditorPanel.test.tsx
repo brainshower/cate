@@ -418,6 +418,32 @@ describe('EditorPanel FlashQuery save and dirty behavior', () => {
     expect(panel.unsavedContent).toBeUndefined()
   })
 
+  it('keeps a FlashQuery entry filename title stable across dirty edits and save', async () => {
+    const api = makeElectronApi()
+    setElectronApi(api)
+    const encodedUri = 'flashquery://workspace-1/Product/Website/FQ%2520GSD%2520workflow%2520notes.md'
+    const panel = makePanel(encodedUri)
+    panel.title = 'Errors4'
+    seedWorkspace(panel)
+
+    render(<EditorPanel panelId={panelId} workspaceId={workspaceId} filePath={encodedUri} />)
+    await waitFor(() => expect(monacoMock().latestEditor()?.getModel()).toBeTruthy())
+
+    act(() => {
+      monacoMock().focusLatestEditor()
+      monacoMock().setLatestValue('dirty')
+    })
+
+    expect(useAppStore.getState().workspaces[0].panels[panelId].title).toBe('Errors4 •')
+
+    act(() => {
+      window.dispatchEvent(new Event('save-file'))
+    })
+
+    await waitFor(() => expect(useAppStore.getState().workspaces[0].panels[panelId].isDirty).toBe(false))
+    expect(useAppStore.getState().workspaces[0].panels[panelId].title).toBe('Errors4')
+  })
+
   it('T-I-093 dirty vault close confirmation uses existing confirmUnsavedChanges flow and save registry', async () => {
     const api = makeElectronApi()
     setElectronApi(api)

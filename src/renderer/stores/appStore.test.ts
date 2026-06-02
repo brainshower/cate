@@ -118,3 +118,20 @@ describe('appStore.createFlashQueryVault', () => {
     expect(useAppStore.getState().workspaces[0].panels).toEqual({})
   })
 })
+
+describe('appStore.createEditor', () => {
+  beforeEach(() => {
+    seedStore()
+    setCanvasOperations(makeCanvasOps())
+  })
+
+  it('uses decoded FlashQuery URI filenames for editor titles', () => {
+    const panelId = useAppStore
+      .getState()
+      .createEditor(workspaceId, 'flashquery://workspace-1/Docs/Space%20Plan.md')
+    const panel = useAppStore.getState().workspaces[0].panels[panelId]
+
+    expect(panel.title).toBe('Space Plan.md')
+    expect(panel.title).not.toContain('%20')
+  })
+})

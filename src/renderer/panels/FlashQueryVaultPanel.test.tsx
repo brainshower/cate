@@ -26,6 +26,7 @@ type ElectronApiMock = Pick<
 const workspaceId = 'workspace-1'
 let statusListener: ((payload: FlashQueryStatusBroadcastPayload) => void) | null = null
 let createEditorSpy: ReturnType<typeof vi.fn>
+let updatePanelTitleSpy: ReturnType<typeof vi.fn>
 
 const makeElectronApi = (
   entries: FlashQueryVaultEntry[] = [],
@@ -117,7 +118,11 @@ beforeEach(() => {
   seedWorkspace({ transport: 'http', url: 'https://flashquery.local:8787/mcp' })
   useUIStore.setState({ showFlashQueryConnectionDialog: false })
   createEditorSpy = vi.fn(() => 'editor-1')
-  useAppStore.setState({ createEditor: createEditorSpy as any })
+  updatePanelTitleSpy = vi.fn()
+  useAppStore.setState({
+    createEditor: createEditorSpy as any,
+    updatePanelTitle: updatePanelTitleSpy as any,
+  })
 })
 
 afterEach(() => {
@@ -216,7 +221,7 @@ describe('FlashQueryVaultPanel State', () => {
     expect(screen.queryByRole('button', { name: /create/i })).toBeNull()
   })
 
-  it('renders a populated tree from live root entries', async () => {
+  it('renders document filenames rather than frontmatter titles in the vault tree', async () => {
     setElectronApi(makeElectronApi([
       { name: 'Notes', type: 'folder', vaultPath: 'Notes' },
       { name: 'Project.md', title: 'Project Brief', type: 'document', vaultPath: 'Project.md' },
@@ -225,7 +230,8 @@ describe('FlashQueryVaultPanel State', () => {
     emitStatus({ workspaceId, status: 'live' })
 
     await waitFor(() => expect(screen.getByText('Notes')).toBeTruthy())
-    expect(screen.getByText('Project Brief')).toBeTruthy()
+    expect(screen.getByText('Project.md')).toBeTruthy()
+    expect(screen.queryByText('Project Brief')).toBeNull()
   })
 })
 
@@ -249,7 +255,7 @@ describe('FlashQueryVaultPanel row and folder behavior', () => {
     ])
 
     expect(screen.getByRole('treeitem', { name: /Notes/ })).toHaveProperty('style.paddingLeft', '8px')
-    expect(screen.getByRole('treeitem', { name: /Project Brief/ })).toHaveProperty('style.paddingLeft', '8px')
+    expect(screen.getByRole('treeitem', { name: /Project.md/ })).toHaveProperty('style.paddingLeft', '8px')
     expect(screen.getByTestId('vault-row-chevron-Notes')).toBeTruthy()
     expect(screen.getByTestId('vault-row-icon-Notes')).toBeTruthy()
     expect(screen.getByTestId('vault-row-icon-Project.md')).toBeTruthy()
@@ -329,6 +335,28 @@ describe('FlashQueryVaultPanel row and folder behavior', () => {
       undefined,
       { target: 'dock', zone: 'center' },
     )
+    expect(updatePanelTitleSpy).toHaveBeenCalledWith(workspaceId, 'editor-1', 'Project.md')
+  })
+
+  it('opens a vault document with the filename as the editor title when metadata/path differ', async () => {
+    await renderLiveTree([
+      {
+        name: 'Errors 4.md',
+        title: 'FQ GSD workflow notes',
+        type: 'document',
+        vaultPath: 'Product/Website/FQ GSD workflow notes.md',
+      },
+    ])
+
+    fireEvent.doubleClick(screen.getByRole('treeitem', { name: /Errors 4.md/ }))
+
+    expect(createEditorSpy).toHaveBeenCalledWith(
+      workspaceId,
+      'flashquery://workspace-1/Product/Website/FQ%20GSD%20workflow%20notes.md',
+      undefined,
+      { target: 'dock', zone: 'center' },
+    )
+    expect(updatePanelTitleSpy).toHaveBeenCalledWith(workspaceId, 'editor-1', 'Errors 4.md')
   })
 
   it('opens document context actions through exactly Open and Open on Canvas', async () => {
@@ -486,7 +514,8 @@ describe('FlashQueryVaultPanel refresh behavior and design tokens', () => {
 
     fireEvent.click(screen.getByLabelText('Refresh vault'))
 
-    expect(await screen.findByRole('treeitem', { name: /A title/ })).toHaveProperty('ariaSelected', 'true')
+    expect(await screen.findByRole('treeitem', { name: /A.md/ })).toHaveProperty('ariaSelected', 'true')
+    expect(screen.queryByText('A title')).toBeNull()
   })
 
   it('does not mutate open editor panels during refresh', async () => {
