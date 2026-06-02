@@ -19,12 +19,14 @@ This verification closes release-readiness and provenance evidence for the compl
 - `.planning/phases/13-release-readiness-provenance-closeout/evidence/final/typecheck.log`
 - `.planning/phases/13-release-readiness-provenance-closeout/evidence/final/test.log`
 - `.planning/phases/13-release-readiness-provenance-closeout/evidence/final/test-e2e.log`
+- `.planning/phases/13-release-readiness-provenance-closeout/evidence/visual/REVIEW.md`
 
 ## Requirement Verdicts
 
 | Requirement | Verdict | Evidence |
 | --- | --- | --- |
-| REQ-021 | Passed | `.planning/` remains tracked at 250 files; `.gitignore` has no broad `.claude/` ignore. |
+| REQ-021 | Passed | `.planning/` remains tracked at 269 files after adding Phase 13 visual review artifacts; `.gitignore` has no broad `.claude/` ignore. |
+| REQ-022 | Passed | Phase 13 visual screenshots exist under `evidence/visual/` and are reviewed in `evidence/visual/REVIEW.md` for T-A-005..T-A-009. |
 | REQ-023 | Passed | `docs/UPSTREAM-SYNC.md` remains tracked and complete with runbook, protected surfaces, verification matrix, E2E traceability, process gates, and sync ledger. |
 | REQ-024 | Passed | Acceptance evidence exists and final build/typecheck/unit/E2E logs all contain `exit_code: 0`. |
 | REQ-025 | Passed | T-A-002 cumulative final matrix passed on the current tree. |
@@ -35,7 +37,13 @@ This verification closes release-readiness and provenance evidence for the compl
 | Test ID | Verdict | Evidence |
 | --- | --- | --- |
 | T-A-002 | Passed | `evidence/final/build.log`, `typecheck.log`, `test.log`, `test-e2e.log`. |
-| T-A-010 | Passed with manual-note rows recorded | `evidence/acceptance/NOTES.md`. |
+| T-A-005 | Passed | Phase 13 `evidence/visual/flashquery-surfaces-{dark,light}.png`; `evidence/visual/REVIEW.md`. |
+| T-A-006 | Passed | Phase 13 `evidence/visual/flashquery-surfaces-{dark,light}.png`; `evidence/visual/REVIEW.md`. |
+| T-A-007 | Passed | Phase 13 `evidence/visual/flashquery-surfaces-{dark,light}.png`; `evidence/visual/REVIEW.md`. |
+| T-A-008 | Passed | Phase 13 `evidence/visual/flashquery-status-chip-{live,connecting,disconnected}-{dark,light}.png`; `evidence/visual/REVIEW.md`. |
+| T-A-009 | Passed | Phase 13 `evidence/visual/flashquery-surfaces-{dark,light}.png`; `evidence/visual/REVIEW.md`. |
+| T-A-010 | Passed | `evidence/acceptance/NOTES.md`; focused Phase 13 E2E now covers the connection Test button and workspace menu connection action. |
+| T-A-011 | Not required | No packaging or Electron dependency changes occurred in Phase 13; Phase 12's not-required packaging-smoke disposition still applies. |
 | T-A-012 | Passed | `evidence/provenance/NOTES.md` conflict-review table. |
 | T-A-013 | Passed | `evidence/provenance/NOTES.md` tracking and ignore guard outputs. |
 | T-A-014 | Passed | `evidence/provenance/NOTES.md` runbook audit. |
@@ -53,7 +61,8 @@ This verification closes release-readiness and provenance evidence for the compl
 | `npm run build` | Passed, `exit_code: 0` |
 | `npm run typecheck` | Passed, `exit_code: 0` |
 | `npm test` | Passed, 65 files, 602 tests, 3 skipped, `exit_code: 0` |
-| `npm run test:e2e` | Passed, 32 passed, 2 skipped, `exit_code: 0` |
+| `npm run test:e2e` | Passed, 33 passed, 2 skipped, `exit_code: 0` |
+| `npm run test:e2e -- e2e/flashquery-happy-path.spec.ts e2e/flashquery-visual-evidence.spec.ts` | Passed, 4 passed |
 
 ## Visual Evidence Refresh
 
@@ -64,6 +73,10 @@ The final E2E run refreshed visual evidence files under Phase 12 and older Phase
 - `.planning/phases/12-upstream-value-visual-evidence-audit/evidence/visual/flashquery-surfaces-dark.png`
 - `.planning/phases/12-upstream-value-visual-evidence-audit/evidence/visual/flashquery-surfaces-light.png`
 - `.planning/phases/12-upstream-value-visual-evidence-audit/evidence/visual/flashquery-status-chip-{live,connecting,disconnected}-{dark,light}.png`
+- `.planning/phases/13-release-readiness-provenance-closeout/evidence/visual/flashquery-surfaces-{dark,light}.png`
+- `.planning/phases/13-release-readiness-provenance-closeout/evidence/visual/flashquery-status-chip-{live,connecting,disconnected}-{dark,light}.png`
+
+Phase 13 owns the release-readiness visual verdict through `.planning/phases/13-release-readiness-provenance-closeout/evidence/visual/REVIEW.md`.
 
 ## Open Gaps
 

@@ -15,7 +15,7 @@ The requirements document controls REQ-019, REQ-021, REQ-023, and REQ-026 behavi
 
 | Gate | Requirement | Command / check | Current output | Verdict |
 | --- | --- | --- | --- | --- |
-| T-A-013 | REQ-021 | `git ls-files .planning \| wc -l \| tr -d ' '` | `250` | pass |
+| T-A-013 | REQ-021 | `git ls-files .planning \| wc -l \| tr -d ' '` | `269` after adding Phase 13 visual review artifacts | pass |
 | T-A-013 | REQ-021 | broad `.claude/` ignore guard | `OK_NO_BROAD_RULE`; only `.claude/settings.local.json` is ignored | pass |
 | T-A-014 | REQ-023 | `git ls-files docs/UPSTREAM-SYNC.md` | `docs/UPSTREAM-SYNC.md` | pass |
 

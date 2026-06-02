@@ -25,6 +25,16 @@ async function openFlashQueryVaultFromCommandPalette(page: Page) {
   await expect(commandSearch).toBeHidden()
 }
 
+async function openFlashQueryConnectionFromWorkspaceMenu(page: Page, workspaceRoot: string) {
+  await page.evaluate(() => window.__cateE2E!.chooseNextContextMenuAction('flashquery-connection'))
+  const workspaceLabel = path.basename(workspaceRoot)
+  await page.getByText(workspaceLabel).first().click({ button: 'right' })
+  await expect(page.getByRole('dialog', { name: 'FlashQuery Connection' })).toBeVisible()
+
+  const menuItems = await page.evaluate(() => window.__cateE2E!.lastContextMenuItems())
+  expect(menuItems).toContainEqual({ id: 'flashquery-connection', label: 'FlashQuery Connection…' })
+}
+
 test('T-U-017 opens a FlashQuery Vault from the command palette', async () => {
   const server = await startFlashQueryStubServer({ expectedBearerToken: 'happy-token' })
   const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), 'cate-e2e-command-palette-'))
@@ -39,6 +49,38 @@ test('T-U-017 opens a FlashQuery Vault from the command palette', async () => {
 
     await expect(page.getByRole('treeitem', { name: /Welcome/ }).first()).toBeVisible()
     await expect(page.getByText('FlashQuery Vault').first()).toBeVisible()
+  } finally {
+    if (app) await closeApp(app)
+    await server.close()
+  }
+})
+
+test('T-A-010 tests FlashQuery connection and opens the dialog from the workspace menu', async () => {
+  const server = await startFlashQueryStubServer({ expectedBearerToken: 'happy-token' })
+  const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), 'cate-e2e-acceptance-'))
+  let app: ElectronApplication | null = null
+  try {
+    const launched = await launchApp()
+    app = launched.electronApp
+    const page = launched.mainWindow
+    await page.evaluate(async (rootPath) => window.__cateE2E!.ensureWorkspaceRoot(rootPath), workspaceRoot)
+
+    await openFlashQueryConnectionFromWorkspaceMenu(page, workspaceRoot)
+    await page.getByLabel('FlashQuery URL').fill(server.baseUrl)
+    await page.getByRole('textbox', { name: 'Bearer token' }).fill('happy-token')
+
+    const infoCountBeforeTest = server.counts().infoRequestCount
+    await page.getByRole('button', { name: 'Test connection' }).click()
+    await expect(page.getByText(/Connected to FlashQuery v1\.0\.0-e2e/)).toBeVisible()
+    expect(server.counts().infoRequestCount).toBeGreaterThan(infoCountBeforeTest)
+
+    await page.getByRole('button', { name: 'Save' }).click()
+    await expect(page.getByRole('dialog', { name: 'FlashQuery Connection' })).toBeHidden()
+
+    const workspaceId = await page.evaluate(() => window.__cateE2E!.selectedWorkspaceId())
+    await expect.poll(() => page.evaluate((id) => {
+      return window.__cateE2E!.workspaceFlashQueryConnection(id)?.url
+    }, workspaceId)).toBe(server.baseUrl)
   } finally {
     if (app) await closeApp(app)
     await server.close()

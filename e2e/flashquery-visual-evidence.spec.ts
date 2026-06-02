@@ -6,10 +6,30 @@ import { closeApp, launchApp } from './fixtures/electron-app'
 import { startFlashQueryStubServer } from './fixtures/flashquery-server'
 import type { ElectronApplication, Page } from 'playwright'
 
-const EVIDENCE_DIR = path.resolve(
+const PHASE_12_EVIDENCE_DIR = path.resolve(
   process.cwd(),
   '.planning/phases/12-upstream-value-visual-evidence-audit/evidence/visual',
 )
+const PHASE_13_EVIDENCE_DIR = path.resolve(
+  process.cwd(),
+  '.planning/phases/13-release-readiness-provenance-closeout/evidence/visual',
+)
+const EVIDENCE_DIRS = [PHASE_12_EVIDENCE_DIR, PHASE_13_EVIDENCE_DIR]
+
+async function captureAllEvidenceDirs(page: Page, fileName: string, options: { fullPage?: boolean } = {}) {
+  for (const evidenceDir of EVIDENCE_DIRS) {
+    await page.screenshot({
+      path: path.join(evidenceDir, fileName),
+      fullPage: options.fullPage,
+    })
+  }
+}
+
+async function captureHeaderAllEvidenceDirs(header: ReturnType<Page['getByTestId']>, fileName: string) {
+  for (const evidenceDir of EVIDENCE_DIRS) {
+    await header.screenshot({ path: path.join(evidenceDir, fileName) })
+  }
+}
 
 async function configure(page: Page, serverUrl: string, workspaceRoot: string) {
   const workspaceId = await page.evaluate(async (rootPath) => window.__cateE2E!.ensureWorkspaceRoot(rootPath), workspaceRoot)
@@ -55,7 +75,7 @@ async function captureStatusChipStates(
   const header = page.getByTestId('vault-panel-header')
 
   await expect(page.getByText('Live')).toBeVisible()
-  await header.screenshot({ path: path.join(EVIDENCE_DIR, `flashquery-status-chip-live-${label}.png`) })
+  await captureHeaderAllEvidenceDirs(header, `flashquery-status-chip-live-${label}.png`)
 
   await page.evaluate((id) => {
     window.dispatchEvent(new CustomEvent('cate:e2e-flashquery-status', {
@@ -63,7 +83,7 @@ async function captureStatusChipStates(
     }))
   }, workspaceId)
   await expect(page.getByText('Connecting…')).toBeVisible()
-  await header.screenshot({ path: path.join(EVIDENCE_DIR, `flashquery-status-chip-connecting-${label}.png`) })
+  await captureHeaderAllEvidenceDirs(header, `flashquery-status-chip-connecting-${label}.png`)
 
   await page.evaluate((id) => {
     window.dispatchEvent(new CustomEvent('cate:e2e-flashquery-status', {
@@ -77,11 +97,11 @@ async function captureStatusChipStates(
   await expect(page.getByRole('button', { name: 'Disconnected' })).toBeVisible()
   await page.getByRole('button', { name: 'Disconnected' }).hover()
   await expect(page.getByRole('tooltip')).toBeVisible()
-  await header.screenshot({ path: path.join(EVIDENCE_DIR, `flashquery-status-chip-disconnected-${label}.png`) })
+  await captureHeaderAllEvidenceDirs(header, `flashquery-status-chip-disconnected-${label}.png`)
 }
 
 test('T-A-005..T-A-009 captures FlashQuery visual evidence in light and dark themes', async () => {
-  await mkdir(EVIDENCE_DIR, { recursive: true })
+  await Promise.all(EVIDENCE_DIRS.map((evidenceDir) => mkdir(evidenceDir, { recursive: true })))
   const server = await startFlashQueryStubServer({ expectedBearerToken: 'visual-token' })
   const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), 'cate-e2e-workspace-'))
   let app: ElectronApplication | null = null
@@ -98,10 +118,7 @@ test('T-A-005..T-A-009 captures FlashQuery visual evidence in light and dark the
       await switchTheme(page, themeId)
       await prepareVisualSurfaces(page, server.baseUrl, workspaceRoot)
       const workspaceId = await page.evaluate(() => window.__cateE2E!.selectedWorkspaceId())
-      await page.screenshot({
-        path: path.join(EVIDENCE_DIR, `flashquery-surfaces-${label}.png`),
-        fullPage: true,
-      })
+      await captureAllEvidenceDirs(page, `flashquery-surfaces-${label}.png`, { fullPage: true })
       await captureStatusChipStates(page, workspaceId, label)
     }
   } finally {

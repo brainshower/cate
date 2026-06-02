@@ -19,7 +19,7 @@ key-files:
     - .planning/phases/13-release-readiness-provenance-closeout/evidence/acceptance/NOTES.md
   modified: []
 key-decisions:
-  - "T-A-010 acceptance rows distinguish automated E2E evidence from manual acceptance note required steps."
+  - "T-A-010 acceptance rows distinguish automated E2E evidence from manual acceptance notes; the Phase 13 gap-fix follow-up later replaced the remaining manual-note rows with focused E2E coverage."
   - "Phase 12 static/headless smoke evidence remains labeled as static/headless evidence, not observed manual UI smoke."
 patterns-established:
   - "Acceptance artifacts cite current Phase 12/13 evidence before older supporting history."
@@ -30,7 +30,7 @@ completed: 2026-06-02
 
 # Phase 13 Plan 13.1: Product Acceptance Smoke Reconciliation Summary
 
-**T-A-010 product acceptance evidence mapped to current E2E coverage, manual product-smoke notes, and Phase 12 visual/supporting baselines**
+**T-A-010 product acceptance evidence mapped to current E2E coverage and Phase 12/13 visual/supporting baselines**
 
 ## Performance
 
@@ -44,7 +44,7 @@ completed: 2026-06-02
 
 - Created `.planning/phases/13-release-readiness-provenance-closeout/evidence/acceptance/NOTES.md`.
 - Recorded source-doc acknowledgement for the canonical upstream-sync requirements and test plan.
-- Mapped every T-A-010 checklist step to pass or manual acceptance note required status with concrete evidence.
+- Mapped every T-A-010 checklist step to concrete evidence; the Phase 13 gap-fix follow-up now marks every row pass after adding focused E2E coverage for the Test button and workspace menu action.
 - Added T-E-001 through T-E-005 traceability and T-A-008 focused status-chip visual evidence paths.
 - Preserved Phase 12 baseline wording for commit `a8b21fe`, commit `2d7a5cd`, commit `6f74e44`, `window.electronAPI.isE2E`, and static/headless smoke evidence.
 
@@ -61,8 +61,12 @@ completed: 2026-06-02
 
 ## Decisions Made
 
-- The Test button and workspace menu connection action are labeled `manual acceptance note required` because the current E2E suite supports but does not directly use those exact manual product-smoke interactions as the acceptance evidence source.
+- The Test button and workspace menu connection action were originally carried as manual notes, then superseded by focused E2E coverage in `e2e/flashquery-happy-path.spec.ts`.
 - T-A-008 status-chip evidence cites the Phase 12 focused captures and explicitly names the `window.electronAPI.isE2E` gate.
+
+## Supersession Note
+
+The Phase 13 gap-fix follow-up added focused E2E coverage for the Test button and workspace menu connection action in `e2e/flashquery-happy-path.spec.ts`. The final acceptance notes now mark both rows as pass.
 
 ## Deviations from Plan
 
@@ -81,7 +85,7 @@ None - no external service configuration required.
 - `for term in "T-A-010" "connect" "test connection" "open vault" "browse docs" "edit/save" "disconnect/retry" "restart" "New FlashQuery Vault" "workspace menu" "a8b21fe" "2d7a5cd" "window.electronAPI.isE2E" "T-A-008" "T-M-005" "static/headless"; do grep -q "$term" .../evidence/acceptance/NOTES.md || exit 1; done` passed.
 - `for id in T-E-001 T-E-002 T-E-003 T-E-004 T-E-005; do grep -q "$id" .../evidence/acceptance/NOTES.md || exit 1; done` passed.
 - `grep -q "flashquery-status-chip" .../evidence/acceptance/NOTES.md` passed.
-- `rg -n "manual acceptance note required|pass|blocked|not required" .../evidence/acceptance/NOTES.md` returned the acceptance rows.
+- `rg -n "pass|blocked|not required" .../evidence/acceptance/NOTES.md` returned the acceptance rows.
 
 ## Next Phase Readiness
 

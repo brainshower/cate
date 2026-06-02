@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-02
 **Plan:** 13.1 Product Acceptance Smoke Reconciliation
-**Status:** Current evidence mapped; manual acceptance notes called out where automation is not the evidence source.
+**Status:** Passed. Current evidence mapped, including focused T-A-010 E2E coverage for the connection Test button and workspace menu connection action.
 
 ## Source Documents Read
 
@@ -16,14 +16,14 @@ The requirements document controls behavior and scope. The test plan controls T-
 | Checklist step | Verdict | Current evidence | Notes |
 | --- | --- | --- | --- |
 | connect | pass | `e2e/flashquery-happy-path.spec.ts` T-E-001 opens the FlashQuery connection dialog, fills URL and token, saves, and opens the vault panel; Phase 12 final `evidence/final/test-e2e.log` exited 0. | Automated E2E covers the connection path with the FlashQuery stub server. |
-| test connection | manual acceptance note required | `src/renderer/dialogs/FlashQueryConnectionDialog.tsx` retains the probe/test action and Phase 11 verification records connection dialog preservation; final Phase 13 E2E will rerun the suite. | T-A-010 names this as a manual product-smoke step; no current E2E row directly clicks the Test button as the acceptance source. |
+| test connection | pass | `e2e/flashquery-happy-path.spec.ts` now includes `T-A-010 tests FlashQuery connection and opens the dialog from the workspace menu`; the focused Phase 13 E2E run passed. | The test clicks the real `Test connection` button, observes the FlashQuery stub `/mcp/info` probe, and verifies the success message. |
 | open vault | pass | `e2e/flashquery-happy-path.spec.ts` T-E-001 creates/opens a FlashQuery vault panel; `e2e/flashquery-vault-browse.spec.ts` T-E-002 opens the sidebar vault view. | Covered by current E2E specs and prior green logs. |
 | browse docs | pass | `e2e/flashquery-vault-browse.spec.ts` T-E-002 covers vault entries, folders, refresh, empty vault, and multi-level browsing. | Phase 12 final E2E log is supporting evidence until Phase 13 final matrix refreshes it. |
 | edit/save | pass | `e2e/flashquery-happy-path.spec.ts` T-E-001 edits `Welcome.md`, saves through the Cate editor path, verifies the stub document body, closes, reopens, and sees saved content. | This is direct automation for the FlashQuery vault editor save path. |
 | disconnect/retry | pass | `e2e/flashquery-disconnect.spec.ts` T-E-003 forces disconnect state, shows the `Disconnected` chip, and recovers through retry. | Status-chip visuals are separately covered by T-A-008 focused captures. |
 | restart | pass | `e2e/flashquery-persistence.spec.ts` T-E-004 restarts the app, restores the workspace connection without writing the token, opens the vault panel, and sees `Welcome`. | Covers persistence across restart and no eager info probe. |
 | command palette "New FlashQuery Vault" | pass | `e2e/flashquery-happy-path.spec.ts` T-E-001 uses the command palette text `New FlashQuery Vault` before opening the vault workflow. | Also supported by Phase 11 REQ-015 verification. |
-| workspace menu connection action | manual acceptance note required | `src/renderer/panels/FlashQueryVaultPanel.tsx` still points users to the workspace-name menu for `FlashQuery connection...`; Phase 11 evidence covers renderer discoverability. | T-A-010 names this as a manual product-smoke step; current E2E opens the connection dialog through harness helpers, not by validating the menu action as the acceptance source. |
+| workspace menu connection action | pass | `e2e/flashquery-happy-path.spec.ts` now includes `T-A-010 tests FlashQuery connection and opens the dialog from the workspace menu`; the focused Phase 13 E2E run passed. | The test right-clicks the workspace row, selects the native `FlashQuery Connection...` menu action via the E2E context-menu bridge, and verifies the dialog opens for the selected workspace. |
 
 ## Canonical E2E Traceability
 
@@ -35,7 +35,7 @@ The requirements document controls behavior and scope. The test plan controls T-
 | T-E-004 | `e2e/flashquery-persistence.spec.ts` | restart | pass |
 | T-E-005 | `e2e/fixtures/flashquery-server.spec.ts` | acceptance-supporting stub server lifecycle for connect, browse docs, edit/save, disconnect/retry, and restart specs | pass |
 
-Manual-only acceptance notes remain explicit for the Test button and workspace menu connection action. They are product-smoke notes, not hidden behind generic E2E language.
+The former manual-only acceptance notes for the Test button and workspace menu connection action are now backed by focused E2E coverage in `e2e/flashquery-happy-path.spec.ts`.
 
 ## T-A-008 Visual Evidence Note
 
@@ -60,6 +60,14 @@ Commit `6f74e44` corrected the T-M-003 file-exclusion evidence citation: file ex
 
 REQ-003 and T-M-005 are accepted through static/headless smoke evidence. T-M-001, T-M-002, T-M-003, and T-M-005 remain labeled as static/headless smoke evidence; Phase 13 does not relabel those rows as observed manual UI smoke.
 
+## Focused Phase 13 Acceptance Run
+
+Command: `npm run test:e2e -- e2e/flashquery-happy-path.spec.ts e2e/flashquery-visual-evidence.spec.ts`
+
+Result: passed, 4 tests passed.
+
+This run includes the new `T-A-010 tests FlashQuery connection and opens the dialog from the workspace menu` test, plus the existing FlashQuery command-palette, editor save/open-on-canvas, and visual-evidence tests.
+
 ## Current Acceptance Gaps
 
-No release-readiness blocker is recorded from Plan 13.1. The remaining manual acceptance note required items are documentation-accurate product-smoke notes for T-A-010, and the Phase 13 final command matrix will refresh automated evidence under `evidence/final/`.
+No release-readiness blocker is recorded from Plan 13.1. All T-A-010 rows now have observed automated or focused E2E evidence.

@@ -109,7 +109,7 @@ None - no external service configuration required.
 - `npm run build` passed; `evidence/final/build.log` contains `exit_code: 0`.
 - `npm run typecheck` passed; `evidence/final/typecheck.log` contains `exit_code: 0`.
 - `npm test` passed; `evidence/final/test.log` records 65 files passed, 602 tests passed, 3 skipped, and `exit_code: 0`.
-- `npm run test:e2e` passed; `evidence/final/test-e2e.log` records 32 passed, 2 skipped, and `exit_code: 0`.
+- `npm run test:e2e` passed; `evidence/final/test-e2e.log` records 33 passed, 2 skipped, and `exit_code: 0`.
 - UAT/verification ID grep checks passed for REQ-021, REQ-023, REQ-024, REQ-025, REQ-026, T-A-002, T-A-010, T-A-012, T-A-013, T-A-014, T-A-015, and T-E-001 through T-E-005.
 - Verification wording check passed: no `release cut` or `product release was cut` phrase appears in `13-VERIFICATION.md`.
 

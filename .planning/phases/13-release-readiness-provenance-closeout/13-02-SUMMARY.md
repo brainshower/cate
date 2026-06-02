@@ -44,7 +44,7 @@ completed: 2026-06-02
 ## Accomplishments
 
 - Created `.planning/phases/13-release-readiness-provenance-closeout/evidence/provenance/NOTES.md`.
-- Recorded current T-A-013 `.planning/` tracked count: `250`.
+- Recorded current T-A-013 `.planning/` tracked count: `269` after Phase 13 visual review artifacts were added.
 - Recorded current `.gitignore` broad `.claude/` guard: no broad rule present, only `.claude/settings.local.json`.
 - Recorded current T-A-015 provenance outputs: ancestor exit `0`, merge-base `5b6549d661a8427c829f60e15c4de9e71d49ac4d`, behind-count `0`, and merge commit `318214f`.
 - Audited T-A-014 runbook sections and confirmed `docs/UPSTREAM-SYNC.md` remains tracked and complete.

@@ -36,11 +36,12 @@ Phase 13 is the final post-handoff release-readiness and provenance closeout pas
 - The visual E2E now dispatches `cate:e2e-flashquery-status` to render deterministic status-chip states inside the real `FlashQueryVaultPanel`, but only when `window.electronAPI.isE2E` is true.
 - Phase 12 verification now includes REQ-003 and T-M-005 static/headless smoke evidence for upstream agent/provider UI refactor retention and FlashQuery panel non-regression.
 - Phase 12 T-M-001, T-M-002, T-M-003, and T-M-005 are accepted as static/headless smoke evidence; Phase 13 T-A-010 must not silently convert those into observed manual UI smoke.
-- Running the full E2E suite in Phase 13 may refresh visual evidence files under `.planning/phases/12-upstream-value-visual-evidence-audit/evidence/visual/` because `e2e/flashquery-visual-evidence.spec.ts` writes to the Phase 12 evidence directory. Treat that as expected evidence refresh and record it in Phase 13 notes if it occurs.
+- Running the full E2E suite in Phase 13 may refresh visual evidence files. `e2e/flashquery-visual-evidence.spec.ts` now writes Phase 13-owned evidence under `.planning/phases/13-release-readiness-provenance-closeout/evidence/visual/` and refreshes the Phase 12 evidence directory for continuity. Treat refreshes as expected and record them in Phase 13 notes if they occur.
 
 ### Requirements In Scope
 
 - REQ-021 keeps `.planning/` tracked and avoids broad `.claude/` ignore changes.
+- REQ-022 keeps visual evidence complete and reviewed for vault badge, sidebar vault view, connection dialog, status chip, and editor tabs in light and dark themes.
 - REQ-023 keeps `docs/UPSTREAM-SYNC.md` tracked and complete with runbook, protected-surface inventory, and append-only sync ledger.
 - REQ-024 proves the full verification matrix passes.
 - REQ-025 proves cumulative regression gates did not regress previously green behavior.
@@ -50,7 +51,9 @@ Phase 13 is the final post-handoff release-readiness and provenance closeout pas
 ### Tests In Scope
 
 - T-A-002 cumulative exit gate.
+- T-A-005 through T-A-009 visual evidence and recorded review for the final Phase 13 tree.
 - T-A-010 product acceptance checklist.
+- T-A-011 packaged-app smoke remains conditional and not required when Phase 13 makes no packaging/Electron dependency changes.
 - T-A-012 conflict-hunk review record.
 - T-A-013 `.planning/` tracking intact.
 - T-A-014 future-sync runbook + surface inventory.
