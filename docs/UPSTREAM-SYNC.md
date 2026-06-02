@@ -36,6 +36,16 @@ This fork consumes upstream Cate releases and preserves FlashQuery-specific beha
 - E2E harness: upstream terminal/perf helpers plus FlashQuery vault/context-menu helpers.
 - Upstream removals: `BulkActionChip.tsx`, `TerminalUrlPrompt.tsx`, shortcut hint overlays, and URL prompt store are removed upstream with no dangling imports after build/typecheck.
 
+## Local Linting Policy
+
+Upstream Cate does not currently ship or run a lint gate. Treat local linting as a fork-owned quality signal, not as an upstream-release compatibility requirement.
+
+- `npm run lint` is available as a full-tree diagnostic baseline for the fork.
+- Full-tree lint must not block future upstream sync acceptance until the existing baseline is intentionally cleaned up or the fork explicitly decides to own that maintenance cost.
+- `npm run preflight` stays merge-safe: build, typecheck, unit tests, and E2E. Those gates match the upstream-sync acceptance model and protect FlashQuery behavior without rejecting inherited upstream lint debt.
+- Future lint enforcement should start with fork-local or newly changed files, then graduate to full-tree gating only after the baseline is near zero.
+- During future syncs, record lint findings separately from merge blockers unless a lint finding exposes a concrete functional, security, or test-validity defect.
+
 ## Verification Matrix
 
 | Gate | Command / Evidence | Status |
@@ -45,6 +55,7 @@ This fork consumes upstream Cate releases and preserves FlashQuery-specific beha
 | Unit/component | `npm test` | Passed |
 | E2E | `npm run test:e2e` | Passed |
 | Electron smoke | `npm run test:smoke:electron` | Passed |
+| Lint diagnostic | `npm run lint` | Diagnostic only; not a sync blocker |
 | Visual evidence | `.planning/phases/08-upstream-sync-v1-1-0/evidence/visual/flashquery-surfaces-{dark,light}.png` | Passed |
 | Provenance | merge-base, ancestor, behind-count, merge commit message | Passed |
 
