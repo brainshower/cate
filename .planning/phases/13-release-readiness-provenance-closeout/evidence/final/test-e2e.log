@@ -1,0 +1,105 @@
+command: npm run test:e2e
+timestamp: 2026-06-02T00:58:54Z
+output:
+
+> cate@1.1.0 test:e2e
+> playwright test
+
+
+Running 34 tests using 1 worker
+
+(node:85286) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:85286) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  -   1 [electron] › e2e/drag-canvas-into-canvas.spec.ts:23:5 › canvas panel cannot be docked into a canvas-node mini-dock
+  ✓   2 [electron] › e2e/drag-canvas-into-canvas.spec.ts:47:5 › non-canvas tab is accepted into a canvas-node mini-dock (3.6s)
+  ✓   3 [electron] › e2e/drag-detach.spec.ts:20:5 › drag past the window edge detaches into a new panel window (3.9s)
+  ✓   4 [electron] › e2e/drag-detach.spec.ts:58:5 › release without leaving the window does not detach (2.5s)
+  ✓   5 [electron] › e2e/drag-move.spec.ts:29:5 › moves a node within the canvas (zoom 1) (2.4s)
+  -   6 [electron] › e2e/drag-move.spec.ts:40:5 › zoom-aware: canvas-space delta == screen-delta ÷ zoom (zoom 0.5)
+  ✓   7 [electron] › e2e/drag-move.spec.ts:65:5 › zoom-aware: canvas-space delta == screen-delta ÷ zoom (zoom 2) (3.0s)
+  ✓   8 [electron] › e2e/drag-move.spec.ts:82:5 › ghost follows cursor with the grab offset (zoom 1) (2.2s)
+  ✓   9 [electron] › e2e/drag-move.spec.ts:101:5 › source node is hidden while dragging (2.4s)
+  ✓  10 [electron] › e2e/drag-move.spec.ts:122:5 › tiny drag inside dead zone does not move the node (2.4s)
+  ✓  11 [electron] › e2e/drag-move.spec.ts:133:5 › Cmd+Z restores position after a drag (2.7s)
+  ✓  12 [electron] › e2e/drag-split.spec.ts:32:5 › drop on target tab-bar tabs the source into target stack (3.3s)
+  ✓  13 [electron] › e2e/drag-split.spec.ts:45:5 › drop on target left edge splits horizontally (3.3s)
+  ✓  14 [electron] › e2e/drag-split.spec.ts:67:5 › drop on target top edge splits vertically (3.2s)
+  ✓  15 [electron] › e2e/drag-split.spec.ts:82:5 › drop on target body centre (safe zone) does not commit (3.2s)
+  ✓  16 [electron] › e2e/fixtures/flashquery-server.spec.ts:26:5 › T-E-005 FlashQuery stub lists nested vault folders and empty vault state (241ms)
+  ✓  17 [electron] › e2e/fixtures/flashquery-server.spec.ts:60:5 › T-E-005 FlashQuery stub reads, update-writes, resets state, and exposes counters (47ms)
+  ✓  18 [electron] › e2e/fixtures/flashquery-server.spec.ts:100:5 › T-E-005 FlashQuery stub validates a caller-provided expected bearer token (10ms)
+  ✓  19 [electron] › e2e/flashquery-disconnect.spec.ts:18:5 › T-E-003 disconnect and retry / T-E-010 shows disconnected state and recovers via retry (1.8s)
+  ✓  20 [electron] › e2e/flashquery-happy-path.spec.ts:28:5 › T-U-017 opens a FlashQuery Vault from the command palette (1.6s)
+  ✓  21 [electron] › e2e/flashquery-happy-path.spec.ts:48:5 › T-E-001 happy path / T-E-008 plus T-E-009 opens on canvas (2.1s)
+  ✓  22 [electron] › e2e/flashquery-persistence.spec.ts:60:5 › T-E-004 persistence / T-E-006 plus T-E-007 persists connection across restart without eager info probe (3.7s)
+  ✓  23 [electron] › e2e/flashquery-vault-browse.spec.ts:18:5 › T-E-002 vault browse / T-E-011 covers empty vault, refresh, and multi-level browsing (1.9s)
+  ✓  24 [electron] › e2e/flashquery-visual-evidence.spec.ts:83:5 › T-A-005..T-A-009 captures FlashQuery visual evidence in light and dark themes (2.9s)
+
+──────── PERF: idle (2s)  (2s window) ────────
+  fps: 60    longtasks: 0 (max 0ms)
+  renders/s:  CanvasPanel=1/s
+  main cpu: 0%   terminal: 0KB/s (0 chunks/s)
+  spawns/s:  (none)
+  procs:  Browser 0%/289MB  GPU 0%/103MB  Utility 0%/51MB  Tab 0%/169MB
+────────────────────────────────────────────
+  ✓  25 [electron] › e2e/perf-stress.spec.ts:152:5 › baseline: idle for 2s (2.0s)
+
+──────── PERF: canvas pan (≈150 wheel events)  (5.9s window) ────────
+  fps: 60    longtasks: 0 (max 0ms)
+  renders/s:  CanvasPanel=35/s  CanvasNode=2/s  CanvasNodeWrapper=2/s
+  main cpu: 6.1%   terminal: 0KB/s (0 chunks/s)
+  spawns/s:  pgrep=9 lsof:cwd=3 lsof:ports=0.5
+  procs:  Tab 3.4%/234MB  GPU 2%/121MB  Browser 0.7%/289MB  Utility 0%/54MB
+────────────────────────────────────────────
+  ✓  26 [electron] › e2e/perf-stress.spec.ts:161:5 › canvas pan stress (wheel-pan over a populated canvas) (6.6s)
+
+──────── PERF: canvas zoom (90 frames, populated)  (1.9s window) ────────
+  fps: 60    longtasks: 0 (max 0ms)
+  renders/s:  CanvasPanel=47/s  CanvasNode=5/s  CanvasNodeWrapper=5/s
+  main cpu: 4.8%   terminal: 0KB/s (0 chunks/s)
+  spawns/s:  pgrep=6
+  procs:  Tab 2.9%/237MB  GPU 1.6%/126MB  Browser 0.3%/286MB  Utility 0%/54MB
+────────────────────────────────────────────
+  ✓  27 [electron] › e2e/perf-stress.spec.ts:180:5 › canvas zoom stress (smooth-zoom re-render cascade) (2.0s)
+
+──────── PERF: terminal flood (~4M lines, peak)  (4.9s window) ────────
+  fps: 60    longtasks: 0 (max 0ms)
+  renders/s:  CanvasNode=5/s  CanvasNodeWrapper=5/s  CanvasPanel=2/s
+  main cpu: 17.7%   terminal: 17357.4KB/s (42445.5 chunks/s)
+  spawns/s:  (none)
+  procs:  Browser(main) 11.6%/0MB
+────────────────────────────────────────────
+  ✓  28 [electron] › e2e/perf-stress.spec.ts:211:5 › terminal flood (real shell blasting output) (6.2s)
+
+──────── PERF: 9 terminals · idle  (9 mounted nodes) ────────
+  fps: 60    longtasks: 0 (max 0ms)
+  peak cpu by process:  Browser 7.9%  Tab 4.4%  GPU 1.7%  Utility 0%
+  terminal: 11444.3 KB/s    spawns: 18.5/s
+  renders/s:  CanvasNode=18/s  CanvasNodeWrapper=18/s  CanvasPanel=2/s
+────────────────────────────────────────────
+  ✓  29 [electron] › e2e/perf-stress.spec.ts:392:5 › many terminals (9) idle, all visible (4.6s)
+
+──────── PERF: 9 terminals · output in 4  (9 mounted nodes) ────────
+  fps: 60    longtasks: 0 (max 0ms)
+  peak cpu by process:  Browser 9.4%  Tab 9%  GPU 1.9%  Utility 0%
+  terminal: 30789.8 KB/s    spawns: 22.5/s
+  renders/s:  CanvasNode=14/s  CanvasNodeWrapper=14/s  CanvasPanel=2/s
+────────────────────────────────────────────
+  ✓  30 [electron] › e2e/perf-stress.spec.ts:403:5 › many terminals (9) with concurrent output in 4 (5.1s)
+
+──────── PERF: big canvas pan · 9 nodes  (8 mounted nodes) ────────
+  fps: 60    longtasks: 0 (max 0ms)
+  peak cpu by process:  Tab 4.8%  Browser 4.7%  GPU 1.8%  Utility 0%
+  terminal: 16598.9 KB/s    spawns: 22.5/s
+  renders/s:  CanvasPanel=42/s  CanvasNode=4/s  CanvasNodeWrapper=4/s
+────────────────────────────────────────────
+  ✓  31 [electron] › e2e/perf-stress.spec.ts:428:5 › big canvas pan with 9 nodes visible (5.0s)
+  ✓  32 [electron] › e2e/smoke.spec.ts:13:5 › app boots with E2E harness installed (1.7s)
+  ✓  33 [electron] › e2e/smoke.spec.ts:18:5 › a canvas is mounted (1.4s)
+  ✓  34 [electron] › e2e/smoke.spec.ts:25:5 › seeding a terminal puts a node on the canvas (1.9s)
+
+  2 skipped
+  32 passed (1.6m)
+exit_code: 0

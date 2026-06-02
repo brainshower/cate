@@ -8,7 +8,7 @@
 - ✅ **v1.1 Shared Contracts Audit** — Phase 10 (completed 2026-06-01)
 - ✅ **v1.1 Renderer Behavior Audit** — Phase 11 (completed 2026-06-01)
 - ✅ **v1.1 Upstream Value + Visual Evidence Audit** — Phase 12 (completed 2026-06-01)
-- 🔄 **v1.1 Release Readiness + Provenance Closeout** — Phase 13 (planned)
+- ✅ **v1.1 Release Readiness + Provenance Closeout** — Phase 13 (completed 2026-06-02)
 
 ## Phases
 
@@ -213,7 +213,7 @@ Downstream implementation, QA, and review agents MUST read both documents before
 
 **Requirements:** REQ-021, REQ-023, REQ-024, REQ-025, REQ-026
 **Tests:** T-A-002, T-A-010, T-A-012..T-A-015, T-E-001..T-E-005
-**Status:** In Progress
+**Status:** Complete
 
 **Success criteria:**
 
@@ -228,7 +228,7 @@ Downstream implementation, QA, and review agents MUST read both documents before
 
 - [x] `13-01-PLAN.md` — Product acceptance smoke reconciliation.
 - [x] `13-02-PLAN.md` — Provenance, runbook, and tracking gates.
-- [ ] `13-03-PLAN.md` — Final matrix, UAT, and planning closeout.
+- [x] `13-03-PLAN.md` — Final matrix, UAT, and planning closeout.
 
 ## Progress
 
@@ -246,7 +246,7 @@ Downstream implementation, QA, and review agents MUST read both documents before
 | 10. Shared Contracts Audit                  | v1.1      | 3/3 | Complete   | 2026-06-01 |
 | 11. Renderer Behavior Audit                 | v1.1      | 3/3 | Complete   | 2026-06-01 |
 | 12. Upstream Value + Visual Evidence Audit  | v1.1      | 3/3 | Complete   | 2026-06-01 |
-| 13. Release Readiness + Provenance Closeout | v1.1      | 2/3 | In Progress|  |
+| 13. Release Readiness + Provenance Closeout | v1.1      | 3/3 | Complete   | 2026-06-02 |
 
 ## Notes
 

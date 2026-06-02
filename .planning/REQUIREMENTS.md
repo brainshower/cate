@@ -75,7 +75,7 @@ Merge upstream Cate stable tag `v1.1.0` into the FlashQuery fork with a real two
 | REQ-021, REQ-023, REQ-026 | Phase 9 Plan 9.3: Provenance gates and planning closeout | Planned |
 | REQ-005, REQ-006, REQ-008, REQ-009, REQ-010, REQ-019, REQ-024, REQ-025 | Phase 10 Plans 10.1..10.3: Shared-contracts post-handoff audit | Planned |
 | REQ-004, REQ-018, REQ-020, REQ-022, REQ-024, REQ-025 | Phase 12 Plans 12.1..12.3: Upstream value and visual-evidence post-handoff audit | Planned |
-| REQ-021, REQ-023, REQ-024, REQ-025, REQ-026 | Phase 13 Plans 13.1..13.3: Release-readiness and provenance closeout | Planned |
+| REQ-021, REQ-023, REQ-024, REQ-025, REQ-026 | Phase 13 Plans 13.1..13.3: Release-readiness and provenance closeout | Complete |
 
 ## Out Of Scope
 
