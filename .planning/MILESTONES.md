@@ -1,17 +1,32 @@
 # Milestones
 
-## v1.1 Upstream Sync (Planned: 2026-06-01)
+## v1.1 Upstream Sync / Release Readiness + Provenance Closeout (Completed: 2026-06-02)
 
-**Phases planned:** 1 phase, 6 plans
+**Phases completed:** 6 phases, 20 plans
 
-**Goal:** Merge upstream Cate stable tag `v1.1.0` into the FlashQuery fork while preserving FlashQuery v1 behavior, security guarantees, E2E coverage, and planning history.
+**Goal:** Merge upstream Cate stable tag `v1.1.0` into the FlashQuery fork while preserving FlashQuery v1 behavior, security guarantees, E2E coverage, and planning history; hand off the verified sync to mainline; complete post-handoff shared-contract, renderer-behavior, upstream-value, visual-evidence, release-readiness, and provenance closeout audits without claiming publication.
 
 **Canonical source docs:**
 
 - `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Upstream Sync Report (30-May-2026)/Upstream Sync Requirements.md`
 - `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Upstream Sync Report (30-May-2026)/Upstream Sync Test Plan.md`
 
-**Phase plan:** `.planning/phases/08-upstream-sync-v1-1-0/`
+**Phase plans:**
+
+- `.planning/phases/08-upstream-sync-v1-1-0/` — Upstream sync to `v1.1.0`
+- `.planning/phases/09-upstream-sync-mainline-handoff/` — Mainline handoff
+- `.planning/phases/10-shared-contracts-audit/` — Shared contracts audit
+- `.planning/phases/11-renderer-behavior-audit/` — Renderer behavior audit
+- `.planning/phases/12-upstream-value-visual-evidence-audit/` — Upstream value + visual evidence audit
+- `.planning/phases/13-release-readiness-provenance-closeout/` — Release readiness + provenance closeout
+
+**Key accomplishments:**
+
+- Upstream `v1.1.0` merged as a real two-parent merge with merge-base `5b6549d`, behind-count 0, and sync-ledger provenance.
+- FlashQuery token, IPC, preload, session, write-payload, sidebar, editor, dialog, panel, command-palette, and E2E harness invariants preserved after the merge and mainline handoff.
+- Upstream build/packaging, theming, terminal/performance, agent/provider, file-exclusion, workspace-reload, and editor fixes retained or explicitly dispositioned.
+- Shared contracts, renderer workflows, upstream-value capture, visual evidence, removed-file decisions, product acceptance, runbook completeness, `.planning/` tracking, and process/provenance gates all verified.
+- Final build, typecheck, unit, full E2E, and focused upstream-value smoke evidence passed before closeout.
 
 ## v1.0 Vault Connect, Read, Edit (Shipped: 2026-05-31)
 
