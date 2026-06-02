@@ -1,32 +1,25 @@
 # Milestones
 
-## v1.1 Upstream Sync / Release Readiness + Provenance Closeout (Completed: 2026-06-02)
+## v1.1 Release Readiness + Provenance Closeout (Shipped: 2026-06-02)
 
-**Phases completed:** 6 phases, 20 plans
-
-**Goal:** Merge upstream Cate stable tag `v1.1.0` into the FlashQuery fork while preserving FlashQuery v1 behavior, security guarantees, E2E coverage, and planning history; hand off the verified sync to mainline; complete post-handoff shared-contract, renderer-behavior, upstream-value, visual-evidence, release-readiness, and provenance closeout audits without claiming publication.
-
-**Canonical source docs:**
-
-- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Upstream Sync Report (30-May-2026)/Upstream Sync Requirements.md`
-- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Upstream Sync Report (30-May-2026)/Upstream Sync Test Plan.md`
-
-**Phase plans:**
-
-- `.planning/phases/08-upstream-sync-v1-1-0/` — Upstream sync to `v1.1.0`
-- `.planning/phases/09-upstream-sync-mainline-handoff/` — Mainline handoff
-- `.planning/phases/10-shared-contracts-audit/` — Shared contracts audit
-- `.planning/phases/11-renderer-behavior-audit/` — Renderer behavior audit
-- `.planning/phases/12-upstream-value-visual-evidence-audit/` — Upstream value + visual evidence audit
-- `.planning/phases/13-release-readiness-provenance-closeout/` — Release readiness + provenance closeout
+**Phases completed:** 6 phases, 21 plans, 31 tasks
 
 **Key accomplishments:**
 
-- Upstream `v1.1.0` merged as a real two-parent merge with merge-base `5b6549d`, behind-count 0, and sync-ledger provenance.
-- FlashQuery token, IPC, preload, session, write-payload, sidebar, editor, dialog, panel, command-palette, and E2E harness invariants preserved after the merge and mainline handoff.
-- Upstream build/packaging, theming, terminal/performance, agent/provider, file-exclusion, workspace-reload, and editor fixes retained or explicitly dispositioned.
-- Shared contracts, renderer workflows, upstream-value capture, visual evidence, removed-file decisions, product acceptance, runbook completeness, `.planning/` tracking, and process/provenance gates all verified.
-- Final build, typecheck, unit, full E2E, and focused upstream-value smoke evidence passed before closeout.
+- Fast-forward-only mainline handoff with Phase 8 evidence and upstream merge provenance preserved
+- Fresh post-handoff regression matrix with unit, E2E, gap-closure, and product acceptance evidence
+- Provenance-gated v1.1 handoff closeout with final verification, ROADMAP, and STATE updates
+- FlashQuery shared IPC/preload contract audit with production-negative E2E helper coverage
+- FlashQuery token, auth, session, and supporting body-only write proof for post-handoff mainline
+- Final shared-contract audit gate with archived build, typecheck, unit, persistence E2E, and full FlashQuery E2E evidence
+- Current FlashQuery theme-token audit with refreshed light/dark screenshots for the vault badge, sidebar vault view, connection dialog, status chip, and vault editor tab.
+- Upstream smoke evidence with current removed-file decisions, build proof, and explicit T-A-011 non-run rationale.
+- Final upstream-value and visual-evidence closeout with green build, typecheck, unit, and full Electron E2E logs.
+- T-A-010 product acceptance evidence mapped to current E2E coverage and Phase 12/13 visual/supporting baselines
+- Current HEAD provenance, runbook completeness, `.planning/` tracking, and conflict-review gates recorded for final closeout
+- Final release-readiness evidence matrix with green build/typecheck/unit/E2E logs, UAT, verification, and closed planning state
+
+---
 
 ## v1.0 Vault Connect, Read, Edit (Shipped: 2026-05-31)
 

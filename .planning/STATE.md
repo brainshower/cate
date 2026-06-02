@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Release Readiness + Provenance Closeout
-status: Complete
-stopped_at: Phase 13 complete
-last_updated: "2026-06-02T01:02:00.000Z"
-last_activity: 2026-06-02 — Phase 13 release-readiness and provenance closeout completed with final build/typecheck/unit/E2E evidence
+status: Awaiting next milestone
+stopped_at: Phase 13 release-readiness and provenance closeout complete
+last_updated: "2026-06-02T16:05:42.669Z"
+last_activity: 2026-06-02 — Milestone v1.1 completed and archived
 progress:
-  total_phases: 13
-  completed_phases: 12
-  total_plans: 44
-  completed_plans: 44
+  total_phases: 6
+  completed_phases: 6
+  total_plans: 21
+  completed_plans: 21
   percent: 100
 ---
 
@@ -25,10 +25,10 @@ See: `.planning/PROJECT.md` (updated 2026-06-01 after v1.1 upstream sync plannin
 
 ## Current Position
 
-Phase: 13 — Release Readiness + Provenance Closeout
-Plan: 13.3 — Final matrix, UAT, and planning closeout
-Status: Complete
-Last activity: 2026-06-02 — Phase 13 closed after acceptance, provenance, runbook, tracking, build, typecheck, unit, and E2E evidence passed
+Phase: Milestone v1.1 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-06-02 — Milestone v1.1 completed and archived
 
 ## Session Continuity
 
@@ -38,7 +38,7 @@ Resume File: None
 
 ## Next Up
 
-No active Phase 13 work remains. Phase 13 verification is recorded in `.planning/phases/13-release-readiness-provenance-closeout/13-VERIFICATION.md`.
+No active milestone is open. v1.1 evidence is archived under `.planning/milestones/v1.1-*`; start the next milestone with `/gsd:new-milestone`.
 
 ## Decisions
 
@@ -69,6 +69,7 @@ Items acknowledged and deferred at milestone close on 2026-05-30:
 | Category | Item | Status |
 |----------|------|--------|
 | uat_gap | phase-05-uat-tool-false-positive | acknowledged — Phase 5 UAT is status: passed with 5/5 tests, 0 pending scenarios, 0 issues, 0 gaps. The `gsd-sdk query audit-open` heuristic flagged the file but inspection shows it is fully complete. No remediation needed; flagging the tool behavior for future improvement. |
+| uat_gap | v1.1-uat-tool-false-positive | acknowledged — The v1.1 closeout audit saw `gsd-sdk query audit-open` flag Phases 08-13, but every flagged UAT file had `open_scenario_count: 0`; inspection confirmed passed UAT artifacts with no pending scenarios. No remediation needed; recorded in `milestones/v1.1-MILESTONE-AUDIT.md`. |
 
 ## Performance Metrics
 
@@ -100,4 +101,4 @@ Items acknowledged and deferred at milestone close on 2026-05-30:
 
 ## Operator Next Steps
 
-- Review Phase 13 closeout artifacts if desired: `.planning/phases/13-release-readiness-provenance-closeout/13-VERIFICATION.md` and `.planning/phases/13-release-readiness-provenance-closeout/13-UAT.md`.
+- Start the next milestone with /gsd-new-milestone
