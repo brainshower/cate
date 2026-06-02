@@ -8,6 +8,7 @@
 - ✅ **v1.1 Shared Contracts Audit** — Phase 10 (completed 2026-06-01)
 - ✅ **v1.1 Renderer Behavior Audit** — Phase 11 (completed 2026-06-01)
 - ✅ **v1.1 Upstream Value + Visual Evidence Audit** — Phase 12 (completed 2026-06-01)
+- 🔄 **v1.1 Release Readiness + Provenance Closeout** — Phase 13 (planned)
 
 ## Phases
 
@@ -195,6 +196,40 @@ Downstream implementation, QA, and review agents MUST read both documents before
 - [x] `12-02-PLAN.md` — Upstream feature smoke and removed-file decision audit.
 - [x] `12-03-PLAN.md` — Evidence, cumulative gate, and closeout.
 
+## Planned Milestone: v1.1 Release Readiness + Provenance Closeout
+
+**Goal:** Run the final post-handoff release-readiness and provenance closeout pass for the completed upstream sync, proving product acceptance, process gates, runbook completeness, `.planning/` tracking, upstream ancestry, and the final cumulative command matrix before handing off to a separate release workflow.
+
+**Canonical source docs for every downstream agent:**
+
+- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Upstream Sync Report (30-May-2026)/Upstream Sync Requirements.md`
+- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Upstream Sync Report (30-May-2026)/Upstream Sync Test Plan.md`
+
+Downstream implementation, QA, and review agents MUST read both documents before deciding scope, code changes, test coverage, acceptance status, process-gate status, provenance status, or closeout criteria for this phase.
+
+### Phase 13: Release Readiness + Provenance Closeout
+
+**Goal:** Treat the original upstream-sync final verification/release-readiness scope as a post-handoff closeout pass on the current mainline tree: reconcile T-A-010 product acceptance, re-run T-A-012 through T-A-015 process/provenance gates, capture a fresh final command matrix, and update planning state only after evidence passes.
+
+**Requirements:** REQ-021, REQ-023, REQ-024, REQ-025, REQ-026
+**Tests:** T-A-002, T-A-010, T-A-012..T-A-015, T-E-001..T-E-005
+**Status:** In Progress
+
+**Success criteria:**
+
+- Product acceptance checklist T-A-010 has explicit pass/fail/not-required rows tied to current evidence.
+- `docs/UPSTREAM-SYNC.md` remains tracked and complete with standard flow, protected surfaces, conflict hotspots, verification matrix, E2E traceability, process gates, and append-only sync ledger.
+- `.planning/` remains tracked; no broad `.claude/` ignore rule is added.
+- `v1.1.0` remains an ancestor of the current tree, merge-base remains `5b6549d`, behind-count is 0, and upstream merge commit metadata remains queryable.
+- Build, typecheck, unit tests, and full E2E pass or the phase remains open with explicit blockers.
+- UAT, verification, ROADMAP, and STATE closeout do not claim a product release was cut.
+
+**Plans:**
+
+- [x] `13-01-PLAN.md` — Product acceptance smoke reconciliation.
+- [ ] `13-02-PLAN.md` — Provenance, runbook, and tracking gates.
+- [ ] `13-03-PLAN.md` — Final matrix, UAT, and planning closeout.
+
 ## Progress
 
 | Phase                                       | Milestone | Plans Complete | Status   | Completed  |
@@ -211,6 +246,7 @@ Downstream implementation, QA, and review agents MUST read both documents before
 | 10. Shared Contracts Audit                  | v1.1      | 3/3 | Complete   | 2026-06-01 |
 | 11. Renderer Behavior Audit                 | v1.1      | 3/3 | Complete   | 2026-06-01 |
 | 12. Upstream Value + Visual Evidence Audit  | v1.1      | 3/3 | Complete   | 2026-06-01 |
+| 13. Release Readiness + Provenance Closeout | v1.1      | 1/3 | In Progress|  |
 
 ## Notes
 
@@ -220,3 +256,4 @@ Downstream implementation, QA, and review agents MUST read both documents before
 - Phase 10 exists because the upstream-sync gap analysis originally identified "Shared Contracts" as Phase 10; after the actual Phase 8/9 compression, this is scoped as a post-handoff audit/remediation phase rather than a second merge.
 - Phase 11 exists because the upstream-sync gap analysis originally identified "Renderer Behavior" as Phase 11; after the actual Phase 8/9 compression, this is scoped as a post-handoff audit/remediation phase rather than another merge.
 - Phase 12 exists because the upstream-sync gap analysis originally identified "theming, upstream feature smoke, removed-file decisions, and light/dark visual evidence" as Phase 12; after the actual Phase 8/9 compression, this is scoped as a post-handoff audit/remediation phase rather than another merge.
+- Phase 13 exists because final upstream-sync release-readiness, product acceptance, process/provenance, and closeout gates should be proven on the current tree without claiming release publication or replaying the completed merge.

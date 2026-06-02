@@ -75,6 +75,7 @@ Merge upstream Cate stable tag `v1.1.0` into the FlashQuery fork with a real two
 | REQ-021, REQ-023, REQ-026 | Phase 9 Plan 9.3: Provenance gates and planning closeout | Planned |
 | REQ-005, REQ-006, REQ-008, REQ-009, REQ-010, REQ-019, REQ-024, REQ-025 | Phase 10 Plans 10.1..10.3: Shared-contracts post-handoff audit | Planned |
 | REQ-004, REQ-018, REQ-020, REQ-022, REQ-024, REQ-025 | Phase 12 Plans 12.1..12.3: Upstream value and visual-evidence post-handoff audit | Planned |
+| REQ-021, REQ-023, REQ-024, REQ-025, REQ-026 | Phase 13 Plans 13.1..13.3: Release-readiness and provenance closeout | Planned |
 
 ## Out Of Scope
 
@@ -105,6 +106,14 @@ Phase 12 does not repeat the upstream merge. It preserves the original upstream-
 Downstream implementation, QA, and review agents MUST read the two canonical source documents at the top of this file before deciding scope, code changes, test coverage, smoke coverage, visual evidence, or acceptance criteria. If those documents and local planning artifacts disagree, the product requirements document controls behavior and the paired test plan controls verification IDs and pass/fail criteria.
 
 Phase 12 is limited to REQ-004, REQ-018, REQ-020, REQ-022, REQ-024, and REQ-025 plus their mapped tests T-A-002, T-A-003, T-A-005 through T-A-009, T-A-011, and T-M-001 through T-M-004. New FlashQuery product features, a second upstream merge, unreleased upstream `main` commits, browser-harness work, and release/version bump work remain out of scope.
+
+## Phase 13 Release Readiness + Provenance Closeout Addendum
+
+Phase 13 does not repeat the upstream merge and does not cut a product release. It preserves the original upstream-sync final verification/release-readiness intent as a post-handoff closeout pass on the current mainline tree.
+
+Downstream implementation, QA, and review agents MUST read the two canonical source documents at the top of this file before deciding scope, code changes, test coverage, product acceptance status, process-gate status, provenance status, or closeout criteria. If those documents and local planning artifacts disagree, the product requirements document controls behavior and the paired test plan controls verification IDs and pass/fail criteria.
+
+Phase 13 is limited to REQ-021, REQ-023, REQ-024, REQ-025, and REQ-026 plus their mapped tests T-A-002, T-A-010, T-A-012 through T-A-015, and T-E-001 through T-E-005. New FlashQuery product features, a second upstream merge, unreleased upstream `main` commits, release/version bump work, and publication work remain out of scope.
 
 ---
 
