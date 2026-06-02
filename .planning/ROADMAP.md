@@ -227,7 +227,7 @@ Downstream implementation, QA, and review agents MUST read both documents before
 **Plans:**
 
 - [x] `13-01-PLAN.md` — Product acceptance smoke reconciliation.
-- [ ] `13-02-PLAN.md` — Provenance, runbook, and tracking gates.
+- [x] `13-02-PLAN.md` — Provenance, runbook, and tracking gates.
 - [ ] `13-03-PLAN.md` — Final matrix, UAT, and planning closeout.
 
 ## Progress
@@ -246,7 +246,7 @@ Downstream implementation, QA, and review agents MUST read both documents before
 | 10. Shared Contracts Audit                  | v1.1      | 3/3 | Complete   | 2026-06-01 |
 | 11. Renderer Behavior Audit                 | v1.1      | 3/3 | Complete   | 2026-06-01 |
 | 12. Upstream Value + Visual Evidence Audit  | v1.1      | 3/3 | Complete   | 2026-06-01 |
-| 13. Release Readiness + Provenance Closeout | v1.1      | 1/3 | In Progress|  |
+| 13. Release Readiness + Provenance Closeout | v1.1      | 2/3 | In Progress|  |
 
 ## Notes
 
