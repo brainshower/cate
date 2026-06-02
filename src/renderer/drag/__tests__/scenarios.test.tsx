@@ -10,6 +10,7 @@
 // =============================================================================
 
 import { describe, it, expect, vi, afterEach } from 'vitest'
+import { act } from 'react'
 
 // Mock heavy renderer-side modules whose import-time side effects (xterm,
 // electron-log) explode under jsdom. The drag dispatcher only needs these for
@@ -241,7 +242,9 @@ describe('drag integration — canvas-node scenarios', () => {
     scene.mouse.up()
     // commitDrop is async (two awaits: crossWindowResolve, then dragDetach).
     // Yield enough microtasks for both to resolve.
-    for (let i = 0; i < 10; i++) await Promise.resolve()
+    await act(async () => {
+      for (let i = 0; i < 10; i++) await Promise.resolve()
+    })
     expect(electronAPI.crossWindowDragStart).toHaveBeenCalled()
     expect(electronAPI.crossWindowDragResolve).toHaveBeenCalled()
     expect(electronAPI.dragDetach).toHaveBeenCalled()

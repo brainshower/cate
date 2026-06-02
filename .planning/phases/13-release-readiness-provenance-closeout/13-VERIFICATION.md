@@ -60,7 +60,7 @@ This verification closes release-readiness and provenance evidence for the compl
 | --- | --- |
 | `npm run build` | Passed, `exit_code: 0` |
 | `npm run typecheck` | Passed, `exit_code: 0` |
-| `npm test` | Passed, 65 files, 602 tests, 3 skipped, `exit_code: 0` |
+| `npm test` | Passed, 65 files, 602 tests, 3 skipped, `exit_code: 0`; refreshed 2026-06-02 log no longer contains the prior React `act(...)`, jsdom canvas, or drag failure-path warning strings. |
 | `npm run test:e2e` | Passed, 33 passed, 2 skipped, `exit_code: 0` |
 | `npm run test:e2e -- e2e/flashquery-happy-path.spec.ts e2e/flashquery-visual-evidence.spec.ts` | Passed, 4 passed |
 

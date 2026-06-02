@@ -1,5 +1,5 @@
 import React from 'react'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../lib/logger', () => ({
@@ -75,6 +75,22 @@ function renderDialog() {
   return render(<FlashQueryConnectionDialog />)
 }
 
+function setDialogVisible(visible: boolean) {
+  act(() => {
+    useUIStore.setState({ showFlashQueryConnectionDialog: visible })
+  })
+}
+
+function updateWorkspace(
+  name = 'Workspace',
+  flashqueryConnection?: { transport: 'http'; url: string },
+  id = workspaceId,
+) {
+  act(() => {
+    seedWorkspace(name, flashqueryConnection, id)
+  })
+}
+
 beforeEach(() => {
   setElectronApi(makeElectronApi())
   seedWorkspace()
@@ -98,8 +114,8 @@ describe('FlashQueryConnectionDialog shell', () => {
   })
 
   it('renders accessible title, workspace subtitle, close control, and URL focus target while open', () => {
-    seedWorkspace('Cate Workspace')
-    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    updateWorkspace('Cate Workspace')
+    setDialogVisible(true)
 
     renderDialog()
 
@@ -113,7 +129,7 @@ describe('FlashQueryConnectionDialog shell', () => {
   })
 
   it('T-I-056 renders URL copy, helper text, placeholder, and associated invalid URL error', async () => {
-    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    setDialogVisible(true)
 
     renderDialog()
 
@@ -130,7 +146,7 @@ describe('FlashQueryConnectionDialog shell', () => {
   })
 
   it('T-I-057 and T-I-058 renders bearer token as password and toggles visibility with accessible labels', () => {
-    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    setDialogVisible(true)
 
     renderDialog()
 
@@ -148,8 +164,8 @@ describe('FlashQueryConnectionDialog shell', () => {
   })
 
   it('renders edit-mode token disclosure and binds it to the token input', () => {
-    seedWorkspace('Cate Workspace', { transport: 'http', url: 'https://flashquery.local' })
-    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    updateWorkspace('Cate Workspace', { transport: 'http', url: 'https://flashquery.local' })
+    setDialogVisible(true)
 
     renderDialog()
 
@@ -166,7 +182,7 @@ describe('FlashQueryConnectionDialog shell', () => {
     const api = makeElectronApi()
     setElectronApi(api)
     seedWorkspace('Cate Workspace', { transport: 'http', url: 'https://flashquery.local' })
-    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    setDialogVisible(true)
 
     const { rerender } = renderDialog()
 
@@ -177,11 +193,11 @@ describe('FlashQueryConnectionDialog shell', () => {
     expect('flashqueryGetConnectionSecret' in api).toBe(false)
 
     fireEvent.change(screen.getByLabelText('FlashQuery URL'), { target: { value: 'https://unsaved.local' } })
-    useUIStore.setState({ showFlashQueryConnectionDialog: false })
+    setDialogVisible(false)
     rerender(<FlashQueryConnectionDialog />)
 
-    seedWorkspace('Cate Workspace')
-    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    updateWorkspace('Cate Workspace')
+    setDialogVisible(true)
     rerender(<FlashQueryConnectionDialog />)
 
     await waitFor(() => {
@@ -193,7 +209,7 @@ describe('FlashQueryConnectionDialog shell', () => {
   it('T-I-059 and T-I-062 through T-I-066 probes current form values without saving and renders live results', async () => {
     const api = makeElectronApi()
     setElectronApi(api)
-    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    setDialogVisible(true)
 
     renderDialog()
 
@@ -229,7 +245,7 @@ describe('FlashQueryConnectionDialog shell', () => {
     const pendingProbe = deferred<{ ok: true; version: string; instanceId: string }>()
     api.flashqueryProbe.mockReturnValueOnce(pendingProbe.promise)
     setElectronApi(api)
-    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    setDialogVisible(true)
 
     renderDialog()
 
@@ -238,7 +254,9 @@ describe('FlashQueryConnectionDialog shell', () => {
     expect(screen.getByText('Testing...')).toBeTruthy()
 
     fireEvent.change(screen.getByLabelText('FlashQuery URL'), { target: { value: 'https://new.flashquery.local' } })
-    pendingProbe.resolve({ ok: true, version: '9.9.9', instanceId: 'stale-instance' })
+    await act(async () => {
+      pendingProbe.resolve({ ok: true, version: '9.9.9', instanceId: 'stale-instance' })
+    })
 
     await waitFor(() => {
       expect(screen.queryByText('Testing...')).toBeNull()
@@ -249,7 +267,7 @@ describe('FlashQueryConnectionDialog shell', () => {
   it('T-I-067 saves the current values through setConnection and closes on success', async () => {
     const api = makeElectronApi()
     setElectronApi(api)
-    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    setDialogVisible(true)
 
     renderDialog()
 
@@ -270,8 +288,8 @@ describe('FlashQueryConnectionDialog shell', () => {
   it('leaves the existing edit-mode token unchanged when saving a blank token field', async () => {
     const api = makeElectronApi()
     setElectronApi(api)
-    seedWorkspace('Cate Workspace', { transport: 'http', url: 'https://flashquery.local' })
-    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    updateWorkspace('Cate Workspace', { transport: 'http', url: 'https://flashquery.local' })
+    setDialogVisible(true)
 
     renderDialog()
 
@@ -291,7 +309,7 @@ describe('FlashQueryConnectionDialog shell', () => {
   it('omits auth when saving a whitespace-only bearer token', async () => {
     const api = makeElectronApi()
     setElectronApi(api)
-    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    setDialogVisible(true)
 
     renderDialog()
 
@@ -309,7 +327,7 @@ describe('FlashQueryConnectionDialog shell', () => {
 
   it('renders Phosphor leading icons for Test connection and Remove connection controls', () => {
     seedWorkspace('Cate Workspace', { transport: 'http', url: 'https://flashquery.local' })
-    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    setDialogVisible(true)
 
     renderDialog()
 
@@ -321,7 +339,7 @@ describe('FlashQueryConnectionDialog shell', () => {
     const api = makeElectronApi()
     api.flashquerySetConnection.mockRejectedValueOnce(new Error('Token rejected\nsecret-token'))
     setElectronApi(api)
-    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    setDialogVisible(true)
 
     renderDialog()
 
@@ -343,7 +361,7 @@ describe('FlashQueryConnectionDialog shell', () => {
     const api = makeElectronApi()
     setElectronApi(api)
     seedWorkspace('Cate Workspace', { transport: 'http', url: 'https://flashquery.local' })
-    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    setDialogVisible(true)
 
     const { rerender } = renderDialog()
 
@@ -352,7 +370,7 @@ describe('FlashQueryConnectionDialog shell', () => {
     expect(useUIStore.getState().showFlashQueryConnectionDialog).toBe(false)
     expect(api.flashquerySetConnection).not.toHaveBeenCalled()
 
-    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    setDialogVisible(true)
     rerender(<FlashQueryConnectionDialog />)
 
     await waitFor(() => {
@@ -363,7 +381,7 @@ describe('FlashQueryConnectionDialog shell', () => {
   it('T-I-071 through T-I-074 handles disabled remove, confirmation, yes/no, and reset on reopen', async () => {
     const api = makeElectronApi()
     setElectronApi(api)
-    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    setDialogVisible(true)
 
     const { rerender } = renderDialog()
 
@@ -371,27 +389,41 @@ describe('FlashQueryConnectionDialog shell', () => {
     expect(disabledRemove).toHaveProperty('disabled', true)
     expect(disabledRemove.getAttribute('title')).toBe('Currently no connection to remove.')
 
-    seedWorkspace('Cate Workspace', { transport: 'http', url: 'https://flashquery.local' })
-    useUIStore.setState({ showFlashQueryConnectionDialog: false })
+    updateWorkspace('Cate Workspace', { transport: 'http', url: 'https://flashquery.local' })
+    setDialogVisible(false)
     rerender(<FlashQueryConnectionDialog />)
-    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    await act(async () => {})
+    setDialogVisible(true)
     rerender(<FlashQueryConnectionDialog />)
+    await act(async () => {})
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Remove connection' }))
+    await act(async () => {
+      fireEvent.click(await screen.findByRole('button', { name: 'Remove connection' }))
+    })
     expect(screen.getByText('Really remove?')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'No' }))
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'No' }))
+    })
     expect(screen.queryByText('Really remove?')).toBeNull()
     expect(api.flashquerySetConnection).not.toHaveBeenCalled()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Remove connection' }))
-    useUIStore.setState({ showFlashQueryConnectionDialog: false })
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Remove connection' }))
+    })
+    setDialogVisible(false)
     rerender(<FlashQueryConnectionDialog />)
-    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    await act(async () => {})
+    setDialogVisible(true)
     rerender(<FlashQueryConnectionDialog />)
+    await act(async () => {})
     expect(screen.queryByText('Really remove?')).toBeNull()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Remove connection' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Remove connection' }))
+    })
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
+    })
 
     await waitFor(() => {
       expect(api.flashquerySetConnection).toHaveBeenCalledWith(workspaceId, null)
@@ -403,17 +435,21 @@ describe('FlashQueryConnectionDialog shell', () => {
     vi.useFakeTimers()
     try {
       seedWorkspace('Cate Workspace', { transport: 'http', url: 'https://flashquery.local' })
-      useUIStore.setState({ showFlashQueryConnectionDialog: true })
+      setDialogVisible(true)
 
       renderDialog()
 
       fireEvent.click(screen.getByRole('button', { name: 'Remove connection' }))
       expect(screen.getByText('Really remove?')).toBeTruthy()
 
-      await vi.advanceTimersByTimeAsync(2900)
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2900)
+      })
       expect(screen.getByText('Really remove?')).toBeTruthy()
 
-      await vi.advanceTimersByTimeAsync(100)
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(100)
+      })
       expect(screen.queryByText('Really remove?')).toBeNull()
       expect(screen.getByRole('button', { name: 'Remove connection' })).toBeTruthy()
     } finally {
@@ -453,7 +489,9 @@ describe('FlashQueryConnectionDialog shell', () => {
         },
       ],
     })
-    useUIStore.getState().setShowFlashQueryConnectionDialog(true, 'workspace-2')
+    act(() => {
+      useUIStore.getState().setShowFlashQueryConnectionDialog(true, 'workspace-2')
+    })
 
     renderDialog()
 
@@ -465,19 +503,19 @@ describe('FlashQueryConnectionDialog shell', () => {
   it('closes with Escape, overlay click, and close button without calling FlashQuery IPC', () => {
     const api = makeElectronApi()
     setElectronApi(api)
-    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    setDialogVisible(true)
 
     const { rerender } = renderDialog()
 
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(useUIStore.getState().showFlashQueryConnectionDialog).toBe(false)
 
-    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    setDialogVisible(true)
     rerender(<FlashQueryConnectionDialog />)
     fireEvent.click(screen.getByTestId('flashquery-connection-overlay'))
     expect(useUIStore.getState().showFlashQueryConnectionDialog).toBe(false)
 
-    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    setDialogVisible(true)
     rerender(<FlashQueryConnectionDialog />)
     fireEvent.click(screen.getByLabelText('Close FlashQuery connection dialog'))
     expect(useUIStore.getState().showFlashQueryConnectionDialog).toBe(false)
@@ -486,13 +524,15 @@ describe('FlashQueryConnectionDialog shell', () => {
   })
 
   it('keeps Tab and Shift+Tab focus inside the dialog controls', () => {
-    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    setDialogVisible(true)
     renderDialog()
 
     const urlInput = screen.getByLabelText('FlashQuery URL')
     const closeButton = screen.getByLabelText('Close FlashQuery connection dialog')
 
-    closeButton.focus()
+    act(() => {
+      closeButton.focus()
+    })
     fireEvent.keyDown(closeButton, { key: 'Tab' })
     expect(document.activeElement).toBe(urlInput)
 
@@ -501,7 +541,7 @@ describe('FlashQueryConnectionDialog shell', () => {
   })
 
   it('does not render stock neutral Tailwind color classes', () => {
-    useUIStore.setState({ showFlashQueryConnectionDialog: true })
+    setDialogVisible(true)
 
     const { container } = renderDialog()
 

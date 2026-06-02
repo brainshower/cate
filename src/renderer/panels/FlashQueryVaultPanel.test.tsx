@@ -1,5 +1,5 @@
 import React from 'react'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../lib/logger', () => ({
@@ -105,6 +105,12 @@ function renderPanel() {
   return render(<FlashQueryVaultPanel panelId="panel-1" workspaceId={workspaceId} />)
 }
 
+function emitStatus(payload: FlashQueryStatusBroadcastPayload) {
+  act(() => {
+    statusListener?.(payload)
+  })
+}
+
 beforeEach(() => {
   statusListener = null
   setElectronApi(makeElectronApi())
@@ -129,7 +135,7 @@ describe('FlashQueryVaultPanel Header', () => {
     render(<SidebarViewContent view="flashqueryVault" rootPath="/workspace" />)
 
     expect(screen.getByTestId('vault-panel-header')).toBeTruthy()
-    statusListener?.({ workspaceId, status: 'live' })
+    emitStatus({ workspaceId, status: 'live' })
     await waitFor(() => expect(window.electronAPI.flashqueryListVault).toHaveBeenCalledWith(workspaceId))
   })
 
@@ -147,7 +153,7 @@ describe('FlashQueryVaultPanel Header', () => {
     expect(header.className).toContain('h-8')
     expect(screen.getByLabelText('Refresh vault')).toBeTruthy()
 
-    statusListener?.({ workspaceId, status: 'live' })
+    emitStatus({ workspaceId, status: 'live' })
 
     expect(await screen.findByText('Live')).toBeTruthy()
   })
@@ -187,7 +193,7 @@ describe('FlashQueryVaultPanel State', () => {
     setElectronApi(api)
     renderPanel()
 
-    statusListener?.({ workspaceId, status: 'disconnected', error: 'ECONNREFUSED' })
+    emitStatus({ workspaceId, status: 'disconnected', error: 'ECONNREFUSED' })
 
     expect(await screen.findByTestId('vault-state-disconnected-icon')).toBeTruthy()
     expect(await screen.findByText("Can't reach FlashQuery.")).toBeTruthy()
@@ -202,7 +208,7 @@ describe('FlashQueryVaultPanel State', () => {
 
   it('renders an empty-vault state without a create action', async () => {
     renderPanel()
-    statusListener?.({ workspaceId, status: 'live' })
+    emitStatus({ workspaceId, status: 'live' })
 
     expect(await screen.findByText('This vault has no documents yet.')).toBeTruthy()
     expect(screen.getByTestId('vault-state-empty-icon')).toBeTruthy()
@@ -216,7 +222,7 @@ describe('FlashQueryVaultPanel State', () => {
       { name: 'Project.md', title: 'Project Brief', type: 'document', vaultPath: 'Project.md' },
     ]))
     renderPanel()
-    statusListener?.({ workspaceId, status: 'live' })
+    emitStatus({ workspaceId, status: 'live' })
 
     await waitFor(() => expect(screen.getByText('Notes')).toBeTruthy())
     expect(screen.getByText('Project Brief')).toBeTruthy()
@@ -231,7 +237,7 @@ describe('FlashQueryVaultPanel row and folder behavior', () => {
     const api = makeElectronApi(entries, childrenByPath)
     setElectronApi(api)
     renderPanel()
-    statusListener?.({ workspaceId, status: 'live' })
+    emitStatus({ workspaceId, status: 'live' })
     await waitFor(() => expect(api.flashqueryListVault).toHaveBeenCalledWith(workspaceId))
     return api
   }
@@ -285,14 +291,16 @@ describe('FlashQueryVaultPanel row and folder behavior', () => {
     }
     setElectronApi(api)
     renderPanel()
-    statusListener?.({ workspaceId, status: 'live' })
+    emitStatus({ workspaceId, status: 'live' })
     await waitFor(() => expect(api.flashqueryListVault).toHaveBeenCalledWith(workspaceId))
 
     fireEvent.click(screen.getByRole('treeitem', { name: /Notes/ }))
 
     expect(await screen.findByTestId('vault-loading-Notes')).toBeTruthy()
 
-    pending.resolve([{ name: 'Daily.md', type: 'document', vaultPath: 'Notes/Daily.md' }])
+    await act(async () => {
+      pending.resolve([{ name: 'Daily.md', type: 'document', vaultPath: 'Notes/Daily.md' }])
+    })
     expect(await screen.findByText('Daily.md')).toBeTruthy()
     await waitFor(() => expect(screen.queryByTestId('vault-loading-Notes')).toBeNull())
   })
@@ -394,7 +402,7 @@ describe('FlashQueryVaultPanel refresh behavior and design tokens', () => {
   async function renderLiveTreeWithApi(api: ElectronApiMock) {
     setElectronApi(api)
     renderPanel()
-    statusListener?.({ workspaceId, status: 'live' })
+    emitStatus({ workspaceId, status: 'live' })
     await waitFor(() => expect(api.flashqueryListVault).toHaveBeenCalledWith(workspaceId))
   }
 
@@ -425,7 +433,9 @@ describe('FlashQueryVaultPanel refresh behavior and design tokens', () => {
 
     expect(api.flashqueryListVault).toHaveBeenCalledTimes(2)
 
-    pending.resolve([{ name: 'B.md', type: 'document', vaultPath: 'B.md' }])
+    await act(async () => {
+      pending.resolve([{ name: 'B.md', type: 'document', vaultPath: 'B.md' }])
+    })
     expect(await screen.findByText('B.md')).toBeTruthy()
   })
 

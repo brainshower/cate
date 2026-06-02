@@ -428,7 +428,10 @@ describe('EditorPanel FlashQuery save and dirty behavior', () => {
       monacoMock().setLatestValue('dirty close')
     })
 
-    const proceed = await confirmCloseDirtyPanels([useAppStore.getState().workspaces[0].panels[panelId]])
+    let proceed = false
+    await act(async () => {
+      proceed = await confirmCloseDirtyPanels([useAppStore.getState().workspaces[0].panels[panelId]])
+    })
 
     expect(proceed).toBe(true)
     expect(api.confirmUnsavedChanges).toHaveBeenCalledWith({
