@@ -18,6 +18,7 @@ export interface FlashQueryStubServer {
   resetDocuments: () => void
   seedEmptyVault: () => void
   seedDocuments: (documents: Record<string, string>) => void
+  setDocumentTitles: (titles: Record<string, string | null>) => void
   documentBody: (vaultPath: string) => string | null
 }
 
@@ -47,7 +48,11 @@ function normalizeVaultPath(value: unknown): string {
   return value.replace(/^\/+|\/+$/g, '')
 }
 
-function folderChildren(documents: Map<string, string>, folderPath: string) {
+function folderChildren(
+  documents: Map<string, string>,
+  titleOverrides: Map<string, string | null>,
+  folderPath: string,
+) {
   const prefix = folderPath ? `${folderPath}/` : ''
   const seen = new Set<string>()
   const entries: Array<{ name: string; type: 'folder' | 'file'; path: string; title?: string }> = []
@@ -64,11 +69,14 @@ function folderChildren(documents: Map<string, string>, folderPath: string) {
     if (tail.length > 0) {
       entries.push({ name: head, type: 'folder', path: childPath })
     } else {
+      const overrideTitle = titleOverrides.get(childPath)
       entries.push({
         name: head,
         type: 'file',
         path: childPath,
-        title: head.replace(/\.md$/i, ''),
+        ...(overrideTitle === null
+          ? {}
+          : { title: overrideTitle ?? head.replace(/\.md$/i, '') }),
       })
     }
   }
@@ -82,7 +90,7 @@ function mcpText(payload: unknown) {
   }
 }
 
-function makeMcpServer(documents: Map<string, string>): McpServer {
+function makeMcpServer(documents: Map<string, string>, titleOverrides: Map<string, string | null>): McpServer {
   const server = new McpServer({ name: 'flashquery-e2e-stub', version: '1.0.0-e2e' })
 
   server.registerTool(
@@ -94,7 +102,7 @@ function makeMcpServer(documents: Map<string, string>): McpServer {
         include: z.array(z.string()).optional(),
       }),
     },
-    async ({ path }) => mcpText({ entries: folderChildren(documents, normalizeVaultPath(path)) }),
+    async ({ path }) => mcpText({ entries: folderChildren(documents, titleOverrides, normalizeVaultPath(path)) }),
   )
 
   server.registerTool(
@@ -149,6 +157,7 @@ export async function startFlashQueryStubServer(
   let available = true
   const expectedAuthorization = `Bearer ${options.expectedBearerToken ?? DEFAULT_BEARER_TOKEN}`
   const documents = new Map(Object.entries(DEFAULT_DOCUMENTS))
+  const titleOverrides = new Map<string, string | null>()
 
   const server: Server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1')
@@ -182,7 +191,7 @@ export async function startFlashQueryStubServer(
       }
 
       const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined })
-      const mcpServer = makeMcpServer(documents)
+      const mcpServer = makeMcpServer(documents, titleOverrides)
       try {
         await mcpServer.connect(transport)
         await transport.handleRequest(req, res)
@@ -229,17 +238,26 @@ export async function startFlashQueryStubServer(
     },
     resetDocuments: () => {
       documents.clear()
+      titleOverrides.clear()
       for (const [vaultPath, body] of Object.entries(DEFAULT_DOCUMENTS)) {
         documents.set(vaultPath, body)
       }
     },
     seedEmptyVault: () => {
       documents.clear()
+      titleOverrides.clear()
     },
     seedDocuments: (nextDocuments: Record<string, string>) => {
       documents.clear()
+      titleOverrides.clear()
       for (const [vaultPath, body] of Object.entries(nextDocuments)) {
         documents.set(normalizeVaultPath(vaultPath), body)
+      }
+    },
+    setDocumentTitles: (titles: Record<string, string | null>) => {
+      titleOverrides.clear()
+      for (const [vaultPath, title] of Object.entries(titles)) {
+        titleOverrides.set(normalizeVaultPath(vaultPath), title)
       }
     },
     documentBody: (vaultPath: string) => documents.get(normalizeVaultPath(vaultPath)) ?? null,

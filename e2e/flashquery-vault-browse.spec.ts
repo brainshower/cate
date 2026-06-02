@@ -43,3 +43,46 @@ test('T-E-002 vault browse / T-E-011 covers empty vault, refresh, and multi-leve
     await server.close()
   }
 })
+
+test('vault browse shows filenames when list metadata has a stale document title', async () => {
+  const server = await startFlashQueryStubServer({ expectedBearerToken: 'browse-token' })
+  const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), 'cate-e2e-workspace-'))
+  let app: ElectronApplication | null = null
+  try {
+    server.seedDocuments({
+      'Trash/scratch3.md': [
+        '',
+        '',
+        'Example SKILL.md file that might be a killer app for macros.',
+        '',
+        '```',
+        '---',
+        'title: Do web research',
+        'description: ...',
+        '---',
+        '```',
+      ].join('\n'),
+    })
+    server.setDocumentTitles({ 'Trash/scratch3.md': 'Errors3' })
+
+    const launched = await launchApp()
+    app = launched.electronApp
+    const page = launched.mainWindow
+    await configure(page, server.baseUrl, workspaceRoot)
+    await page.evaluate(() => window.__cateE2E!.createFlashQueryVault({ x: 260, y: 180 }))
+
+    await page.getByText('Trash').first().click()
+    await expect(page.getByRole('treeitem', { name: 'scratch3.md' })).toBeVisible()
+    await expect(page.getByRole('treeitem', { name: 'Errors3' })).toHaveCount(0)
+
+    await page.getByRole('treeitem', { name: 'scratch3.md' }).dblclick()
+
+    const editorTab = page.locator('[data-tab-panel-id]').filter({ hasText: 'scratch3.md' })
+    await expect(editorTab).toBeVisible()
+    await expect(page.locator('[data-tab-panel-id]').filter({ hasText: 'Errors3' })).toHaveCount(0)
+    await expect(page.getByText('title: Do web research')).toBeVisible()
+  } finally {
+    if (app) await closeApp(app)
+    await server.close()
+  }
+})
