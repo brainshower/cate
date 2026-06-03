@@ -200,6 +200,9 @@ export class FlashQueryClientManager {
   async writeDocument(workspaceId: string, vaultPath: string, payload: FlashQueryWritePayload): Promise<FlashQueryWriteResult> {
     try {
       const writeArgs = this.normalizeWritePayload(vaultPath, payload)
+      if (!writeArgs) {
+        return { success: true, modified: '' }
+      }
       const client = await this.requireMcpClient(workspaceId)
       const resultPayload = await this.callJsonTool(client, 'write_document', writeArgs)
 
@@ -240,21 +243,26 @@ export class FlashQueryClientManager {
   }
 
   async listVaultIndex(workspaceId: string): Promise<FlashQueryVaultIndexEntry[]> {
-    let state = this.workspaceStates.get(workspaceId)
+    const state = this.workspaceStates.get(workspaceId)
     if (state?.status?.status === 'disconnected') return []
 
     try {
       const client = await this.requireMcpClient(workspaceId)
-      const payload = await this.callJsonTool(client, 'list_vault_index', {})
-      const entries = Array.isArray(payload.entries) ? payload.entries : Array.isArray(payload.documents) ? payload.documents : []
+      const payload = await this.callJsonTool(client, 'search', {
+        query: '',
+        mode: 'filesystem',
+        entity_types: ['documents'],
+        limit: 1_000,
+        include_archived: true,
+        list_all: true,
+      })
+      const entries = Array.isArray(payload.results)
+        ? payload.results.filter((entry) => this.searchEntityType(entry) === 'document')
+        : Array.isArray(payload.documents)
+          ? payload.documents
+          : []
       return entries.flatMap((entry) => this.normalizeVaultIndexEntry(entry))
-    } catch (error) {
-      state = this.workspaceStates.get(workspaceId)
-      const connection = state?.connection ?? this.getConfiguredConnection(workspaceId)
-      const message = this.errorToSafeMessage(error, connection, state?.token)
-      if (state && connection) {
-        this.failConnection(workspaceId, state, connection, message)
-      }
+    } catch {
       return []
     }
   }
@@ -557,7 +565,7 @@ export class FlashQueryClientManager {
     return include.length > 0 ? include : ['body']
   }
 
-  private normalizeWritePayload(vaultPath: string, payload: FlashQueryWritePayload): Record<string, unknown> {
+  private normalizeWritePayload(vaultPath: string, payload: FlashQueryWritePayload): Record<string, unknown> | null {
     const args: Record<string, unknown> = { mode: 'update', identifier: vaultPath }
     if (typeof payload === 'string') {
       return { ...args, content: payload }
@@ -568,7 +576,9 @@ export class FlashQueryClientManager {
     if (typeof payload.content === 'string') {
       args.content = payload.content
     }
+    let frontmatterKeyCount: number | null = null
     if (this.isPlainObject(payload.frontmatter)) {
+      frontmatterKeyCount = Object.keys(payload.frontmatter).length
       const frontmatter = this.filterManagedFrontmatter(payload.frontmatter)
       if (Object.keys(frontmatter).length > 0) args.frontmatter = frontmatter
     }
@@ -579,6 +589,7 @@ export class FlashQueryClientManager {
       args.tags = payload.tags
     }
     if (!('content' in args) && !('frontmatter' in args) && !('tags' in args)) {
+      if (frontmatterKeyCount !== null && frontmatterKeyCount > 0) return null
       throw new Error('FlashQuery write payload must include content, frontmatter, or tags')
     }
     return args
@@ -623,9 +634,16 @@ export class FlashQueryClientManager {
   }
 
   private normalizeSearchResponse(payload: Record<string, unknown>): FlashQuerySearchResponse {
-    const documents = this.arrayFrom(payload.documents ?? payload.results)
+    const results = this.arrayFrom(payload.results)
+    const documentEntries = results.length > 0
+      ? results.filter((entry) => this.searchEntityType(entry) === 'document')
+      : this.arrayFrom(payload.documents)
+    const memoryEntries = results.length > 0
+      ? results.filter((entry) => this.searchEntityType(entry) === 'memory')
+      : this.arrayFrom(payload.memories)
+    const documents = documentEntries
       .flatMap((entry) => this.normalizeDocumentSearchResult(entry))
-    const memories = this.arrayFrom(payload.memories)
+    const memories = memoryEntries
       .flatMap((entry) => this.normalizeMemorySearchResult(entry))
     return {
       documents,
@@ -641,34 +659,41 @@ export class FlashQueryClientManager {
 
   private normalizeDocumentSearchResult(entry: unknown): FlashQueryDocumentSearchResult[] {
     if (!this.isPlainObject(entry)) return []
-    const path = this.normalizePath(this.firstString(entry.fullPath, entry.vaultPath, entry.path, entry.filename))
+    const path = this.normalizePath(this.firstString(entry.fullPath, entry.vaultPath, entry.path, entry.identifier, entry.filename))
     if (!path) return []
+    const snippet = this.firstString(entry.content_preview, entry.snippet)
     return [{
       filename: this.filenameFromPath(path),
       fullPath: path,
       ...(typeof entry.title === 'string' ? { title: entry.title } : {}),
-      ...(typeof entry.snippet === 'string' ? { snippet: entry.snippet } : {}),
+      ...(snippet ? { snippet } : {}),
     }]
   }
 
   private normalizeMemorySearchResult(entry: unknown): FlashQueryMemorySearchResult[] {
     if (!this.isPlainObject(entry)) return []
-    const id = this.firstString(entry.id, entry.memory_id)
-    const text = this.firstString(entry.text, entry.content, entry.body, entry.snippet)
+    const id = this.firstString(entry.memory_id, entry.identifier, entry.id)
+    const text = this.firstString(entry.content_preview, entry.text, entry.content, entry.body, entry.snippet)
     if (!id || !text) return []
     return [{
       id,
       text,
       ...(typeof entry.title === 'string' ? { title: entry.title } : {}),
-      ...(typeof entry.snippet === 'string' ? { snippet: entry.snippet } : {}),
+      ...(text ? { snippet: text } : {}),
     }]
   }
 
   private normalizeVaultIndexEntry(entry: unknown): FlashQueryVaultIndexEntry[] {
     if (!this.isPlainObject(entry)) return []
-    const path = this.normalizePath(this.firstString(entry.fullPath, entry.vaultPath, entry.path, entry.filename))
+    const path = this.normalizePath(this.firstString(entry.fullPath, entry.vaultPath, entry.path, entry.identifier, entry.filename))
     if (!path) return []
     return [{ filename: this.filenameFromPath(path), fullPath: path }]
+  }
+
+  private searchEntityType(entry: unknown): 'document' | 'memory' | null {
+    if (!this.isPlainObject(entry)) return null
+    if (entry.entity_type === 'document' || entry.entity_type === 'memory') return entry.entity_type
+    return null
   }
 
   private arrayFrom(value: unknown): unknown[] {

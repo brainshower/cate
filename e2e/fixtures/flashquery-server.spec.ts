@@ -49,6 +49,33 @@ test('T-E-005 FlashQuery stub lists nested vault folders and empty vault state',
         { name: 'Deep', type: 'folder', path: 'Projects/Deep' },
       ],
     })
+    expect(await callTool(server.baseUrl, 'search', {
+      query: '',
+      mode: 'filesystem',
+      entity_types: ['documents'],
+      include_archived: true,
+      list_all: true,
+    })).toMatchObject({
+      total: 3,
+      results: [
+        {
+          entity_type: 'document',
+          identifier: 'Projects/Cate.md',
+          path: 'Projects/Cate.md',
+          content_preview: '# Cate',
+        },
+        {
+          entity_type: 'document',
+          identifier: 'Projects/Deep/Nested.md',
+          path: 'Projects/Deep/Nested.md',
+        },
+        {
+          entity_type: 'document',
+          identifier: 'Welcome.md',
+          path: 'Welcome.md',
+        },
+      ],
+    })
 
     server.seedEmptyVault()
     expect(await callTool(server.baseUrl, 'list_vault', { path: '/', include: ['tracking'] })).toEqual({ entries: [] })

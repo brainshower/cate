@@ -1041,23 +1041,51 @@ describe('FlashQueryClientManager', () => {
     expect(callTool).not.toHaveBeenCalled()
   })
 
+  it('T-U-004 treats managed-only frontmatter writes as a successful no-op', async () => {
+    const callTool = vi.fn()
+    workspaceMock.workspaces = [workspaceInfo()]
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
+    await expect(manager.writeDocument('workspace-1', 'Plan.md', {
+      frontmatter: {
+        fq_id: 'managed-id',
+        fq_updated: '2026-06-03T01:00:00Z',
+      },
+    })).resolves.toEqual({ success: true, modified: '' })
+
+    expect(callTool).not.toHaveBeenCalled()
+  })
+
   it('T-U-005 searches with include_archived, defaults, and list-all semantics', async () => {
     const callTool = vi.fn().mockResolvedValue({
       content: [{ type: 'text', text: JSON.stringify({
-        documents: [{ path: 'Docs\\Plan.md', title: 'Plan', snippet: 'plan' }],
-        memories: [{ id: 'memory-1', text: 'Remember this', snippet: 'this' }],
-        total_documents: 4,
-        total_memories: 2,
+        results: [
+          {
+            entity_type: 'document',
+            identifier: 'Docs\\Plan.md',
+            path: 'Docs\\Plan.md',
+            title: 'Plan',
+            content_preview: 'plan preview',
+          },
+          {
+            entity_type: 'memory',
+            identifier: 'memory-identifier-1',
+            memory_id: 'memory-1',
+            title: 'Memory',
+            content_preview: 'Remember this',
+          },
+        ],
+        total: 2,
       }) }],
     })
     workspaceMock.workspaces = [workspaceInfo()]
     const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
 
     await expect(manager.search('workspace-1', { query: '' })).resolves.toEqual({
-      documents: [{ filename: 'Plan.md', fullPath: 'Docs/Plan.md', title: 'Plan', snippet: 'plan' }],
-      memories: [{ id: 'memory-1', text: 'Remember this', snippet: 'this' }],
-      total_documents: 4,
-      total_memories: 2,
+      documents: [{ filename: 'Plan.md', fullPath: 'Docs/Plan.md', title: 'Plan', snippet: 'plan preview' }],
+      memories: [{ id: 'memory-1', text: 'Remember this', title: 'Memory', snippet: 'Remember this' }],
+      total_documents: 1,
+      total_memories: 1,
     })
 
     expect(callTool).toHaveBeenCalledWith({
@@ -1088,14 +1116,15 @@ describe('FlashQueryClientManager', () => {
     expect(callTool).not.toHaveBeenCalled()
   })
 
-  it('T-U-006 normalizes vault-index entries and returns empty results when disconnected', async () => {
+  it('T-U-006 normalizes vault-index entries from FlashQuery search and returns empty results when disconnected', async () => {
     const callTool = vi.fn().mockResolvedValue({
       content: [{ type: 'text', text: JSON.stringify({
-        entries: [
-          { path: 'Docs\\Plan.md' },
-          { fullPath: 'Notes/Today.md' },
-          { filename: 'Root.md' },
+        results: [
+          { entity_type: 'document', path: 'Docs\\Plan.md' },
+          { entity_type: 'document', identifier: 'Notes/Today.md' },
+          { entity_type: 'memory', identifier: 'memory-1', content_preview: 'Memory' },
         ],
+        total: 3,
       }) }],
     })
     workspaceMock.workspaces = [workspaceInfo()]
@@ -1104,15 +1133,26 @@ describe('FlashQueryClientManager', () => {
     await expect(manager.listVaultIndex('workspace-1')).resolves.toEqual([
       { filename: 'Plan.md', fullPath: 'Docs/Plan.md' },
       { filename: 'Today.md', fullPath: 'Notes/Today.md' },
-      { filename: 'Root.md', fullPath: 'Root.md' },
     ])
+
+    expect(callTool).toHaveBeenCalledWith({
+      name: 'search',
+      arguments: {
+        query: '',
+        mode: 'filesystem',
+        entity_types: ['documents'],
+        limit: 1000,
+        include_archived: true,
+        list_all: true,
+      },
+    })
 
     ;(manager as unknown as { workspaceStates: Map<string, { status: FlashQueryStatusPayload }> })
       .workspaceStates.get('workspace-1')!.status = { workspaceId: 'workspace-1', status: 'disconnected', error: 'offline' }
     await expect(manager.listVaultIndex('workspace-1')).resolves.toEqual([])
   })
 
-  it('T-U-006 redacts vault-index transport failures and transitions the workspace to disconnected', async () => {
+  it('T-U-006 keeps the live workspace connected when vault-index search fails', async () => {
     const fetchMock = installFetchMock()
     fetchMock.mockResolvedValue(okInfoResponse())
     workspaceMock.workspaces = [workspaceInfo()]
@@ -1128,7 +1168,6 @@ describe('FlashQueryClientManager', () => {
     expect(statusPayloads(statusHandler)).toEqual([
       { workspaceId: 'workspace-1', status: 'connecting' },
       { workspaceId: 'workspace-1', status: 'live', version: '1.2.3', instanceId: 'fq-instance-1' },
-      { workspaceId: 'workspace-1', status: 'disconnected', error: 'transport failed for [redacted]' },
     ])
   })
 

@@ -84,6 +84,34 @@ function folderChildren(
   return entries
 }
 
+function searchResults(
+  documents: Map<string, string>,
+  titleOverrides: Map<string, string | null>,
+  query: string,
+  listAll: boolean,
+) {
+  const normalizedQuery = query.trim().toLowerCase()
+  return Array.from(documents.entries())
+    .sort(([left], [right]) => left.localeCompare(right))
+    .filter(([path, body]) => {
+      if (listAll || !normalizedQuery) return true
+      return path.toLowerCase().includes(normalizedQuery) || body.toLowerCase().includes(normalizedQuery)
+    })
+    .map(([path, body]) => {
+      const titleOverride = titleOverrides.get(path)
+      const firstContentLine = body.split(/\r?\n/).find((line) => line.trim().length > 0) ?? ''
+      return {
+        entity_type: 'document' as const,
+        identifier: path,
+        path,
+        ...(titleOverride === null
+          ? {}
+          : { title: titleOverride ?? path.split('/').at(-1)?.replace(/\.md$/i, '') ?? path }),
+        content_preview: firstContentLine,
+      }
+    })
+}
+
 function mcpText(payload: unknown) {
   return {
     content: [{ type: 'text' as const, text: JSON.stringify(payload) }],
@@ -143,6 +171,28 @@ function makeMcpServer(documents: Map<string, string>, titleOverrides: Map<strin
       }
       documents.set(vaultPath, content)
       return mcpText({ modified: new Date(1_000).toISOString() })
+    },
+  )
+
+  server.registerTool(
+    'search',
+    {
+      description: 'Search deterministic in-memory vault documents',
+      inputSchema: z.object({
+        query: z.string().optional(),
+        mode: z.string().optional(),
+        entity_types: z.array(z.string()).optional(),
+        limit: z.number().optional(),
+        include_archived: z.boolean().optional(),
+        list_all: z.boolean().optional(),
+      }),
+    },
+    async ({ query = '', entity_types, limit = 50, list_all }) => {
+      const wantsDocuments = !entity_types?.length || entity_types.includes('documents')
+      const results = wantsDocuments
+        ? searchResults(documents, titleOverrides, query, list_all === true).slice(0, limit)
+        : []
+      return mcpText({ query, entity_types, total: results.length, results })
     },
   )
 
