@@ -914,6 +914,57 @@ describe('FlashQueryClientManager', () => {
     expect(args.include).not.toContain('headings')
   })
 
+  it('T-U-003 sends requested include parts and normalizes body, frontmatter, and version metadata', async () => {
+    const callTool = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({
+        body: '# Body',
+        frontmatter: { title: 'Plan' },
+        version_token: 'v2',
+        modified: '2026-06-03T00:00:00Z',
+      }) }],
+    })
+    workspaceMock.workspaces = [workspaceInfo()]
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
+    await expect(manager.getDocument('workspace-1', 'Docs/Plan.md', { include: ['body', 'frontmatter', 'body'] })).resolves.toEqual({
+      body: '# Body',
+      frontmatter: { title: 'Plan' },
+      version_token: 'v2',
+      modified: '2026-06-03T00:00:00Z',
+    })
+
+    expect(callTool).toHaveBeenCalledWith({
+      name: 'get_document',
+      arguments: { identifiers: 'Docs/Plan.md', include: ['body', 'frontmatter'] },
+    })
+  })
+
+  it('T-U-003 returns token-safe getDocument errors for missing requested parts and error envelopes', async () => {
+    workspaceMock.workspaces = [workspaceInfo()]
+    workspaceMock.token = 'secret-token'
+    const missingPartManager = new FlashQueryClientManager({
+      createMcpClient: async () => ({
+        callTool: vi.fn().mockResolvedValue({
+          content: [{ type: 'text', text: JSON.stringify({ body: '# Body' }) }],
+        }),
+      }),
+    })
+
+    await expect(missingPartManager.getDocument('workspace-1', 'Plan.md', { include: ['frontmatter'] }))
+      .rejects.toThrow('FlashQuery get_document returned no frontmatter for Plan.md')
+
+    const envelopeManager = new FlashQueryClientManager({
+      createMcpClient: async () => ({
+        callTool: vi.fn().mockResolvedValue({
+          content: [{ type: 'text', text: JSON.stringify({ error: 'Unauthorized secret-token' }) }],
+        }),
+      }),
+    })
+
+    await expect(envelopeManager.getDocument('workspace-1', 'Plan.md'))
+      .rejects.toThrow('Unauthorized [redacted]')
+  })
+
   it('T-U-048 through T-U-050 and T-U-099 through T-U-101 calls write_document update-only with body content and forbidden keys absent', async () => {
     const callTool = vi.fn().mockResolvedValue({
       content: [{ type: 'text', text: JSON.stringify({ modified: '2026-05-03T00:00:00Z' }) }],
@@ -938,6 +989,127 @@ describe('FlashQueryClientManager', () => {
     expect(args).not.toHaveProperty('tags')
     expect(args).not.toHaveProperty('expected_version')
     expect(args).not.toHaveProperty('if_match')
+  })
+
+  it('T-U-004 writes object payload content and filters managed frontmatter fields', async () => {
+    const callTool = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({ modified: '2026-06-03T01:00:00Z' }) }],
+    })
+    workspaceMock.workspaces = [workspaceInfo()]
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
+    await expect(manager.writeDocument('workspace-1', 'Plan.md', {
+      content: '# Body',
+      frontmatter: {
+        title: 'Plan',
+        fq_id: 'managed-id',
+        fq_created: 'managed-created',
+        fq_updated: 'managed-updated',
+        fq_archived_at: null,
+        fq_instance: 'instance',
+        fq_owner: 'owner',
+        fq_type: 'document',
+      },
+      tags: ['project'],
+    })).resolves.toEqual({ success: true, modified: '2026-06-03T01:00:00Z' })
+
+    expect(callTool).toHaveBeenCalledWith({
+      name: 'write_document',
+      arguments: {
+        mode: 'update',
+        identifier: 'Plan.md',
+        content: '# Body',
+        frontmatter: { title: 'Plan' },
+        tags: ['project'],
+      },
+    })
+  })
+
+  it('T-U-004 rejects invalid tags and empty object writes before calling MCP', async () => {
+    const callTool = vi.fn()
+    workspaceMock.workspaces = [workspaceInfo()]
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
+    await expect(manager.writeDocument('workspace-1', 'Plan.md', { tags: ['ok', 3] } as never)).resolves.toEqual({
+      success: false,
+      error: 'FlashQuery write payload tags must be strings',
+    })
+    await expect(manager.writeDocument('workspace-1', 'Plan.md', {})).resolves.toEqual({
+      success: false,
+      error: 'FlashQuery write payload must include content, frontmatter, or tags',
+    })
+    expect(callTool).not.toHaveBeenCalled()
+  })
+
+  it('T-U-005 searches with include_archived, defaults, and list-all semantics', async () => {
+    const callTool = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({
+        documents: [{ path: 'Docs\\Plan.md', title: 'Plan', snippet: 'plan' }],
+        memories: [{ id: 'memory-1', text: 'Remember this', snippet: 'this' }],
+        total_documents: 4,
+        total_memories: 2,
+      }) }],
+    })
+    workspaceMock.workspaces = [workspaceInfo()]
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
+    await expect(manager.search('workspace-1', { query: '' })).resolves.toEqual({
+      documents: [{ filename: 'Plan.md', fullPath: 'Docs/Plan.md', title: 'Plan', snippet: 'plan' }],
+      memories: [{ id: 'memory-1', text: 'Remember this', snippet: 'this' }],
+      total_documents: 4,
+      total_memories: 2,
+    })
+
+    expect(callTool).toHaveBeenCalledWith({
+      name: 'search',
+      arguments: {
+        query: '',
+        mode: 'mixed',
+        entity_types: ['documents', 'memories'],
+        limit: 50,
+        include_archived: true,
+        list_all: true,
+      },
+    })
+  })
+
+  it('T-U-005 returns a safe empty response for empty semantic searches without calling MCP', async () => {
+    const callTool = vi.fn()
+    workspaceMock.workspaces = [workspaceInfo()]
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
+    await expect(manager.search('workspace-1', { query: '   ', mode: 'semantic' })).resolves.toEqual({
+      documents: [],
+      memories: [],
+      total_documents: 0,
+      total_memories: 0,
+      error: 'Type a query to search semantically.',
+    })
+    expect(callTool).not.toHaveBeenCalled()
+  })
+
+  it('T-U-006 normalizes vault-index entries and returns empty results when disconnected', async () => {
+    const callTool = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({
+        entries: [
+          { path: 'Docs\\Plan.md' },
+          { fullPath: 'Notes/Today.md' },
+          { filename: 'Root.md' },
+        ],
+      }) }],
+    })
+    workspaceMock.workspaces = [workspaceInfo()]
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
+    await expect(manager.listVaultIndex('workspace-1')).resolves.toEqual([
+      { filename: 'Plan.md', fullPath: 'Docs/Plan.md' },
+      { filename: 'Today.md', fullPath: 'Notes/Today.md' },
+      { filename: 'Root.md', fullPath: 'Root.md' },
+    ])
+
+    ;(manager as unknown as { workspaceStates: Map<string, { status: FlashQueryStatusPayload }> })
+      .workspaceStates.get('workspace-1')!.status = { workspaceId: 'workspace-1', status: 'disconnected', error: 'offline' }
+    await expect(manager.listVaultIndex('workspace-1')).resolves.toEqual([])
   })
 
   it('passes an empty body through to write_document unchanged', async () => {

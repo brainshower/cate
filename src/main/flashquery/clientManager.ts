@@ -1,6 +1,22 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
-import type { FlashQueryConnection, FlashQueryDocumentBody, FlashQueryVaultEntry, FlashQueryWriteResult } from '../../shared/types'
+import type {
+  FlashQueryConnection,
+  FlashQueryDocumentBody,
+  FlashQueryDocumentPart,
+  FlashQueryDocumentSearchResult,
+  FlashQueryFrontmatter,
+  FlashQueryGetDocumentOptions,
+  FlashQueryMemorySearchResult,
+  FlashQuerySearchEntityType,
+  FlashQuerySearchParams,
+  FlashQuerySearchResponse,
+  FlashQueryVaultEntry,
+  FlashQueryVaultIndexEntry,
+  FlashQueryWritePayload,
+  FlashQueryWriteResult,
+} from '../../shared/types'
+import { FLASHQUERY_MANAGED_FRONTMATTER_FIELDS } from '../../shared/types'
 import { getWorkspaceToken } from './credentials'
 import { listWorkspaces } from '../workspaceManager'
 
@@ -144,24 +160,33 @@ export class FlashQueryClientManager {
     }
   }
 
-  async getDocument(workspaceId: string, vaultPath: string): Promise<FlashQueryDocumentBody> {
+  async getDocument(
+    workspaceId: string,
+    vaultPath: string,
+    options?: FlashQueryGetDocumentOptions,
+  ): Promise<FlashQueryDocumentBody> {
     try {
       const client = await this.requireMcpClient(workspaceId)
+      const include = this.normalizeDocumentInclude(options)
       const payload = await this.callJsonTool(client, 'get_document', {
         identifiers: vaultPath,
-        include: ['body'],
+        include,
       })
 
       if (this.isErrorEnvelope(payload)) {
         throw new Error(this.errorEnvelopeMessage(payload))
       }
 
-      if (typeof payload.body !== 'string') {
+      if (include.includes('body') && typeof payload.body !== 'string') {
         throw new Error(`FlashQuery get_document returned no body for ${vaultPath}`)
+      }
+      if (include.includes('frontmatter') && !this.isPlainObject(payload.frontmatter)) {
+        throw new Error(`FlashQuery get_document returned no frontmatter for ${vaultPath}`)
       }
 
       return {
-        body: payload.body,
+        body: typeof payload.body === 'string' ? payload.body : '',
+        ...(this.isPlainObject(payload.frontmatter) ? { frontmatter: payload.frontmatter } : {}),
         ...(typeof payload.version_token === 'string' ? { version_token: payload.version_token } : {}),
         ...(typeof payload.modified === 'string' ? { modified: payload.modified } : {}),
       }
@@ -172,27 +197,59 @@ export class FlashQueryClientManager {
     }
   }
 
-  async writeDocument(workspaceId: string, vaultPath: string, content: string): Promise<FlashQueryWriteResult> {
+  async writeDocument(workspaceId: string, vaultPath: string, payload: FlashQueryWritePayload): Promise<FlashQueryWriteResult> {
     try {
+      const writeArgs = this.normalizeWritePayload(vaultPath, payload)
       const client = await this.requireMcpClient(workspaceId)
-      const payload = await this.callJsonTool(client, 'write_document', {
-        mode: 'update',
-        identifier: vaultPath,
-        content,
-      })
+      const resultPayload = await this.callJsonTool(client, 'write_document', writeArgs)
 
-      if (this.isErrorEnvelope(payload)) {
-        return { success: false, error: this.errorEnvelopeMessage(payload) }
+      if (this.isErrorEnvelope(resultPayload)) {
+        return { success: false, error: this.errorEnvelopeMessage(resultPayload) }
       }
 
       return {
         success: true,
-        modified: typeof payload.modified === 'string' ? payload.modified : '',
+        modified: typeof resultPayload.modified === 'string' ? resultPayload.modified : '',
       }
     } catch (error) {
       const state = this.workspaceStates.get(workspaceId)
       const connection = state?.connection ?? this.getConfiguredConnection(workspaceId)
       return { success: false, error: this.errorToSafeMessage(error, connection, state?.token) }
+    }
+  }
+
+  async search(workspaceId: string, params: FlashQuerySearchParams): Promise<FlashQuerySearchResponse> {
+    const state = this.workspaceStates.get(workspaceId)
+    const connection = state?.connection ?? this.getConfiguredConnection(workspaceId)
+    try {
+      const searchArgs = this.normalizeSearchArgs(params)
+      if (!connection && !state?.connection) {
+        return this.emptySearchResponse('No FlashQuery connection is configured for this workspace')
+      }
+      const client = await this.requireMcpClient(workspaceId)
+      const payload = await this.callJsonTool(client, 'search', searchArgs)
+      if (this.isErrorEnvelope(payload)) {
+        return this.emptySearchResponse(this.errorEnvelopeMessage(payload))
+      }
+      return this.normalizeSearchResponse(payload)
+    } catch (error) {
+      const latestState = this.workspaceStates.get(workspaceId)
+      const latestConnection = latestState?.connection ?? connection ?? this.getConfiguredConnection(workspaceId)
+      return this.emptySearchResponse(this.errorToSafeMessage(error, latestConnection, latestState?.token))
+    }
+  }
+
+  async listVaultIndex(workspaceId: string): Promise<FlashQueryVaultIndexEntry[]> {
+    const state = this.workspaceStates.get(workspaceId)
+    if (state?.status?.status === 'disconnected') return []
+
+    try {
+      const client = await this.requireMcpClient(workspaceId)
+      const payload = await this.callJsonTool(client, 'list_vault_index', {})
+      const entries = Array.isArray(payload.entries) ? payload.entries : Array.isArray(payload.documents) ? payload.documents : []
+      return entries.flatMap((entry) => this.normalizeVaultIndexEntry(entry))
+    } catch {
+      return []
     }
   }
 
@@ -480,6 +537,152 @@ export class FlashQueryClientManager {
       vaultPath: path,
       ...(typeof item.title === 'string' ? { title: item.title } : {}),
     }]
+  }
+
+  private normalizeDocumentInclude(options?: FlashQueryGetDocumentOptions): FlashQueryDocumentPart[] {
+    const rawInclude = options?.include ?? ['body']
+    const include: FlashQueryDocumentPart[] = []
+    for (const part of rawInclude) {
+      if (part !== 'body' && part !== 'frontmatter') {
+        throw new Error(`Unsupported FlashQuery document part: ${String(part)}`)
+      }
+      if (!include.includes(part)) include.push(part)
+    }
+    return include.length > 0 ? include : ['body']
+  }
+
+  private normalizeWritePayload(vaultPath: string, payload: FlashQueryWritePayload): Record<string, unknown> {
+    const args: Record<string, unknown> = { mode: 'update', identifier: vaultPath }
+    if (typeof payload === 'string') {
+      return { ...args, content: payload }
+    }
+    if (!this.isPlainObject(payload)) {
+      throw new Error('FlashQuery write payload must be a string or object')
+    }
+    if (typeof payload.content === 'string') {
+      args.content = payload.content
+    }
+    if (this.isPlainObject(payload.frontmatter)) {
+      const frontmatter = this.filterManagedFrontmatter(payload.frontmatter)
+      if (Object.keys(frontmatter).length > 0) args.frontmatter = frontmatter
+    }
+    if (payload.tags !== undefined) {
+      if (!Array.isArray(payload.tags) || payload.tags.some((tag) => typeof tag !== 'string')) {
+        throw new Error('FlashQuery write payload tags must be strings')
+      }
+      args.tags = payload.tags
+    }
+    if (!('content' in args) && !('frontmatter' in args) && !('tags' in args)) {
+      throw new Error('FlashQuery write payload must include content, frontmatter, or tags')
+    }
+    return args
+  }
+
+  private filterManagedFrontmatter(frontmatter: FlashQueryFrontmatter): FlashQueryFrontmatter {
+    return Object.fromEntries(
+      Object.entries(frontmatter).filter(([key]) => !FLASHQUERY_MANAGED_FRONTMATTER_FIELDS.includes(key as never)),
+    )
+  }
+
+  private normalizeSearchArgs(params: FlashQuerySearchParams): Record<string, unknown> {
+    const mode = params.mode ?? 'mixed'
+    if (mode !== 'filesystem' && mode !== 'mixed' && mode !== 'semantic') {
+      throw new Error(`Unsupported FlashQuery search mode: ${String(mode)}`)
+    }
+    const entityTypes = params.entity_types?.length ? this.normalizeSearchEntityTypes(params.entity_types) : ['documents', 'memories']
+    const limit = Number.isFinite(params.limit) && Number.isInteger(params.limit) && params.limit! > 0 ? params.limit! : 50
+    const query = typeof params.query === 'string' ? params.query : ''
+    if (mode === 'semantic' && query.trim().length === 0) {
+      throw new Error('Type a query to search semantically.')
+    }
+    return {
+      query,
+      mode,
+      entity_types: entityTypes,
+      limit,
+      include_archived: true,
+      ...(query.trim().length === 0 ? { list_all: true } : {}),
+    }
+  }
+
+  private normalizeSearchEntityTypes(entityTypes: FlashQuerySearchEntityType[]): FlashQuerySearchEntityType[] {
+    const normalized: FlashQuerySearchEntityType[] = []
+    for (const entityType of entityTypes) {
+      if (entityType !== 'documents' && entityType !== 'memories') {
+        throw new Error(`Unsupported FlashQuery search entity type: ${String(entityType)}`)
+      }
+      if (!normalized.includes(entityType)) normalized.push(entityType)
+    }
+    return normalized.length > 0 ? normalized : ['documents', 'memories']
+  }
+
+  private normalizeSearchResponse(payload: Record<string, unknown>): FlashQuerySearchResponse {
+    const documents = this.arrayFrom(payload.documents ?? payload.results)
+      .flatMap((entry) => this.normalizeDocumentSearchResult(entry))
+    const memories = this.arrayFrom(payload.memories)
+      .flatMap((entry) => this.normalizeMemorySearchResult(entry))
+    return {
+      documents,
+      memories,
+      total_documents: typeof payload.total_documents === 'number' ? payload.total_documents : documents.length,
+      total_memories: typeof payload.total_memories === 'number' ? payload.total_memories : memories.length,
+    }
+  }
+
+  private emptySearchResponse(error: string): FlashQuerySearchResponse {
+    return { documents: [], memories: [], total_documents: 0, total_memories: 0, error }
+  }
+
+  private normalizeDocumentSearchResult(entry: unknown): FlashQueryDocumentSearchResult[] {
+    if (!this.isPlainObject(entry)) return []
+    const path = this.normalizePath(this.firstString(entry.fullPath, entry.vaultPath, entry.path, entry.filename))
+    if (!path) return []
+    return [{
+      filename: this.filenameFromPath(path),
+      fullPath: path,
+      ...(typeof entry.title === 'string' ? { title: entry.title } : {}),
+      ...(typeof entry.snippet === 'string' ? { snippet: entry.snippet } : {}),
+    }]
+  }
+
+  private normalizeMemorySearchResult(entry: unknown): FlashQueryMemorySearchResult[] {
+    if (!this.isPlainObject(entry)) return []
+    const id = this.firstString(entry.id, entry.memory_id)
+    const text = this.firstString(entry.text, entry.content, entry.body, entry.snippet)
+    if (!id || !text) return []
+    return [{
+      id,
+      text,
+      ...(typeof entry.title === 'string' ? { title: entry.title } : {}),
+      ...(typeof entry.snippet === 'string' ? { snippet: entry.snippet } : {}),
+    }]
+  }
+
+  private normalizeVaultIndexEntry(entry: unknown): FlashQueryVaultIndexEntry[] {
+    if (!this.isPlainObject(entry)) return []
+    const path = this.normalizePath(this.firstString(entry.fullPath, entry.vaultPath, entry.path, entry.filename))
+    if (!path) return []
+    return [{ filename: this.filenameFromPath(path), fullPath: path }]
+  }
+
+  private arrayFrom(value: unknown): unknown[] {
+    return Array.isArray(value) ? value : []
+  }
+
+  private isPlainObject(value: unknown): value is Record<string, unknown> {
+    return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+  }
+
+  private firstString(...values: unknown[]): string | null {
+    return values.find((value): value is string => typeof value === 'string' && value.length > 0) ?? null
+  }
+
+  private normalizePath(path: string | null): string | null {
+    return path ? path.replace(/\\/g, '/') : null
+  }
+
+  private filenameFromPath(path: string): string {
+    return path.split('/').filter(Boolean).at(-1) ?? path
   }
 
   private isErrorEnvelope(payload: Record<string, unknown>): boolean {
