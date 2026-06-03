@@ -2,7 +2,7 @@
 // Type declaration for window.electronAPI exposed via contextBridge
 // =============================================================================
 
-import type { AgentCreateOptions, AgentEventEnvelope, AgentExtensionUIResponse, AgentImageAttachment, AgentModelRef, AgentRpcState, AgentSessionListEntry, AgentSessionStats, AgentSlashCommand, AgentThinkingLevel, AgentToolApprovalRequest, AppSettings, AgentState, AuthProviderDescriptor, AuthProviderStatus, CateWindowParams, DockWindowInitPayload, DetachedDockWindowSnapshot, DockStateSnapshot, FileSearchOptions, FileSearchResult, FileTreeNode, FlashQueryConnection, FlashQueryDocumentBody, FlashQueryProbeResult, FlashQueryStatusBroadcastPayload, FlashQueryVaultEntry, FlashQueryWriteResult, GitInfo, NotificationAction, OAuthFlowEvent, PanelState, PanelTransferSnapshot, PanelWindowSnapshot, PerfSnapshot, Point, SessionSnapshot, TerminalActivity, WorkspaceInfo, WorkspaceMutationResult } from './types'
+import type { AgentCreateOptions, AgentEventEnvelope, AgentExtensionUIResponse, AgentImageAttachment, AgentModelRef, AgentRpcState, AgentSessionListEntry, AgentSessionStats, AgentSlashCommand, AgentThinkingLevel, AgentToolApprovalRequest, AppSettings, AgentState, AuthProviderDescriptor, AuthProviderStatus, CateWindowParams, DockWindowInitPayload, DetachedDockWindowSnapshot, DockStateSnapshot, FileSearchOptions, FileSearchResult, FileTreeNode, FlashQueryConnection, FlashQueryDocumentBody, FlashQueryGetDocumentOptions, FlashQueryProbeResult, FlashQuerySearchParams, FlashQuerySearchResponse, FlashQueryStatusBroadcastPayload, FlashQueryVaultEntry, FlashQueryVaultIndexEntry, FlashQueryWritePayload, FlashQueryWriteResult, GitInfo, NotificationAction, OAuthFlowEvent, PanelState, PanelTransferSnapshot, PanelWindowSnapshot, PerfSnapshot, Point, SessionSnapshot, TerminalActivity, WorkspaceInfo, WorkspaceMutationResult } from './types'
 
 export interface NativeContextMenuItem {
   id?: string
@@ -595,9 +595,13 @@ export interface ElectronAPI {
 
   flashqueryListVault(workspaceId: string, vaultPath?: string): Promise<FlashQueryVaultEntry[]>
 
-  flashqueryGetDocument(workspaceId: string, vaultPath: string): Promise<FlashQueryDocumentBody>
+  flashqueryGetDocument(workspaceId: string, vaultPath: string, options?: FlashQueryGetDocumentOptions): Promise<FlashQueryDocumentBody>
 
-  flashqueryWriteDocument(workspaceId: string, vaultPath: string, content: string): Promise<FlashQueryWriteResult>
+  flashqueryWriteDocument(workspaceId: string, vaultPath: string, payload: FlashQueryWritePayload): Promise<FlashQueryWriteResult>
+
+  flashquerySearch(workspaceId: string, params: FlashQuerySearchParams): Promise<FlashQuerySearchResponse>
+
+  flashqueryListVaultIndex(workspaceId: string): Promise<FlashQueryVaultIndexEntry[]>
 
   flashqueryRetry(workspaceId: string): Promise<void>
 

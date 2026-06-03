@@ -1,6 +1,24 @@
 import { describe, expect, it } from 'vitest'
-import { isFlashQueryConnection, sanitizeFlashQueryConnection } from './types'
-import type { FlashQueryConnection, ProjectWorkspaceFile, SessionSnapshot, WorkspaceInfo, WorkspaceState } from './types'
+import { FLASHQUERY_MANAGED_FRONTMATTER_FIELDS, isFlashQueryConnection, sanitizeFlashQueryConnection } from './types'
+import type {
+  FlashQueryConnection,
+  FlashQueryDocumentBody,
+  FlashQueryDocumentPart,
+  FlashQueryDocumentSearchResult,
+  FlashQueryFrontmatter,
+  FlashQueryGetDocumentOptions,
+  FlashQueryMemorySearchResult,
+  FlashQuerySearchEntityType,
+  FlashQuerySearchMode,
+  FlashQuerySearchParams,
+  FlashQuerySearchResponse,
+  FlashQueryVaultIndexEntry,
+  FlashQueryWritePayload,
+  ProjectWorkspaceFile,
+  SessionSnapshot,
+  WorkspaceInfo,
+  WorkspaceState,
+} from './types'
 
 describe('FlashQueryConnection', () => {
   it('accepts the HTTP transport with optional bearer auth', () => {
@@ -92,5 +110,58 @@ describe('FlashQueryConnection', () => {
     })
     expect(JSON.stringify(projectWorkspaceFile)).not.toContain('raw-secret-token')
     expect(JSON.stringify(projectWorkspaceFile)).not.toContain('"auth"')
+  })
+
+  it('T-U-002 exports widened FlashQuery document, search, write, and vault-index contracts', () => {
+    const part: FlashQueryDocumentPart = 'frontmatter'
+    const getOptions: FlashQueryGetDocumentOptions = { include: ['body', part] }
+    const frontmatter: FlashQueryFrontmatter = { title: 'Plan' }
+    const document: FlashQueryDocumentBody = {
+      body: '# Body',
+      frontmatter,
+      version_token: 'v1',
+      modified: '2026-06-03T00:00:00Z',
+    }
+    const legacyWrite: FlashQueryWritePayload = 'body'
+    const objectWrite: FlashQueryWritePayload = { content: 'body', frontmatter, tags: ['project'] }
+    const mode: FlashQuerySearchMode = 'mixed'
+    const entityType: FlashQuerySearchEntityType = 'documents'
+    const searchParams: FlashQuerySearchParams = {
+      query: 'plan',
+      mode,
+      entity_types: [entityType, 'memories'],
+      limit: 50,
+    }
+    const documentResult: FlashQueryDocumentSearchResult = { filename: 'Plan.md', fullPath: 'Docs/Plan.md' }
+    const memoryResult: FlashQueryMemorySearchResult = { id: 'memory-1', text: 'Remember the plan' }
+    const searchResponse: FlashQuerySearchResponse = {
+      documents: [documentResult],
+      memories: [memoryResult],
+      total_documents: 1,
+      total_memories: 1,
+    }
+    const vaultIndexEntry: FlashQueryVaultIndexEntry = { filename: 'Plan.md', fullPath: 'Docs/Plan.md' }
+
+    expect(getOptions.include).toEqual(['body', 'frontmatter'])
+    expect(document.body).toBe('# Body')
+    expect(document.frontmatter).toEqual({ title: 'Plan' })
+    expect(legacyWrite).toBe('body')
+    expect(objectWrite).toEqual({ content: 'body', frontmatter, tags: ['project'] })
+    expect(searchParams).toEqual({ query: 'plan', mode: 'mixed', entity_types: ['documents', 'memories'], limit: 50 })
+    expect(searchResponse.documents[0]).toBe(documentResult)
+    expect(searchResponse.memories[0]).toBe(memoryResult)
+    expect(vaultIndexEntry).toEqual({ filename: 'Plan.md', fullPath: 'Docs/Plan.md' })
+  })
+
+  it('T-U-004 declares FlashQuery-managed frontmatter fields for write filtering', () => {
+    expect(FLASHQUERY_MANAGED_FRONTMATTER_FIELDS).toEqual(expect.arrayContaining([
+      'fq_id',
+      'fq_created',
+      'fq_updated',
+      'fq_archived_at',
+      'fq_instance',
+      'fq_owner',
+      'fq_type',
+    ]))
   })
 })

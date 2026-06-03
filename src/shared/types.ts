@@ -184,15 +184,80 @@ export interface FlashQueryVaultEntry {
   title?: string
 }
 
+export type FlashQueryDocumentPart = 'body' | 'frontmatter'
+
+export interface FlashQueryGetDocumentOptions {
+  include?: FlashQueryDocumentPart[]
+}
+
+export type FlashQueryFrontmatter = Record<string, unknown>
+
 export interface FlashQueryDocumentBody {
   body: string
+  frontmatter?: FlashQueryFrontmatter
   version_token?: string
   modified?: string
 }
 
+export type FlashQueryWritePayload =
+  | string
+  | {
+      content?: string
+      frontmatter?: FlashQueryFrontmatter
+      tags?: string[]
+    }
+
 export type FlashQueryWriteResult =
   | { success: true; modified: string }
   | { success: false; error: string }
+
+export type FlashQuerySearchMode = 'filesystem' | 'mixed' | 'semantic'
+
+export type FlashQuerySearchEntityType = 'documents' | 'memories'
+
+export interface FlashQuerySearchParams {
+  query?: string
+  mode?: FlashQuerySearchMode
+  entity_types?: FlashQuerySearchEntityType[]
+  limit?: number
+}
+
+export interface FlashQueryDocumentSearchResult {
+  filename: string
+  fullPath: string
+  title?: string
+  snippet?: string
+}
+
+export interface FlashQueryMemorySearchResult {
+  id: string
+  text: string
+  title?: string
+  snippet?: string
+}
+
+export interface FlashQuerySearchResponse {
+  documents: FlashQueryDocumentSearchResult[]
+  memories: FlashQueryMemorySearchResult[]
+  total_documents: number
+  total_memories: number
+  error?: string
+}
+
+export interface FlashQueryVaultIndexEntry {
+  filename: string
+  fullPath: string
+}
+
+export const FLASHQUERY_MANAGED_FRONTMATTER_FIELDS = [
+  'fq_id',
+  'fq_created',
+  'fq_updated',
+  'fq_archived_at',
+  'fq_instance',
+  'fq_owner',
+  'fq_type',
+] as const
 
 export function isFlashQueryConnection(value: unknown): value is FlashQueryConnection {
   if (!value || typeof value !== 'object') return false

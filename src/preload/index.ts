@@ -192,9 +192,11 @@ import {
   AUTH_SAVE_API_KEY,
   AUTH_DELETE,
   FLASHQUERY_GET_DOCUMENT,
+  FLASHQUERY_LIST_VAULT_INDEX,
   FLASHQUERY_LIST_VAULT,
   FLASHQUERY_PROBE,
   FLASHQUERY_RETRY,
+  FLASHQUERY_SEARCH,
   FLASHQUERY_SET_CONNECTION,
   FLASHQUERY_STATUS,
   FLASHQUERY_WRITE_DOCUMENT,
@@ -1022,12 +1024,20 @@ const electronAPI = {
     return ipcRenderer.invoke(FLASHQUERY_LIST_VAULT, workspaceId, vaultPath)
   },
 
-  flashqueryGetDocument(workspaceId: string, vaultPath: string): Promise<unknown> {
-    return ipcRenderer.invoke(FLASHQUERY_GET_DOCUMENT, workspaceId, vaultPath)
+  flashqueryGetDocument(workspaceId: string, vaultPath: string, options?: unknown): Promise<unknown> {
+    return ipcRenderer.invoke(FLASHQUERY_GET_DOCUMENT, workspaceId, vaultPath, options)
   },
 
-  flashqueryWriteDocument(workspaceId: string, vaultPath: string, content: string): Promise<unknown> {
-    return ipcRenderer.invoke(FLASHQUERY_WRITE_DOCUMENT, workspaceId, vaultPath, content)
+  flashqueryWriteDocument(workspaceId: string, vaultPath: string, payload: unknown): Promise<unknown> {
+    return ipcRenderer.invoke(FLASHQUERY_WRITE_DOCUMENT, workspaceId, vaultPath, payload)
+  },
+
+  flashquerySearch(workspaceId: string, params: unknown): Promise<unknown> {
+    return ipcRenderer.invoke(FLASHQUERY_SEARCH, workspaceId, params)
+  },
+
+  flashqueryListVaultIndex(workspaceId: string): Promise<unknown[]> {
+    return ipcRenderer.invoke(FLASHQUERY_LIST_VAULT_INDEX, workspaceId)
   },
 
   flashqueryRetry(workspaceId: string): Promise<void> {

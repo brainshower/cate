@@ -7,6 +7,8 @@ const FLASHQUERY_CHANNEL_VALUES = new Set([
   'flashquery:listVault',
   'flashquery:getDocument',
   'flashquery:writeDocument',
+  'flashquery:search',
+  'flashquery:list-vault-index',
   'flashquery:retry',
   'flashquery:status',
 ])
