@@ -1,44 +1,46 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: Release Readiness + Provenance Closeout
-status: Awaiting next milestone
-stopped_at: Phase 13 release-readiness and provenance closeout complete
-last_updated: "2026-06-02T16:05:42.669Z"
-last_activity: 2026-06-02 — Milestone v1.1 completed and archived
+milestone: v1.2
+milestone_name: FlashQuery Milestone 2
+status: planning
+stopped_at: Phase 14 ready for planning
+last_updated: "2026-06-03T18:01:15.541Z"
+last_activity: 2026-06-03 — Milestone v1.2 roadmap created; Phase 14 ready
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 21
-  completed_plans: 21
-  percent: 100
+  total_phases: 8
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-06-01 after v1.1 upstream sync planning)
+See: `.planning/PROJECT.md` (updated 2026-06-03 after v1.2 FlashQuery Milestone 2 planning)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** v1.1 release-readiness and provenance closeout complete.
+**Current focus:** v1.2 FlashQuery Milestone 2 — refresh, frontmatter, vault search, Pi FlashQuery tools, document references, clipboard utilities, and cross-surface degradation.
 
 ## Current Position
 
-Phase: Milestone v1.1 complete
+Phase: 14 — Shared FlashQuery Contracts and IPC
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-06-02 — Milestone v1.1 completed and archived
+Status: Ready for phase planning
+Last activity: 2026-06-03 — Milestone v1.2 requirements and roadmap created
 
 ## Session Continuity
 
-Last session: 2026-06-02T00:53:42.787Z
-Stopped At: Phase 13 release-readiness and provenance closeout complete
+Last session: 2026-06-03T18:01:15.541Z
+Stopped At: Phase 14 ready for planning
 Resume File: None
 
 ## Next Up
 
-No active milestone is open. v1.1 evidence is archived under `.planning/milestones/v1.1-*`; start the next milestone with `/gsd:new-milestone`.
+Plan Phase 14 with `/gsd-plan-phase 14`.
+
+Phase 14 establishes widened FlashQuery document, search, and vault-index IPC contracts across shared types, preload, main IPC, and client manager while preserving v1 body-only writes.
 
 ## Decisions
 
@@ -61,6 +63,8 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table (updated
 | 2026-06-01 | Phase 12 closed only after final evidence passed. | Visual evidence, upstream-smoke evidence, removed-file decisions, build, typecheck, unit tests, and full E2E all passed or had an explicit not-required rationale before ROADMAP/STATE were marked complete. |
 | 2026-06-01 | Phase 13 is scoped as final release-readiness and provenance closeout, not release publication. | Product acceptance, process/provenance, runbook, tracking, and final command evidence should be proven before handoff to a separate release workflow. |
 | 2026-06-01 | Phase 13 downstream agents must read the upstream-sync requirements and test plan before acceptance, provenance, verification, or closeout decisions. | Prevents final closeout from drifting away from REQ-021, REQ-023, REQ-024, REQ-025, REQ-026, T-A-010, T-A-012..T-A-015, and T-E-001..T-E-005. |
+| 2026-06-03 | v1.2 uses the Milestone 2 requirements and test plan as mandatory source-of-truth docs. | Keeps refresh, frontmatter, vault search, Pi extension, reference, clipboard, and degradation work aligned to the product spec and coverage matrix. |
+| 2026-06-03 | v1.2 continues phase numbering from v1.1, starting at Phase 14. | Preserves the project roadmap's sequential phase history across shipped milestones. |
 
 ## Deferred Items
 
@@ -101,4 +105,4 @@ Items acknowledged and deferred at milestone close on 2026-05-30:
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Plan Phase 14 with /gsd-plan-phase 14

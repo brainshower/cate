@@ -24,27 +24,26 @@ A Cate workspace can connect to a separately-running FlashQuery HTTP MCP server,
 - **Debt-01:** REQ-035.3 / REQ-037.1 spec contradiction with §11.5 token-flow rule.
 - **Debt-02:** T-M-002..T-M-007 PDF-level visual-fidelity capture deferred.
 
-**Active milestone:** v1.1 Upstream Sync (planned 2026-06-01).
+**Shipped:** v1.1 Release Readiness + Provenance Closeout (2026-06-02).
 
-The active work is a controlled merge of upstream Cate stable tag `v1.1.0` into the FlashQuery fork. This is a migration milestone, not a new FlashQuery feature milestone. It must preserve v1.0 behavior and security guarantees while adopting upstream architecture/fixes and producing a future-sync runbook.
+The upstream Cate `v1.1.0` sync is complete and archived under `.planning/milestones/v1.1-*`. The fork preserved FlashQuery v1.0 behavior/security/E2E guarantees, completed post-handoff audits, and recorded provenance/runbook evidence for future upstream syncs.
+
+## Current Milestone: v1.2 FlashQuery Milestone 2
+
+**Goal:** Continue Cate's FlashQuery integration with richer vault editor controls, vault search, and Pi agent access to FlashQuery tools and document references.
+
+**Target features:**
+- Manual refresh for open FlashQuery vault editor tabs, including dirty-refresh confirmation and safe error handling.
+- Separate frontmatter editor tabs with full Monaco YAML editing, independent dirty/save state, and managed-field filtering.
+- FlashQuery Vault Search panel with filesystem, mixed, and semantic modes, document/memory result rendering, pagination, and copy/reveal/open actions.
+- Bundled Cate FlashQuery Pi extension that registers eligible FlashQuery tools, supports `call_model` and `call_macro`, preserves tool diagnostics, and keeps FlashQuery out of Pi Providers.
+- Pi chat `@` mention autocomplete for literal `{{ref:path.md}}` document references plus cross-surface copy utilities.
+- Consistent disconnected/reconnecting/workspace-switch behavior across refresh, frontmatter, search, vault-index cache, clipboard, and Pi tools.
 
 Canonical source docs for this milestone:
 
-- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Upstream Sync Report (30-May-2026)/Upstream Sync Requirements.md`
-- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Upstream Sync Report (30-May-2026)/Upstream Sync Test Plan.md`
-
-**Next Feature Milestone Goals (deferred until after upstream sync):**
-
-Strong candidates surfaced during the v1.0 close-out testing session:
-
-- Reload-from-FlashQuery affordance on vault editor docs.
-- "Live vault notifications" subscription (server-push for vault changes).
-- New-vault-document creation flow.
-- Conflict detection / expected-version round-trip (defers REQ-042 invariant).
-- Visual-fidelity capture for T-M-002..T-M-007 (close Debt-02).
-- Spec amendment workflow for REQ-035.3 / REQ-037.1 (close Debt-01).
-- Renderer Sentry gating on DSN (silence sentry-ipc:// DevTools noise).
-- Replace transaction-pooler-as-DATABASE_URL diagnostic on the FlashQuery server side (separate codebase follow-up).
+- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Continued FQ integration (milestone 2)/Milestone 2 Requirements.md`
+- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Continued FQ integration (milestone 2)/Milestone 2 Test Plan.md`
 
 ## Requirements
 
@@ -68,23 +67,33 @@ Strong candidates surfaced during the v1.0 close-out testing session:
 
 ### Active
 
-- Controlled upstream sync from the FlashQuery fork to upstream Cate stable tag `v1.1.0`, preserving FlashQuery v1 behavior/security/E2E guarantees and recording future-sync provenance.
+- User can refresh clean or dirty open FlashQuery body editor tabs from the vault without corrupting editor content or dirty state.
+- User can open and edit FlashQuery frontmatter in a separate YAML editor tab with independent state from the body editor.
+- User can search FlashQuery vault documents and memories from a dedicated Cate panel and interact with document/memory results.
+- User can access eligible FlashQuery tools through Cate's Pi extension system without exposing bearer tokens to renderer code or Pi global auth.
+- User can insert whole-document FlashQuery references into Pi chat through `@` autocomplete and copy vault paths/references from relevant surfaces.
+- User gets consistent degradation and recovery behavior when FlashQuery disconnects, reconnects, or workspace context changes.
 
 ### Out of Scope
 
 - Replacing FlashQuery's CLI, setup script, database migrations, vault scanner, or MCP server — FlashQuery remains the source of truth for its own runtime and storage.
-- Implementing Cate as a general MCP host for arbitrary third-party MCP servers — v1 was FlashQuery-specific; v1.1 may revisit.
+- Implementing Cate as a general MCP host for arbitrary third-party MCP servers — Milestone 2 exposes only FlashQuery-brokered eligible tools through the bundled Pi extension.
 - Building a hosted/cloud FlashQuery account system in Cate — the user owns their local or self-hosted FlashQuery instance.
-- Replacing Cate's existing Pi agent runtime with FlashQuery `call_model` — initial integration augments the current agent workflow, not rewrite it.
+- Replacing Cate's existing Pi agent runtime or registering FlashQuery as a Pi provider — Milestone 2 augments current Pi workflows through tools only.
 - Rebuilding Obsidian-style editing inside Cate — FlashQuery vault documents can open in existing editor/document panels.
-- Creating new vault documents — v1 explicit scope guardrail; may move to Active in v1.1.
+- Creating new vault documents — Milestone 2 adds refresh, frontmatter, search, references, and tool access, not document creation.
 - Renaming, deleting, archiving, tagging, or moving vault documents — v1 scope guardrail.
-- AI/palette/comment-thread integration with vault docs — v1 scope.
-- Conflict detection beyond v1 last-write-wins behavior — v1 scope, candidate for v1.1.
+- Document-centric AI surfaces, selection palettes, conversation-as-document, synthetic teams, and comment-thread integration with vault docs.
+- Conflict detection or merge/diff flows beyond explicit dirty-refresh confirmation.
 - Stdio FlashQuery transport — v1 chose HTTP only; trivial to add later if needed.
 - OS keychain integration; v1 uses electron-store and can be upgraded later.
 - OAuth, refresh-token rotation, or hosted account flows.
-- Frontmatter editing or frontmatter exposure in Cate.
+- Cate-level "Run Macro" button or host-side macro launcher — macro execution is only via host-model `call_macro`.
+- User-facing model or purpose picker for `call_model`.
+- Memory view/edit surfaces beyond search results and read-only result inspection.
+- Multi-vault-per-workspace UI.
+- Preserving YAML comments, key order, and quoting on frontmatter writes.
+- FlashQuery roadmap work items RM-1 through RM-5; they are traceability context, not Cate implementation scope.
 
 ## Context
 
@@ -151,6 +160,9 @@ Known codebase concerns that affect ongoing work:
 | Treat REQ-035.3 / REQ-037.1 spec contradiction with §11.5 as deferred debt | Implementation chose the right invariant; spec wording lags | ⚠️ Revisit in v1.1 — Debt-01 |
 | Treat upstream sync product docs as source of truth for Phase 8 | The migration has a purpose-built requirements spec and paired test plan with resolved decisions and traceability | Planned — Phase 08 |
 | Keep Phase 8 as migration-only scope | Avoids mixing upstream sync risk with new FlashQuery feature work | Planned — Phase 08 |
+| Treat Milestone 2 product requirements/test plan as source of truth for v1.2 | The feature milestone has explicit REQ/T-U/T-E/T-M coverage and scoped source priorities | Planned — v1.2 |
+| Keep FlashQuery out of Pi Providers in Milestone 2 | Users must configure a native Pi LLM provider; FlashQuery enters Pi through eligible tools and brokered MCP tools only | Planned — v1.2 |
+| Use literal whole-document references for Pi `@` mentions | Keeps chat input simple and defers rich chips, anchors, and automatic external vault invalidation | Planned — v1.2 |
 
 ## Planning Preference
 
@@ -174,4 +186,4 @@ This document evolves at milestone boundaries and, once explicitly created, phas
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-01 after creating v1.1 upstream sync planning*
+*Last updated: 2026-06-03 after creating v1.2 FlashQuery Milestone 2 planning*
