@@ -1,5 +1,5 @@
 import React from 'react'
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../lib/logger', () => ({
@@ -171,6 +171,7 @@ type ElectronApiMock = Pick<
 const workspaceId = 'workspace-1'
 const panelId = 'editor-1'
 const vaultUri = 'flashquery://workspace-1/Docs/Plan.md'
+const frontmatterUri = 'flashquery://workspace-1/Docs/Plan.md?part=frontmatter'
 const localPath = '/repo/Docs/Plan.md'
 
 function monacoMock() {
@@ -278,7 +279,7 @@ describe('EditorPanel FlashQuery URI routing', () => {
 
     await renderEditor(vaultUri)
 
-    expect(api.flashqueryGetDocument).toHaveBeenCalledWith('workspace-1', 'Docs/Plan.md')
+    expect(api.flashqueryGetDocument).toHaveBeenCalledWith('workspace-1', 'Docs/Plan.md', { include: ['body'] })
     expect(api.fsReadFile).not.toHaveBeenCalled()
     expect(monacoMock().latestEditor().getValue()).toBe('vault body')
   })
@@ -469,6 +470,181 @@ describe('EditorPanel FlashQuery save and dirty behavior', () => {
   })
 })
 
+describe('EditorPanel FlashQuery frontmatter behavior', () => {
+  it('T-U-008 loads frontmatter with include frontmatter and creates a YAML model', async () => {
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: '',
+      frontmatter: { title: 'Plan' },
+    })
+    setElectronApi(api)
+
+    await renderEditor(frontmatterUri)
+
+    expect(api.flashqueryGetDocument).toHaveBeenCalledWith('workspace-1', 'Docs/Plan.md', { include: ['frontmatter'] })
+    expect(monaco.editor.createModel).toHaveBeenCalledWith(
+      expect.stringContaining('title'),
+      'yaml',
+      expect.anything(),
+    )
+    expect(screen.queryByTitle('Preview markdown')).toBeNull()
+    expect(screen.queryByLabelText('Refresh from vault')).toBeNull()
+  })
+
+  it('T-U-008 saves frontmatter as a parsed frontmatter-only payload', async () => {
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: '',
+      frontmatter: { title: 'Old' },
+    })
+    setElectronApi(api)
+    await renderEditor(frontmatterUri)
+
+    act(() => {
+      monacoMock().focusLatestEditor()
+      monacoMock().setLatestValue('title: Plan')
+      window.dispatchEvent(new Event('save-file'))
+    })
+
+    await waitFor(() => expect(api.flashqueryWriteDocument).toHaveBeenCalledWith(
+      'workspace-1',
+      'Docs/Plan.md',
+      { frontmatter: { title: 'Plan' } },
+    ))
+  })
+
+  it('T-U-008 blocks invalid YAML without calling write IPC', async () => {
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({ body: '', frontmatter: {} })
+    setElectronApi(api)
+    await renderEditor(frontmatterUri)
+
+    act(() => {
+      monacoMock().focusLatestEditor()
+      monacoMock().setLatestValue('- bad')
+      window.dispatchEvent(new Event('save-file'))
+    })
+
+    expect((await screen.findByRole('alert')).textContent).toMatch(/Invalid frontmatter YAML/)
+    expect(api.flashqueryWriteDocument).not.toHaveBeenCalled()
+    expect(useAppStore.getState().workspaces[0].panels[panelId].isDirty).toBe(true)
+  })
+
+  it('T-U-008 filters managed fields and treats managed-only edits as a clean no-op', async () => {
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({ body: '', frontmatter: { fq_id: 'x' } })
+    setElectronApi(api)
+    await renderEditor(frontmatterUri)
+
+    act(() => {
+      monacoMock().focusLatestEditor()
+      monacoMock().setLatestValue('fq_id: x\ntitle: Plan')
+      window.dispatchEvent(new Event('save-file'))
+    })
+
+    await waitFor(() => expect(api.flashqueryWriteDocument).toHaveBeenCalledWith(
+      'workspace-1',
+      'Docs/Plan.md',
+      { frontmatter: { title: 'Plan' } },
+    ))
+
+    vi.mocked(api.flashqueryWriteDocument).mockClear()
+    act(() => {
+      monacoMock().setLatestValue('fq_id: y')
+      window.dispatchEvent(new Event('save-file'))
+    })
+
+    await waitFor(() => expect(useAppStore.getState().workspaces[0].panels[panelId].isDirty).toBe(false))
+    expect(api.flashqueryWriteDocument).not.toHaveBeenCalled()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+})
+
+describe('EditorPanel FlashQuery refresh behavior', () => {
+  it('T-U-009 clean refresh fetches body, updates content, and clears dirty state', async () => {
+    const refreshUri = 'flashquery://workspace-1/Docs/RefreshClean.md'
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument)
+      .mockResolvedValueOnce({ body: 'old body' })
+      .mockResolvedValueOnce({ body: 'fresh body' })
+    setElectronApi(api)
+    await renderEditor(refreshUri)
+
+    fireEvent.click(screen.getByLabelText('Refresh from vault'))
+
+    await waitFor(() => expect(monacoMock().latestEditor().getValue()).toBe('fresh body'))
+    expect(api.flashqueryGetDocument).toHaveBeenLastCalledWith('workspace-1', 'Docs/RefreshClean.md', { include: ['body'] })
+    expect(useAppStore.getState().workspaces[0].panels[panelId].isDirty).toBe(false)
+  })
+
+  it('T-U-009 dirty refresh supports Cancel and Discard and refresh', async () => {
+    const refreshUri = 'flashquery://workspace-1/Docs/RefreshDirty.md'
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument)
+      .mockResolvedValueOnce({ body: 'old body' })
+      .mockResolvedValueOnce({ body: 'server body' })
+    setElectronApi(api)
+    await renderEditor(refreshUri)
+
+    act(() => {
+      monacoMock().setLatestValue('local dirty')
+    })
+
+    fireEvent.click(screen.getByLabelText('Refresh from vault'))
+    expect(await screen.findByRole('dialog', { name: 'Unsaved changes' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(monacoMock().latestEditor().getValue()).toBe('local dirty')
+    expect(useAppStore.getState().workspaces[0].panels[panelId].isDirty).toBe(true)
+
+    fireEvent.click(screen.getByLabelText('Refresh from vault'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Discard and refresh' }))
+
+    await waitFor(() => expect(monacoMock().latestEditor().getValue()).toBe('server body'))
+    expect(useAppStore.getState().workspaces[0].panels[panelId].isDirty).toBe(false)
+  })
+
+  it('T-U-009 dirty refresh supports Save and refresh', async () => {
+    const refreshUri = 'flashquery://workspace-1/Docs/RefreshSave.md'
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument)
+      .mockResolvedValueOnce({ body: 'old body' })
+      .mockResolvedValueOnce({ body: 'saved server body' })
+    setElectronApi(api)
+    await renderEditor(refreshUri)
+
+    act(() => {
+      monacoMock().focusLatestEditor()
+      monacoMock().setLatestValue('body to save')
+    })
+
+    fireEvent.click(screen.getByLabelText('Refresh from vault'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Save and refresh' }))
+
+    await waitFor(() => expect(api.flashqueryWriteDocument).toHaveBeenCalledWith('workspace-1', 'Docs/RefreshSave.md', 'body to save'))
+    await waitFor(() => expect(monacoMock().latestEditor().getValue()).toBe('saved server body'))
+  })
+
+  it('T-U-009 refresh failure preserves editor content and dirty state', async () => {
+    const refreshUri = 'flashquery://workspace-1/Docs/RefreshFailure.md'
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument)
+      .mockResolvedValueOnce({ body: 'old body' })
+      .mockRejectedValueOnce(new Error('not found'))
+    setElectronApi(api)
+    await renderEditor(refreshUri)
+
+    act(() => {
+      monacoMock().setLatestValue('local dirty')
+    })
+    fireEvent.click(screen.getByLabelText('Refresh from vault'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Discard and refresh' }))
+
+    expect((await screen.findByRole('alert')).textContent).toBe('Refresh failed: not found')
+    expect(monacoMock().latestEditor().getValue()).toBe('local dirty')
+    expect(useAppStore.getState().workspaces[0].panels[panelId].isDirty).toBe(true)
+  })
+})
+
 describe('EditorPanel FlashQuery diff guardrails', () => {
   it('T-I-088 and T-I-090 render vault diff requests as standard editors without local diff IPC', async () => {
     const api = makeElectronApi()
@@ -479,7 +655,7 @@ describe('EditorPanel FlashQuery diff guardrails', () => {
 
     expect(monaco.editor.createDiffEditor).not.toHaveBeenCalled()
     expect(monaco.editor.create).toHaveBeenCalled()
-    expect(api.flashqueryGetDocument).toHaveBeenCalledWith('workspace-1', 'Docs/Diff-Only.md')
+    expect(api.flashqueryGetDocument).toHaveBeenCalledWith('workspace-1', 'Docs/Diff-Only.md', { include: ['body'] })
     expect(api.fsReadFile).not.toHaveBeenCalled()
     expect(api.gitDiff).not.toHaveBeenCalled()
     expect(api.gitDiffStaged).not.toHaveBeenCalled()

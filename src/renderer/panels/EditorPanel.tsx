@@ -23,6 +23,12 @@ import { getActiveTheme, subscribeTheme } from '../lib/themeManager'
 import type { Theme } from '../../shared/types'
 import { takePendingReveal } from '../lib/editorReveal'
 import { parseVaultUri } from '../../shared/flashqueryUri'
+import {
+  frontmatterToYaml,
+  parseFrontmatterYaml,
+  stripManagedFrontmatterFields,
+} from '../lib/flashqueryFrontmatter'
+import { FlashQueryRefreshConfirmDialog } from '../dialogs/FlashQueryRefreshConfirmDialog'
 
 // -----------------------------------------------------------------------------
 // Monaco worker setup for Electron (Vite bundler)
@@ -351,10 +357,14 @@ export default function EditorPanel({
 
   const [markdownContent, setMarkdownContent] = useState('')
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [refreshError, setRefreshError] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
+  const [showRefreshConfirm, setShowRefreshConfirm] = useState(false)
 
   const workspaces = useAppStore((s) => s.workspaces)
   const ws = workspaces.find((w) => w.id === workspaceId)
   const diffMode = ws?.panels[panelId]?.diffMode
+  const activeVaultUri = filePath ? parseVaultUri(filePath) : null
   // Preview mode is kept per-panel in the store rather than as local state: a
   // single EditorPanel mount is reused across dock tabs (renderPanelComponent
   // creates the element without a key), so local state would leak the toggle
@@ -367,7 +377,20 @@ export default function EditorPanel({
     [workspaceId, panelId],
   )
   const rootPath = ws?.rootPath
-  const isMarkdown = !!filePath && /\.mdx?$/i.test(filePath)
+  const isFlashQueryBody = activeVaultUri?.part === 'body'
+  const isFlashQueryFrontmatter = activeVaultUri?.part === 'frontmatter'
+  const isMarkdown = !!filePath && /\.mdx?$/i.test(filePath) && !isFlashQueryFrontmatter
+
+  const markClean = useCallback((targetPath: string) => {
+    setSaveError(null)
+    isDirtyRef.current = false
+    useAppStore.getState().setPanelDirty(workspaceId, panelId, false)
+    useAppStore.getState().updatePanelTitle(
+      workspaceId,
+      panelId,
+      titleForExistingEditor(workspaceId, panelId, targetPath),
+    )
+  }, [workspaceId, panelId])
 
   // ---------------------------------------------------------------------------
   // Save handler (regular editor only)
@@ -406,10 +429,26 @@ export default function EditorPanel({
     const vaultUri = parseVaultUri(targetPath)
     if (vaultUri) {
       try {
+        let payload: string | { frontmatter: Record<string, unknown> }
+        if (vaultUri.part === 'frontmatter') {
+          const parsed = parseFrontmatterYaml(content)
+          if (!parsed.ok) {
+            setSaveError(`Invalid frontmatter YAML: ${parsed.error}`)
+            return false
+          }
+          const stripped = stripManagedFrontmatterFields(parsed.value)
+          if (Object.keys(stripped.frontmatter).length === 0 && stripped.removedManagedFieldCount > 0) {
+            markClean(targetPath)
+            return true
+          }
+          payload = { frontmatter: stripped.frontmatter }
+        } else {
+          payload = content
+        }
         const result = await window.electronAPI.flashqueryWriteDocument(
           vaultUri.workspaceId,
           vaultUri.vaultPath,
-          content,
+          payload,
         )
         if (!result.success) {
           const message = result.error || 'Failed to save vault document'
@@ -432,9 +471,7 @@ export default function EditorPanel({
       }
     }
 
-    setSaveError(null)
-    isDirtyRef.current = false
-    useAppStore.getState().setPanelDirty(workspaceId, panelId, false)
+    markClean(targetPath)
 
     const fileName = isInitialSave
       ? basenameForEditorTitle(targetPath)
@@ -466,7 +503,49 @@ export default function EditorPanel({
       )
     }
     return true
-  }, [workspaceId, panelId, diffMode, rootPath])
+  }, [workspaceId, panelId, diffMode, rootPath, markClean])
+
+  const refreshBodyFromVault = useCallback(async (options: { saveFirst?: boolean; discardDirty?: boolean } = {}) => {
+    const editor = editorRef.current
+    const targetPath = filePathRef.current
+    const vaultUri = targetPath ? parseVaultUri(targetPath) : null
+    if (!editor || !targetPath || vaultUri?.part !== 'body') return false
+    if (refreshing) return false
+
+    if (isDirtyRef.current && !options.saveFirst && !options.discardDirty) {
+      setShowRefreshConfirm(true)
+      return false
+    }
+
+    if (options.saveFirst) {
+      const saved = await save()
+      if (!saved) return false
+    }
+
+    setRefreshing(true)
+    setRefreshError(null)
+    try {
+      const model = editor.getModel()
+      const saveViewState = (editor as unknown as { saveViewState?: () => unknown }).saveViewState
+      const restoreViewState = (editor as unknown as { restoreViewState?: (state: unknown) => void }).restoreViewState
+      const viewState = saveViewState?.call(editor)
+      const result = await window.electronAPI.flashqueryGetDocument(vaultUri.workspaceId, vaultUri.vaultPath, {
+        include: ['body'],
+      })
+      model?.setValue(result.body)
+      if (viewState) restoreViewState?.call(editor, viewState)
+      markClean(targetPath)
+      return true
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to refresh vault document'
+      setRefreshError(message)
+      log.error('[EditorPanel] Failed to refresh vault document:', error)
+      return false
+    } finally {
+      setRefreshing(false)
+      setShowRefreshConfirm(false)
+    }
+  }, [markClean, refreshing, save])
 
   // ---------------------------------------------------------------------------
   // Mount: create regular editor OR diff editor
@@ -619,11 +698,15 @@ export default function EditorPanel({
         editor.setModel(cached)
         applyPendingReveal()
       } else {
-        const language = detectLanguage(filePath)
+        const language = vaultUri?.part === 'frontmatter' ? 'yaml' : detectLanguage(filePath)
         const readContent = vaultUri
           ? window.electronAPI
-            .flashqueryGetDocument(vaultUri.workspaceId, vaultUri.vaultPath)
-            .then((result) => result.body)
+            .flashqueryGetDocument(vaultUri.workspaceId, vaultUri.vaultPath, {
+              include: [vaultUri.part],
+            })
+            .then((result) => vaultUri.part === 'frontmatter'
+              ? frontmatterToYaml(result.frontmatter)
+              : result.body)
           : window.electronAPI.fsReadFile(filePath)
 
         readContent
@@ -802,7 +885,7 @@ export default function EditorPanel({
       {isMarkdown && !diffMode && (
         <button
           onClick={() => setMarkdownPreview(!markdownPreview)}
-          className={`absolute top-2 right-5 z-10 px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+          className={`absolute top-2 ${isFlashQueryBody ? 'right-36' : 'right-5'} z-10 px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
             markdownPreview
               ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
               : 'bg-neutral-200/80 dark:bg-neutral-700/80 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-600'
@@ -812,15 +895,41 @@ export default function EditorPanel({
           {markdownPreview ? 'Source' : 'Preview'}
         </button>
       )}
+      {isFlashQueryBody && !diffMode && (
+        <button
+          onClick={() => { void refreshBodyFromVault() }}
+          disabled={refreshing}
+          className="absolute top-2 right-5 z-10 rounded bg-neutral-200/80 px-2 py-0.5 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-300 disabled:opacity-60 dark:bg-neutral-700/80 dark:text-neutral-300 dark:hover:bg-neutral-600"
+          title="Refresh from vault"
+          aria-label="Refresh from vault"
+        >
+          {refreshing ? 'Refreshing...' : 'Refresh from vault'}
+        </button>
+      )}
       {markdownPreview && isMarkdown && (
         <MarkdownPreview content={markdownContent} />
       )}
+      <FlashQueryRefreshConfirmDialog
+        open={showRefreshConfirm}
+        fileName={filePathRef.current ? basenameForEditorTitle(filePathRef.current) : 'Untitled'}
+        onCancel={() => setShowRefreshConfirm(false)}
+        onDiscardAndRefresh={() => { void refreshBodyFromVault({ discardDirty: true }) }}
+        onSaveAndRefresh={() => { void refreshBodyFromVault({ saveFirst: true }) }}
+      />
       {saveError && (
         <div
           role="alert"
           className="absolute left-3 right-3 bottom-3 z-10 rounded-md border border-red-500/40 bg-red-950/80 px-3 py-2 text-xs text-red-100 shadow-2xl"
         >
           Save failed: {saveError}
+        </div>
+      )}
+      {refreshError && (
+        <div
+          role="alert"
+          className="absolute left-3 right-3 bottom-3 z-10 rounded-md border border-red-500/40 bg-red-950/80 px-3 py-2 text-xs text-red-100 shadow-2xl"
+        >
+          Refresh failed: {refreshError}
         </div>
       )}
       <div ref={containerRef} className={`w-full h-full ${markdownPreview && isMarkdown ? 'hidden' : ''}`} />
