@@ -49,7 +49,7 @@ describe('project workspace compatibility', () => {
     expect(snapshot.workspaceName).toBe('Generated Pre-Merge FlashQuery Workspace')
     expect(snapshot.flashqueryConnection).toEqual({
       transport: 'http',
-      url: 'https://premerge.flashquery.local/mcp',
+      url: 'https://premerge.flashquery.local',
     })
     expect(snapshot.nodes).toEqual(
       expect.arrayContaining([

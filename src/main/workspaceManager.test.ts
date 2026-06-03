@@ -75,13 +75,13 @@ describe('workspaceManager FlashQuery metadata', () => {
       workspace: expect.objectContaining({
         flashqueryConnection: {
           transport: 'http',
-          url: 'http://127.0.0.1:3210/mcp',
+          url: 'http://127.0.0.1:3210',
         },
       }),
     })
     expect(listWorkspaces().find((workspace) => workspace.id === 'workspace-b')?.flashqueryConnection).toEqual({
       transport: 'http',
-      url: 'http://127.0.0.1:3210/mcp',
+      url: 'http://127.0.0.1:3210',
     })
     await expect(getWorkspaceToken('workspace-b')).resolves.toBe('test-token')
   })
