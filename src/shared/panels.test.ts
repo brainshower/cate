@@ -32,3 +32,26 @@ describe('FlashQuery Vault shared panel definition', () => {
     expect(PANEL_DEFINITIONS.flashqueryVault.ghostSvg).toContain('<path')
   })
 })
+
+describe('Vault Search shared panel definition', () => {
+  it('registers flashqueryVaultSearch as a panel type without casts', () => {
+    const panelType: PanelType = 'flashqueryVaultSearch'
+
+    expect(PANEL_DEFINITIONS[panelType].type).toBe('flashqueryVaultSearch')
+  })
+
+  it('uses the locked Vault Search identity and file-explorer-like sizing', () => {
+    expect(PANEL_DEFINITIONS.flashqueryVaultSearch).toMatchObject({
+      type: 'flashqueryVaultSearch',
+      label: 'Vault Search',
+      brandColor: '#5AD8B8',
+      switcherColor: '#5AD8B8',
+      mutedColor: '#4a9080',
+      tintClass: 'text-teal-400',
+      defaultSize: { width: 420, height: 560 },
+      minimumSize: PANEL_DEFINITIONS.fileExplorer.minimumSize,
+      canLiveOnCanvas: true,
+    })
+    expect(PANEL_CANVAS_DROP_SIZES.flashqueryVaultSearch).toEqual({ width: 360, height: 500 })
+  })
+})

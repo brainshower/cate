@@ -144,6 +144,48 @@ describe('appStore.createFlashQueryVault', () => {
   })
 })
 
+describe('appStore.createFlashQueryVaultSearch', () => {
+  beforeEach(() => {
+    seedStore()
+    setCanvasOperations(makeCanvasOps())
+  })
+
+  it('creates a Vault Search panel in workspace state', () => {
+    const panelId = useAppStore.getState().createFlashQueryVaultSearch(workspaceId)
+    const panel = useAppStore.getState().workspaces[0].panels[panelId]
+
+    expect(panel).toMatchObject({
+      id: panelId,
+      type: 'flashqueryVaultSearch',
+      title: 'Vault Search',
+      isDirty: false,
+    })
+  })
+
+  it('delegates canvas placement through placePanel with the flashqueryVaultSearch type', () => {
+    const addNodeAndFocus = vi.fn()
+    setCanvasOperations(makeCanvasOps({ addNodeAndFocus }))
+    const position = { x: 24, y: 48 }
+    const placement = { target: 'canvas' as const, position }
+
+    const panelId = useAppStore.getState().createFlashQueryVaultSearch(workspaceId, { x: 1, y: 2 }, placement)
+
+    expect(addNodeAndFocus).toHaveBeenCalledWith(panelId, 'flashqueryVaultSearch', position)
+  })
+
+  it('delegates dock placement through placePanel', () => {
+    const panelId = useAppStore.getState().createFlashQueryVaultSearch(workspaceId, undefined, {
+      target: 'dock',
+      zone: 'left',
+    })
+
+    expect(useDockStore.getState().panelLocations[panelId]).toMatchObject({
+      type: 'dock',
+      zone: 'left',
+    })
+  })
+})
+
 describe('appStore.createEditor', () => {
   beforeEach(() => {
     seedStore()

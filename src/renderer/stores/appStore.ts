@@ -321,6 +321,7 @@ interface AppStoreActions {
   createGit: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
   createFileExplorer: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
   createFlashQueryVault: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
+  createFlashQueryVaultSearch: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
   createProjectList: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
   createCanvas: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
   createAgent: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
@@ -1031,6 +1032,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
       return null as unknown as string
     }
     return panelId
+  },
+
+  createFlashQueryVaultSearch(workspaceId, position?, placement?) {
+    const panel: PanelState = {
+      id: generateId(),
+      type: 'flashqueryVaultSearch',
+      title: 'Vault Search',
+      isDirty: false,
+    }
+    return addAndPlacePanel(set, get, workspaceId, panel, placement, position)
   },
 
   createProjectList(workspaceId, position?, placement?) {
