@@ -3,14 +3,27 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import {
   FLASHQUERY_GET_DOCUMENT,
+  FLASHQUERY_LIST_VAULT_INDEX,
   FLASHQUERY_LIST_VAULT,
   FLASHQUERY_PROBE,
   FLASHQUERY_RETRY,
+  FLASHQUERY_SEARCH,
   FLASHQUERY_STATUS,
   FLASHQUERY_SET_CONNECTION,
   FLASHQUERY_WRITE_DOCUMENT,
 } from '../../shared/ipc-channels'
-import type { FlashQueryConnection, FlashQueryProbeResult, FlashQueryStatusBroadcastPayload, WorkspaceMutationResult } from '../../shared/types'
+import type {
+  FlashQueryConnection,
+  FlashQueryGetDocumentOptions,
+  FlashQueryProbeResult,
+  FlashQuerySearchParams,
+  FlashQuerySearchResponse,
+  FlashQueryStatusBroadcastPayload,
+  FlashQueryVaultIndexEntry,
+  FlashQueryWritePayload,
+  FlashQueryWriteResult,
+  WorkspaceMutationResult,
+} from '../../shared/types'
 import { isFlashQueryConnection } from '../../shared/types'
 import { FlashQueryClientManager } from '../flashquery/clientManager'
 import { broadcastToAll } from '../windowRegistry'
@@ -237,6 +250,83 @@ function requireString(value: unknown, field: string): string {
   return value
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function validateGetDocumentOptions(value: unknown): FlashQueryGetDocumentOptions | undefined {
+  if (value === undefined) return undefined
+  if (!isPlainObject(value)) throw new Error('options must be an object when provided')
+  const include = value.include
+  if (include === undefined) return {}
+  if (!Array.isArray(include)) throw new Error('options.include must be an array')
+  for (const part of include) {
+    if (part !== 'body' && part !== 'frontmatter') {
+      throw new Error('options.include must contain only body or frontmatter')
+    }
+  }
+  return { include }
+}
+
+function validateWritePayload(value: unknown): FlashQueryWritePayload {
+  if (typeof value === 'string') return value
+  if (!isPlainObject(value)) throw new Error('payload must be a string or object')
+  const payload: { content?: string; frontmatter?: Record<string, unknown>; tags?: string[] } = {}
+  if (value.content !== undefined) {
+    if (typeof value.content !== 'string') throw new Error('payload.content must be a string')
+    payload.content = value.content
+  }
+  if (value.frontmatter !== undefined) {
+    if (!isPlainObject(value.frontmatter)) throw new Error('payload.frontmatter must be an object')
+    payload.frontmatter = value.frontmatter
+  }
+  if (value.tags !== undefined) {
+    if (!Array.isArray(value.tags) || value.tags.some((tag) => typeof tag !== 'string')) {
+      throw new Error('payload.tags must be an array of strings')
+    }
+    payload.tags = value.tags
+  }
+  if (payload.content === undefined && payload.frontmatter === undefined && payload.tags === undefined) {
+    throw new Error('payload must include content, frontmatter, or tags')
+  }
+  return payload
+}
+
+function validateSearchParams(value: unknown): FlashQuerySearchParams {
+  if (!isPlainObject(value)) throw new Error('search params must be an object')
+  const params: FlashQuerySearchParams = {}
+  if (value.query !== undefined) {
+    if (typeof value.query !== 'string') throw new Error('search query must be a string')
+    params.query = value.query
+  }
+  if (value.mode !== undefined) {
+    if (value.mode !== 'filesystem' && value.mode !== 'mixed' && value.mode !== 'semantic') {
+      throw new Error('search mode must be filesystem, mixed, or semantic')
+    }
+    params.mode = value.mode
+  }
+  if (value.entity_types !== undefined) {
+    if (!Array.isArray(value.entity_types)) throw new Error('search entity_types must be an array')
+    for (const entityType of value.entity_types) {
+      if (entityType !== 'documents' && entityType !== 'memories') {
+        throw new Error('search entity_types must contain only documents or memories')
+      }
+    }
+    params.entity_types = value.entity_types
+  }
+  if (value.limit !== undefined) {
+    const limit = value.limit
+    if (typeof limit !== 'number' || !Number.isFinite(limit) || !Number.isInteger(limit) || limit <= 0) {
+      throw new Error('search limit must be a positive integer')
+    }
+    params.limit = limit
+  }
+  if ((params.mode ?? 'mixed') === 'semantic' && (params.query ?? '').trim().length === 0) {
+    throw new Error('Type a query to search semantically.')
+  }
+  return params
+}
+
 async function listVault(workspaceId: string, vaultPath?: string) {
   requireNonEmptyString(workspaceId, 'workspaceId')
   if (vaultPath !== undefined && typeof vaultPath !== 'string') {
@@ -245,19 +335,20 @@ async function listVault(workspaceId: string, vaultPath?: string) {
   return flashQueryClientManager.listVault(workspaceId, vaultPath)
 }
 
-async function getDocument(workspaceId: string, vaultPath: string) {
+async function getDocument(workspaceId: string, vaultPath: string, options?: unknown) {
   return flashQueryClientManager.getDocument(
     requireNonEmptyString(workspaceId, 'workspaceId'),
     requireNonEmptyString(vaultPath, 'vaultPath'),
+    validateGetDocumentOptions(options),
   )
 }
 
-async function writeDocument(workspaceId: string, vaultPath: string, content: string) {
+async function writeDocument(workspaceId: string, vaultPath: string, payload: unknown): Promise<FlashQueryWriteResult> {
   try {
     return await flashQueryClientManager.writeDocument(
       requireNonEmptyString(workspaceId, 'workspaceId'),
       requireNonEmptyString(vaultPath, 'vaultPath'),
-      requireString(content, 'content'),
+      validateWritePayload(payload),
     )
   } catch (error) {
     return {
@@ -265,6 +356,28 @@ async function writeDocument(workspaceId: string, vaultPath: string, content: st
       error: error instanceof Error ? error.message : String(error),
     }
   }
+}
+
+async function search(workspaceId: string, params: unknown): Promise<FlashQuerySearchResponse> {
+  try {
+    return await flashQueryClientManager.search(
+      requireNonEmptyString(workspaceId, 'workspaceId'),
+      validateSearchParams(params),
+    )
+  } catch (error) {
+    return {
+      documents: [],
+      memories: [],
+      total_documents: 0,
+      total_memories: 0,
+      error: error instanceof Error ? error.message : String(error),
+    }
+  }
+}
+
+async function listVaultIndex(workspaceId: string): Promise<FlashQueryVaultIndexEntry[]> {
+  requireNonEmptyString(workspaceId, 'workspaceId')
+  return flashQueryClientManager.listVaultIndex(workspaceId)
 }
 
 async function retry(workspaceId: string): Promise<void> {
@@ -287,11 +400,17 @@ export function registerHandlers(): void {
   ipcMain.handle(FLASHQUERY_LIST_VAULT, async (_event, workspaceId: string, vaultPath?: string) => {
     return listVault(workspaceId, vaultPath)
   })
-  ipcMain.handle(FLASHQUERY_GET_DOCUMENT, async (_event, workspaceId: string, vaultPath: string) => {
-    return getDocument(workspaceId, vaultPath)
+  ipcMain.handle(FLASHQUERY_GET_DOCUMENT, async (_event, workspaceId: string, vaultPath: string, options?: unknown) => {
+    return getDocument(workspaceId, vaultPath, options)
   })
-  ipcMain.handle(FLASHQUERY_WRITE_DOCUMENT, async (_event, workspaceId: string, vaultPath: string, content: string) => {
-    return writeDocument(workspaceId, vaultPath, content)
+  ipcMain.handle(FLASHQUERY_WRITE_DOCUMENT, async (_event, workspaceId: string, vaultPath: string, payload: unknown) => {
+    return writeDocument(workspaceId, vaultPath, payload)
+  })
+  ipcMain.handle(FLASHQUERY_SEARCH, async (_event, workspaceId: string, params: unknown) => {
+    return search(workspaceId, params)
+  })
+  ipcMain.handle(FLASHQUERY_LIST_VAULT_INDEX, async (_event, workspaceId: string) => {
+    return listVaultIndex(workspaceId)
   })
   ipcMain.handle(FLASHQUERY_RETRY, async (_event, workspaceId: string) => {
     return retry(workspaceId)

@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   FLASHQUERY_GET_DOCUMENT,
+  FLASHQUERY_LIST_VAULT_INDEX,
   FLASHQUERY_LIST_VAULT,
   FLASHQUERY_PROBE,
   FLASHQUERY_RETRY,
+  FLASHQUERY_SEARCH,
   FLASHQUERY_SET_CONNECTION,
   FLASHQUERY_STATUS,
   FLASHQUERY_WRITE_DOCUMENT,
@@ -33,7 +35,9 @@ const mocks = vi.hoisted(() => ({
     dispose: ReturnType<typeof vi.fn>
     listVault: ReturnType<typeof vi.fn>
     getDocument: ReturnType<typeof vi.fn>
+    listVaultIndex: ReturnType<typeof vi.fn>
     retry: ReturnType<typeof vi.fn>
+    search: ReturnType<typeof vi.fn>
     writeDocument: ReturnType<typeof vi.fn>
     subscribe: ReturnType<typeof vi.fn>
     subscriptions: Array<{ workspaceId: string; type: string; handler: (payload: unknown) => void }>
@@ -74,7 +78,9 @@ vi.mock('../flashquery/clientManager', () => {
     dispose = vi.fn()
     listVault = vi.fn()
     getDocument = vi.fn()
+    listVaultIndex = vi.fn()
     retry = vi.fn()
+    search = vi.fn()
     writeDocument = vi.fn()
     subscriptions: Array<{ workspaceId: string; type: string; handler: (payload: unknown) => void }> = []
     subscribe = vi.fn((workspaceId: string, type: string, handler: (payload: unknown) => void) => {
@@ -135,21 +141,25 @@ describe('FlashQuery IPC handlers', () => {
     return call?.[1] as T
   }
 
-  it('T-U-040 registers renderer-to-main FlashQuery invoke channels exactly once', async () => {
+  it('T-U-002 registers renderer-to-main FlashQuery invoke channels exactly once', async () => {
     const { registerHandlers } = await import('./flashquery')
 
     registerHandlers()
 
-    expect(mocks.handle).toHaveBeenCalledTimes(6)
+    expect(mocks.handle).toHaveBeenCalledTimes(8)
     expect(mocks.handle.mock.calls.map(([channel]) => channel)).toEqual([
       FLASHQUERY_SET_CONNECTION,
       FLASHQUERY_PROBE,
       FLASHQUERY_LIST_VAULT,
       FLASHQUERY_GET_DOCUMENT,
       FLASHQUERY_WRITE_DOCUMENT,
+      FLASHQUERY_SEARCH,
+      FLASHQUERY_LIST_VAULT_INDEX,
       FLASHQUERY_RETRY,
     ])
     expect(mocks.handle.mock.calls.map(([, handler]) => handler)).toEqual([
+      expect.any(Function),
+      expect.any(Function),
       expect.any(Function),
       expect.any(Function),
       expect.any(Function),
@@ -166,7 +176,7 @@ describe('FlashQuery IPC handlers', () => {
     registerHandlers()
     registerHandlers()
 
-    expect(mocks.handle).toHaveBeenCalledTimes(6)
+    expect(mocks.handle).toHaveBeenCalledTimes(8)
   })
 
   it('declares the exact Phase 3 FlashQuery channel strings', () => {
@@ -175,6 +185,8 @@ describe('FlashQuery IPC handlers', () => {
     expect(FLASHQUERY_LIST_VAULT).toBe('flashquery:listVault')
     expect(FLASHQUERY_GET_DOCUMENT).toBe('flashquery:getDocument')
     expect(FLASHQUERY_WRITE_DOCUMENT).toBe('flashquery:writeDocument')
+    expect(FLASHQUERY_SEARCH).toBe('flashquery:search')
+    expect(FLASHQUERY_LIST_VAULT_INDEX).toBe('flashquery:list-vault-index')
     expect(FLASHQUERY_RETRY).toBe('flashquery:retry')
     expect(FLASHQUERY_STATUS).toBe('flashquery:status')
   })
@@ -480,7 +492,24 @@ describe('FlashQuery IPC handlers', () => {
       modified: '2026-05-02T00:00:00Z',
     })
     await expect(handler({}, 'workspace-1', 'Missing.md')).rejects.toThrow('Document not found: Missing.md')
-    expect(mocks.managerInstances[0].getDocument).toHaveBeenCalledWith('workspace-1', 'Plan.md')
+    expect(mocks.managerInstances[0].getDocument).toHaveBeenCalledWith('workspace-1', 'Plan.md', undefined)
+  })
+
+  it('T-U-003 passes valid get-document include options and rejects invalid values before manager dispatch', async () => {
+    const handler = await registeredHandler<(_event: unknown, workspaceId: string, vaultPath: string, options?: unknown) => Promise<unknown>>(FLASHQUERY_GET_DOCUMENT)
+    mocks.managerInstances[0].getDocument.mockResolvedValueOnce({
+      body: 'body',
+      frontmatter: { title: 'Plan' },
+    })
+
+    await expect(handler({}, 'workspace-1', 'Plan.md', { include: ['body', 'frontmatter'] })).resolves.toEqual({
+      body: 'body',
+      frontmatter: { title: 'Plan' },
+    })
+    await expect(handler({}, 'workspace-1', 'Plan.md', { include: ['bad'] })).rejects.toThrow('options.include must contain only body or frontmatter')
+
+    expect(mocks.managerInstances[0].getDocument).toHaveBeenCalledWith('workspace-1', 'Plan.md', { include: ['body', 'frontmatter'] })
+    expect(mocks.managerInstances[0].getDocument).toHaveBeenCalledTimes(1)
   })
 
   it('T-I-009 through T-I-011 maps writeDocument IPC success and failure results without throwing', async () => {
@@ -503,6 +532,97 @@ describe('FlashQuery IPC handlers', () => {
       error: 'bad path',
     })
     expect(mocks.managerInstances[0].writeDocument).toHaveBeenCalledWith('workspace-1', 'Plan.md', 'body')
+  })
+
+  it('T-U-004 passes valid object write payloads and rejects invalid payloads before manager dispatch', async () => {
+    const handler = await registeredHandler<(_event: unknown, workspaceId: string, vaultPath: string, payload: unknown) => Promise<unknown>>(FLASHQUERY_WRITE_DOCUMENT)
+    mocks.managerInstances[0].writeDocument.mockResolvedValueOnce({ success: true, modified: '2026-06-03T00:00:00Z' })
+
+    await expect(handler({}, 'workspace-1', 'Plan.md', {
+      content: 'body',
+      frontmatter: { title: 'Plan' },
+      tags: ['project'],
+    })).resolves.toEqual({ success: true, modified: '2026-06-03T00:00:00Z' })
+    await expect(handler({}, 'workspace-1', 'Plan.md', { tags: ['ok', 3] })).resolves.toEqual({
+      success: false,
+      error: 'payload.tags must be an array of strings',
+    })
+    await expect(handler({}, 'workspace-1', 'Plan.md', {})).resolves.toEqual({
+      success: false,
+      error: 'payload must include content, frontmatter, or tags',
+    })
+
+    expect(mocks.managerInstances[0].writeDocument).toHaveBeenCalledWith('workspace-1', 'Plan.md', {
+      content: 'body',
+      frontmatter: { title: 'Plan' },
+      tags: ['project'],
+    })
+    expect(mocks.managerInstances[0].writeDocument).toHaveBeenCalledTimes(1)
+  })
+
+  it('T-U-005 validates search params and returns safe errors before manager dispatch', async () => {
+    const handler = await registeredHandler<(_event: unknown, workspaceId: string, params: unknown) => Promise<unknown>>(FLASHQUERY_SEARCH)
+    mocks.managerInstances[0].search.mockResolvedValueOnce({
+      documents: [],
+      memories: [],
+      total_documents: 0,
+      total_memories: 0,
+    })
+
+    await expect(handler({}, 'workspace-1', {
+      query: 'plan',
+      mode: 'mixed',
+      entity_types: ['documents', 'memories'],
+      limit: 25,
+    })).resolves.toEqual({
+      documents: [],
+      memories: [],
+      total_documents: 0,
+      total_memories: 0,
+    })
+    await expect(handler({}, 'workspace-1', { mode: 'bogus' })).resolves.toMatchObject({
+      error: 'search mode must be filesystem, mixed, or semantic',
+      documents: [],
+      memories: [],
+    })
+    await expect(handler({}, 'workspace-1', { entity_types: ['bad'] })).resolves.toMatchObject({
+      error: 'search entity_types must contain only documents or memories',
+      documents: [],
+      memories: [],
+    })
+    await expect(handler({}, 'workspace-1', { limit: 0 })).resolves.toMatchObject({
+      error: 'search limit must be a positive integer',
+      documents: [],
+      memories: [],
+    })
+    await expect(handler({}, 'workspace-1', { mode: 'semantic', query: '' })).resolves.toMatchObject({
+      error: 'Type a query to search semantically.',
+      documents: [],
+      memories: [],
+    })
+
+    expect(mocks.managerInstances[0].search).toHaveBeenCalledWith('workspace-1', {
+      query: 'plan',
+      mode: 'mixed',
+      entity_types: ['documents', 'memories'],
+      limit: 25,
+    })
+    expect(mocks.managerInstances[0].search).toHaveBeenCalledTimes(1)
+  })
+
+  it('T-U-006 registers vault-index IPC and delegates valid workspace IDs to manager', async () => {
+    const handler = await registeredHandler<(_event: unknown, workspaceId: string) => Promise<unknown>>(FLASHQUERY_LIST_VAULT_INDEX)
+    mocks.managerInstances[0].listVaultIndex.mockResolvedValueOnce([
+      { filename: 'Plan.md', fullPath: 'Docs/Plan.md' },
+    ])
+
+    await expect(handler({}, 'workspace-1')).resolves.toEqual([
+      { filename: 'Plan.md', fullPath: 'Docs/Plan.md' },
+    ])
+    await expect(handler({}, '')).rejects.toThrow('workspaceId must be a non-empty string')
+
+    expect(mocks.managerInstances[0].listVaultIndex).toHaveBeenCalledWith('workspace-1')
+    expect(mocks.managerInstances[0].listVaultIndex).toHaveBeenCalledTimes(1)
   })
 
   it('allows empty and whitespace-only document body writes', async () => {
