@@ -9,6 +9,11 @@ export interface FlashQueryStubCounts {
   mcpPostCount: number
 }
 
+export interface FlashQueryStubDocument {
+  body: string
+  frontmatter?: Record<string, unknown>
+}
+
 export interface FlashQueryStubServer {
   baseUrl: string
   close: () => Promise<void>
@@ -17,9 +22,15 @@ export interface FlashQueryStubServer {
   setAvailable: (available: boolean) => void
   resetDocuments: () => void
   seedEmptyVault: () => void
-  seedDocuments: (documents: Record<string, string>) => void
+  seedDocuments: (documents: Record<string, string | FlashQueryStubDocument>) => void
   setDocumentTitles: (titles: Record<string, string | null>) => void
   documentBody: (vaultPath: string) => string | null
+  documentFrontmatter: (vaultPath: string) => Record<string, unknown> | null
+  setDocumentBody: (vaultPath: string, body: string) => void
+  setDocumentFrontmatter: (vaultPath: string, frontmatter: Record<string, unknown>) => void
+  setDocumentNotFound: (vaultPath: string, notFound: boolean) => void
+  lastGetArgs: () => Record<string, unknown> | null
+  lastWriteArgs: () => Record<string, unknown> | null
 }
 
 export interface FlashQueryStubServerOptions {
@@ -27,10 +38,10 @@ export interface FlashQueryStubServerOptions {
 }
 
 const DEFAULT_BEARER_TOKEN = 'fixture-token'
-const DEFAULT_DOCUMENTS: Record<string, string> = {
-  'Welcome.md': '# Welcome\n\nThis is the starter document.',
-  'Projects/Cate.md': '# Cate\n\nCate integration notes.',
-  'Projects/Deep/Nested.md': '# Nested\n\nMulti-level vault content.',
+const DEFAULT_DOCUMENTS: Record<string, FlashQueryStubDocument> = {
+  'Welcome.md': { body: '# Welcome\n\nThis is the starter document.' },
+  'Projects/Cate.md': { body: '# Cate\n\nCate integration notes.' },
+  'Projects/Deep/Nested.md': { body: '# Nested\n\nMulti-level vault content.' },
 }
 
 function jsonResponse(res: ServerResponse, status: number, payload: unknown): void {
@@ -49,7 +60,7 @@ function normalizeVaultPath(value: unknown): string {
 }
 
 function folderChildren(
-  documents: Map<string, string>,
+  documents: Map<string, FlashQueryStubDocument>,
   titleOverrides: Map<string, string | null>,
   folderPath: string,
 ) {
@@ -85,7 +96,7 @@ function folderChildren(
 }
 
 function searchResults(
-  documents: Map<string, string>,
+  documents: Map<string, FlashQueryStubDocument>,
   titleOverrides: Map<string, string | null>,
   query: string,
   listAll: boolean,
@@ -93,13 +104,13 @@ function searchResults(
   const normalizedQuery = query.trim().toLowerCase()
   return Array.from(documents.entries())
     .sort(([left], [right]) => left.localeCompare(right))
-    .filter(([path, body]) => {
+    .filter(([path, document]) => {
       if (listAll || !normalizedQuery) return true
-      return path.toLowerCase().includes(normalizedQuery) || body.toLowerCase().includes(normalizedQuery)
+      return path.toLowerCase().includes(normalizedQuery) || document.body.toLowerCase().includes(normalizedQuery)
     })
-    .map(([path, body]) => {
+    .map(([path, document]) => {
       const titleOverride = titleOverrides.get(path)
-      const firstContentLine = body.split(/\r?\n/).find((line) => line.trim().length > 0) ?? ''
+      const firstContentLine = document.body.split(/\r?\n/).find((line) => line.trim().length > 0) ?? ''
       return {
         entity_type: 'document' as const,
         identifier: path,
@@ -118,7 +129,13 @@ function mcpText(payload: unknown) {
   }
 }
 
-function makeMcpServer(documents: Map<string, string>, titleOverrides: Map<string, string | null>): McpServer {
+function makeMcpServer(
+  documents: Map<string, FlashQueryStubDocument>,
+  titleOverrides: Map<string, string | null>,
+  missingDocuments: Set<string>,
+  recordGetArgs: (args: Record<string, unknown>) => void,
+  recordWriteArgs: (args: Record<string, unknown>) => void,
+): McpServer {
   const server = new McpServer({ name: 'flashquery-e2e-stub', version: '1.0.0-e2e' })
 
   server.registerTool(
@@ -142,12 +159,20 @@ function makeMcpServer(documents: Map<string, string>, titleOverrides: Map<strin
         include: z.array(z.string()).optional(),
       }),
     },
-    async ({ identifiers }) => {
-      const body = documents.get(normalizeVaultPath(identifiers))
-      if (body == null) {
+    async ({ identifiers, include }) => {
+      const vaultPath = normalizeVaultPath(identifiers)
+      recordGetArgs({ identifiers: vaultPath, include })
+      const document = documents.get(vaultPath)
+      if (!document || missingDocuments.has(vaultPath)) {
         return mcpText({ error: 'not_found', message: `No document found for ${identifiers}` })
       }
-      return mcpText({ body, version_token: 'stub-version-1', modified: new Date(0).toISOString() })
+      const includeParts = Array.isArray(include) && include.length > 0 ? include : ['body']
+      return mcpText({
+        ...(includeParts.includes('body') ? { body: document.body } : {}),
+        ...(includeParts.includes('frontmatter') ? { frontmatter: document.frontmatter ?? {} } : {}),
+        version_token: 'stub-version-1',
+        modified: new Date(0).toISOString(),
+      })
     },
   )
 
@@ -158,18 +183,31 @@ function makeMcpServer(documents: Map<string, string>, titleOverrides: Map<strin
       inputSchema: z.object({
         mode: z.string(),
         identifier: z.string(),
-        content: z.string(),
+        content: z.string().optional(),
+        frontmatter: z.record(z.string(), z.unknown()).optional(),
+        tags: z.array(z.string()).optional(),
       }),
     },
-    async ({ mode, identifier, content }) => {
+    async ({ mode, identifier, content, frontmatter, tags }) => {
       const vaultPath = normalizeVaultPath(identifier)
+      recordWriteArgs({
+        mode,
+        identifier: vaultPath,
+        ...(content !== undefined ? { content } : {}),
+        ...(frontmatter !== undefined ? { frontmatter } : {}),
+        ...(tags !== undefined ? { tags } : {}),
+      })
       if (mode !== 'update') {
         return mcpText({ error: 'unsupported_mode', message: 'Only update mode is supported by the E2E stub' })
       }
-      if (!documents.has(vaultPath)) {
+      const document = documents.get(vaultPath)
+      if (!document || missingDocuments.has(vaultPath)) {
         return mcpText({ error: 'not_found', message: `No document found for ${identifier}` })
       }
-      documents.set(vaultPath, content)
+      documents.set(vaultPath, {
+        body: content ?? document.body,
+        frontmatter: frontmatter ?? document.frontmatter,
+      })
       return mcpText({ modified: new Date(1_000).toISOString() })
     },
   )
@@ -205,9 +243,12 @@ export async function startFlashQueryStubServer(
   let infoRequestCount = 0
   let mcpPostCount = 0
   let available = true
+  let lastGetArgs: Record<string, unknown> | null = null
+  let lastWriteArgs: Record<string, unknown> | null = null
   const expectedAuthorization = `Bearer ${options.expectedBearerToken ?? DEFAULT_BEARER_TOKEN}`
   const documents = new Map(Object.entries(DEFAULT_DOCUMENTS))
   const titleOverrides = new Map<string, string | null>()
+  const missingDocuments = new Set<string>()
 
   const server: Server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1')
@@ -241,7 +282,13 @@ export async function startFlashQueryStubServer(
       }
 
       const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined })
-      const mcpServer = makeMcpServer(documents, titleOverrides)
+      const mcpServer = makeMcpServer(
+        documents,
+        titleOverrides,
+        missingDocuments,
+        (args) => { lastGetArgs = args },
+        (args) => { lastWriteArgs = args },
+      )
       try {
         await mcpServer.connect(transport)
         await transport.handleRequest(req, res)
@@ -289,19 +336,22 @@ export async function startFlashQueryStubServer(
     resetDocuments: () => {
       documents.clear()
       titleOverrides.clear()
+      missingDocuments.clear()
       for (const [vaultPath, body] of Object.entries(DEFAULT_DOCUMENTS)) {
-        documents.set(vaultPath, body)
+        documents.set(vaultPath, { ...body })
       }
     },
     seedEmptyVault: () => {
       documents.clear()
       titleOverrides.clear()
+      missingDocuments.clear()
     },
-    seedDocuments: (nextDocuments: Record<string, string>) => {
+    seedDocuments: (nextDocuments: Record<string, string | FlashQueryStubDocument>) => {
       documents.clear()
       titleOverrides.clear()
+      missingDocuments.clear()
       for (const [vaultPath, body] of Object.entries(nextDocuments)) {
-        documents.set(normalizeVaultPath(vaultPath), body)
+        documents.set(normalizeVaultPath(vaultPath), typeof body === 'string' ? { body } : { ...body })
       }
     },
     setDocumentTitles: (titles: Record<string, string | null>) => {
@@ -310,6 +360,24 @@ export async function startFlashQueryStubServer(
         titleOverrides.set(normalizeVaultPath(vaultPath), title)
       }
     },
-    documentBody: (vaultPath: string) => documents.get(normalizeVaultPath(vaultPath)) ?? null,
+    documentBody: (vaultPath: string) => documents.get(normalizeVaultPath(vaultPath))?.body ?? null,
+    documentFrontmatter: (vaultPath: string) => documents.get(normalizeVaultPath(vaultPath))?.frontmatter ?? null,
+    setDocumentBody: (vaultPath: string, body: string) => {
+      const normalized = normalizeVaultPath(vaultPath)
+      const current = documents.get(normalized) ?? { body: '' }
+      documents.set(normalized, { ...current, body })
+    },
+    setDocumentFrontmatter: (vaultPath: string, frontmatter: Record<string, unknown>) => {
+      const normalized = normalizeVaultPath(vaultPath)
+      const current = documents.get(normalized) ?? { body: '' }
+      documents.set(normalized, { ...current, frontmatter })
+    },
+    setDocumentNotFound: (vaultPath: string, notFound: boolean) => {
+      const normalized = normalizeVaultPath(vaultPath)
+      if (notFound) missingDocuments.add(normalized)
+      else missingDocuments.delete(normalized)
+    },
+    lastGetArgs: () => lastGetArgs ? { ...lastGetArgs } : null,
+    lastWriteArgs: () => lastWriteArgs ? { ...lastWriteArgs } : null,
   }
 }

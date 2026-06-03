@@ -124,6 +124,61 @@ test('T-E-005 FlashQuery stub reads, update-writes, resets state, and exposes co
   }
 })
 
+test('T-E-002 FlashQuery stub supports frontmatter reads, writes, and call inspection', async () => {
+  const server = await startFlashQueryStubServer()
+  try {
+    server.seedDocuments({
+      'Plan.md': {
+        body: '# Plan\n\nBody',
+        frontmatter: { title: 'Plan', tags: ['one'] },
+      },
+    })
+
+    expect(await callTool(server.baseUrl, 'get_document', { identifiers: 'Plan.md', include: ['frontmatter'] })).toMatchObject({
+      frontmatter: { title: 'Plan', tags: ['one'] },
+      version_token: 'stub-version-1',
+    })
+    expect(await callTool(server.baseUrl, 'get_document', { identifiers: 'Plan.md', include: ['body', 'frontmatter'] })).toMatchObject({
+      body: '# Plan\n\nBody',
+      frontmatter: { title: 'Plan', tags: ['one'] },
+    })
+    expect(server.lastGetArgs()).toEqual({ identifiers: 'Plan.md', include: ['body', 'frontmatter'] })
+
+    await callTool(server.baseUrl, 'write_document', {
+      mode: 'update',
+      identifier: 'Plan.md',
+      content: '# Plan\n\nBody updated',
+    })
+    expect(server.documentBody('Plan.md')).toBe('# Plan\n\nBody updated')
+    expect(server.documentFrontmatter('Plan.md')).toEqual({ title: 'Plan', tags: ['one'] })
+
+    await callTool(server.baseUrl, 'write_document', {
+      mode: 'update',
+      identifier: 'Plan.md',
+      frontmatter: { title: 'Plan 2' },
+    })
+    expect(server.documentBody('Plan.md')).toBe('# Plan\n\nBody updated')
+    expect(server.documentFrontmatter('Plan.md')).toEqual({ title: 'Plan 2' })
+    expect(server.lastWriteArgs()).toEqual({
+      mode: 'update',
+      identifier: 'Plan.md',
+      frontmatter: { title: 'Plan 2' },
+    })
+
+    server.setDocumentBody('Plan.md', 'latest body')
+    server.setDocumentFrontmatter('Plan.md', { title: 'Latest' })
+    expect(server.documentBody('Plan.md')).toBe('latest body')
+    expect(server.documentFrontmatter('Plan.md')).toEqual({ title: 'Latest' })
+
+    server.setDocumentNotFound('Plan.md', true)
+    expect(await callTool(server.baseUrl, 'get_document', { identifiers: 'Plan.md', include: ['body'] })).toMatchObject({
+      error: 'not_found',
+    })
+  } finally {
+    await server.close()
+  }
+})
+
 test('T-E-005 FlashQuery stub validates a caller-provided expected bearer token', async () => {
   const server = await startFlashQueryStubServer({ expectedBearerToken: 'persisted-e2e-token' })
   try {

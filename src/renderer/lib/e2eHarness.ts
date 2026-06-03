@@ -44,6 +44,7 @@ declare global {
       chooseNextContextMenuAction(action: string | null): void
       lastContextMenuItems(): NativeContextMenuItem[]
       panelLocation(panelId: string): string | null
+      activatePanel(panelId: string): void
       createTerminal(point: Point): string
       createCanvasPanel(point: Point): string
       nodes(): { id: string; panelId: string; origin: Point; size: { width: number; height: number } }[]
@@ -231,6 +232,19 @@ export function installE2EHarness(): void {
     )
   }
 
+  const activatePanel = (panelId: string): void => {
+    const dock = useDockStore.getState()
+    const location = dock.getPanelLocation(panelId)
+    if (location?.type === 'dock') {
+      const stack = findStackContainingPanel(dock.zones[location.zone].layout, panelId)
+      const index = stack?.panelIds.indexOf(panelId) ?? -1
+      if (stack && index >= 0) dock.setActiveTab(stack.id, index)
+      return
+    }
+    const node = nodes().find((candidate) => candidate.panelId === panelId)
+    if (node) activeCanvasStore()?.getState().focusNode(node.id)
+  }
+
   const createCanvasPanel = (point: Point): string => {
     const wsId = useAppStore.getState().selectedWorkspaceId
     useAppStore.getState().createCanvas(wsId, point)
@@ -326,6 +340,7 @@ export function installE2EHarness(): void {
     chooseNextContextMenuAction,
     lastContextMenuItems,
     panelLocation,
+    activatePanel,
     createTerminal,
     createCanvasPanel,
     nodes,
@@ -337,4 +352,17 @@ export function installE2EHarness(): void {
     terminalLog,
     dragSnapshot,
   }
+}
+
+function findStackContainingPanel(
+  node: import('../../shared/types').DockLayoutNode | null | undefined,
+  panelId: string,
+): import('../../shared/types').DockTabStack | null {
+  if (!node) return null
+  if (node.type === 'tabs') return node.panelIds.includes(panelId) ? node : null
+  for (const child of node.children) {
+    const found = findStackContainingPanel(child, panelId)
+    if (found) return found
+  }
+  return null
 }
