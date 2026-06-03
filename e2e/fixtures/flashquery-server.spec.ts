@@ -190,3 +190,91 @@ test('T-E-005 FlashQuery stub validates a caller-provided expected bearer token'
     await server.close()
   }
 })
+
+test('T-E-003 FlashQuery stub supports deterministic document and memory search', async () => {
+  const server = await startFlashQueryStubServer()
+  try {
+    server.seedDocuments({
+      'Docs/Plan.md': '# Cate Plan\n\nSearchable document text.',
+      'Docs/Other.md': '# Other\n\nAnother document.',
+    })
+    server.seedMemories({
+      'memory-1': { title: 'Cate memory', text: 'Remember Cate search behavior.' },
+      'memory-2': { title: 'Other memory', text: 'Different notes.' },
+    })
+
+    expect(await callTool(server.baseUrl, 'search', {
+      query: 'cate',
+      mode: 'mixed',
+      entity_types: ['documents'],
+      limit: 50,
+    })).toMatchObject({
+      total_documents: 1,
+      total_memories: 0,
+      results: [
+        {
+          entity_type: 'document',
+          identifier: 'Docs/Plan.md',
+          path: 'Docs/Plan.md',
+        },
+      ],
+    })
+
+    expect(await callTool(server.baseUrl, 'search', {
+      query: 'cate',
+      mode: 'mixed',
+      entity_types: ['memories'],
+      limit: 50,
+    })).toMatchObject({
+      total_documents: 0,
+      total_memories: 1,
+      results: [
+        {
+          entity_type: 'memory',
+          identifier: 'memory-1',
+          content_preview: 'Remember Cate search behavior.',
+        },
+      ],
+    })
+
+    expect(await callTool(server.baseUrl, 'search', {
+      query: 'cate',
+      mode: 'mixed',
+      entity_types: ['documents', 'memories'],
+      limit: 50,
+    })).toMatchObject({
+      total_documents: 1,
+      total_memories: 1,
+      results: [
+        { entity_type: 'document', identifier: 'Docs/Plan.md' },
+        { entity_type: 'memory', identifier: 'memory-1' },
+      ],
+    })
+
+    expect(await callTool(server.baseUrl, 'search', {
+      query: '',
+      mode: 'filesystem',
+      entity_types: ['documents', 'memories'],
+      limit: 1,
+      include_archived: true,
+      list_all: true,
+    })).toMatchObject({
+      total_documents: 2,
+      total_memories: 2,
+      results: [
+        { entity_type: 'document', identifier: 'Docs/Other.md' },
+        { entity_type: 'memory', identifier: 'memory-1' },
+      ],
+    })
+    expect(server.lastSearchArgs()).toEqual({
+      query: '',
+      mode: 'filesystem',
+      entity_types: ['documents', 'memories'],
+      limit: 1,
+      include_archived: true,
+      list_all: true,
+    })
+  } finally {
+    await server.close()
+  }
+})

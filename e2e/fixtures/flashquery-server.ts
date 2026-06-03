@@ -14,6 +14,11 @@ export interface FlashQueryStubDocument {
   frontmatter?: Record<string, unknown>
 }
 
+export interface FlashQueryStubMemory {
+  text: string
+  title?: string
+}
+
 export interface FlashQueryStubServer {
   baseUrl: string
   close: () => Promise<void>
@@ -23,6 +28,7 @@ export interface FlashQueryStubServer {
   resetDocuments: () => void
   seedEmptyVault: () => void
   seedDocuments: (documents: Record<string, string | FlashQueryStubDocument>) => void
+  seedMemories: (memories: Record<string, string | FlashQueryStubMemory>) => void
   setDocumentTitles: (titles: Record<string, string | null>) => void
   documentBody: (vaultPath: string) => string | null
   documentFrontmatter: (vaultPath: string) => Record<string, unknown> | null
@@ -30,6 +36,7 @@ export interface FlashQueryStubServer {
   setDocumentFrontmatter: (vaultPath: string, frontmatter: Record<string, unknown>) => void
   setDocumentNotFound: (vaultPath: string, notFound: boolean) => void
   lastGetArgs: () => Record<string, unknown> | null
+  lastSearchArgs: () => Record<string, unknown> | null
   lastWriteArgs: () => Record<string, unknown> | null
 }
 
@@ -123,6 +130,27 @@ function searchResults(
     })
 }
 
+function memorySearchResults(
+  memories: Map<string, FlashQueryStubMemory>,
+  query: string,
+  listAll: boolean,
+) {
+  const normalizedQuery = query.trim().toLowerCase()
+  return Array.from(memories.entries())
+    .sort(([left], [right]) => left.localeCompare(right))
+    .filter(([, memory]) => {
+      if (listAll || !normalizedQuery) return true
+      return memory.text.toLowerCase().includes(normalizedQuery) || memory.title?.toLowerCase().includes(normalizedQuery)
+    })
+    .map(([id, memory]) => ({
+      entity_type: 'memory' as const,
+      identifier: id,
+      memory_id: id,
+      ...(memory.title ? { title: memory.title } : {}),
+      content_preview: memory.text,
+    }))
+}
+
 function mcpText(payload: unknown) {
   return {
     content: [{ type: 'text' as const, text: JSON.stringify(payload) }],
@@ -131,9 +159,11 @@ function mcpText(payload: unknown) {
 
 function makeMcpServer(
   documents: Map<string, FlashQueryStubDocument>,
+  memories: Map<string, FlashQueryStubMemory>,
   titleOverrides: Map<string, string | null>,
   missingDocuments: Set<string>,
   recordGetArgs: (args: Record<string, unknown>) => void,
+  recordSearchArgs: (args: Record<string, unknown>) => void,
   recordWriteArgs: (args: Record<string, unknown>) => void,
 ): McpServer {
   const server = new McpServer({ name: 'flashquery-e2e-stub', version: '1.0.0-e2e' })
@@ -225,12 +255,26 @@ function makeMcpServer(
         list_all: z.boolean().optional(),
       }),
     },
-    async ({ query = '', entity_types, limit = 50, list_all }) => {
+    async ({ query = '', mode, entity_types, limit = 50, include_archived, list_all }) => {
+      recordSearchArgs({ query, mode, entity_types, limit, include_archived, list_all })
       const wantsDocuments = !entity_types?.length || entity_types.includes('documents')
-      const results = wantsDocuments
-        ? searchResults(documents, titleOverrides, query, list_all === true).slice(0, limit)
+      const wantsMemories = !entity_types?.length || entity_types.includes('memories')
+      const documentResults = wantsDocuments
+        ? searchResults(documents, titleOverrides, query, list_all === true)
         : []
-      return mcpText({ query, entity_types, total: results.length, results })
+      const memoryResults = wantsMemories
+        ? memorySearchResults(memories, query, list_all === true)
+        : []
+      const limitedDocuments = documentResults.slice(0, limit)
+      const limitedMemories = memoryResults.slice(0, limit)
+      return mcpText({
+        query,
+        entity_types,
+        total: limitedDocuments.length + limitedMemories.length,
+        total_documents: documentResults.length,
+        total_memories: memoryResults.length,
+        results: [...limitedDocuments, ...limitedMemories],
+      })
     },
   )
 
@@ -244,9 +288,11 @@ export async function startFlashQueryStubServer(
   let mcpPostCount = 0
   let available = true
   let lastGetArgs: Record<string, unknown> | null = null
+  let lastSearchArgs: Record<string, unknown> | null = null
   let lastWriteArgs: Record<string, unknown> | null = null
   const expectedAuthorization = `Bearer ${options.expectedBearerToken ?? DEFAULT_BEARER_TOKEN}`
   const documents = new Map(Object.entries(DEFAULT_DOCUMENTS))
+  const memories = new Map<string, FlashQueryStubMemory>()
   const titleOverrides = new Map<string, string | null>()
   const missingDocuments = new Set<string>()
 
@@ -284,9 +330,11 @@ export async function startFlashQueryStubServer(
       const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined })
       const mcpServer = makeMcpServer(
         documents,
+        memories,
         titleOverrides,
         missingDocuments,
         (args) => { lastGetArgs = args },
+        (args) => { lastSearchArgs = args },
         (args) => { lastWriteArgs = args },
       )
       try {
@@ -335,6 +383,7 @@ export async function startFlashQueryStubServer(
     },
     resetDocuments: () => {
       documents.clear()
+      memories.clear()
       titleOverrides.clear()
       missingDocuments.clear()
       for (const [vaultPath, body] of Object.entries(DEFAULT_DOCUMENTS)) {
@@ -343,6 +392,7 @@ export async function startFlashQueryStubServer(
     },
     seedEmptyVault: () => {
       documents.clear()
+      memories.clear()
       titleOverrides.clear()
       missingDocuments.clear()
     },
@@ -352,6 +402,12 @@ export async function startFlashQueryStubServer(
       missingDocuments.clear()
       for (const [vaultPath, body] of Object.entries(nextDocuments)) {
         documents.set(normalizeVaultPath(vaultPath), typeof body === 'string' ? { body } : { ...body })
+      }
+    },
+    seedMemories: (nextMemories: Record<string, string | FlashQueryStubMemory>) => {
+      memories.clear()
+      for (const [id, memory] of Object.entries(nextMemories)) {
+        memories.set(id, typeof memory === 'string' ? { text: memory } : { ...memory })
       }
     },
     setDocumentTitles: (titles: Record<string, string | null>) => {
@@ -378,6 +434,7 @@ export async function startFlashQueryStubServer(
       else missingDocuments.delete(normalized)
     },
     lastGetArgs: () => lastGetArgs ? { ...lastGetArgs } : null,
+    lastSearchArgs: () => lastSearchArgs ? { ...lastSearchArgs } : null,
     lastWriteArgs: () => lastWriteArgs ? { ...lastWriteArgs } : null,
   }
 }

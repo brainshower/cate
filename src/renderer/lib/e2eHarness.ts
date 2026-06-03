@@ -27,6 +27,7 @@ declare global {
       openFlashQueryConnectionDialog(workspaceId?: string): void
       workspaceFlashQueryConnection(workspaceId: string): FlashQueryConnection | undefined
       createFlashQueryVault(point: Point, placement?: PanelPlacement): string
+      createFlashQueryVaultSearch(point: Point, placement?: PanelPlacement): string
       createAgent(point: Point, placement?: PanelPlacement): string
       openFileEditor(workspaceId: string, filePath: string): string
       editorPanelIdsForFilePath(filePath: string): string[]
@@ -117,6 +118,10 @@ export function installE2EHarness(): void {
 
   const createFlashQueryVault = (point: Point, placement?: PanelPlacement): string => {
     return useAppStore.getState().createFlashQueryVault(selectedWorkspaceId(), point, placement)
+  }
+
+  const createFlashQueryVaultSearch = (point: Point, placement?: PanelPlacement): string => {
+    return useAppStore.getState().createFlashQueryVaultSearch(selectedWorkspaceId(), point, placement)
   }
 
   const createAgent = (point: Point, placement?: PanelPlacement): string => {
@@ -323,6 +328,7 @@ export function installE2EHarness(): void {
     openFlashQueryConnectionDialog,
     workspaceFlashQueryConnection,
     createFlashQueryVault,
+    createFlashQueryVaultSearch,
     createAgent,
     openFileEditor,
     editorPanelIdsForFilePath,
