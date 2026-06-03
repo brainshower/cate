@@ -202,7 +202,7 @@ import {
   FLASHQUERY_WRITE_DOCUMENT,
   PERF_GET,
 } from '../shared/ipc-channels'
-import type { AppSettings } from '../shared/types'
+import type { AppSettings, WorkspaceMutationResult } from '../shared/types'
 
 let e2eNextContextMenuAction: string | null | undefined
 let e2eLastContextMenuItems: unknown[] = []
@@ -1012,7 +1012,7 @@ const electronAPI = {
   // FlashQuery
   // ---------------------------------------------------------------------------
 
-  flashquerySetConnection(workspaceId: string, connection: unknown | null): Promise<void> {
+  flashquerySetConnection(workspaceId: string, connection: unknown | null): Promise<WorkspaceMutationResult> {
     return ipcRenderer.invoke(FLASHQUERY_SET_CONNECTION, workspaceId, connection)
   },
 

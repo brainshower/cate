@@ -589,7 +589,7 @@ export interface ElectronAPI {
   // FlashQuery
   // ---------------------------------------------------------------------------
 
-  flashquerySetConnection(workspaceId: string, connection: FlashQueryConnection | null): Promise<void>
+  flashquerySetConnection(workspaceId: string, connection: FlashQueryConnection | null): Promise<WorkspaceMutationResult>
 
   flashqueryProbe(workspaceId: string, connection: FlashQueryConnection): Promise<FlashQueryProbeResult>
 

@@ -1112,6 +1112,26 @@ describe('FlashQueryClientManager', () => {
     await expect(manager.listVaultIndex('workspace-1')).resolves.toEqual([])
   })
 
+  it('T-U-006 redacts vault-index transport failures and transitions the workspace to disconnected', async () => {
+    const fetchMock = installFetchMock()
+    fetchMock.mockResolvedValue(okInfoResponse())
+    workspaceMock.workspaces = [workspaceInfo()]
+    workspaceMock.token = 'secret-token'
+    const callTool = vi.fn().mockRejectedValue(new Error('transport failed for secret-token'))
+    const statusHandler = vi.fn()
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+    manager.subscribe('workspace-1', 'status', statusHandler)
+
+    await manager.connect('workspace-1', { transport: 'http', url: 'http://127.0.0.1:3100' })
+    await expect(manager.listVaultIndex('workspace-1')).resolves.toEqual([])
+
+    expect(statusPayloads(statusHandler)).toEqual([
+      { workspaceId: 'workspace-1', status: 'connecting' },
+      { workspaceId: 'workspace-1', status: 'live', version: '1.2.3', instanceId: 'fq-instance-1' },
+      { workspaceId: 'workspace-1', status: 'disconnected', error: 'transport failed for [redacted]' },
+    ])
+  })
+
   it('passes an empty body through to write_document unchanged', async () => {
     const callTool = vi.fn().mockResolvedValue({
       content: [{ type: 'text', text: JSON.stringify({ modified: '2026-05-04T00:00:00Z' }) }],

@@ -309,6 +309,41 @@ describe('FlashQuery IPC handlers', () => {
     expect(mocks.updateWorkspace).not.toHaveBeenCalled()
   })
 
+  it('normalizes pasted /mcp FlashQuery endpoints before persisting and connecting', async () => {
+    const rawConnection: FlashQueryConnection = {
+      transport: 'http',
+      url: 'https://flashquery.local/mcp/',
+      auth: { type: 'bearer', token: 'secret-token' },
+    }
+    const normalizedConnection: FlashQueryConnection = {
+      transport: 'http',
+      url: 'https://flashquery.local',
+      auth: { type: 'bearer', token: 'secret-token' },
+    }
+    mocks.updateWorkspace.mockResolvedValue({
+      ok: true,
+      workspace: workspace({ flashqueryConnection: normalizedConnection }),
+    })
+    const handler = await registeredSetConnectionHandler()
+
+    await handler({}, 'workspace-1', rawConnection)
+
+    expect(mocks.updateWorkspace).toHaveBeenCalledWith('workspace-1', { flashqueryConnection: normalizedConnection })
+    expect(mocks.managerInstances[0].connect).toHaveBeenCalledWith('workspace-1', normalizedConnection)
+  })
+
+  it('rejects FlashQuery URLs with credentials, query, or fragment before persistence', async () => {
+    const handler = await registeredSetConnectionHandler()
+
+    await expect(handler({}, 'workspace-1', { transport: 'http', url: 'https://user:pass@flashquery.local' }))
+      .rejects.toThrow('must not include credentials, query, or fragment')
+    await expect(handler({}, 'workspace-1', { transport: 'http', url: 'https://flashquery.local?token=bad' }))
+      .rejects.toThrow('must not include credentials, query, or fragment')
+    await expect(handler({}, 'workspace-1', { transport: 'http', url: 'https://flashquery.local#section' }))
+      .rejects.toThrow('must not include credentials, query, or fragment')
+    expect(mocks.updateWorkspace).not.toHaveBeenCalled()
+  })
+
   it('T-I-012 and T-I-013 broadcasts direct manager status payloads with safe error handling', async () => {
     const connection: FlashQueryConnection = { transport: 'http', url: 'https://flashquery.local' }
     mocks.updateWorkspace.mockResolvedValue({
@@ -355,7 +390,7 @@ describe('FlashQuery IPC handlers', () => {
 
     await expect(handler({}, 'workspace-1', {
       transport: 'http',
-      url: 'https://flashquery.local/',
+      url: 'https://flashquery.local/mcp',
       auth: { type: 'bearer', token: 'current-token' },
     })).resolves.toEqual({
       ok: true,

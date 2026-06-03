@@ -74,7 +74,13 @@ function validateConnection(connection: unknown): FlashQueryConnection {
     throw new Error('FlashQuery connection URL must use http or https')
   }
 
-  return connection
+  if (parsed.username || parsed.password || parsed.search || parsed.hash) {
+    throw new Error('FlashQuery connection URL must not include credentials, query, or fragment')
+  }
+
+  parsed.pathname = parsed.pathname.replace(/\/+$/, '').replace(/\/mcp$/, '')
+  const url = parsed.toString().replace(/\/$/, '')
+  return { ...connection, url }
 }
 
 function normalizeConnection(connection: FlashQueryConnection): FlashQueryConnection {

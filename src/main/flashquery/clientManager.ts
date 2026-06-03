@@ -240,7 +240,7 @@ export class FlashQueryClientManager {
   }
 
   async listVaultIndex(workspaceId: string): Promise<FlashQueryVaultIndexEntry[]> {
-    const state = this.workspaceStates.get(workspaceId)
+    let state = this.workspaceStates.get(workspaceId)
     if (state?.status?.status === 'disconnected') return []
 
     try {
@@ -248,7 +248,13 @@ export class FlashQueryClientManager {
       const payload = await this.callJsonTool(client, 'list_vault_index', {})
       const entries = Array.isArray(payload.entries) ? payload.entries : Array.isArray(payload.documents) ? payload.documents : []
       return entries.flatMap((entry) => this.normalizeVaultIndexEntry(entry))
-    } catch {
+    } catch (error) {
+      state = this.workspaceStates.get(workspaceId)
+      const connection = state?.connection ?? this.getConfiguredConnection(workspaceId)
+      const message = this.errorToSafeMessage(error, connection, state?.token)
+      if (state && connection) {
+        this.failConnection(workspaceId, state, connection, message)
+      }
       return []
     }
   }
