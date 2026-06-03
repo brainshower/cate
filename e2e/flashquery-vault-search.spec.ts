@@ -16,6 +16,12 @@ async function configure(page: Page, serverUrl: string, workspaceRoot: string) {
   return workspaceId
 }
 
+async function activateSearchAndRun(page: Page, panelId: string, query: string) {
+  await page.evaluate((id) => window.__cateE2E!.activatePanel(id), panelId)
+  await page.getByPlaceholder('Search the vault...').fill(query)
+  await page.getByRole('button', { name: 'Search', exact: true }).click()
+}
+
 test('T-E-003 Vault Search workflows and T-E-007 disconnect recovery use deterministic fixture data', async () => {
   const server = await startFlashQueryStubServer({ expectedBearerToken: 'search-token' })
   const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), 'cate-e2e-workspace-'))
@@ -65,19 +71,19 @@ test('T-E-003 Vault Search workflows and T-E-007 disconnect recovery use determi
     await planPath.dblclick()
     await expect(page.locator('[data-tab-panel-id]').filter({ hasText: 'Plan.md' }).first()).toBeVisible()
 
-    await page.evaluate((panelId) => window.__cateE2E!.activatePanel(panelId), searchPanelId)
-    const planRow = page.getByTestId('vault-search-document-Docs/Plan.md')
+    await activateSearchAndRun(page, searchPanelId, 'plan')
+    let planRow = page.getByTestId('vault-search-document-Docs/Plan.md')
     await page.evaluate(() => window.__cateE2E!.chooseNextContextMenuAction('open-on-canvas'))
     await planRow.click({ button: 'right' })
     await expect.poll(() => page.evaluate(() => window.__cateE2E!.editorPanelIdsForPath('Docs/Plan.md').length)).toBeGreaterThanOrEqual(2)
 
-    await page.evaluate((panelId) => window.__cateE2E!.activatePanel(panelId), searchPanelId)
+    await activateSearchAndRun(page, searchPanelId, 'plan')
+    planRow = page.getByTestId('vault-search-document-Docs/Plan.md')
     await page.evaluate(() => window.__cateE2E!.chooseNextContextMenuAction('copy-reference'))
     await planRow.click({ button: 'right' })
     await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('{{ref:Docs/Plan.md}}')
 
-    await page.getByPlaceholder('Search the vault...').fill('cate')
-    await page.getByRole('button', { name: 'Search', exact: true }).click()
+    await activateSearchAndRun(page, searchPanelId, 'cate')
     const memoryRow = page.getByTestId('vault-search-memory-memory-1')
     await memoryRow.dblclick()
     await expect(memoryRow).toHaveAttribute('aria-expanded', 'true')
