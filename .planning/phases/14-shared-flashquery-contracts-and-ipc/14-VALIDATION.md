@@ -1,10 +1,11 @@
 ---
 phase: 14
 slug: shared-flashquery-contracts-and-ipc
-status: draft
+status: approved
 nyquist_compliant: true
 wave_0_complete: true
 created: 2026-06-03
+updated: 2026-06-03T18:48:50Z
 ---
 
 # Phase 14 - Validation Strategy
@@ -30,12 +31,12 @@ created: 2026-06-03
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 14.1.1 | 14.1 | 1 | REQ-004 | 14-T1 | Renderer contract remains typed and compatible | unit/typecheck | `npm test -- src/shared/ipc-channels.test.ts src/shared/flashqueryUri.test.ts src/shared/types.test.ts && npm run typecheck` | yes | pending |
-| 14.1.2 | 14.1 | 1 | REQ-004 | 14-T1 | Preload exposes only declared FlashQuery methods | unit/typecheck | `npm test -- src/shared/ipc-channels.test.ts && npm run typecheck` | yes | pending |
-| 14.2.1 | 14.2 | 2 | REQ-004 | 14-T2 | MCP responses are normalized without leaking tokens | unit | `npm test -- src/main/flashquery/clientManager.test.ts` | yes | pending |
-| 14.2.2 | 14.2 | 2 | REQ-004 | 14-T2 | Search/index calls return safe normalized shapes | unit | `npm test -- src/main/flashquery/clientManager.test.ts` | yes | pending |
-| 14.3.1 | 14.3 | 3 | REQ-004 | 14-T3 | Renderer-controlled payloads are validated in main | unit | `npm test -- src/main/ipc/flashquery.test.ts` | yes | pending |
-| 14.3.2 | 14.3 | 3 | REQ-004 | 14-T3 | Invalid search and disconnected errors are safe | unit/typecheck | `npm test -- src/main/ipc/flashquery.test.ts && npm run typecheck` | yes | pending |
+| 14.1.1 | 14.1 | 1 | REQ-004 | 14-T1 | Renderer contract remains typed and compatible | unit/typecheck | `npm test -- src/shared/ipc-channels.test.ts src/shared/flashqueryUri.test.ts src/shared/types.test.ts && npm run typecheck` | yes | green |
+| 14.1.2 | 14.1 | 1 | REQ-004 | 14-T1 | Preload exposes only declared FlashQuery methods | unit/typecheck | `npm test -- src/shared/ipc-channels.test.ts && npm run typecheck` | yes | green |
+| 14.2.1 | 14.2 | 2 | REQ-004 | 14-T2 | MCP responses are normalized without leaking tokens | unit | `npm test -- src/main/flashquery/clientManager.test.ts` | yes | green |
+| 14.2.2 | 14.2 | 2 | REQ-004 | 14-T2 | Search/index calls return safe normalized shapes | unit | `npm test -- src/main/flashquery/clientManager.test.ts` | yes | green |
+| 14.3.1 | 14.3 | 3 | REQ-004 | 14-T3 | Renderer-controlled payloads are validated in main | unit | `npm test -- src/main/ipc/flashquery.test.ts` | yes | green |
+| 14.3.2 | 14.3 | 3 | REQ-004 | 14-T3 | Invalid search and disconnected errors are safe | unit/typecheck | `npm test -- src/main/ipc/flashquery.test.ts && npm run typecheck` | yes | green |
 
 ## Wave 0 Requirements
 
@@ -54,4 +55,14 @@ All Phase 14 behaviors have automated verification. Manual or E2E validation for
 - [x] Feedback latency target under 60 seconds.
 - [x] `nyquist_compliant: true` set in frontmatter.
 
-**Approval:** pending
+## Validation Audit 2026-06-03
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 0 |
+| Resolved | 0 |
+| Escalated | 0 |
+
+All Phase 14 target IDs T-U-001 through T-U-006 are covered by focused Vitest suites and `npm run typecheck`.
+
+**Approval:** approved 2026-06-03
