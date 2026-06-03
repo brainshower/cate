@@ -28,11 +28,11 @@ The product requirements document is the source of truth for detailed acceptance
 
 ### Vault Search
 
-- [ ] **REQ-008**: User can open a dedicated `FlashQueryVaultSearchPanel` registered through Cate's existing panel registry with required panel chrome.
-- [ ] **REQ-009**: User-triggered vault search calls `flashquery:search` with explicit query, mode, entity type, limit, and archived-inclusion semantics.
-- [ ] **REQ-010**: User can read grouped document and memory search results with idle, empty, highlight, and show-more pagination states.
-- [ ] **REQ-011**: User can select, open, reveal, copy, keyboard-navigate, and inspect search result rows according to document and memory result type.
-- [ ] **REQ-012**: User sees safe in-flight, disconnected, and recovery states for vault search without stale successful results being mistaken for current results.
+- [x] **REQ-008**: User can open a dedicated `FlashQueryVaultSearchPanel` registered through Cate's existing panel registry with required panel chrome.
+- [x] **REQ-009**: User-triggered vault search calls `flashquery:search` with explicit query, mode, entity type, limit, and archived-inclusion semantics.
+- [x] **REQ-010**: User can read grouped document and memory search results with idle, empty, highlight, and show-more pagination states.
+- [x] **REQ-011**: User can select, open, reveal, copy, keyboard-navigate, and inspect search result rows according to document and memory result type.
+- [x] **REQ-012**: User sees safe in-flight, disconnected, and recovery states for vault search without stale successful results being mistaken for current results.
 
 ### Pi Extension and Tools
 
@@ -86,11 +86,11 @@ The product requirements document is the source of truth for detailed acceptance
 | REQ-005 | Phase 15 | Complete |
 | REQ-006 | Phase 15 | Complete |
 | REQ-007 | Phase 15 | Complete |
-| REQ-008 | Phase 16 | Pending |
-| REQ-009 | Phase 16 | Pending |
-| REQ-010 | Phase 16 | Pending |
-| REQ-011 | Phase 16 | Pending |
-| REQ-012 | Phase 16 | Pending |
+| REQ-008 | Phase 16 | Complete |
+| REQ-009 | Phase 16 | Complete |
+| REQ-010 | Phase 16 | Complete |
+| REQ-011 | Phase 16 | Complete |
+| REQ-012 | Phase 16 | Complete |
 | REQ-013 | Phase 17 | Pending |
 | REQ-014 | Phase 17 | Pending |
 | REQ-015 | Phase 18 | Pending |

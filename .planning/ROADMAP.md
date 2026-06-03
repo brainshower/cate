@@ -191,7 +191,7 @@ Canonical source docs:
 
 ## Current Status
 
-Active milestone: v1.2 FlashQuery Milestone 2. Next phase: Phase 16 Vault Search Panel.
+Active milestone: v1.2 FlashQuery Milestone 2. Next phase: Phase 17 FlashQuery Pi Extension Bootstrap.
 
 ## Notes
 

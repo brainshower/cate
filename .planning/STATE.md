@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: FlashQuery Milestone 2
-status: verifying
-stopped_at: Phase 15 complete; ready for Phase 16 planning
-last_updated: "2026-06-03T20:05:00.000Z"
-last_activity: 2026-06-03 -- Phase 15 complete
+status: ready_to_plan
+stopped_at: Phase 16 complete (3/3) — ready to discuss Phase 17
+last_updated: 2026-06-03T23:24:52.084Z
+last_activity: 2026-06-03
 progress:
   total_phases: 8
-  completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
-  percent: 25
+  completed_phases: 3
+  total_plans: 9
+  completed_plans: 9
+  percent: 38
 ---
 
 # Project State
@@ -21,26 +21,26 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-03 after v1.2 FlashQuery Milestone 2 planning)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** Phase 16 — Vault Search Panel
+**Current focus:** Phase 17 — flashquery pi extension bootstrap
 
 ## Current Position
 
-Phase: 15 (Editor Refresh and Frontmatter Panels) — COMPLETE
-Plan: 3 of 3
-Status: Phase complete — ready for verification
-Last activity: 2026-06-03 -- Phase 15 complete
+Phase: 17
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-06-03
 
 ## Session Continuity
 
-Last session: 2026-06-03T18:01:15.541Z
-Stopped At: Phase 14 ready for planning
+Last session: 2026-06-03T23:24:27.299Z
+Stopped At: Completed Phase 16 Vault Search Panel
 Resume File: None
 
 ## Next Up
 
-Plan Phase 16 with `/gsd-plan-phase 16`.
+Plan Phase 17 with `/gsd-plan-phase 17`.
 
-Phase 15 completed 3 plans covering body refresh, dirty refresh confirmation, frontmatter editor opening/editing, and deterministic Electron E2E coverage.
+Phase 16 completed 3 plans covering Vault Search panel registration, explicit document/memory search, result actions, deterministic fixture coverage, and search-specific disconnect recovery.
 
 ## Decisions
 
