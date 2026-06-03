@@ -154,7 +154,7 @@ import EditorPanel from './EditorPanel'
 import { VaultBadge } from '../components/VaultBadge'
 import { useAppStore } from '../stores/appStore'
 import { confirmCloseDirtyPanels } from '../lib/confirmCloseDirty'
-import type { FlashQueryWriteResult, PanelState } from '../../shared/types'
+import type { FlashQueryStatusBroadcastPayload, FlashQueryWriteResult, PanelState } from '../../shared/types'
 
 type ElectronApiMock = Pick<
   Window['electronAPI'],
@@ -164,6 +164,7 @@ type ElectronApiMock = Pick<
   | 'flashqueryWriteDocument'
   | 'gitDiff'
   | 'gitDiffStaged'
+  | 'onFlashQueryStatus'
   | 'saveFileDialog'
   | 'confirmUnsavedChanges'
 >
@@ -173,6 +174,7 @@ const panelId = 'editor-1'
 const vaultUri = 'flashquery://workspace-1/Docs/Plan.md'
 const frontmatterUri = 'flashquery://workspace-1/Docs/Plan.md?part=frontmatter'
 const localPath = '/repo/Docs/Plan.md'
+let statusListener: ((payload: FlashQueryStatusBroadcastPayload) => void) | null = null
 
 function monacoMock() {
   return (monaco as any).__mock
@@ -190,6 +192,12 @@ function makeElectronApi(writeResult: FlashQueryWriteResult = { success: true, m
     flashqueryWriteDocument: vi.fn(() => Promise.resolve(writeResult)),
     gitDiff: vi.fn(() => Promise.resolve('')),
     gitDiffStaged: vi.fn(() => Promise.resolve('')),
+    onFlashQueryStatus: vi.fn((callback) => {
+      statusListener = callback
+      return () => {
+        statusListener = null
+      }
+    }),
     saveFileDialog: vi.fn(() => Promise.resolve(null)),
     confirmUnsavedChanges: vi.fn(() => Promise.resolve('save' as const)),
   }
@@ -258,6 +266,7 @@ function EditorTitleChrome({ panel }: { panel: PanelState }) {
 
 beforeEach(() => {
   vi.useRealTimers()
+  statusListener = null
   monacoMock().reset()
   global.ResizeObserver = class {
     observe() {}
@@ -558,6 +567,23 @@ describe('EditorPanel FlashQuery frontmatter behavior', () => {
     expect(api.flashqueryWriteDocument).not.toHaveBeenCalled()
     expect(screen.queryByRole('alert')).toBeNull()
   })
+
+  it('T-U-008 treats an empty frontmatter save as a clean no-op without write IPC', async () => {
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({ body: '', frontmatter: {} })
+    setElectronApi(api)
+    await renderEditor(frontmatterUri)
+
+    act(() => {
+      monacoMock().focusLatestEditor()
+      monacoMock().setLatestValue('')
+      window.dispatchEvent(new Event('save-file'))
+    })
+
+    await waitFor(() => expect(useAppStore.getState().workspaces[0].panels[panelId].isDirty).toBe(false))
+    expect(api.flashqueryWriteDocument).not.toHaveBeenCalled()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
 })
 
 describe('EditorPanel FlashQuery refresh behavior', () => {
@@ -639,9 +665,26 @@ describe('EditorPanel FlashQuery refresh behavior', () => {
     fireEvent.click(screen.getByLabelText('Refresh from vault'))
     fireEvent.click(await screen.findByRole('button', { name: 'Discard and refresh' }))
 
-    expect((await screen.findByRole('alert')).textContent).toBe('Refresh failed: not found')
+    expect((await screen.findByRole('alert')).textContent).toBe('Refresh failed: Document not found in FlashQuery vault.')
     expect(monacoMock().latestEditor().getValue()).toBe('local dirty')
     expect(useAppStore.getState().workspaces[0].panels[panelId].isDirty).toBe(true)
+  })
+
+  it('T-U-009 disconnected refresh fails locally without issuing a read request', async () => {
+    const refreshUri = 'flashquery://workspace-1/Docs/Disconnected.md'
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({ body: 'old body' })
+    setElectronApi(api)
+    await renderEditor(refreshUri)
+
+    act(() => {
+      statusListener?.({ workspaceId, status: 'disconnected', error: 'offline' })
+    })
+    fireEvent.click(screen.getByLabelText('Refresh from vault'))
+
+    expect((await screen.findByRole('alert')).textContent).toBe('Refresh failed: FlashQuery is disconnected.')
+    expect(api.flashqueryGetDocument).toHaveBeenCalledTimes(1)
+    expect(monacoMock().latestEditor().getValue()).toBe('old body')
   })
 })
 

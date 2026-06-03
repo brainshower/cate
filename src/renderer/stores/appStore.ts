@@ -316,6 +316,7 @@ interface AppStoreActions {
   createBrowser: (workspaceId: string, url?: string, position?: Point, placement?: PanelPlacement) => string
   createEditor: (workspaceId: string, filePath?: string, position?: Point, placement?: PanelPlacement) => string
   openFlashQueryFrontmatterEditor: (workspaceId: string, sourcePanelId: string) => string | null
+  openFlashQueryFrontmatterForPath: (workspaceId: string, vaultPath: string) => string | null
   createDiffEditor: (workspaceId: string, filePath: string, diffMode: 'staged' | 'working', position?: Point, placement?: PanelPlacement) => string
   createGit: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
   createFileExplorer: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
@@ -916,6 +917,37 @@ export const useAppStore = create<AppStore>((set, get) => ({
       return null
     }
 
+    return panelId
+  },
+
+  openFlashQueryFrontmatterForPath(workspaceId, vaultPath) {
+    const ws = get().workspaces.find((workspace) => workspace.id === workspaceId)
+    if (!ws) return null
+
+    const bodyUri = buildVaultUri(workspaceId, vaultPath, 'body')
+    const legacyBodyUri = buildVaultUri(workspaceId, vaultPath)
+    const bodyPanel = Object.values(ws.panels).find((panel) =>
+      panel.type === 'editor'
+      && (panel.filePath === bodyUri || panel.filePath === legacyBodyUri)
+    )
+    if (bodyPanel) return get().openFlashQueryFrontmatterEditor(workspaceId, bodyPanel.id)
+
+    const frontmatterUri = buildVaultUri(workspaceId, vaultPath, 'frontmatter')
+    const existing = Object.values(ws.panels).find((panel) =>
+      panel.type === 'editor' && panel.filePath === frontmatterUri
+    )
+    if (existing) {
+      focusExistingPanel(workspaceId, existing.id)
+      return existing.id
+    }
+
+    const panelId = get().createEditor(
+      workspaceId,
+      frontmatterUri,
+      undefined,
+      { target: 'dock', zone: 'center' },
+    )
+    get().updatePanelTitle(workspaceId, panelId, frontmatterTitleFor(frontmatterUri))
     return panelId
   },
 

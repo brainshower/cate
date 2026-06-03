@@ -240,4 +240,31 @@ describe('appStore.openFlashQueryFrontmatterEditor', () => {
 
     expect(addNodeAndFocus).toHaveBeenCalledWith(frontmatterPanelId, 'editor', { x: 780, y: 120 })
   })
+
+  it('T-U-007 opens frontmatter by vault path through an existing body panel when available', () => {
+    const addNodeAndFocus = vi.fn()
+    const sourcePanelId = useAppStore.getState().createEditor(
+      workspaceId,
+      'flashquery://workspace-1/Docs/Plan.md',
+      { x: 100, y: 120 },
+      { target: 'canvas', position: { x: 100, y: 120 } },
+    )
+    setCanvasOperations(makeCanvasOpsWithNode(sourcePanelId, { x: 100, y: 120 }, { width: 640, height: 420 }, { addNodeAndFocus }))
+
+    const frontmatterPanelId = useAppStore.getState().openFlashQueryFrontmatterForPath(workspaceId, 'Docs/Plan.md')
+
+    expect(addNodeAndFocus).toHaveBeenCalledWith(frontmatterPanelId, 'editor', { x: 780, y: 120 })
+    expect(useAppStore.getState().workspaces[0].panels[frontmatterPanelId!].filePath)
+      .toBe('flashquery://workspace-1/Docs/Plan.md?part=frontmatter')
+  })
+
+  it('T-U-007 dedups frontmatter opened by vault path without an open body panel', () => {
+    const first = useAppStore.getState().openFlashQueryFrontmatterForPath(workspaceId, 'Docs/Plan.md')
+    const second = useAppStore.getState().openFlashQueryFrontmatterForPath(workspaceId, 'Docs/Plan.md')
+
+    expect(second).toBe(first)
+    const panels = Object.values(useAppStore.getState().workspaces[0].panels)
+      .filter((panel) => panel.filePath === 'flashquery://workspace-1/Docs/Plan.md?part=frontmatter')
+    expect(panels).toHaveLength(1)
+  })
 })

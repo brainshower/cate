@@ -290,21 +290,6 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
     })
   }, [visibleRows])
 
-  const openDocument = useCallback((entry: FlashQueryVaultEntry, mode: 'dock' | 'canvas' | 'frontmatter') => {
-    if (entry.type !== 'document') return
-    const placement = mode === 'canvas'
-      ? { target: 'canvas' as const }
-      : { target: 'dock' as const, zone: 'center' as const }
-    const panelId = useAppStore.getState().createEditor(
-      workspaceId,
-      buildVaultUri(workspaceId, entry.vaultPath, mode === 'frontmatter' ? 'frontmatter' : undefined),
-      undefined,
-      placement,
-    )
-    const title = mode === 'frontmatter' ? `${entry.name} Frontmatter` : entry.name
-    useAppStore.getState().updatePanelTitle(workspaceId, panelId, title)
-  }, [workspaceId])
-
   const openDocumentLegacy = useCallback((entry: FlashQueryVaultEntry, mode: 'dock' | 'canvas') => {
     if (entry.type !== 'document') return
     const placement = mode === 'dock'
@@ -352,9 +337,9 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
       { id: 'open-on-canvas', label: 'Open on Canvas' },
     ])
     if (action === 'open') openDocumentLegacy(entry, 'dock')
-    if (action === 'open-frontmatter') openDocument(entry, 'frontmatter')
+    if (action === 'open-frontmatter') useAppStore.getState().openFlashQueryFrontmatterForPath(workspaceId, entry.vaultPath)
     if (action === 'open-on-canvas') openDocumentLegacy(entry, 'canvas')
-  }, [openDocument, openDocumentLegacy, selectPath])
+  }, [openDocumentLegacy, selectPath, workspaceId])
 
   useEffect(() => {
     if (!connection) {

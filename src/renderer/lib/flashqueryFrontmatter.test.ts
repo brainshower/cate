@@ -23,6 +23,27 @@ describe('flashqueryFrontmatter helpers', () => {
     expect(parseFrontmatterYaml('title: Plan')).toEqual({ ok: true, value: { title: 'Plan' } })
   })
 
+  it('T-U-008 round-trips nested and type-ambiguous frontmatter values', () => {
+    const frontmatter = {
+      title: 'Plan',
+      version: '1.0',
+      code: '007',
+      flagText: 'true',
+      nullText: 'null',
+      coords: { lat: 1, lng: 2 },
+      sections: [
+        { name: 'Intro', visible: true },
+        { name: 'Archive', visible: false },
+      ],
+      tags: ['one', 'two'],
+    }
+
+    expect(parseFrontmatterYaml(frontmatterToYaml(frontmatter))).toEqual({
+      ok: true,
+      value: frontmatter,
+    })
+  })
+
   it('T-U-008 rejects non-object YAML', () => {
     const result = parseFrontmatterYaml('- bad')
 

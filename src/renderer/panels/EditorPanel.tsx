@@ -20,7 +20,7 @@ import {
   getActiveEditorPanelId,
 } from '../lib/editorSaveRegistry'
 import { getActiveTheme, subscribeTheme } from '../lib/themeManager'
-import type { Theme } from '../../shared/types'
+import type { FlashQueryConnectionStatus, Theme } from '../../shared/types'
 import { takePendingReveal } from '../lib/editorReveal'
 import { parseVaultUri } from '../../shared/flashqueryUri'
 import {
@@ -360,6 +360,7 @@ export default function EditorPanel({
   const [refreshError, setRefreshError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [showRefreshConfirm, setShowRefreshConfirm] = useState(false)
+  const [flashQueryStatus, setFlashQueryStatus] = useState<FlashQueryConnectionStatus | null>(null)
 
   const workspaces = useAppStore((s) => s.workspaces)
   const ws = workspaces.find((w) => w.id === workspaceId)
@@ -377,9 +378,19 @@ export default function EditorPanel({
     [workspaceId, panelId],
   )
   const rootPath = ws?.rootPath
+  const flashQueryConnection = ws?.flashqueryConnection
   const isFlashQueryBody = activeVaultUri?.part === 'body'
   const isFlashQueryFrontmatter = activeVaultUri?.part === 'frontmatter'
   const isMarkdown = !!filePath && /\.mdx?$/i.test(filePath) && !isFlashQueryFrontmatter
+
+  useEffect(() => {
+    setFlashQueryStatus(null)
+    if (!flashQueryConnection) return
+    return window.electronAPI.onFlashQueryStatus((payload) => {
+      if (payload.workspaceId !== workspaceId) return
+      setFlashQueryStatus(payload.status)
+    })
+  }, [flashQueryConnection, workspaceId])
 
   const markClean = useCallback((targetPath: string) => {
     setSaveError(null)
@@ -437,7 +448,7 @@ export default function EditorPanel({
             return false
           }
           const stripped = stripManagedFrontmatterFields(parsed.value)
-          if (Object.keys(stripped.frontmatter).length === 0 && stripped.removedManagedFieldCount > 0) {
+          if (Object.keys(stripped.frontmatter).length === 0) {
             markClean(targetPath)
             return true
           }
@@ -522,6 +533,12 @@ export default function EditorPanel({
       if (!saved) return false
     }
 
+    if (!flashQueryConnection || flashQueryStatus === 'disconnected') {
+      setRefreshError('FlashQuery is disconnected.')
+      setShowRefreshConfirm(false)
+      return false
+    }
+
     setRefreshing(true)
     setRefreshError(null)
     try {
@@ -538,14 +555,14 @@ export default function EditorPanel({
       return true
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to refresh vault document'
-      setRefreshError(message)
+      setRefreshError(/not\s*found/i.test(message) ? 'Document not found in FlashQuery vault.' : message)
       log.error('[EditorPanel] Failed to refresh vault document:', error)
       return false
     } finally {
       setRefreshing(false)
       setShowRefreshConfirm(false)
     }
-  }, [markClean, refreshing, save])
+  }, [flashQueryConnection, flashQueryStatus, markClean, refreshing, save])
 
   // ---------------------------------------------------------------------------
   // Mount: create regular editor OR diff editor
@@ -885,7 +902,7 @@ export default function EditorPanel({
       {isMarkdown && !diffMode && (
         <button
           onClick={() => setMarkdownPreview(!markdownPreview)}
-          className={`absolute top-2 ${isFlashQueryBody ? 'right-36' : 'right-5'} z-10 px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+          className={`absolute top-2 ${isFlashQueryBody ? 'right-56' : 'right-5'} z-10 px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
             markdownPreview
               ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
               : 'bg-neutral-200/80 dark:bg-neutral-700/80 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-600'
@@ -896,15 +913,25 @@ export default function EditorPanel({
         </button>
       )}
       {isFlashQueryBody && !diffMode && (
-        <button
-          onClick={() => { void refreshBodyFromVault() }}
-          disabled={refreshing}
-          className="absolute top-2 right-5 z-10 rounded bg-neutral-200/80 px-2 py-0.5 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-300 disabled:opacity-60 dark:bg-neutral-700/80 dark:text-neutral-300 dark:hover:bg-neutral-600"
-          title="Refresh from vault"
-          aria-label="Refresh from vault"
-        >
-          {refreshing ? 'Refreshing...' : 'Refresh from vault'}
-        </button>
+        <div className="absolute top-2 right-5 z-10 flex items-center gap-1">
+          <button
+            onClick={() => useAppStore.getState().openFlashQueryFrontmatterEditor(workspaceId, panelId)}
+            className="rounded bg-neutral-200/80 px-2 py-0.5 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-300 dark:bg-neutral-700/80 dark:text-neutral-300 dark:hover:bg-neutral-600"
+            title="Show metadata editor"
+            aria-label="Show metadata editor"
+          >
+            Frontmatter
+          </button>
+          <button
+            onClick={() => { void refreshBodyFromVault() }}
+            disabled={refreshing}
+            className="rounded bg-neutral-200/80 px-2 py-0.5 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-300 disabled:opacity-60 dark:bg-neutral-700/80 dark:text-neutral-300 dark:hover:bg-neutral-600"
+            title="Refresh from vault"
+            aria-label="Refresh from vault"
+          >
+            {refreshing ? 'Refreshing...' : 'Refresh from vault'}
+          </button>
+        </div>
       )}
       {markdownPreview && isMarkdown && (
         <MarkdownPreview content={markdownContent} />
