@@ -21,7 +21,7 @@ The product requirements document is the source of truth for detailed acceptance
 
 ### Shared Contracts and Frontmatter
 
-- [ ] **REQ-004**: Cate widens FlashQuery document IPC contracts for body/frontmatter reads and object writes while preserving existing body-only string writes.
+- [x] **REQ-004**: Cate widens FlashQuery document IPC contracts for body/frontmatter reads and object writes while preserving existing body-only string writes.
 - [ ] **REQ-005**: User can open frontmatter editor tabs represented by `flashquery://<workspace>/<vaultPath>?part=frontmatter`, placed as sibling editor panels.
 - [ ] **REQ-006**: User can edit body and frontmatter as independent Monaco editor models with separate language mode, dirty state, save behavior, undo stack, view state, and errors.
 - [ ] **REQ-007**: User can edit opaque YAML frontmatter while invalid YAML blocks save and FlashQuery-managed fields are filtered before writeback.
@@ -79,7 +79,7 @@ The product requirements document is the source of truth for detailed acceptance
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| REQ-004 | Phase 14 | Pending |
+| REQ-004 | Phase 14 | Complete |
 | REQ-001 | Phase 15 | Pending |
 | REQ-002 | Phase 15 | Pending |
 | REQ-003 | Phase 15 | Pending |

@@ -64,7 +64,7 @@ Canonical source docs:
 4. Search and vault-index validation covers modes, entity types, limits, empty semantic dispatch, disconnected state, and safe error responses.
 5. Targeted coverage includes T-U-001, T-U-002, T-U-003, T-U-004, T-U-005, and T-U-006.
 
-**Status:** Planned
+**Status:** Complete
 
 ### Phase 15: Editor Refresh and Frontmatter Panels
 
