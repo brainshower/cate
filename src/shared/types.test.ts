@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FLASHQUERY_MANAGED_FRONTMATTER_FIELDS, isFlashQueryConnection, sanitizeFlashQueryConnection } from './types'
+import { FLASHQUERY_MANAGED_FRONTMATTER_FIELDS, isFlashQueryConnection, normalizeFlashQueryConnectionUrl, sanitizeFlashQueryConnection } from './types'
 import type {
   FlashQueryConnection,
   FlashQueryDocumentBody,
@@ -31,7 +31,7 @@ describe('FlashQueryConnection', () => {
     expect(isFlashQueryConnection(connection)).toBe(true)
     expect(sanitizeFlashQueryConnection(connection)).toEqual({
       transport: 'http',
-      url: 'http://127.0.0.1:3210/mcp',
+      url: 'http://127.0.0.1:3210',
     })
   })
 
@@ -52,10 +52,24 @@ describe('FlashQueryConnection', () => {
     expect(sanitizeFlashQueryConnection({ transport: 'http', url: 'x', auth: { type: 'basic' } })).toBeUndefined()
   })
 
+  it('normalizes FlashQuery connection URLs for shared workspace persistence', () => {
+    expect(normalizeFlashQueryConnectionUrl('https://flashquery.local/mcp/')).toBe('https://flashquery.local')
+    expect(sanitizeFlashQueryConnection({ transport: 'http', url: 'https://flashquery.local/mcp/' })).toEqual({
+      transport: 'http',
+      url: 'https://flashquery.local',
+    })
+  })
+
+  it('rejects unsafe FlashQuery connection URL shapes during shared sanitization', () => {
+    expect(sanitizeFlashQueryConnection({ transport: 'http', url: 'https://user:pass@flashquery.local' })).toBeUndefined()
+    expect(sanitizeFlashQueryConnection({ transport: 'http', url: 'https://flashquery.local?token=bad' })).toBeUndefined()
+    expect(sanitizeFlashQueryConnection({ transport: 'http', url: 'https://flashquery.local#fragment' })).toBeUndefined()
+  })
+
   it('T-U-009 keeps FlashQuery connection metadata on workspace and session shapes without persisting tokens', () => {
     const connection: FlashQueryConnection = {
       transport: 'http',
-      url: 'https://flashquery.local/mcp',
+      url: 'https://flashquery.local',
       auth: { type: 'bearer', token: 'raw-secret-token' },
     }
     const workspaceInfo: WorkspaceInfo = {
@@ -106,7 +120,7 @@ describe('FlashQueryConnection', () => {
     expect(sessionSnapshot.flashqueryConnection).toBe(connection)
     expect(projectWorkspaceFile.flashqueryConnection).toEqual({
       transport: 'http',
-      url: 'https://flashquery.local/mcp',
+      url: 'https://flashquery.local',
     })
     expect(JSON.stringify(projectWorkspaceFile)).not.toContain('raw-secret-token')
     expect(JSON.stringify(projectWorkspaceFile)).not.toContain('"auth"')

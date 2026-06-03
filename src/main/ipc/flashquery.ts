@@ -24,7 +24,7 @@ import type {
   FlashQueryWriteResult,
   WorkspaceMutationResult,
 } from '../../shared/types'
-import { isFlashQueryConnection } from '../../shared/types'
+import { isFlashQueryConnection, normalizeFlashQueryConnectionUrl } from '../../shared/types'
 import { FlashQueryClientManager } from '../flashquery/clientManager'
 import { broadcastToAll } from '../windowRegistry'
 import { broadcastWorkspaceChange, updateWorkspace } from '../workspaceManager'
@@ -63,23 +63,24 @@ function validateConnection(connection: unknown): FlashQueryConnection {
     throw new Error('FlashQuery connection must use HTTP transport with an optional bearer auth token')
   }
 
-  let parsed: URL
+  let original: URL
   try {
-    parsed = new URL(connection.url)
+    original = new URL(connection.url)
   } catch {
     throw new Error('FlashQuery connection must include a valid FlashQuery URL')
   }
 
-  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+  if (original.protocol !== 'http:' && original.protocol !== 'https:') {
     throw new Error('FlashQuery connection URL must use http or https')
   }
-
-  if (parsed.username || parsed.password || parsed.search || parsed.hash) {
+  if (original.username || original.password || original.search || original.hash) {
     throw new Error('FlashQuery connection URL must not include credentials, query, or fragment')
   }
 
-  parsed.pathname = parsed.pathname.replace(/\/+$/, '').replace(/\/mcp$/, '')
-  const url = parsed.toString().replace(/\/$/, '')
+  const url = normalizeFlashQueryConnectionUrl(connection.url)
+  if (!url) {
+    throw new Error('FlashQuery connection must include a valid FlashQuery URL')
+  }
   return { ...connection, url }
 }
 

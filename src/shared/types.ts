@@ -269,9 +269,23 @@ export function isFlashQueryConnection(value: unknown): value is FlashQueryConne
   return auth.type === 'bearer' && typeof auth.token === 'string'
 }
 
+export function normalizeFlashQueryConnectionUrl(url: string): string | undefined {
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch {
+    return undefined
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return undefined
+  if (parsed.username || parsed.password || parsed.search || parsed.hash) return undefined
+  parsed.pathname = parsed.pathname.replace(/\/+$/, '').replace(/\/mcp$/, '')
+  return parsed.toString().replace(/\/$/, '')
+}
+
 export function sanitizeFlashQueryConnection(value: unknown): FlashQueryConnection | undefined {
   if (!isFlashQueryConnection(value)) return undefined
-  return { transport: 'http', url: value.url }
+  const url = normalizeFlashQueryConnectionUrl(value.url)
+  return url ? { transport: 'http', url } : undefined
 }
 
 export interface WorkspaceInfo {
