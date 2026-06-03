@@ -81,7 +81,7 @@ Canonical source docs:
 6. Invalid YAML blocks save and FlashQuery-managed fields are filtered before frontmatter writes.
 7. Targeted coverage includes T-U-001, T-U-007, T-U-008, T-U-009, T-E-001, and T-E-002.
 
-**Status:** Pending
+**Status:** Complete
 
 ### Phase 16: Vault Search Panel
 
@@ -191,7 +191,7 @@ Canonical source docs:
 
 ## Current Status
 
-Active milestone: v1.2 FlashQuery Milestone 2. Next phase: Phase 14 Shared FlashQuery Contracts and IPC.
+Active milestone: v1.2 FlashQuery Milestone 2. Next phase: Phase 16 Vault Search Panel.
 
 ## Notes
 

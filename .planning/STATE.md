@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: FlashQuery Milestone 2
 status: verifying
-stopped_at: Phase 14 ready for planning
-last_updated: "2026-06-03T18:35:01.961Z"
-last_activity: 2026-06-03
+stopped_at: Phase 15 complete; ready for Phase 16 planning
+last_updated: "2026-06-03T20:05:00.000Z"
+last_activity: 2026-06-03 -- Phase 15 complete
 progress:
   total_phases: 8
-  completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
-  percent: 13
+  completed_phases: 2
+  total_plans: 6
+  completed_plans: 6
+  percent: 25
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-03 after v1.2 FlashQuery Milestone 2 planning)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** Phase 14 — Shared FlashQuery Contracts and IPC
+**Current focus:** Phase 16 — Vault Search Panel
 
 ## Current Position
 
-Phase: 14 (Shared FlashQuery Contracts and IPC) — COMPLETE
+Phase: 15 (Editor Refresh and Frontmatter Panels) — COMPLETE
 Plan: 3 of 3
 Status: Phase complete — ready for verification
-Last activity: 2026-06-03
+Last activity: 2026-06-03 -- Phase 15 complete
 
 ## Session Continuity
 
@@ -38,9 +38,9 @@ Resume File: None
 
 ## Next Up
 
-Verify Phase 14 with `/gsd-verify-work 14`.
+Plan Phase 16 with `/gsd-plan-phase 16`.
 
-Phase 14 completed 3 plans covering shared renderer contracts, main FlashQuery client normalization, and main IPC validation/coverage closeout.
+Phase 15 completed 3 plans covering body refresh, dirty refresh confirmation, frontmatter editor opening/editing, and deterministic Electron E2E coverage.
 
 ## Decisions
 

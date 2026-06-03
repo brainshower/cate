@@ -15,16 +15,16 @@ The product requirements document is the source of truth for detailed acceptance
 
 ### Editor Refresh
 
-- [ ] **REQ-001**: User can manually refresh clean open FlashQuery body editor tabs from the latest vault document content.
-- [ ] **REQ-002**: User must confirm dirty FlashQuery body refresh through `Save and refresh`, `Discard and refresh`, or `Cancel` without introducing merge/diff behavior.
-- [ ] **REQ-003**: User can attempt refresh while FlashQuery is disconnected, unreachable, failing, or missing the document without corrupting current editor content or dirty state.
+- [x] **REQ-001**: User can manually refresh clean open FlashQuery body editor tabs from the latest vault document content.
+- [x] **REQ-002**: User must confirm dirty FlashQuery body refresh through `Save and refresh`, `Discard and refresh`, or `Cancel` without introducing merge/diff behavior.
+- [x] **REQ-003**: User can attempt refresh while FlashQuery is disconnected, unreachable, failing, or missing the document without corrupting current editor content or dirty state.
 
 ### Shared Contracts and Frontmatter
 
 - [x] **REQ-004**: Cate widens FlashQuery document IPC contracts for body/frontmatter reads and object writes while preserving existing body-only string writes.
-- [ ] **REQ-005**: User can open frontmatter editor tabs represented by `flashquery://<workspace>/<vaultPath>?part=frontmatter`, placed as sibling editor panels.
-- [ ] **REQ-006**: User can edit body and frontmatter as independent Monaco editor models with separate language mode, dirty state, save behavior, undo stack, view state, and errors.
-- [ ] **REQ-007**: User can edit opaque YAML frontmatter while invalid YAML blocks save and FlashQuery-managed fields are filtered before writeback.
+- [x] **REQ-005**: User can open frontmatter editor tabs represented by `flashquery://<workspace>/<vaultPath>?part=frontmatter`, placed as sibling editor panels.
+- [x] **REQ-006**: User can edit body and frontmatter as independent Monaco editor models with separate language mode, dirty state, save behavior, undo stack, view state, and errors.
+- [x] **REQ-007**: User can edit opaque YAML frontmatter while invalid YAML blocks save and FlashQuery-managed fields are filtered before writeback.
 
 ### Vault Search
 
@@ -80,12 +80,12 @@ The product requirements document is the source of truth for detailed acceptance
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | REQ-004 | Phase 14 | Complete |
-| REQ-001 | Phase 15 | Pending |
-| REQ-002 | Phase 15 | Pending |
-| REQ-003 | Phase 15 | Pending |
-| REQ-005 | Phase 15 | Pending |
-| REQ-006 | Phase 15 | Pending |
-| REQ-007 | Phase 15 | Pending |
+| REQ-001 | Phase 15 | Complete |
+| REQ-002 | Phase 15 | Complete |
+| REQ-003 | Phase 15 | Complete |
+| REQ-005 | Phase 15 | Complete |
+| REQ-006 | Phase 15 | Complete |
+| REQ-007 | Phase 15 | Complete |
 | REQ-008 | Phase 16 | Pending |
 | REQ-009 | Phase 16 | Pending |
 | REQ-010 | Phase 16 | Pending |
