@@ -3,6 +3,8 @@ import { CircleNotch, MagnifyingGlass, WarningCircle, X } from '@phosphor-icons/
 
 import { Chip, type ConnectionStatus } from '../components/Chip'
 import { useAppStore } from '../stores/appStore'
+import { setPendingFlashQuerySearchReveal } from '../lib/flashquerySearchReveal'
+import { buildVaultUri } from '../../shared/flashqueryUri'
 import type {
   FlashQueryConnectionStatus,
   FlashQueryDocumentSearchResult,
@@ -93,6 +95,9 @@ export default function FlashQueryVaultSearchPanel({ workspaceId }: PanelProps) 
   const [searched, setSearched] = useState(false)
   const [searching, setSearching] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedKey, setSelectedKey] = useState<string | null>(null)
+  const [highlightedKey, setHighlightedKey] = useState<string | null>(null)
+  const [expandedMemoryIds, setExpandedMemoryIds] = useState<Set<string>>(() => new Set())
   const latestRequestRef = useRef(0)
   const e2eInjectedStatusRef = useRef(false)
 
@@ -106,6 +111,41 @@ export default function FlashQueryVaultSearchPanel({ workspaceId }: PanelProps) 
     if (!workspaceId) return
     void window.electronAPI.flashqueryRetry(workspaceId)
   }, [workspaceId])
+
+  const openDocument = useCallback((result: FlashQueryDocumentSearchResult, target: 'dock' | 'canvas') => {
+    const placement = target === 'dock'
+      ? { target: 'dock' as const, zone: 'center' as const }
+      : { target: 'canvas' as const }
+    const panelId = useAppStore.getState().createEditor(
+      workspaceId,
+      buildVaultUri(workspaceId, result.fullPath),
+      undefined,
+      placement,
+    )
+    useAppStore.getState().updatePanelTitle(workspaceId, panelId, result.filename || result.title || result.fullPath)
+  }, [workspaceId])
+
+  const revealDocument = useCallback((result: FlashQueryDocumentSearchResult) => {
+    setPendingFlashQuerySearchReveal(workspaceId, result.fullPath)
+    const workspace = useAppStore.getState().workspaces.find((candidate) => candidate.id === workspaceId)
+    const hasVaultPanel = Object.values(workspace?.panels ?? {}).some((panel) => panel.type === 'flashqueryVault')
+    if (!hasVaultPanel) {
+      useAppStore.getState().createFlashQueryVault(workspaceId, undefined, { target: 'dock', zone: 'left' })
+    }
+  }, [workspaceId])
+
+  const copyDocumentValue = useCallback(async (value: string) => {
+    await navigator.clipboard.writeText(value)
+  }, [])
+
+  const toggleMemoryInspector = useCallback((result: FlashQueryMemorySearchResult) => {
+    setExpandedMemoryIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(result.id)) next.delete(result.id)
+      else next.add(result.id)
+      return next
+    })
+  }, [])
 
   const clearResultsForDisconnect = useCallback((message?: string) => {
     latestRequestRef.current += 1
@@ -140,6 +180,9 @@ export default function FlashQueryVaultSearchPanel({ workspaceId }: PanelProps) 
         return
       }
       setLimit(nextLimit)
+      setSelectedKey(null)
+      setHighlightedKey(null)
+      setExpandedMemoryIds(new Set())
       setResults({
         ...trimResponse(response),
         query: trimmedQuery,
@@ -227,10 +270,70 @@ export default function FlashQueryVaultSearchPanel({ workspaceId }: PanelProps) 
     ]
   }, [results])
 
+  const rowIndex = useMemo(() => {
+    if (!highlightedKey) return -1
+    return rows.findIndex((row) => row.key === highlightedKey)
+  }, [highlightedKey, rows])
+
+  const selectRow = useCallback((row: SearchRow) => {
+    setSelectedKey(row.key)
+    setHighlightedKey(row.key)
+  }, [])
+
+  const activateRow = useCallback((row: SearchRow, target: 'dock' | 'canvas') => {
+    selectRow(row)
+    if (row.kind === 'document') openDocument(row.result, target)
+    else toggleMemoryInspector(row.result)
+  }, [openDocument, selectRow, toggleMemoryInspector])
+
+  const handleResultsKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (rows.length === 0) return
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault()
+      const delta = event.key === 'ArrowDown' ? 1 : -1
+      const nextIndex = rowIndex < 0
+        ? (delta > 0 ? 0 : rows.length - 1)
+        : Math.max(0, Math.min(rows.length - 1, rowIndex + delta))
+      setHighlightedKey(rows[nextIndex].key)
+      setSelectedKey(rows[nextIndex].key)
+    }
+    if (event.key === 'Enter' && highlightedKey) {
+      event.preventDefault()
+      const row = rows.find((candidate) => candidate.key === highlightedKey)
+      if (row) activateRow(row, event.metaKey || event.ctrlKey ? 'canvas' : 'dock')
+    }
+  }, [activateRow, highlightedKey, rowIndex, rows])
+
   const renderDocumentRow = (result: FlashQueryDocumentSearchResult) => {
     const title = result.title || result.filename
+    const row: SearchRow = { kind: 'document', key: `document:${result.fullPath}`, result }
+    const selected = selectedKey === row.key
     return (
-      <div key={result.fullPath} role="listitem" className="rounded border border-subtle bg-surface-3 px-2.5 py-2 text-xs">
+      <div
+        key={result.fullPath}
+        data-testid={`vault-search-document-${result.fullPath}`}
+        role="listitem"
+        aria-selected={selected}
+        className={`rounded border px-2.5 py-2 text-xs ${selected ? 'border-teal-400 bg-surface-5' : 'border-subtle bg-surface-3'}`}
+        onClick={() => selectRow(row)}
+        onDoubleClick={() => activateRow(row, 'dock')}
+        onContextMenu={async (event) => {
+          event.preventDefault()
+          selectRow(row)
+          const action = await window.electronAPI.showContextMenu([
+            { id: 'open', label: 'Open' },
+            { id: 'open-on-canvas', label: 'Open on Canvas' },
+            { id: 'reveal', label: 'Reveal in Vault Tree' },
+            { id: 'copy-path', label: 'Copy vault path' },
+            { id: 'copy-reference', label: 'Copy as reference' },
+          ])
+          if (action === 'open') openDocument(result, 'dock')
+          if (action === 'open-on-canvas') openDocument(result, 'canvas')
+          if (action === 'reveal') revealDocument(result)
+          if (action === 'copy-path') await copyDocumentValue(result.fullPath)
+          if (action === 'copy-reference') await copyDocumentValue(`{{ref:${result.fullPath}}}`)
+        }}
+      >
         <div className="font-medium text-primary">
           <HighlightedText text={title} query={results?.query ?? ''} disabled={!!results?.listAll} />
         </div>
@@ -246,16 +349,38 @@ export default function FlashQueryVaultSearchPanel({ workspaceId }: PanelProps) 
     )
   }
 
-  const renderMemoryRow = (result: FlashQueryMemorySearchResult) => (
-    <div key={result.id} role="listitem" className="rounded border border-subtle bg-surface-3 px-2.5 py-2 text-xs">
-      <div className="font-medium text-primary">
-        <HighlightedText text={result.title || 'Memory'} query={results?.query ?? ''} disabled={!!results?.listAll} />
+  const renderMemoryRow = (result: FlashQueryMemorySearchResult) => {
+    const row: SearchRow = { kind: 'memory', key: `memory:${result.id}`, result }
+    const selected = selectedKey === row.key
+    const expanded = expandedMemoryIds.has(result.id)
+    const bodyText = result.text || result.snippet || ''
+    return (
+      <div
+        key={result.id}
+        data-testid={`vault-search-memory-${result.id}`}
+        role="listitem"
+        aria-selected={selected}
+        aria-expanded={expanded}
+        className={`rounded border px-2.5 py-2 text-xs ${selected ? 'border-teal-400 bg-surface-5' : 'border-subtle bg-surface-3'}`}
+        onClick={() => selectRow(row)}
+        onDoubleClick={() => toggleMemoryInspector(result)}
+        onContextMenu={(event) => event.preventDefault()}
+      >
+        <div className="font-medium text-primary">
+          <HighlightedText text={result.title || 'Memory'} query={results?.query ?? ''} disabled={!!results?.listAll} />
+        </div>
+        <div className="mt-1 line-clamp-3 text-secondary">
+          <HighlightedText text={bodyText} query={results?.query ?? ''} disabled={!!results?.listAll} />
+        </div>
+        {expanded && (
+          <div className="mt-2 rounded bg-surface-2 px-2 py-2 text-secondary">
+            {result.title && <div className="mb-1 font-medium text-primary">{result.title}</div>}
+            <div>{bodyText}</div>
+          </div>
+        )}
       </div>
-      <div className="mt-1 line-clamp-3 text-secondary">
-        <HighlightedText text={result.text || result.snippet || ''} query={results?.query ?? ''} disabled={!!results?.listAll} />
-      </div>
-    </div>
-  )
+    )
+  }
 
   const renderGroup = (
     entity: FlashQuerySearchEntityType,
@@ -310,7 +435,13 @@ export default function FlashQueryVaultSearchPanel({ workspaceId }: PanelProps) 
     body = <div className="px-3 py-6 text-center text-xs text-muted">Type a query and press Search.</div>
   } else if (results) {
     body = (
-      <div className="flex flex-col gap-4 p-3">
+      <div
+        className="flex flex-col gap-4 p-3"
+        tabIndex={0}
+        role="listbox"
+        aria-label="Vault search results"
+        onKeyDown={handleResultsKeyDown}
+      >
         {renderGroup('documents', 'Vault', results.total_documents, results.documents.map(renderDocumentRow))}
         {renderGroup('memories', 'Memories', results.total_memories, results.memories.map(renderMemoryRow))}
       </div>

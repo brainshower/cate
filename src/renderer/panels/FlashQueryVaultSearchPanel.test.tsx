@@ -13,11 +13,12 @@ vi.mock('../lib/logger', () => ({
 
 import FlashQueryVaultSearchPanel from './FlashQueryVaultSearchPanel'
 import { useAppStore } from '../stores/appStore'
+import { peekPendingFlashQuerySearchReveal } from '../lib/flashquerySearchReveal'
 import type { FlashQuerySearchResponse, FlashQueryStatusBroadcastPayload } from '../../shared/types'
 
 type ElectronApiMock = Pick<
   Window['electronAPI'],
-  'flashquerySearch' | 'flashqueryRetry' | 'onFlashQueryStatus' | 'isE2E'
+  'flashquerySearch' | 'flashqueryRetry' | 'onFlashQueryStatus' | 'showContextMenu' | 'isE2E'
 >
 
 const workspaceId = 'workspace-1'
@@ -47,6 +48,7 @@ function makeElectronApi(searchImpl?: ElectronApiMock['flashquerySearch']): Elec
     isE2E: false,
     flashquerySearch: searchImpl ?? vi.fn().mockResolvedValue(makeResponse()),
     flashqueryRetry: vi.fn().mockResolvedValue(undefined),
+    showContextMenu: vi.fn().mockResolvedValue(null),
     onFlashQueryStatus: vi.fn((callback) => {
       statusListener = callback
       return () => {
@@ -103,7 +105,16 @@ function deferredResponse() {
 beforeEach(() => {
   statusListener = null
   setElectronApi(makeElectronApi())
+  Object.defineProperty(navigator, 'clipboard', {
+    configurable: true,
+    value: { writeText: vi.fn().mockResolvedValue(undefined) },
+  })
   seedWorkspace({ transport: 'http', url: 'https://flashquery.local:8787/mcp' })
+  useAppStore.setState({
+    createEditor: vi.fn(() => 'editor-1') as any,
+    updatePanelTitle: vi.fn() as any,
+    createFlashQueryVault: vi.fn(() => 'vault-1') as any,
+  })
 })
 
 afterEach(() => {
@@ -263,5 +274,141 @@ describe('FlashQueryVaultSearchPanel T-U-010 core search behavior', () => {
     expect(await screen.findByTestId('vault-search-disconnected-icon')).toBeTruthy()
     expect((screen.getByRole('button', { name: 'Search' }) as HTMLButtonElement).disabled).toBe(true)
     expect(screen.queryByText('Docs/Plan.md')).toBeNull()
+  })
+})
+
+describe('FlashQueryVaultSearchPanel T-U-011 result interactions', () => {
+  it('selects and opens document rows with double click', async () => {
+    renderPanel()
+    emitStatus({ workspaceId, status: 'live' })
+
+    fireEvent.change(screen.getByPlaceholderText('Search the vault...'), { target: { value: 'cate' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+
+    const documentRow = await screen.findByText('Docs/Plan.md')
+    fireEvent.click(documentRow)
+    expect(documentRow.closest('[role="listitem"]')?.getAttribute('aria-selected')).toBe('true')
+
+    fireEvent.doubleClick(documentRow)
+
+    expect(useAppStore.getState().createEditor).toHaveBeenCalledWith(
+      workspaceId,
+      'flashquery://workspace-1/Docs/Plan.md',
+      undefined,
+      { target: 'dock', zone: 'center' },
+    )
+    expect(useAppStore.getState().updatePanelTitle).toHaveBeenCalledWith(workspaceId, 'editor-1', 'Plan.md')
+  })
+
+  it('shows document context menu actions and copies exact vault references', async () => {
+    const api = makeElectronApi()
+    setElectronApi(api)
+    vi.mocked(api.showContextMenu).mockResolvedValueOnce('copy-reference')
+    renderPanel()
+    emitStatus({ workspaceId, status: 'live' })
+
+    fireEvent.change(screen.getByPlaceholderText('Search the vault...'), { target: { value: 'cate' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    fireEvent.contextMenu(await screen.findByText('Docs/Plan.md'))
+
+    await waitFor(() => expect(api.showContextMenu).toHaveBeenCalledWith([
+      { id: 'open', label: 'Open' },
+      { id: 'open-on-canvas', label: 'Open on Canvas' },
+      { id: 'reveal', label: 'Reveal in Vault Tree' },
+      { id: 'copy-path', label: 'Copy vault path' },
+      { id: 'copy-reference', label: 'Copy as reference' },
+    ]))
+    await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith('{{ref:Docs/Plan.md}}'))
+  })
+
+  it('opens documents on canvas and stores reveal handoff from the context menu', async () => {
+    const api = makeElectronApi()
+    setElectronApi(api)
+    vi.mocked(api.showContextMenu).mockResolvedValueOnce('open-on-canvas').mockResolvedValueOnce('reveal')
+    renderPanel()
+    emitStatus({ workspaceId, status: 'live' })
+
+    fireEvent.change(screen.getByPlaceholderText('Search the vault...'), { target: { value: 'cate' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    const documentPath = await screen.findByText('Docs/Plan.md')
+
+    fireEvent.contextMenu(documentPath)
+    await waitFor(() => expect(useAppStore.getState().createEditor).toHaveBeenCalledWith(
+      workspaceId,
+      'flashquery://workspace-1/Docs/Plan.md',
+      undefined,
+      { target: 'canvas' },
+    ))
+
+    fireEvent.contextMenu(documentPath)
+    await waitFor(() => expect(peekPendingFlashQuerySearchReveal(workspaceId)).toBe('Docs/Plan.md'))
+    expect(useAppStore.getState().createFlashQueryVault).toHaveBeenCalledWith(
+      workspaceId,
+      undefined,
+      { target: 'dock', zone: 'left' },
+    )
+  })
+
+  it('toggles read-only memory inspector without editor or context menu actions', async () => {
+    const api = makeElectronApi()
+    setElectronApi(api)
+    renderPanel()
+    emitStatus({ workspaceId, status: 'live' })
+
+    fireEvent.change(screen.getByPlaceholderText('Search the vault...'), { target: { value: 'cate' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    const memoryRow = await screen.findByTestId('vault-search-memory-memory-1')
+
+    fireEvent.click(memoryRow)
+    expect(memoryRow.getAttribute('aria-selected')).toBe('true')
+
+    fireEvent.doubleClick(memoryRow)
+    expect(memoryRow.getAttribute('aria-expanded')).toBe('true')
+    expect(useAppStore.getState().createEditor).not.toHaveBeenCalled()
+
+    fireEvent.contextMenu(memoryRow)
+    expect(api.showContextMenu).not.toHaveBeenCalled()
+
+    fireEvent.doubleClick(memoryRow)
+    expect(memoryRow.getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it('supports result-list keyboard navigation without stealing search-input Enter or Escape', async () => {
+    renderPanel()
+    emitStatus({ workspaceId, status: 'live' })
+    const input = screen.getByPlaceholderText('Search the vault...')
+
+    fireEvent.change(input, { target: { value: 'cate' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    const listbox = await screen.findByRole('listbox', { name: 'Vault search results' })
+
+    fireEvent.keyDown(listbox, { key: 'ArrowDown' })
+    expect(screen.getByText('Docs/Plan.md').closest('[role="listitem"]')?.getAttribute('aria-selected')).toBe('true')
+
+    fireEvent.keyDown(listbox, { key: 'Enter' })
+    expect(useAppStore.getState().createEditor).toHaveBeenCalledWith(
+      workspaceId,
+      'flashquery://workspace-1/Docs/Plan.md',
+      undefined,
+      { target: 'dock', zone: 'center' },
+    )
+
+    fireEvent.keyDown(listbox, { key: 'Enter', metaKey: true })
+    expect(useAppStore.getState().createEditor).toHaveBeenCalledWith(
+      workspaceId,
+      'flashquery://workspace-1/Docs/Plan.md',
+      undefined,
+      { target: 'canvas' },
+    )
+
+    fireEvent.keyDown(listbox, { key: 'ArrowDown' })
+    fireEvent.keyDown(listbox, { key: 'Enter' })
+    expect(screen.getByText('Remember Cate search behavior').closest('[role="listitem"]')?.getAttribute('aria-expanded')).toBe('true')
+
+    fireEvent.change(input, { target: { value: 'fresh' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    await waitFor(() => expect(window.electronAPI.flashquerySearch).toHaveBeenCalledTimes(2))
+    fireEvent.keyDown(input, { key: 'Escape' })
+    expect((input as HTMLInputElement).value).toBe('')
   })
 })
