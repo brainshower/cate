@@ -290,7 +290,22 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
     })
   }, [visibleRows])
 
-  const openDocument = useCallback((entry: FlashQueryVaultEntry, mode: 'dock' | 'canvas') => {
+  const openDocument = useCallback((entry: FlashQueryVaultEntry, mode: 'dock' | 'canvas' | 'frontmatter') => {
+    if (entry.type !== 'document') return
+    const placement = mode === 'canvas'
+      ? { target: 'canvas' as const }
+      : { target: 'dock' as const, zone: 'center' as const }
+    const panelId = useAppStore.getState().createEditor(
+      workspaceId,
+      buildVaultUri(workspaceId, entry.vaultPath, mode === 'frontmatter' ? 'frontmatter' : undefined),
+      undefined,
+      placement,
+    )
+    const title = mode === 'frontmatter' ? `${entry.name} Frontmatter` : entry.name
+    useAppStore.getState().updatePanelTitle(workspaceId, panelId, title)
+  }, [workspaceId])
+
+  const openDocumentLegacy = useCallback((entry: FlashQueryVaultEntry, mode: 'dock' | 'canvas') => {
     if (entry.type !== 'document') return
     const placement = mode === 'dock'
       ? { target: 'dock' as const, zone: 'center' as const }
@@ -323,8 +338,8 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
     if (entry.type !== 'document') return
     event.preventDefault()
     event.stopPropagation()
-    openDocument(entry, 'dock')
-  }, [openDocument])
+    openDocumentLegacy(entry, 'dock')
+  }, [openDocumentLegacy])
 
   const handleRowContextMenu = useCallback(async (entry: FlashQueryVaultEntry, event: React.MouseEvent) => {
     event.preventDefault()
@@ -333,11 +348,13 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
     selectPath(entry.vaultPath, { cmd: false, shift: false })
     const action = await window.electronAPI.showContextMenu([
       { id: 'open', label: 'Open' },
+      { id: 'open-frontmatter', label: 'Open frontmatter' },
       { id: 'open-on-canvas', label: 'Open on Canvas' },
     ])
-    if (action === 'open') openDocument(entry, 'dock')
-    if (action === 'open-on-canvas') openDocument(entry, 'canvas')
-  }, [openDocument, selectPath])
+    if (action === 'open') openDocumentLegacy(entry, 'dock')
+    if (action === 'open-frontmatter') openDocument(entry, 'frontmatter')
+    if (action === 'open-on-canvas') openDocumentLegacy(entry, 'canvas')
+  }, [openDocument, openDocumentLegacy, selectPath])
 
   useEffect(() => {
     if (!connection) {

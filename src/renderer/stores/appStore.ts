@@ -18,6 +18,7 @@ import type {
   Point,
   Size,
   DockZonePosition,
+  DockDropTarget,
   DockStateSnapshot,
   WorktreeMeta,
 } from '../../shared/types'
@@ -31,7 +32,7 @@ import { terminalRegistry } from '../lib/terminalRegistry'
 import { useDockStore } from './dockStore'
 import { createCanvasOps } from '../lib/canvasBridge'
 import { getOrCreateCanvasStoreForPanel, releaseCanvasStoreForPanel } from './canvasStore'
-import { parseVaultUri } from '../../shared/flashqueryUri'
+import { buildVaultUri, parseVaultUri } from '../../shared/flashqueryUri'
 
 // -----------------------------------------------------------------------------
 // Canvas operations callback — injected at init to decouple from canvasStore
@@ -314,6 +315,7 @@ interface AppStoreActions {
   createTerminal: (workspaceId: string, initialInput?: string, position?: Point, placement?: PanelPlacement, cwd?: string) => string
   createBrowser: (workspaceId: string, url?: string, position?: Point, placement?: PanelPlacement) => string
   createEditor: (workspaceId: string, filePath?: string, position?: Point, placement?: PanelPlacement) => string
+  openFlashQueryFrontmatterEditor: (workspaceId: string, sourcePanelId: string) => string | null
   createDiffEditor: (workspaceId: string, filePath: string, diffMode: 'staged' | 'working', position?: Point, placement?: PanelPlacement) => string
   createGit: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
   createFileExplorer: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
@@ -443,6 +445,53 @@ function addAndPlacePanel(
     return null as unknown as string
   }
   return panel.id
+}
+
+function frontmatterTitleFor(filePath: string): string {
+  const parsed = parseVaultUri(filePath)
+  const sourcePath = parsed?.vaultPath ?? filePath
+  const fileName = sourcePath.split(/[\\/]/).pop() || 'Untitled'
+  return `${fileName} Frontmatter`
+}
+
+function activeCanvasNodeOffset(workspaceId: string, sourcePanelId: string): Point | undefined {
+  const canvasStore = getWorkspaceCanvasStore(workspaceId)
+  const state = canvasStore?.getState()
+  const nodeId = state?.nodeForPanel(sourcePanelId)
+  const node = nodeId ? state?.nodes[nodeId] : undefined
+  if (!node) return undefined
+  return {
+    x: node.origin.x + node.size.width + 40,
+    y: node.origin.y,
+  }
+}
+
+function focusExistingPanel(workspaceId: string, panelId: string): void {
+  const dockLocation = useDockStore.getState().panelLocations[panelId]
+  if (dockLocation?.type === 'dock') {
+    const snapshot = useDockStore.getState().getSnapshot()
+    const layout = snapshot.zones[dockLocation.zone].layout
+    const stack = findStackContainingPanel(layout, panelId)
+    const index = stack?.panelIds.indexOf(panelId) ?? -1
+    if (index >= 0) useDockStore.getState().setActiveTab(stack!.id, index)
+    return
+  }
+  if (workspaceId === useAppStore.getState().selectedWorkspaceId) {
+    getActiveCanvasOps()?.focusPanelNode(panelId)
+  }
+}
+
+function findStackContainingPanel(
+  node: import('../../shared/types').DockLayoutNode | null | undefined,
+  panelId: string,
+): import('../../shared/types').DockTabStack | null {
+  if (!node) return null
+  if (node.type === 'tabs') return node.panelIds.includes(panelId) ? node : null
+  for (const child of node.children) {
+    const found = findStackContainingPanel(child, panelId)
+    if (found) return found
+  }
+  return null
 }
 
 /** Apply an update to a single panel within a workspace. No-ops if the
@@ -797,6 +846,77 @@ export const useAppStore = create<AppStore>((set, get) => ({
       filePath,
     }
     return addAndPlacePanel(set, get, workspaceId, panel, placement, position)
+  },
+
+  openFlashQueryFrontmatterEditor(workspaceId, sourcePanelId) {
+    const ws = get().workspaces.find((workspace) => workspace.id === workspaceId)
+    const sourcePanel = ws?.panels[sourcePanelId]
+    if (!ws || sourcePanel?.type !== 'editor' || !sourcePanel.filePath) return null
+
+    const parsed = parseVaultUri(sourcePanel.filePath)
+    if (!parsed || parsed.part !== 'body') return null
+
+    const frontmatterUri = buildVaultUri(parsed.workspaceId, parsed.vaultPath, 'frontmatter')
+    const existing = Object.values(ws.panels).find((panel) =>
+      panel.type === 'editor' && panel.filePath === frontmatterUri
+    )
+    if (existing) {
+      focusExistingPanel(workspaceId, existing.id)
+      return existing.id
+    }
+
+    const sourceLocation = useDockStore.getState().panelLocations[sourcePanelId]
+    const placement: PanelPlacement | undefined =
+      sourceLocation?.type === 'dock'
+        ? { target: 'dock', zone: sourceLocation.zone }
+        : { target: 'canvas', position: activeCanvasNodeOffset(workspaceId, sourcePanelId) }
+    const dockTarget: DockDropTarget | undefined =
+      sourceLocation?.type === 'dock'
+        ? { type: 'tab', stackId: sourceLocation.stackId, index: undefined }
+        : undefined
+
+    const panelId = generateId()
+    const panel: PanelState = {
+      id: panelId,
+      type: 'editor',
+      title: frontmatterTitleFor(sourcePanel.filePath),
+      isDirty: false,
+      filePath: frontmatterUri,
+    }
+
+    set((state) => ({
+      workspaces: state.workspaces.map((workspace) =>
+        workspace.id === workspaceId
+          ? { ...workspace, panels: { ...workspace.panels, [panel.id]: panel } }
+          : workspace,
+      ),
+    }))
+
+    try {
+      if (sourceLocation?.type === 'dock') {
+        const snapshot = useDockStore.getState().getSnapshot()
+        const sourceStack = findStackContainingPanel(snapshot.zones[sourceLocation.zone].layout, sourcePanelId)
+        const sourceIndex = sourceStack?.panelIds.indexOf(sourcePanelId) ?? -1
+        useDockStore.getState().dockPanel(panelId, sourceLocation.zone, {
+          ...(dockTarget as Extract<DockDropTarget, { type: 'tab' }>),
+          index: sourceIndex >= 0 ? sourceIndex + 1 : undefined,
+        })
+      } else {
+        placePanel(panelId, 'editor', placement, placement?.target === 'canvas' ? placement.position : undefined, workspaceId === get().selectedWorkspaceId)
+      }
+    } catch (error) {
+      set((state) => ({
+        workspaces: state.workspaces.map((workspace) => {
+          if (workspace.id !== workspaceId) return workspace
+          const { [panelId]: _removed, ...panels } = workspace.panels
+          return { ...workspace, panels }
+        }),
+      }))
+      log.error('Failed to place FlashQuery frontmatter panel:', error)
+      return null
+    }
+
+    return panelId
   },
 
   createDocument(workspaceId, filePath?, documentType?, position?, placement?) {

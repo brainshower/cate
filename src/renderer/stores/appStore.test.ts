@@ -37,6 +37,31 @@ const makeCanvasOps = (overrides: Partial<CanvasOperations> = {}): CanvasOperati
   ...overrides,
 })
 
+const makeCanvasOpsWithNode = (
+  panelId: string,
+  origin = { x: 100, y: 120 },
+  size = { width: 640, height: 420 },
+  overrides: Partial<CanvasOperations> = {},
+): CanvasOperations => ({
+  ...makeCanvasOps(),
+  storeApi: {
+    getState: () => ({
+      nodeForPanel: (candidate: string) => candidate === panelId ? 'node-1' : null,
+      nodes: {
+        'node-1': {
+          id: 'node-1',
+          panelId,
+          origin,
+          size,
+          zOrder: 1,
+          creationIndex: 1,
+        },
+      },
+    }),
+  } as unknown as CanvasOperations['storeApi'],
+  ...overrides,
+})
+
 function seedStore() {
   useAppStore.setState({
     selectedWorkspaceId: workspaceId,
@@ -133,5 +158,86 @@ describe('appStore.createEditor', () => {
 
     expect(panel.title).toBe('Space Plan.md')
     expect(panel.title).not.toContain('%20')
+  })
+})
+
+describe('appStore.openFlashQueryFrontmatterEditor', () => {
+  beforeEach(() => {
+    seedStore()
+    setCanvasOperations(makeCanvasOps())
+  })
+
+  it('T-U-007 creates a frontmatter editor with distinct URI, title, and dock sibling placement', () => {
+    const sourcePanelId = useAppStore.getState().createEditor(
+      workspaceId,
+      'flashquery://workspace-1/Docs/Plan.md',
+      undefined,
+      { target: 'dock', zone: 'center' },
+    )
+
+    const frontmatterPanelId = useAppStore.getState().openFlashQueryFrontmatterEditor(workspaceId, sourcePanelId)
+    const workspace = useAppStore.getState().workspaces[0]
+    const frontmatterPanel = workspace.panels[frontmatterPanelId!]
+
+    expect(frontmatterPanel).toMatchObject({
+      type: 'editor',
+      title: 'Plan.md Frontmatter',
+      filePath: 'flashquery://workspace-1/Docs/Plan.md?part=frontmatter',
+    })
+    expect(frontmatterPanel.id).not.toBe(sourcePanelId)
+    expect(frontmatterPanel.filePath).not.toBe(workspace.panels[sourcePanelId].filePath)
+
+    const location = useDockStore.getState().panelLocations[frontmatterPanelId!]
+    expect(location).toMatchObject({ type: 'dock', zone: 'center' })
+    const stack = useDockStore.getState().zones.center.layout
+    expect(stack?.type).toBe('tabs')
+    expect(stack?.type === 'tabs' ? stack.panelIds : []).toEqual([sourcePanelId, frontmatterPanelId])
+  })
+
+  it('T-U-007 returns null without changing state for local, missing, and source-frontmatter panels', () => {
+    const localPanelId = useAppStore.getState().createEditor(workspaceId, '/workspace/Docs/Plan.md')
+    const frontmatterPanelId = useAppStore.getState().createEditor(
+      workspaceId,
+      'flashquery://workspace-1/Docs/Plan.md?part=frontmatter',
+    )
+    const beforePanelIds = Object.keys(useAppStore.getState().workspaces[0].panels)
+
+    expect(useAppStore.getState().openFlashQueryFrontmatterEditor(workspaceId, localPanelId)).toBeNull()
+    expect(useAppStore.getState().openFlashQueryFrontmatterEditor(workspaceId, 'missing-panel')).toBeNull()
+    expect(useAppStore.getState().openFlashQueryFrontmatterEditor(workspaceId, frontmatterPanelId)).toBeNull()
+
+    expect(Object.keys(useAppStore.getState().workspaces[0].panels)).toEqual(beforePanelIds)
+  })
+
+  it('T-U-007 focuses an existing frontmatter editor instead of creating a duplicate', () => {
+    const sourcePanelId = useAppStore.getState().createEditor(
+      workspaceId,
+      'flashquery://workspace-1/Docs/Plan.md',
+      undefined,
+      { target: 'dock', zone: 'center' },
+    )
+
+    const first = useAppStore.getState().openFlashQueryFrontmatterEditor(workspaceId, sourcePanelId)
+    const second = useAppStore.getState().openFlashQueryFrontmatterEditor(workspaceId, sourcePanelId)
+
+    expect(second).toBe(first)
+    const panels = Object.values(useAppStore.getState().workspaces[0].panels)
+      .filter((panel) => panel.filePath === 'flashquery://workspace-1/Docs/Plan.md?part=frontmatter')
+    expect(panels).toHaveLength(1)
+  })
+
+  it('T-U-007 places canvas frontmatter beside the source canvas panel', () => {
+    const addNodeAndFocus = vi.fn()
+    const sourcePanelId = useAppStore.getState().createEditor(
+      workspaceId,
+      'flashquery://workspace-1/Docs/Plan.md',
+      { x: 100, y: 120 },
+      { target: 'canvas', position: { x: 100, y: 120 } },
+    )
+    setCanvasOperations(makeCanvasOpsWithNode(sourcePanelId, { x: 100, y: 120 }, { width: 640, height: 420 }, { addNodeAndFocus }))
+
+    const frontmatterPanelId = useAppStore.getState().openFlashQueryFrontmatterEditor(workspaceId, sourcePanelId)
+
+    expect(addNodeAndFocus).toHaveBeenCalledWith(frontmatterPanelId, 'editor', { x: 780, y: 120 })
   })
 })

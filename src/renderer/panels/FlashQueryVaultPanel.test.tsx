@@ -359,7 +359,7 @@ describe('FlashQueryVaultPanel row and folder behavior', () => {
     expect(updatePanelTitleSpy).toHaveBeenCalledWith(workspaceId, 'editor-1', 'Errors 4.md')
   })
 
-  it('opens document context actions through exactly Open and Open on Canvas', async () => {
+  it('T-U-007 opens document context actions through exactly Open, Open frontmatter, and Open on Canvas', async () => {
     const api = await renderLiveTree([
       { name: 'Project.md', type: 'document', vaultPath: 'Project.md' },
     ])
@@ -370,6 +370,7 @@ describe('FlashQueryVaultPanel row and folder behavior', () => {
     await waitFor(() => expect(api.showContextMenu).toHaveBeenCalledTimes(1))
     expect(api.showContextMenu).toHaveBeenCalledWith([
       { id: 'open', label: 'Open' },
+      { id: 'open-frontmatter', label: 'Open frontmatter' },
       { id: 'open-on-canvas', label: 'Open on Canvas' },
     ])
     expect(createEditorSpy).toHaveBeenCalledWith(
@@ -378,6 +379,23 @@ describe('FlashQueryVaultPanel row and folder behavior', () => {
       undefined,
       { target: 'canvas' },
     )
+  })
+
+  it('T-U-007 opens frontmatter from the document context menu with a frontmatter URI', async () => {
+    const api = await renderLiveTree([
+      { name: 'Project.md', type: 'document', vaultPath: 'Project.md' },
+    ])
+    vi.mocked(api.showContextMenu).mockResolvedValueOnce('open-frontmatter')
+
+    fireEvent.contextMenu(screen.getByRole('treeitem', { name: /Project.md/ }))
+
+    await waitFor(() => expect(createEditorSpy).toHaveBeenCalledWith(
+      workspaceId,
+      'flashquery://workspace-1/Project.md?part=frontmatter',
+      undefined,
+      { target: 'dock', zone: 'center' },
+    ))
+    expect(updatePanelTitleSpy).toHaveBeenCalledWith(workspaceId, 'editor-1', 'Project.md Frontmatter')
   })
 
   it('opens the document in dock mode from the Open context menu action', async () => {
