@@ -32,6 +32,7 @@ export interface FlashQueryStubServer {
   counts: () => FlashQueryStubCounts
   resetCounts: () => void
   setAvailable: (available: boolean) => void
+  setConnected: (connected: boolean) => void
   resetDocuments: () => void
   seedEmptyVault: () => void
   seedDocuments: (documents: Record<string, string | FlashQueryStubDocument>) => void
@@ -298,6 +299,22 @@ function makeMcpServer(
     },
   )
 
+  server.registerTool(
+    'list_vault_index',
+    {
+      description: 'List deterministic vault index entries for Pi @ mention cache tests',
+      inputSchema: z.object({}),
+    },
+    async () => mcpText({
+      entries: Array.from(documents.keys())
+        .sort()
+        .map((fullPath) => ({
+          filename: fullPath.split('/').at(-1) ?? fullPath,
+          fullPath,
+        })),
+    }),
+  )
+
   return server
 }
 
@@ -307,6 +324,8 @@ export async function startFlashQueryStubServer(
   let infoRequestCount = 0
   let mcpPostCount = 0
   const mcpMethods: string[] = []
+  // Phase 21 deterministic disconnect/reconnect support. `setConnected(false)`
+  // makes every info/MCP request fail with 503 without using a live network.
   let available = true
   let lastGetArgs: Record<string, unknown> | null = null
   let lastSearchArgs: Record<string, unknown> | null = null
@@ -405,6 +424,9 @@ export async function startFlashQueryStubServer(
     },
     setAvailable: (nextAvailable: boolean) => {
       available = nextAvailable
+    },
+    setConnected: (connected: boolean) => {
+      available = connected
     },
     resetDocuments: () => {
       documents.clear()

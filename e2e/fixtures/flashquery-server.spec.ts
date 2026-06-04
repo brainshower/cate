@@ -124,7 +124,7 @@ test('T-E-005 FlashQuery stub reads, update-writes, resets state, and exposes co
   }
 })
 
-test('T-E-002 FlashQuery stub supports frontmatter reads, writes, and call inspection', async () => {
+test('T-E-002 FlashQuery stub supports frontmatter reads, write payload inspection, and call inspection', async () => {
   const server = await startFlashQueryStubServer()
   try {
     server.seedDocuments({
@@ -268,6 +268,41 @@ test('T-E-003 FlashQuery stub supports deterministic document and memory search'
       limit: 1,
       include_archived: true,
       list_all: true,
+    })
+  } finally {
+    await server.close()
+  }
+})
+
+test('T-E-004 T-E-007 FlashQuery stub supports deterministic vault index replacement and disconnects', async () => {
+  const server = await startFlashQueryStubServer()
+  try {
+    server.seedDocuments({
+      'Old/Only.md': '# Old\n\nOld workspace fixture.',
+      'New/Plan.md': '# New\n\nReplacement fixture.',
+    })
+
+    expect(await callTool(server.baseUrl, 'list_vault_index', {})).toMatchObject({
+      entries: [
+        { filename: 'Plan.md', fullPath: 'New/Plan.md' },
+        { filename: 'Only.md', fullPath: 'Old/Only.md' },
+      ],
+    })
+
+    server.seedDocuments({
+      'New/Plan.md': '# New\n\nReplacement fixture.',
+    })
+    expect(await callTool(server.baseUrl, 'list_vault_index', {})).toMatchObject({
+      entries: [
+        { filename: 'Plan.md', fullPath: 'New/Plan.md' },
+      ],
+    })
+
+    server.setConnected(false)
+    await expect(callTool(server.baseUrl, 'list_vault_index', {})).rejects.toThrow()
+    server.setConnected(true)
+    await expect(callTool(server.baseUrl, 'list_vault_index', {})).resolves.toMatchObject({
+      entries: [{ filename: 'Plan.md', fullPath: 'New/Plan.md' }],
     })
   } finally {
     await server.close()
