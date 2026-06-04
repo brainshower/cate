@@ -89,15 +89,74 @@ describe('cate-flashquery lifecycle', () => {
     expect(newResult.details).toMatchObject({ workspaceId: 'ws-b', generation: 2 })
     expect(clientA.close).toHaveBeenCalledTimes(1)
   })
+
+  it('T-U-015 reconciles removed, changed, and newly available tools without provider unregister APIs', async () => {
+    const pi = mockPi()
+    const clientA = mockClient('ws-a', [
+      eligible({
+        name: 'stale_tool',
+        inputSchema: {
+          type: 'object',
+          properties: { oldOnly: { type: 'string' } },
+          required: ['oldOnly'],
+        },
+      }),
+      eligible({
+        name: 'changed_tool',
+        inputSchema: {
+          type: 'object',
+          properties: { oldValue: { type: 'string' } },
+          required: ['oldValue'],
+        },
+      }),
+    ])
+    const clientB = mockClient('ws-b', [
+      eligible({
+        name: 'changed_tool',
+        inputSchema: {
+          type: 'object',
+          properties: { newValue: { type: 'number' } },
+          required: ['newValue'],
+        },
+      }),
+      eligible({ name: 'new_tool' }),
+    ])
+    const handoffs = [handoff('ws-a'), handoff('ws-b')]
+    const clients = [clientA, clientB]
+    const lifecycle = createCateFlashQueryLifecycle(pi.api, {
+      readHandoff: async () => handoffs.shift() ?? null,
+      openClient: async () => clients.shift() ?? null,
+    })
+
+    await lifecycle.rebind('/workspace-a')
+    const staleTool = pi.registerTool.mock.calls.find(([tool]) => tool.name === 'stale_tool')?.[0]
+
+    await lifecycle.rebind('/workspace-b')
+    const changedRegistrations = pi.registerTool.mock.calls.filter(([tool]) => tool.name === 'changed_tool')
+    const newTool = pi.registerTool.mock.calls.find(([tool]) => tool.name === 'new_tool')?.[0]
+    const staleResult = await staleTool.execute('call-stale', {}, undefined, undefined, {})
+
+    expect(changedRegistrations).toHaveLength(2)
+    expect(changedRegistrations[1][0].parameters.properties).toHaveProperty('newValue')
+    expect(newTool).toBeTruthy()
+    expect(staleResult).toMatchObject({
+      isError: true,
+      content: [{ type: 'text', text: expect.stringContaining('not available in the current FlashQuery workspace') }],
+      details: { stale: true },
+    })
+    expect(pi.unregisterProvider).not.toHaveBeenCalled()
+  })
 })
 
 function mockPi() {
   const registerTool = vi.fn()
+  const unregisterProvider = vi.fn()
   const api = {
     on: vi.fn(),
     registerTool,
+    unregisterProvider,
   } as unknown as ExtensionAPI
-  return { api, registerTool }
+  return { api, registerTool, unregisterProvider }
 }
 
 function mockClient(workspaceId: string, records: FlashQueryRegistryRecord[]): FlashQueryExtensionClient {
