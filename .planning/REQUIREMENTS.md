@@ -44,8 +44,8 @@ The product requirements document is the source of truth for detailed acceptance
 
 ### References, Clipboard, and Degradation
 
-- [ ] **REQ-018**: User can type `@` in Pi chat to autocomplete FlashQuery vault documents and insert literal `{{ref:<fullPath>}}` references from a workspace-scoped vault-index cache.
-- [ ] **REQ-019**: User can copy vault paths and whole-document references from vault tree rows, search document rows, and FlashQuery editor title actions.
+- [x] **REQ-018**: User can type `@` in Pi chat to autocomplete FlashQuery vault documents and insert literal `{{ref:<fullPath>}}` references from a workspace-scoped vault-index cache.
+- [x] **REQ-019**: User can copy vault paths and whole-document references from vault tree rows, search document rows, and FlashQuery editor title actions.
 - [ ] **REQ-020**: User gets consistent disconnected, reconnecting, and workspace-switch behavior across refresh, frontmatter save, search, vault-index cache, clipboard reference actions, and Pi extension tools.
 
 ## Deferred Requirements
@@ -96,8 +96,8 @@ The product requirements document is the source of truth for detailed acceptance
 | REQ-015 | Phase 18 | Complete |
 | REQ-016 | Phase 18 | Complete |
 | REQ-017 | Phase 19 | Pending |
-| REQ-018 | Phase 20 | Pending |
-| REQ-019 | Phase 20 | Pending |
+| REQ-018 | Phase 20 | Complete |
+| REQ-019 | Phase 20 | Complete |
 | REQ-020 | Phase 21 | Pending |
 
 **Coverage:**

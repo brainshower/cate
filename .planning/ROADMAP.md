@@ -196,7 +196,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 20-04-PLAN.md — Add E2E/manual evidence and UAT traceability.
+- [x] 20-04-PLAN.md — Add E2E/manual evidence and UAT traceability.
 
 **Success criteria:**
 

@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: FlashQuery Milestone 2
 status: executing
-stopped_at: Completed 20-03-PLAN.md
-last_updated: "2026-06-04T19:32:33.869Z"
+stopped_at: Completed 20-04-PLAN.md with T-M-004 blocked pending human native clipboard verification
+last_updated: "2026-06-04T19:49:12.737Z"
 last_activity: 2026-06-04
 progress:
   total_phases: 8
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 21
-  completed_plans: 19
-  percent: 75
+  completed_plans: 21
+  percent: 88
 ---
 
 # Project State
@@ -21,26 +21,26 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-03 after v1.2 FlashQuery Milestone 2 planning)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** Phase 20 — pi-mentions-and-clipboard-utilities
+**Current focus:** Phase 21 — cross-surface connection degradation
 
 ## Current Position
 
-Phase: 20 (pi-mentions-and-clipboard-utilities) — EXECUTING
+Phase: 20 (pi-mentions-and-clipboard-utilities) — COMPLETE
 Plan: 4 of 4
-Status: Ready to execute
+Status: Complete with T-M-004 blocked pending human native macOS clipboard verification
 Last activity: 2026-06-04
 
 ## Session Continuity
 
-Last session: 2026-06-04T19:32:33.553Z
-Stopped At: Completed 20-03-PLAN.md
+Last session: 2026-06-04T19:49:12.493Z
+Stopped At: Completed 20-04-PLAN.md with T-M-004 blocked pending human native clipboard verification
 Resume File: None
 
 ## Next Up
 
-Verify Phase 17 or continue to Phase 18 planning/execution.
+Plan or execute Phase 21: cross-surface connection degradation.
 
-Phase 17 has 3/3 plans complete covering bundled FlashQuery Pi extension installation, eligible tool registration, workspace lifecycle/stale-tool handling, E2E fixture evidence, and T-M-001 manual evidence/blockers.
+Phase 20 has 4/4 plans complete covering vault-index cache lifecycle, Pi `@` mention autocomplete, clipboard utilities, E2E coverage, and UAT traceability. T-M-004 native macOS clipboard verification is blocked until a human records pasted clipboard values in `20-UAT.md`.
 
 ## Decisions
 
@@ -117,7 +117,8 @@ Items acknowledged and deferred at milestone close on 2026-05-30:
 | Phase 20 P01 | 12min | 2 tasks | 8 files |
 | Phase 20 P02 | 9min | 2 tasks | 2 files |
 | Phase 20 P03 | 14min | 2 tasks | 5 files |
+| Phase 20 P04 | 42min | 3 tasks | 7 files |
 
 ## Operator Next Steps
 
-- Plan Phase 14 with /gsd-plan-phase 14
+- Plan Phase 21 with /gsd-plan-phase 21, or record human T-M-004 pasted clipboard evidence in `.planning/phases/20-pi-mentions-and-clipboard-utilities/20-UAT.md`.

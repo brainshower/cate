@@ -28,6 +28,13 @@ tests: [T-U-006, T-U-011, T-U-012, T-U-020, T-E-003, T-E-004, T-M-004]
 | T-E-003 | REQ-019 | `npm run test:e2e -- e2e/flashquery-vault-search.spec.ts` | passed in Plan 20-04 |
 | T-E-004 | REQ-018 | `npm run build` and `npm run test:e2e -- e2e/flashquery-pi-mentions.spec.ts` | passed in Plan 20-04 |
 
+Full-suite validation:
+
+- `npm run build` - passed.
+- `npm run typecheck` - passed.
+- `npm test` - passed: 81 files, 749 tests passed, 3 skipped.
+- `npm run test:e2e` - passed: 46 tests passed, 2 skipped.
+
 ## T-E-004 Coverage Notes
 
 - Fixture vault-index data includes `Alpha/Plan.md`, `Beta/Plan.md`, and `Gamma/Notes.md`.
