@@ -19,6 +19,13 @@ export interface FlashQueryStubMemory {
   title?: string
 }
 
+export interface FlashQueryStubRegistryTool {
+  name: string
+  description?: string
+  inputSchema?: Record<string, unknown>
+  metadata?: Record<string, unknown>
+}
+
 export interface FlashQueryStubServer {
   baseUrl: string
   close: () => Promise<void>
@@ -29,6 +36,7 @@ export interface FlashQueryStubServer {
   seedEmptyVault: () => void
   seedDocuments: (documents: Record<string, string | FlashQueryStubDocument>) => void
   seedMemories: (memories: Record<string, string | FlashQueryStubMemory>) => void
+  seedRegistryTools: (tools: FlashQueryStubRegistryTool[]) => void
   setDocumentTitles: (titles: Record<string, string | null>) => void
   documentBody: (vaultPath: string) => string | null
   documentFrontmatter: (vaultPath: string) => Record<string, unknown> | null
@@ -160,6 +168,7 @@ function mcpText(payload: unknown) {
 function makeMcpServer(
   documents: Map<string, FlashQueryStubDocument>,
   memories: Map<string, FlashQueryStubMemory>,
+  registryTools: FlashQueryStubRegistryTool[],
   titleOverrides: Map<string, string | null>,
   missingDocuments: Set<string>,
   recordGetArgs: (args: Record<string, unknown>) => void,
@@ -167,6 +176,18 @@ function makeMcpServer(
   recordWriteArgs: (args: Record<string, unknown>) => void,
 ): McpServer {
   const server = new McpServer({ name: 'flashquery-e2e-stub', version: '1.0.0-e2e' })
+
+  for (const tool of registryTools) {
+    server.registerTool(
+      tool.name,
+      {
+        description: tool.description ?? `Fixture registry tool ${tool.name}`,
+        inputSchema: z.record(z.string(), z.unknown()).optional(),
+        _meta: tool.metadata,
+      },
+      async () => mcpText({ ok: true, tool: tool.name }),
+    )
+  }
 
   server.registerTool(
     'list_vault',
@@ -291,6 +312,7 @@ export async function startFlashQueryStubServer(
   const expectedAuthorization = `Bearer ${options.expectedBearerToken ?? DEFAULT_BEARER_TOKEN}`
   const documents = new Map(Object.entries(DEFAULT_DOCUMENTS))
   const memories = new Map<string, FlashQueryStubMemory>()
+  const registryTools: FlashQueryStubRegistryTool[] = []
   const titleOverrides = new Map<string, string | null>()
   const missingDocuments = new Set<string>()
 
@@ -329,6 +351,7 @@ export async function startFlashQueryStubServer(
       const mcpServer = makeMcpServer(
         documents,
         memories,
+        registryTools,
         titleOverrides,
         missingDocuments,
         (args) => { lastGetArgs = args },
@@ -382,6 +405,7 @@ export async function startFlashQueryStubServer(
     resetDocuments: () => {
       documents.clear()
       memories.clear()
+      registryTools.length = 0
       titleOverrides.clear()
       missingDocuments.clear()
       for (const [vaultPath, body] of Object.entries(DEFAULT_DOCUMENTS)) {
@@ -391,6 +415,7 @@ export async function startFlashQueryStubServer(
     seedEmptyVault: () => {
       documents.clear()
       memories.clear()
+      registryTools.length = 0
       titleOverrides.clear()
       missingDocuments.clear()
     },
@@ -407,6 +432,10 @@ export async function startFlashQueryStubServer(
       for (const [id, memory] of Object.entries(nextMemories)) {
         memories.set(id, typeof memory === 'string' ? { text: memory } : { ...memory })
       }
+    },
+    seedRegistryTools: (tools: FlashQueryStubRegistryTool[]) => {
+      registryTools.length = 0
+      registryTools.push(...tools)
     },
     setDocumentTitles: (titles: Record<string, string | null>) => {
       titleOverrides.clear()

@@ -89,6 +89,12 @@ function ensureElectronNodeShim(): string {
 
 function buildAgentEnv(cwd: string): Record<string, string> {
   const env = { ...getShellEnv() }
+  const nodePathEntries = [
+    path.join(app.getAppPath(), 'node_modules'),
+    path.join(process.cwd(), 'node_modules'),
+    env.NODE_PATH,
+  ].filter((entry): entry is string => typeof entry === 'string' && entry.length > 0)
+  env.NODE_PATH = nodePathEntries.join(process.platform === 'win32' ? ';' : ':')
   // Scope pi's entire config (extensions, sessions, settings, auth) to this
   // workspace instead of the user's global ~/.pi/agent.
   env.PI_CODING_AGENT_DIR = agentDirFor(cwd)

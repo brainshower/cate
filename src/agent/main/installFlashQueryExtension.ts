@@ -30,6 +30,7 @@ export interface FlashQueryExtensionHandoff {
 function sourceDir(): string | null {
   const candidates = [
     path.join(app.getAppPath(), 'src', 'agent', 'extensions', 'cate-flashquery'),
+    path.join(process.cwd(), 'src', 'agent', 'extensions', 'cate-flashquery'),
     path.join(process.resourcesPath ?? '', 'cate-extensions', 'cate-flashquery'),
   ]
   for (const candidate of candidates) {
@@ -48,21 +49,30 @@ async function copyIfMissing(src: string, dest: string): Promise<void> {
   log.info('[installFlashQueryExtension] installed %s', dest)
 }
 
+async function copyExtensionFilesIfMissing(srcDir: string, destDir: string): Promise<void> {
+  const entries = await fsp.readdir(srcDir, { withFileTypes: true })
+  for (const entry of entries) {
+    if (!entry.isFile()) continue
+    if (entry.name !== 'package.json' && !entry.name.endsWith('.ts')) continue
+    if (entry.name.endsWith('.test.ts')) continue
+    await copyIfMissing(path.join(srcDir, entry.name), path.join(destDir, entry.name))
+  }
+}
+
 const installed = new Set<string>()
 
 export async function installFlashQueryExtension(cwd: string): Promise<void> {
   const home = agentDirFor(cwd)
   if (installed.has(home)) return
-  installed.add(home)
   try {
     const src = sourceDir()
     if (!src) {
       log.warn('[installFlashQueryExtension] source dir not found — FlashQuery extension not installed')
       return
     }
+    installed.add(home)
     const destDir = path.join(home, 'extensions', 'cate-flashquery')
-    await copyIfMissing(path.join(src, 'index.ts'), path.join(destDir, 'index.ts'))
-    await copyIfMissing(path.join(src, 'package.json'), path.join(destDir, 'package.json'))
+    await copyExtensionFilesIfMissing(src, destDir)
   } catch (err) {
     log.warn('[installFlashQueryExtension] install failed: %O', err)
   }
