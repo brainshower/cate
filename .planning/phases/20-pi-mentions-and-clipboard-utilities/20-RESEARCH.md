@@ -354,17 +354,19 @@ if (action === 'copy-reference') await copyDocumentValue(`{{ref:${result.fullPat
 | A1 | Extension-dispatched mutating document tools can be detected in renderer by successful `tool_execution_end` events with `details.flashquery === true` and tool names such as `write_document`. [ASSUMED] | Known Gaps / Architecture Patterns | If Pi event details omit enough metadata for some tools, planner needs a lower-level extension callback or explicit renderer event. |
 | A2 | T-E-004 can use the existing real Pi panel shell plus mocked/harnessed state rather than a live provider. [ASSUMED] | Validation Architecture | If the composer cannot be exercised without a configured provider/session, planner must add a harness-only route or use mocked component E2E. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Where should successful mutating extension tools publish cache-refresh intent?**
    - What we know: generic FlashQuery tool execution results include sanitized `details.flashquery` and `toolName` in agent events. [VERIFIED: codebase grep]
    - What's unclear: whether every mutating document tool uses stable names and result shapes. [ASSUMED]
    - Recommendation: Plan a small helper that classifies known document-mutating tool names first, with tests around successful vs failed `tool_execution_end`. [ASSUMED]
+   - RESOLVED: Phase 20 will publish cache-refresh intent from the renderer agent-store event path by classifying successful FlashQuery document-mutating tool completions. Plan 20-01 owns the helper and requires tests for successful mutation, failed mutation, and non-mutating/read-only tools. If implementation finds a tool event lacks enough metadata, that is an execution deviation to solve locally by adding a narrowly scoped extension detail field or renderer bridge event, not a product-scope question.
 
 2. **Should `@` mention loading fetch start only when an agent panel exists?**
    - What we know: D-17 places cache in `agentStore.ts` and the cache serves Pi chat only. [CITED: 20-CONTEXT.md]
    - What's unclear: whether preloading globally before an agent panel exists has product value. [ASSUMED]
    - Recommendation: Trigger from mounted `AgentPanel` workspace/status effects and from explicit surface events; this keeps scope minimal. [ASSUMED]
+   - RESOLVED: Phase 20 will fetch the vault-index cache from mounted/active AgentPanel workspace-status lifecycle and explicit successful surface/tool events only. No global preloading before an agent panel exists is required for REQ-018, because the cache serves the Pi composer and the product docs do not require background population for absent agent panels.
 
 ## Environment Availability
 
