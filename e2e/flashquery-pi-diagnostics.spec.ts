@@ -60,27 +60,30 @@ test('T-E-006 preserves mocked FlashQuery Pi diagnostics through renderer tool m
               content: [{ type: 'text', text: 'Reference answer' }],
               metadata: {
                 resolver: 'purpose',
-                name: 'gpt-4.1-mini',
+                name: 'summarize-doc',
                 resolved_model_name: 'gpt-4.1-mini',
+                provider_name: 'openai',
+                fallback_position: 1,
                 iterations: 2,
                 tokens: { input: 30, output: 12 },
                 cost_usd: 0.01,
                 latency_ms: 1234,
-                resolution_chain: [
-                  { step: 'purpose', value: 'summarize-doc' },
-                  { step: 'model', value: 'gpt-4.1-mini' },
-                ],
-                injected_references: [{ path: 'Path/to/Doc.md', resolved: true }],
+                injected_references: [{
+                  path: 'Path/to/Doc.md',
+                  resolved: true,
+                  template_params_used: { audience: 'developer' },
+                }],
                 tool_calls: [
-                  { index: 1, name: 'get_document', status: 'success', summary: 'Path/to/Doc.md' },
-                  { index: 2, name: 'search_memory', status: 'success', summary: '2 memories' },
+                  { server: 'memory-broker', tool: 'search_memory', count: 1, cost: 0.003 },
                 ],
-                template_params: {
-                  audience: 'developer',
-                  document: 'Path/to/Doc.md',
-                  auth: `Bearer ${secretSentinel}`,
-                  credentials: secretSentinel,
-                  safeLookingValue: `Bearer ${secretSentinel}`,
+                tools: {
+                  calls_log: [{
+                    iteration: 1,
+                    tool_calls: [
+                      { tool_name: 'get_document', status: 'success', summary: 'Path/to/Doc.md' },
+                      { tool_name: 'search_documents', status: 'success', summary: '2 documents' },
+                    ],
+                  }],
                 },
               },
               messages: [
@@ -135,8 +138,8 @@ test('T-E-006 preserves mocked FlashQuery Pi diagnostics through renderer tool m
             toolName: 'call_macro',
             result: {
               trace: [
-                { step: 'load', status: 'success', tool: 'get_document', message: 'Loaded macro source' },
-                { step: 'run', status: 'success', tool: 'call_model', message: 'Generated digest' },
+                { kind: 'tool_call', name: 'get_document', message: 'Loaded macro source', at: '2026-06-04T12:00:00Z' },
+                { kind: 'model_call', name: 'call_model', message: 'Generated digest', at: '2026-06-04T12:00:01Z' },
               ],
             },
           },
@@ -194,8 +197,8 @@ test('T-E-006 preserves mocked FlashQuery Pi diagnostics through renderer tool m
         flashquery: true,
         result: {
           trace: [
-            { step: 'load', status: 'success', tool: 'get_document' },
-            { step: 'run', status: 'success', tool: 'call_model' },
+            { kind: 'tool_call', name: 'get_document' },
+            { kind: 'model_call', name: 'call_model' },
           ],
         },
       },
@@ -210,7 +213,7 @@ test('T-E-006 preserves mocked FlashQuery Pi diagnostics through renderer tool m
       },
     })
 
-    await expect(page.getByText('call_model · via purpose gpt-4.1-mini · 2 iter · 2 FQ calls · 42 tok · $0.010 · 1.23s')).toBeVisible()
+    await expect(page.getByText('call_model · via purpose gpt-4.1-mini · 2 iter · 3 FQ calls · 42 tok · $0.010 · 1.23s')).toBeVisible()
     await expect(page.getByText('search_memory')).toHaveCount(0)
     await expect(page.getByText(longPayload)).toHaveCount(0)
     await expect(page.getByText(secretSentinel)).toHaveCount(0)
@@ -219,11 +222,16 @@ test('T-E-006 preserves mocked FlashQuery Pi diagnostics through renderer tool m
     await expect(page.getByText('Resolution chain')).toBeVisible()
     await expect(page.getByText('purpose: summarize-doc')).toBeVisible()
     await expect(page.getByText('model: gpt-4.1-mini')).toBeVisible()
+    await expect(page.getByText('provider: openai')).toBeVisible()
+    await expect(page.getByText('fallback: #1')).toBeVisible()
     await expect(page.getByText('Injected refs')).toBeVisible()
     await expect(page.getByText('Path/to/Doc.md').first()).toBeVisible()
     await expect(page.getByText('FlashQuery tool loop')).toBeVisible()
     await expect(page.getByText('get_document').first()).toBeVisible()
     await expect(page.getByText('search_memory')).toBeVisible()
+    await expect(page.getByText('memory-broker/search_memory')).toBeVisible()
+    await expect(page.getByText('count 1')).toBeVisible()
+    await expect(page.getByText('$0.003')).toBeVisible()
     await expect(page.getByText('Cost')).toBeVisible()
     await expect(page.getByText('$0.010', { exact: true })).toBeVisible()
     await expect(page.getByText('Template params')).toBeVisible()
@@ -244,6 +252,8 @@ test('T-E-006 preserves mocked FlashQuery Pi diagnostics through renderer tool m
     await expect(page.getByText('call_macro · 2 steps')).toBeVisible()
     await page.getByText('call_macro · 2 steps').click()
     await expect(page.getByText('Trace')).toBeVisible()
+    await expect(page.getByText('tool_call')).toBeVisible()
+    await expect(page.getByText('model_call')).toBeVisible()
     await expect(page.getByText('Loaded macro source')).toBeVisible()
     await expect(page.getByText('Generated digest')).toBeVisible()
 

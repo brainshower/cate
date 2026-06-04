@@ -838,6 +838,15 @@ interface FlashQueryTraceRow {
   message?: string
 }
 
+interface FlashQueryLoopRow {
+  index?: number
+  tool: string
+  status?: string
+  summary?: string
+  count?: number
+  cost?: number
+}
+
 function isRichFlashQueryTool(msg: ToolMessage): boolean {
   return Boolean(msg.flashquery && (msg.name === 'call_model' || msg.name === 'call_macro'))
 }
@@ -923,11 +932,18 @@ function parseCallModelEnvelope(msg: ToolMessage, details: Record<string, unknow
   const envelopeText = msg.result ?? firstTextBlock(asRecord(details.result)?.content)
   const envelope = parseJsonRecord(envelopeText)
   const metadata = asRecord(envelope?.metadata)
-  if (!metadata) return {}
+  const output: Record<string, unknown> = {
+    templateParams: callModelTemplateParams(msg, metadata),
+  }
+  if (!metadata) return output
   const tools = asRecord(metadata.tools)
   return {
+    ...output,
     resolver: metadata.resolver,
+    resolverName: metadata.name,
     modelName: firstValue(metadata.resolved_model_name, metadata.model_name, metadata.name, metadata.model),
+    providerName: firstValue(metadata.provider_name, metadata.providerName),
+    fallbackPosition: firstValue(metadata.fallback_position, metadata.fallbackPosition),
     iterations: firstValue(metadata.iterations, tools?.iterations),
     tokens: totalTokens(metadata.tokens),
     cost_usd: metadata.cost_usd,
@@ -935,8 +951,9 @@ function parseCallModelEnvelope(msg: ToolMessage, details: Record<string, unknow
     messages: envelope?.messages,
     refs: firstValue(metadata.injected_references, metadata.refs),
     resolution_chain: firstValue(metadata.resolution_chain, metadata.resolutionChain),
-    serverToolLoop: firstValue(metadata.tool_calls, tools?.calls_log, metadata.server_tool_loop),
-    templateParams: firstValue(metadata.template_params, metadata.templateParams, envelope?.template_params),
+    brokeredToolLoop: metadata.tool_calls,
+    nativeToolLoop: tools?.calls_log,
+    serverToolLoop: metadata.server_tool_loop,
   }
 }
 
@@ -948,7 +965,7 @@ function flashQueryCallModelSummary(msg: ToolMessage, diagnostics: Record<string
   const iterations = asNumber(firstValue(diagnostics.iterations, diagnostics.iterationCount))
   if (iterations != null) parts.push(`${iterations} iter`)
   const flashqueryCalls = asNumber(firstValue(diagnostics.flashqueryCalls, diagnostics.fqCalls, diagnostics.toolCalls))
-    ?? flashQueryLoopRows(diagnostics).length
+    ?? flashQueryLoopCallCount(diagnostics)
   if (flashqueryCalls > 0) parts.push(`${flashqueryCalls} FQ calls`)
   const tokens = asNumber(firstValue(diagnostics.tokens, diagnostics.totalTokens, asRecord(diagnostics.usage)?.total))
   if (tokens != null) parts.push(`${tokens} tok`)
@@ -1009,6 +1026,8 @@ function flashQueryCallModelSections(msg: ToolMessage, diagnostics: Record<strin
               <span className="text-teal-300 shrink-0">{row.index ?? index + 1}</span>
               <span className="text-primary/90 shrink-0">{row.tool}</span>
               {row.status && <span className="text-muted shrink-0">{row.status}</span>}
+              {row.count != null && <span className="text-muted shrink-0">count {row.count}</span>}
+              {row.cost != null && <span className="text-muted shrink-0">{formatFlashQueryCost(row.cost)}</span>}
               {row.summary && <span className="text-primary/70 truncate">{row.summary}</span>}
             </div>
           ))}
@@ -1059,7 +1078,7 @@ function flashQueryCallMacroSections(msg: ToolMessage, diagnostics: Record<strin
           <thead>
             <tr>
               <th className="text-left px-2 py-1 border-b border-white/10 bg-white/[0.04] font-medium text-muted">Step</th>
-              <th className="text-left px-2 py-1 border-b border-white/10 bg-white/[0.04] font-medium text-muted">Status</th>
+              <th className="text-left px-2 py-1 border-b border-white/10 bg-white/[0.04] font-medium text-muted">Type</th>
               <th className="text-left px-2 py-1 border-b border-white/10 bg-white/[0.04] font-medium text-muted">Tool</th>
               <th className="text-left px-2 py-1 border-b border-white/10 bg-white/[0.04] font-medium text-muted">Message</th>
             </tr>
@@ -1101,8 +1120,7 @@ function FlashQueryMessagesPayload({ payload }: { payload: unknown }) {
 
 function flashQueryResolutionChain(diagnostics: Record<string, unknown>): string[] {
   const raw = asArray(firstValue(diagnostics.resolutionChain, diagnostics.resolution_chain, diagnostics.resolution))
-  if (!raw) return []
-  return raw.flatMap((item) => {
+  const explicit = raw?.flatMap((item) => {
     if (typeof item === 'string' && item.trim()) return [item]
     const record = asRecord(item)
     if (!record) return []
@@ -1111,7 +1129,20 @@ function flashQueryResolutionChain(diagnostics: Record<string, unknown>): string
     if (step && value) return [`${step}: ${value}`]
     if (value) return [value]
     return []
-  })
+  }) ?? []
+  if (explicit.length > 0) return explicit
+
+  const rows: string[] = []
+  const resolver = firstString(diagnostics.resolver)
+  const requestedName = firstString(diagnostics.resolverName, diagnostics.requestedName, diagnostics.purpose, diagnostics.purposeName, diagnostics.name)
+  const modelName = firstString(diagnostics.modelName, diagnostics.model, diagnostics.resolvedModelName)
+  const providerName = firstString(diagnostics.providerName, diagnostics.provider, diagnostics.provider_name)
+  const fallback = asNumber(firstValue(diagnostics.fallbackPosition, diagnostics.fallback_position))
+  if (resolver === 'purpose' && requestedName) rows.push(`purpose: ${requestedName}`)
+  if (modelName) rows.push(`model: ${modelName}`)
+  if (providerName) rows.push(`provider: ${providerName}`)
+  if (fallback != null) rows.push(`fallback: #${fallback}`)
+  return rows
 }
 
 function flashQueryRefs(details: unknown, diagnostics?: Record<string, unknown>): Array<{ path: string; resolved?: boolean; error?: string }> {
@@ -1130,32 +1161,107 @@ function flashQueryRefs(details: unknown, diagnostics?: Record<string, unknown>)
   })
 }
 
-function flashQueryLoopRows(diagnostics: Record<string, unknown>): Array<{ index?: number; tool: string; status?: string; summary?: string }> {
-  const raw = asArray(firstValue(diagnostics.serverToolLoop, diagnostics.toolLoop, diagnostics.flashqueryToolLoop, diagnostics.tools))
-  if (!raw) return []
-  return raw.flatMap((item, index) => {
+function flashQueryLoopRows(diagnostics: Record<string, unknown>): FlashQueryLoopRow[] {
+  const rows: FlashQueryLoopRow[] = []
+  const nativeRaw = asArray(firstValue(diagnostics.nativeToolLoop, diagnostics.callsLog, diagnostics.calls_log))
+  for (const item of nativeRaw ?? []) {
+    rows.push(...nativeToolLoopRows(item, rows.length))
+  }
+
+  const brokeredRaw = asArray(firstValue(diagnostics.brokeredToolLoop, diagnostics.brokeredToolCalls))
+  for (const item of brokeredRaw ?? []) {
     const record = asRecord(item)
-    const tool = record ? firstString(record.tool, record.name, record.toolName) : undefined
-    if (!tool) return []
-    return [{
-      index: asNumber(record?.index) ?? asNumber(record?.step) ?? index + 1,
-      tool,
-      status: firstString(record?.status),
-      summary: firstString(record?.summary, record?.message, record?.text),
-    }]
-  })
+    const server = firstString(record?.server)
+    const toolName = firstString(record?.tool, record?.name, record?.toolName, record?.tool_name)
+    if (!toolName) continue
+    rows.push({
+      index: rows.length + 1,
+      tool: server ? `${server}/${toolName}` : toolName,
+      count: asNumber(record?.count),
+      cost: asNumber(record?.cost),
+    })
+  }
+
+  const legacyRaw = asArray(firstValue(diagnostics.serverToolLoop, diagnostics.toolLoop, diagnostics.flashqueryToolLoop))
+  for (const item of legacyRaw ?? []) {
+    rows.push(...legacyToolLoopRows(item, rows.length))
+  }
+  return rows
+}
+
+function nativeToolLoopRows(item: unknown, offset: number): FlashQueryLoopRow[] {
+  const record = asRecord(item)
+  if (!record) return []
+  const iteration = asNumber(record.iteration)
+  const calls = asArray(record.tool_calls)
+  if (calls) {
+    return calls.flatMap((call, index) => {
+      const callRecord = asRecord(call)
+      const tool = callRecord ? firstString(callRecord.tool_name, callRecord.tool, callRecord.name, callRecord.toolName) : undefined
+      if (!tool) return []
+      return [{
+        index: offset + index + 1,
+        tool,
+        status: firstString(callRecord?.status, callRecord?.state),
+        summary: firstString(callRecord?.summary, callRecord?.message, callRecord?.text, callRecord?.result_summary),
+      }]
+    })
+  }
+  const tool = firstString(record.tool_name, record.tool, record.name, record.toolName)
+  if (!tool) return []
+  return [{
+    index: asNumber(record.index) ?? asNumber(record.step) ?? iteration ?? offset + 1,
+    tool,
+    status: firstString(record.status, record.state),
+    summary: firstString(record.summary, record.message, record.text, record.result_summary),
+  }]
+}
+
+function legacyToolLoopRows(item: unknown, offset: number): FlashQueryLoopRow[] {
+  const record = asRecord(item)
+  if (!record) return []
+  const tool = firstString(record.tool, record.name, record.toolName, record.tool_name)
+  if (!tool) return []
+  return [{
+    index: asNumber(record.index) ?? asNumber(record.step) ?? offset + 1,
+    tool,
+    status: firstString(record.status),
+    summary: firstString(record.summary, record.message, record.text),
+  }]
+}
+
+function flashQueryLoopCallCount(diagnostics: Record<string, unknown>): number {
+  const explicitRows = flashQueryLoopRows(diagnostics)
+  if (explicitRows.length === 0) return 0
+  return explicitRows.reduce((count, row) => count + (row.count ?? 1), 0)
+}
+
+function callModelTemplateParams(msg: ToolMessage, metadata?: Record<string, unknown>): unknown {
+  const args = asRecord(msg.args)
+  const fromArgs = firstValue(args?.template_params, args?.templateParams)
+  if (fromArgs !== undefined && fromArgs !== null) return fromArgs
+  const refs = asArray(firstValue(metadata?.injected_references, metadata?.refs))
+  const used: unknown[] = []
+  for (const ref of refs ?? []) {
+    const record = asRecord(ref)
+    const params = firstValue(record?.template_params_used, record?.templateParamsUsed)
+    if (params !== undefined && params !== null) used.push(params)
+  }
+  if (used.length === 1) return used[0]
+  if (used.length > 1) return used
+  return firstValue(metadata?.template_params, metadata?.templateParams)
 }
 
 function flashQueryTraceRows(diagnostics: Record<string, unknown>): FlashQueryTraceRow[] {
   const raw = asArray(firstValue(diagnostics.trace, diagnostics.macroTrace, diagnostics.steps))
   if (!raw) return []
-  return raw.flatMap((item) => {
+  return raw.flatMap((item, index) => {
     const record = asRecord(item)
     if (!record) return []
     const row = {
-      step: firstString(record.step, record.name, record.id),
-      status: firstString(record.status, record.state),
-      tool: firstString(record.tool, record.toolName),
+      step: firstString(record.step, record.id) ?? String(index + 1),
+      status: firstString(record.kind, record.status, record.state),
+      tool: firstString(record.tool, record.toolName, record.name),
       message: firstString(record.message, record.summary, record.text),
     }
     return row.step || row.status || row.tool || row.message ? [row] : []

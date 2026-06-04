@@ -46,34 +46,37 @@ function callModelEnvelopeText(overrides: Record<string, unknown> = {}): string 
     content: [{ type: 'text', text: 'Answer from FlashQuery' }],
     metadata: {
       resolver: 'purpose',
-      name: 'gpt-4.1-mini',
+      name: 'research',
       resolved_model_name: 'gpt-4.1-mini',
+      provider_name: 'openai',
+      fallback_position: 2,
       iterations: 3,
       tokens: { input: 1000, output: 280 },
       cost_usd: 0.024,
       latency_ms: 1450,
-      resolution_chain: [
-        { step: 'purpose', value: 'research' },
-        { step: 'model', value: 'gpt-4.1-mini' },
-      ],
       injected_references: [
-        { path: 'Docs/Brief.md', resolved: true },
+        {
+          path: 'Docs/Brief.md',
+          resolved: true,
+          template_params_used: { audience: 'developer' },
+        },
         { path: 'Docs/Missing.md', resolved: false, error: 'document not found' },
       ],
       tool_calls: [
-        { index: 1, tool: 'search_documents', status: 'success', summary: 'Found 2 docs' },
-        { index: 2, tool: 'get_document', status: 'success', summary: 'Loaded Docs/Brief.md' },
+        { server: 'filesystem', tool: 'read_file', count: 1, cost: 0.002 },
       ],
-      template_params: {
-        audience: 'developer',
-        authorization: 'Bearer should-not-render',
-        auth: 'Basic should-not-render',
-        credentials: 'should-not-render',
-        headers: { authorization: 'Bearer should-not-render' },
-        endpointUrl: 'https://should-not-render.example',
-        requestInit: { cookie: 'should-not-render' },
-        handoff: { token: 'should-not-render' },
-        innocuous: 'Bearer should-not-render',
+      tools: {
+        calls_log: [
+          {
+            iteration: 1,
+            model_name: 'gpt-4.1-mini',
+            provider_name: 'openai',
+            tool_calls: [
+              { tool_name: 'search_documents', status: 'success', summary: 'Found 2 docs' },
+              { tool_name: 'get_document', status: 'success', summary: 'Loaded Docs/Brief.md' },
+            ],
+          },
+        ],
       },
     },
     messages: [
@@ -84,11 +87,32 @@ function callModelEnvelopeText(overrides: Record<string, unknown> = {}): string 
   })
 }
 
+function templateParams() {
+  return {
+    'Docs/Brief.md': {
+        audience: 'developer',
+        authorization: 'Bearer should-not-render',
+        auth: 'Basic should-not-render',
+        credentials: 'should-not-render',
+        headers: { authorization: 'Bearer should-not-render' },
+        endpointUrl: 'https://should-not-render.example',
+        requestInit: { cookie: 'should-not-render' },
+        handoff: { token: 'should-not-render' },
+        innocuous: 'Bearer should-not-render',
+    },
+  }
+}
+
 function completedCallModel(overrides: Partial<ToolMessage> = {}): ToolMessage {
   const result = callModelEnvelopeText()
   return tool({
     toolCallId: 'call-model-1',
     name: 'call_model',
+    args: {
+      prompt: 'Summarize {{ref:Docs/Brief.md}}',
+      purpose: 'research',
+      template_params: templateParams(),
+    },
     result,
     flashquery: {
       flashquery: true,
@@ -115,23 +139,28 @@ describe('ChatThread FlashQuery ToolCard rendering', () => {
   it('T-U-019 REQ-017 renders completed call_model collapsed summary from diagnostics', () => {
     renderThread([completedCallModel()])
 
-    expect(screen.getByText('call_model · via purpose gpt-4.1-mini · 3 iter · 2 FQ calls · 1280 tok · $0.024 · 1.45s')).toBeTruthy()
+    expect(screen.getByText('call_model · via purpose gpt-4.1-mini · 3 iter · 3 FQ calls · 1280 tok · $0.024 · 1.45s')).toBeTruthy()
   })
 
   it('T-U-019 REQ-017 expands call_model diagnostics inside the ToolCard', () => {
     renderThread([completedCallModel()])
 
-    fireEvent.click(screen.getByText('call_model · via purpose gpt-4.1-mini · 3 iter · 2 FQ calls · 1280 tok · $0.024 · 1.45s'))
+    fireEvent.click(screen.getByText('call_model · via purpose gpt-4.1-mini · 3 iter · 3 FQ calls · 1280 tok · $0.024 · 1.45s'))
 
     expect(screen.getByText('Resolution chain')).toBeTruthy()
     expect(screen.getByText('purpose: research')).toBeTruthy()
     expect(screen.getByText('model: gpt-4.1-mini')).toBeTruthy()
+    expect(screen.getByText('provider: openai')).toBeTruthy()
+    expect(screen.getByText('fallback: #2')).toBeTruthy()
     expect(screen.getByText('Injected refs')).toBeTruthy()
     expect(screen.getByText('Docs/Brief.md')).toBeTruthy()
     expect(screen.getByText('Docs/Missing.md')).toBeTruthy()
     expect(screen.getByText('FlashQuery tool loop')).toBeTruthy()
     expect(screen.getByText('search_documents')).toBeTruthy()
     expect(screen.getByText('Loaded Docs/Brief.md')).toBeTruthy()
+    expect(screen.getByText('filesystem/read_file')).toBeTruthy()
+    expect(screen.getByText('count 1')).toBeTruthy()
+    expect(screen.getByText('$0.002')).toBeTruthy()
     expect(screen.getByText('Cost')).toBeTruthy()
     expect(screen.getByText('$0.024')).toBeTruthy()
     expect(screen.getByText('Template params')).toBeTruthy()
@@ -142,6 +171,38 @@ describe('ChatThread FlashQuery ToolCard rendering', () => {
     expect(screen.queryByText('Use the project context.')).toBeNull()
     fireEvent.click(messagesButton)
     expect(screen.getByText('Use the project context.', { exact: false })).toBeTruthy()
+  })
+
+  it('T-U-019 REQ-017 renders native call_model tool loop when brokered tool_calls is empty', () => {
+    const result = callModelEnvelopeText({
+      metadata: {
+        resolver: 'model',
+        name: 'gpt-4.1-mini',
+        resolved_model_name: 'gpt-4.1-mini',
+        provider_name: 'openai',
+        iterations: 1,
+        tool_calls: [],
+        tools: {
+          calls_log: [
+            {
+              iteration: 1,
+              tool_calls: [
+                { tool_name: 'search_documents', status: 'success', summary: 'Found Docs/Brief.md' },
+              ],
+            },
+          ],
+        },
+      },
+    })
+
+    renderThread([completedCallModel({ result })])
+
+    expect(screen.getByText('call_model · via model gpt-4.1-mini · 1 iter · 1 FQ calls')).toBeTruthy()
+    fireEvent.click(screen.getByText('call_model · via model gpt-4.1-mini · 1 iter · 1 FQ calls'))
+    expect(screen.getByText('model: gpt-4.1-mini')).toBeTruthy()
+    expect(screen.getByText('provider: openai')).toBeTruthy()
+    expect(screen.getByText('search_documents')).toBeTruthy()
+    expect(screen.getByText('Found Docs/Brief.md')).toBeTruthy()
   })
 
   it('T-U-019 REQ-017 omits partial or malformed call_model diagnostics and secret-like fields', () => {
@@ -159,19 +220,21 @@ describe('ChatThread FlashQuery ToolCard rendering', () => {
             tokens: undefined,
             costUsd: 'bad',
             latencyMs: undefined,
-            templateParams: {
-              authorization: 'Bearer should-not-render',
-              auth: 'Basic should-not-render',
-              credentials: 'should-not-render',
-              bearerToken: 'should-not-render',
-              headers: { cookie: 'should-not-render' },
-              handoff: { token: 'should-not-render' },
-              endpointUrl: 'https://should-not-render.example',
-              requestInit: { signal: 'should-not-render' },
-              innocuous: 'Bearer should-not-render',
-              visible: 'safe',
-            },
           },
+        },
+      },
+      args: {
+        template_params: {
+          visible: 'safe',
+          authorization: 'Bearer should-not-render',
+          auth: 'Basic should-not-render',
+          credentials: 'should-not-render',
+          bearerToken: 'should-not-render',
+          headers: { cookie: 'should-not-render' },
+          handoff: { token: 'should-not-render' },
+          endpointUrl: 'https://should-not-render.example',
+          requestInit: { signal: 'should-not-render' },
+          innocuous: 'Bearer should-not-render',
         },
       },
     })
@@ -241,8 +304,9 @@ describe('ChatThread FlashQuery ToolCard rendering', () => {
           toolName: 'call_macro',
           result: {
             trace: [
-              { step: 'load', status: 'success', tool: 'get_document', message: 'Loaded source' },
-              { step: 'write', status: 'success', tool: 'write_document', message: 'Updated target' },
+              { kind: 'tool_call', name: 'get_document', message: 'Loaded source', at: '2026-06-04T12:00:00Z', elapsed_ms: 12 },
+              { kind: 'model_call', name: 'call_model', message: 'Generated digest', at: '2026-06-04T12:00:01Z', elapsed_ms: 240 },
+              { kind: 'fail', name: 'write_document', message: 'Updated target', at: '2026-06-04T12:00:02Z' },
             ],
           },
         },
@@ -260,10 +324,13 @@ describe('ChatThread FlashQuery ToolCard rendering', () => {
       }),
     ])
 
-    fireEvent.click(screen.getByText('call_macro · 2 steps'))
+    fireEvent.click(screen.getByText('call_macro · 3 steps'))
     const table = screen.getByRole('table')
-    expect(within(table).getByText('load')).toBeTruthy()
+    expect(within(table).getByText('tool_call')).toBeTruthy()
     expect(within(table).getByText('get_document')).toBeTruthy()
+    expect(within(table).getByText('model_call')).toBeTruthy()
+    expect(within(table).getByText('call_model')).toBeTruthy()
+    expect(within(table).getByText('fail')).toBeTruthy()
     expect(within(table).getByText('Updated target')).toBeTruthy()
 
     expect(screen.getAllByText('Used').length).toBeGreaterThanOrEqual(1)
