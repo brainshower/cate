@@ -354,17 +354,15 @@ details: {
 | A1 | Diagnostic field aliases beyond `diagnostics`, `result`, `refs`, `traceId`, `macroProgress`, `trace`, and `serverToolLoop` may appear in live FlashQuery envelopes. | Architecture Patterns / Pitfalls | Renderer could omit a live field until manual T-M-003 confirms the exact production envelope. |
 | A2 | `call_model` resolution chain fields may be nested in `diagnostics` or `result` depending on FlashQuery response shape. | Architecture Patterns | Planner should include fixture variants and manual evidence to lock the exact mapping. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Exact live `call_model` envelope keys**
    - What we know: Phase 18 preserves `result`, `diagnostics`, `traceId`, and `refs`; mocked E2E uses `diagnostics.tokens`, `diagnostics.cost_usd`, `diagnostics.latency_ms`, and `result.serverToolLoop`. [VERIFIED: src/agent/extensions/cate-flashquery/diagnostics.ts] [VERIFIED: e2e/flashquery-pi-diagnostics.spec.ts]
-   - What's unclear: The exact live keys for resolver/name, iterations, FQ call count, resolution chain, template params, returned messages, and server-side loop may differ from mocked names. [ASSUMED]
-   - Recommendation: Planner should add renderer helper tests with alias coverage and keep T-M-003 as the real-envelope confirmation gate. [VERIFIED: Milestone 2 Test Plan.md]
+   - Resolution: The renderer plan must support defensive alias coverage for known mocked and likely live keys, omit unknown/missing values rather than block rendering, and keep `T-M-003` as the real-envelope confirmation gate. This closes the planning question because implementation does not require a single canonical live key spelling before execution; it requires resilient extraction plus manual evidence follow-up. [VERIFIED: Milestone 2 Test Plan.md] [VERIFIED: 19-CONTEXT.md D-11/D-24]
 
 2. **Whether to split `FlashQueryToolCard` into a separate file**
    - What we know: Current `ChatThread.tsx` already contains `ToolCard`, `SubagentCard`, `PlanReadyCard`, and helper renderers in one file. [VERIFIED: src/agent/renderer/ChatThread.tsx]
-   - What's unclear: The final implementation size may push readability past the current local pattern. [ASSUMED]
-   - Recommendation: Start in `ChatThread.tsx` or a small sibling component only if the planner expects more than a few local helpers; either choice is allowed by D-25. [VERIFIED: 19-CONTEXT.md]
+   - Resolution: D-25 explicitly permits either local helpers in `ChatThread.tsx` or a small sibling component, provided the rich branch stays isolated to `call_model`/`call_macro` and follows existing ToolCard patterns. The planner can leave this as executor discretion without blocking execution. [VERIFIED: 19-CONTEXT.md]
 
 ## Environment Availability
 

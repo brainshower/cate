@@ -58,6 +58,7 @@ Canonical source docs:
 **Requirements:** REQ-004
 
 **Success criteria:**
+
 1. `flashquery:getDocument` supports body/frontmatter include options and normalizes body/frontmatter/version responses.
 2. `flashquery:writeDocument` accepts legacy string writes and object payload writes with validated body/frontmatter/tags fields.
 3. `flashquery:search` and `flashquery:list-vault-index` contracts exist in channel constants, preload API, Electron API typings, and main handlers.
@@ -73,6 +74,7 @@ Canonical source docs:
 **Requirements:** REQ-001, REQ-002, REQ-003, REQ-005, REQ-006, REQ-007
 
 **Success criteria:**
+
 1. Clean body refresh preserves Monaco cursor/scroll view state and ignores repeated in-flight clicks.
 2. Dirty refresh presents the required `Unsaved changes` modal with save/discard/cancel paths.
 3. Disconnected, not-found, and request-failure refreshes preserve current content and dirty state.
@@ -90,6 +92,7 @@ Canonical source docs:
 **Requirements:** REQ-008, REQ-009, REQ-010, REQ-011, REQ-012
 
 **Success criteria:**
+
 1. `FlashQueryVaultSearchPanel` is registered through the existing panel registry with required header, connection chip, input, clear action, and Search button.
 2. Search dispatch is explicit on button/Enter only; mode/filter changes do not auto-run; filesystem/mixed empty query uses list-all; semantic empty query is disabled with the required tooltip.
 3. Results render Vault and Memories groups, idle/no-result/both-off states, case-insensitive highlighting, and show-more pagination.
@@ -107,6 +110,7 @@ Canonical source docs:
 **Requirements:** REQ-013, REQ-014
 
 **Success criteria:**
+
 1. `src/agent/extensions/cate-flashquery/` and `installFlashQueryExtension.ts` follow existing bundled extension patterns.
 2. `AgentManager.create()` installs the FlashQuery extension without disrupting current extension installs.
 3. Extension initialization receives Cate-provided workspace-scoped FlashQuery credentials without writing to Pi global `auth.json`.
@@ -126,11 +130,13 @@ Canonical source docs:
 **Plans:** 3 plans
 
 Plans:
+
 - [x] 18-01-PLAN.md — Specialize `call_model` descriptions, trace IDs, refs, and diagnostics.
 - [x] 18-02-PLAN.md — Specialize `call_macro` confirmation, defaults, progress, and result handling.
 - [x] 18-03-PLAN.md — Preserve diagnostics in agent state/session replay and record mocked/manual evidence.
 
 **Success criteria:**
+
 1. `call_model` descriptions use discovered purposes/models or `Available purposes: loading...`, then update after discovery.
 2. `call_model` sends `return_messages: true`, mints/reuses the required trace ID format, hydrates refs, and blocks unresolved refs with the exact system message.
 3. `call_model` in-flight rendering uses Pi's standard tool-in-flight indicator only and does not fabricate progress.
@@ -150,10 +156,16 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 19-01-PLAN.md — Add component-level rich FlashQuery ToolCard rendering and T-U-019 coverage.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 19-02-PLAN.md — Extend mocked E2E ToolCard evidence and record T-M-003 manual evidence status.
 
 **Success criteria:**
+
 1. No new chat message type or standalone FlashQuery chat chrome is introduced.
 2. `call_model` collapsed summaries use the required resolver/name/iteration/FQ-call/tokens/cost/latency format when data is available.
 3. `call_model` expanded view includes resolution chain, injected refs, server-side tool loop, cost, template params, and collapsible messages payload.
@@ -171,6 +183,7 @@ Plans:
 **Requirements:** REQ-018, REQ-019
 
 **Success criteria:**
+
 1. Agent chat input detects active `@` segments near the existing slash popover pattern and shows the dropdown through the existing portal pattern.
 2. Vault-index cache populates on workspace connect/switch/reconnect and refreshes after vault tree refresh, successful document writes, and extension-dispatched mutating document tools.
 3. Cache clears on disconnect, uses whole-response replacement, and handles concurrent refreshes with last-fetch-wins behavior.
@@ -188,6 +201,7 @@ Plans:
 **Requirements:** REQ-020
 
 **Success criteria:**
+
 1. Refresh, frontmatter save, search, `@` cache loading, clipboard reference actions, and Pi extension tools fail visibly rather than silently when FlashQuery is disconnected.
 2. Reconnect refreshes connection-scoped caches and re-enables affected controls.
 3. Workspace switch clears stale workspace data before loading new workspace data and discards superseded in-flight cache responses.
