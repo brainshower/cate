@@ -98,7 +98,7 @@ Canonical source docs:
 6. In-flight and disconnected search states disable duplicate dispatch and avoid presenting stale results as current.
 7. Targeted coverage includes T-U-005, T-U-010, T-U-011, T-E-003, and T-E-007.
 
-**Status:** Pending
+**Status:** In Progress
 
 ### Phase 17: FlashQuery Pi Extension Bootstrap
 
@@ -126,7 +126,7 @@ Canonical source docs:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 18-01-PLAN.md — Specialize `call_model` descriptions, trace IDs, refs, and diagnostics.
+- [x] 18-01-PLAN.md — Specialize `call_model` descriptions, trace IDs, refs, and diagnostics.
 - [ ] 18-02-PLAN.md — Specialize `call_macro` confirmation, defaults, progress, and result handling.
 - [ ] 18-03-PLAN.md — Preserve diagnostics in agent state/session replay and record mocked/manual evidence.
 

@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: FlashQuery Milestone 2
-status: ready_to_plan
-stopped_at: Phase 17 complete (3/3) — ready to discuss Phase 18
-last_updated: 2026-06-04T14:44:38.254Z
+status: executing
+stopped_at: Completed 18-01-PLAN.md
+last_updated: "2026-06-04T15:45:06.117Z"
 last_activity: 2026-06-04
 progress:
   total_phases: 8
   completed_phases: 4
-  total_plans: 12
+  total_plans: 15
   completed_plans: 12
   percent: 50
 ---
@@ -21,19 +21,19 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-03 after v1.2 FlashQuery Milestone 2 planning)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** Phase 18 — `call_model`, `call_macro`, and diagnostics data
+**Current focus:** Phase 18 — call-model-call-macro-and-diagnostics-data
 
 ## Current Position
 
-Phase: 18
-Plan: Not started
-Status: Ready to plan
+Phase: 18 (call-model-call-macro-and-diagnostics-data) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
 Last activity: 2026-06-04
 
 ## Session Continuity
 
-Last session: 2026-06-04T14:18:44.404Z
-Stopped At: Completed 17-03-PLAN.md
+Last session: 2026-06-04T15:45:06.091Z
+Stopped At: Completed 18-01-PLAN.md
 Resume File: None
 
 ## Next Up
@@ -111,6 +111,7 @@ Items acknowledged and deferred at milestone close on 2026-05-30:
 | Phase 17 P17.1 | 8min | 3 tasks | 6 files |
 | Phase 17 P17.2 | 9min | 4 tasks | 7 files |
 | Phase 17 P17.3 | 64min | 4 tasks | 10 files |
+| Phase 18 P01 | 10 min | 2 tasks | 7 files |
 
 ## Operator Next Steps
 
