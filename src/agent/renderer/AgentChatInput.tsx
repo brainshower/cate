@@ -38,7 +38,10 @@ interface ActiveMentionSegment {
 // is the scroll/zoom frame of reference).
 function useNodePortalTarget(ref: React.RefObject<Element | null>) {
   const getTarget = useCallback(
-    () => ref.current?.closest('[data-node-id]') as HTMLElement | null,
+    () => (
+      ref.current?.closest('[data-node-id]')
+      ?? ref.current?.closest('[data-agent-composer]')
+    ) as HTMLElement | null,
     [ref],
   )
   const toLocal = useCallback(
@@ -214,6 +217,7 @@ export function ChatInput({
   return (
     <div className="px-3 py-2 shrink-0">
       <div
+        data-agent-composer="true"
         onDragEnter={(e) => {
           if (!acceptsDrag(e)) return
           e.preventDefault()

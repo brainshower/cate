@@ -61,6 +61,10 @@ declare global {
       dispatchAgentEvent(panelId: string, event: { type: string; [key: string]: unknown }): void
       agentPanelIds(): string[]
       agentMessages(panelId: string): unknown[]
+      agentVaultIndex(panelId: string): Array<{ filename: string; fullPath: string }>
+      agentVaultIndexLoading(panelId: string): boolean
+      refreshAgentVaultIndex(panelId: string, workspaceId?: string): Promise<void>
+      clearAgentVaultIndex(panelId: string): void
       dragSnapshot(): {
         isDragging: boolean
         sourceKind: string | null
@@ -336,6 +340,22 @@ export function installE2EHarness(): void {
     return Object.keys(useAgentStore.getState().panels)
   }
 
+  const agentVaultIndex = (panelId: string): Array<{ filename: string; fullPath: string }> => {
+    return useAgentStore.getState().panels[panelId]?.vaultIndex ?? []
+  }
+
+  const agentVaultIndexLoading = (panelId: string): boolean => {
+    return useAgentStore.getState().panels[panelId]?.vaultIndexLoading ?? false
+  }
+
+  const refreshAgentVaultIndex = async (panelId: string, workspaceId?: string): Promise<void> => {
+    await useAgentStore.getState().refreshVaultIndex(panelId, workspaceId ?? selectedWorkspaceId())
+  }
+
+  const clearAgentVaultIndex = (panelId: string): void => {
+    useAgentStore.getState().clearVaultIndex(panelId)
+  }
+
   window.__cateE2E = {
     ready: true,
     activeCanvasPanelId,
@@ -375,6 +395,10 @@ export function installE2EHarness(): void {
     dispatchAgentEvent,
     agentPanelIds,
     agentMessages,
+    agentVaultIndex,
+    agentVaultIndexLoading,
+    refreshAgentVaultIndex,
+    clearAgentVaultIndex,
     dragSnapshot,
   }
 }
