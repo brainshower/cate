@@ -20,6 +20,7 @@ import { broadcastToAll, windowFromEvent } from './windowRegistry'
 import { addAllowedRoot, removeAllowedRoot } from './ipc/pathValidation'
 import { resolveTrustedWorkspaceRoot } from './workspaceRoots'
 import { setWorkspaceToken } from './flashquery/credentials'
+import { refreshFlashQueryHandoffsForWorkspace } from '../agent/main/flashQueryHandoffBridge'
 
 // In-memory workspace list — authoritative source of truth
 const workspaces: Map<string, WorkspaceInfo> = new Map()
@@ -177,6 +178,9 @@ export async function updateWorkspace(id: string, changes: Partial<Omit<Workspac
   workspaces.set(id, updated)
   if (updated.rootPath) {
     addAllowedRoot(updated.rootPath)
+  }
+  if ('flashqueryConnection' in changes) {
+    await refreshFlashQueryHandoffsForWorkspace(id)
   }
   return { ok: true, workspace: updated }
 }

@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   rpcStart: vi.fn(async () => { mocks.calls.push('rpc-start') }),
   rpcGetState: vi.fn(async () => { mocks.calls.push('rpc-get-state') }),
   rpcOnEvent: vi.fn(() => vi.fn()),
+  rpcStop: vi.fn(async () => {}),
   rpcConstructors: [] as unknown[],
 }))
 
@@ -36,6 +37,7 @@ vi.mock('@earendil-works/pi-coding-agent', () => ({
       start: mocks.rpcStart,
       getState: mocks.rpcGetState,
       onEvent: mocks.rpcOnEvent,
+      stop: mocks.rpcStop,
     }
   }),
 }))
@@ -95,6 +97,7 @@ describe('AgentManager FlashQuery startup integration', () => {
     mocks.rpcStart.mockClear()
     mocks.rpcGetState.mockClear()
     mocks.rpcOnEvent.mockClear()
+    mocks.rpcStop.mockClear()
   })
 
   it('T-U-013 installs bundled extensions and writes FlashQuery handoff before starting Pi', async () => {
@@ -136,5 +139,33 @@ describe('AgentManager FlashQuery startup integration', () => {
         PI_CODING_AGENT_DIR: '/tmp/cate-workspace/.cate/pi-agent',
       }),
     })
+  })
+
+  it('T-U-015 rewrites FlashQuery handoffs only for live sessions in the affected workspace', async () => {
+    const { AgentManager } = await import('./agentManager')
+    const authManager = { setOnChange: vi.fn() }
+    const manager = new AgentManager(authManager as never)
+    const sender = {
+      isDestroyed: () => false,
+      send: mocks.send,
+    }
+
+    await manager.create({
+      panelId: 'panel-a',
+      workspaceId: 'workspace-1',
+      cwd: '/tmp/cate-workspace-a',
+    }, sender as never)
+    await manager.create({
+      panelId: 'panel-b',
+      workspaceId: 'workspace-2',
+      cwd: '/tmp/cate-workspace-b',
+    }, sender as never)
+    mocks.writeFlashQueryExtensionHandoff.mockClear()
+
+    await manager.refreshFlashQueryHandoffsForWorkspace('workspace-1')
+
+    expect(mocks.writeFlashQueryExtensionHandoff).toHaveBeenCalledTimes(1)
+    expect(mocks.writeFlashQueryExtensionHandoff).toHaveBeenCalledWith('/tmp/cate-workspace-a', 'workspace-1')
+    expect(mocks.writeFlashQueryExtensionHandoff).not.toHaveBeenCalledWith('/tmp/cate-workspace-b', 'workspace-2')
   })
 })

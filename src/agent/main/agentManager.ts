@@ -41,6 +41,7 @@ import { AGENT_EVENT } from '../../shared/ipc-channels'
 import { installSubagentExtension } from './installSubagents'
 import { installPlanModeExtension } from './installPlanMode'
 import { installFlashQueryExtension, writeFlashQueryExtensionHandoff } from './installFlashQueryExtension'
+import { registerFlashQueryHandoffRefresher } from './flashQueryHandoffBridge'
 import { agentDirFor, prepareAgentDir, watchWorkspaceAuth, pushSharedToWorkspace } from './agentDir'
 import type { AuthManager } from './authManager'
 
@@ -111,6 +112,7 @@ function buildAgentEnv(cwd: string): Record<string, string> {
 
 interface AgentSession {
   panelId: string
+  workspaceId: string
   cwd: string
   client: RpcClient
   sender: WebContents
@@ -133,8 +135,7 @@ function toImageContent(images?: AgentImageAttachment[]): ImageContent[] | undef
  *  RpcClient. Used for the extension UI sub-protocol — RpcClient does not
  *  expose a typed method for `extension_ui_response`. */
 function writeRawToClient(client: RpcClient, obj: unknown): void {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const proc = (client as any).process as { stdin?: { write: (s: string) => void } } | null
+  const proc = (client as unknown as { process?: { stdin?: { write: (s: string) => void } } }).process ?? null
   const stdin = proc?.stdin
   if (!stdin) throw new Error('Pi RPC stdin not available')
   stdin.write(JSON.stringify(obj) + '\n')
@@ -146,7 +147,6 @@ export class AgentManager {
   // `authManager` isn't read here anymore — pi reads credentials directly from
   // ~/.pi/agent/auth.json. We keep the reference around for symmetry with the
   // construction site and in case future hooks need it.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private authManager: AuthManager
 
   constructor(authManager: AuthManager) {
@@ -154,6 +154,7 @@ export class AgentManager {
     // When the user changes credentials in cate's UI, mirror the shared
     // auth.json into every open workspace so their pi processes see it.
     authManager.setOnChange(() => this.syncAuthToOpenSessions())
+    registerFlashQueryHandoffRefresher((workspaceId) => this.refreshFlashQueryHandoffsForWorkspace(workspaceId))
   }
 
   /** Push the shared auth.json into every live session's workspace dir. */
@@ -228,6 +229,7 @@ export class AgentManager {
 
       this.sessions.set(opts.panelId, {
         panelId: opts.panelId,
+        workspaceId: opts.workspaceId,
         cwd: opts.cwd,
         client,
         sender,
@@ -270,6 +272,12 @@ export class AgentManager {
         log.warn('[agentManager] readiness probe failed for %s: %O', opts.panelId, err)
       }
     })
+  }
+
+  async refreshFlashQueryHandoffsForWorkspace(workspaceId: string): Promise<void> {
+    await Promise.all(Array.from(this.sessions.values())
+      .filter((session) => session.workspaceId === workspaceId)
+      .map((session) => writeFlashQueryExtensionHandoff(session.cwd, workspaceId)))
   }
 
   // ---------------------------------------------------------------------------
