@@ -30,7 +30,6 @@ export interface FlashQueryExtensionHandoff {
 function sourceDir(): string | null {
   const candidates = [
     path.join(app.getAppPath(), 'src', 'agent', 'extensions', 'cate-flashquery'),
-    path.join(process.cwd(), 'src', 'agent', 'extensions', 'cate-flashquery'),
     path.join(process.resourcesPath ?? '', 'cate-extensions', 'cate-flashquery'),
   ]
   for (const candidate of candidates) {
