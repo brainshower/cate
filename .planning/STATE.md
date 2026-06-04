@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: FlashQuery Milestone 2
-status: ready_to_plan
-stopped_at: Phase 16 complete (3/3) — ready to discuss Phase 17
-last_updated: 2026-06-03T23:24:52.084Z
-last_activity: 2026-06-03
+status: executing
+stopped_at: Completed Phase 16 Vault Search Panel
+last_updated: "2026-06-04T12:27:22.399Z"
+last_activity: 2026-06-04 -- Phase 17 planning complete
 progress:
   total_phases: 8
   completed_phases: 3
-  total_plans: 9
+  total_plans: 12
   completed_plans: 9
   percent: 38
 ---
@@ -27,8 +27,8 @@ See: `.planning/PROJECT.md` (updated 2026-06-03 after v1.2 FlashQuery Milestone 
 
 Phase: 17
 Plan: Not started
-Status: Ready to plan
-Last activity: 2026-06-03
+Status: Ready to execute
+Last activity: 2026-06-04 -- Phase 17 planning complete
 
 ## Session Continuity
 
@@ -38,9 +38,9 @@ Resume File: None
 
 ## Next Up
 
-Plan Phase 17 with `/gsd-plan-phase 17`.
+Execute Phase 17 with `/gsd-execute-phase 17`.
 
-Phase 16 completed 3 plans covering Vault Search panel registration, explicit document/memory search, result actions, deterministic fixture coverage, and search-specific disconnect recovery.
+Phase 17 has 3 plans covering bundled FlashQuery Pi extension installation, eligible tool registration, workspace lifecycle/stale-tool handling, E2E fixture evidence, and T-M-001 manual evidence.
 
 ## Decisions
 
