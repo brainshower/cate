@@ -7,7 +7,6 @@ import { z } from 'zod'
 export interface FlashQueryStubCounts {
   infoRequestCount: number
   mcpPostCount: number
-  mcpMethods: string[]
 }
 
 export interface FlashQueryStubDocument {
@@ -398,7 +397,7 @@ export async function startFlashQueryStubServer(
         else resolve()
       })
     }),
-    counts: () => ({ infoRequestCount, mcpPostCount, mcpMethods: [...mcpMethods] }),
+    counts: () => ({ infoRequestCount, mcpPostCount }),
     resetCounts: () => {
       infoRequestCount = 0
       mcpPostCount = 0
