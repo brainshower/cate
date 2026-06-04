@@ -191,7 +191,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 20-02-PLAN.md — Add AgentChatInput `@` mention dropdown and literal reference insertion.
+- [x] 20-02-PLAN.md — Add AgentChatInput `@` mention dropdown and literal reference insertion.
 - [ ] 20-03-PLAN.md — Add vault tree and editor title clipboard utilities while preserving search row behavior.
 
 **Wave 3** *(blocked on Wave 2 completion)*
