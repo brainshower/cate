@@ -140,10 +140,18 @@ await client.connect(transport)
 **Discovery/call pattern** (lines 78-85):
 ```typescript
 async listModels(signal) {
-  return metadataListFromResult(await client.callTool({ name: 'list_models', arguments: {} }, undefined, { signal }))
+  return metadataListFromResult(await client.callTool(
+    { name: 'call_model', arguments: { resolver: 'list_models' } },
+    undefined,
+    { signal },
+  ))
 },
 async listPurposes(signal) {
-  return metadataListFromResult(await client.callTool({ name: 'list_purposes', arguments: {} }, undefined, { signal }))
+  return metadataListFromResult(await client.callTool(
+    { name: 'call_model', arguments: { resolver: 'list_purposes' } },
+    undefined,
+    { signal },
+  ))
 },
 async callTool(name, params, signal) {
   return client.callTool({ name, arguments: params }, undefined, { signal })
@@ -151,6 +159,8 @@ async callTool(name, params, signal) {
 ```
 
 Widen `callTool()` to accept an options object, not just `signal`, so `call_macro` can pass `onprogress` while existing calls still pass `signal`.
+
+Phase 17 gap-fix note: do not add direct `list_models` or `list_purposes` MCP calls. The current Cate client intentionally gets both lists through `call_model` resolver invocations.
 
 **MCP progress API source** (`node_modules/@modelcontextprotocol/sdk/dist/esm/shared/protocol.d.ts` lines 61-68):
 ```typescript
@@ -326,7 +336,7 @@ for (const record of records) {
   const piName = distinctName(baseName, used)
 ```
 
-Do not loosen eligibility for `call_model`/`call_macro`; they still need `hostEligible: true` and `status: current`.
+Do not re-tighten eligibility for `call_model`/`call_macro`; Phase 17 gap fixes made registry discovery include real FlashQuery tools by default unless they are explicitly ineligible (`deprecated`, `unavailable`, `removed`, or `hostEligible: false`). Keep that registry behavior intact while specializing the registered Pi tool wrappers.
 
 ### `src/agent/extensions/cate-flashquery/schema.ts` (utility, transform)
 

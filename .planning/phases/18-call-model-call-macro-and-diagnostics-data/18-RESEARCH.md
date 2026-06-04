@@ -17,7 +17,7 @@
 - FlashQuery roadmap companion material is traceability only, not Cate implementation scope.
 
 ### `call_model`
-- Fetch FlashQuery `list_purposes` and `list_models` through zero-cost discovery/resolver paths.
+- Fetch FlashQuery purpose/model metadata through zero-cost `call_model` resolver paths: `call_model` with `resolver: 'list_purposes'` and `call_model` with `resolver: 'list_models'`. Do not reintroduce direct MCP `list_purposes` or `list_models` tool calls.
 - Embed formatted purpose/model lists in the `call_model` Pi tool description.
 - If tool registration happens before discovery completes, register with placeholder text `Available purposes: loading...` and update registration after discovery.
 - Every `call_model` invocation must pass `return_messages: true`.
@@ -90,7 +90,7 @@ The most important planning split is: extension behavior first, renderer data re
 | Capability | Primary Tier | Secondary Tier | Rationale |
 |------------|-------------|----------------|-----------|
 | FlashQuery tool registration and execution | Pi Extension / Agent Subprocess | FlashQuery MCP server | `src/agent/extensions/cate-flashquery/` owns MCP client lifecycle, schema translation, and tool wrappers. [VERIFIED: codebase grep] |
-| `call_model` description enrichment | Pi Extension / Agent Subprocess | FlashQuery MCP server | Lifecycle already fetches `listModels()` and `listPurposes()` during rebind; registration must use that metadata. [VERIFIED: codebase grep] |
+| `call_model` description enrichment | Pi Extension / Agent Subprocess | FlashQuery MCP server | Lifecycle already fetches `listModels()` and `listPurposes()` during rebind, and the Phase 17 gap fix makes those helpers call `call_model` with `resolver: 'list_models'` / `resolver: 'list_purposes'`. Registration must use that metadata without reverting to direct `list_models` or `list_purposes` MCP tools. [VERIFIED: codebase grep + Phase 17 gap fix] |
 | Per-conversation trace IDs | Pi Extension / Agent Subprocess | Pi session manager | Pi context exposes `sessionManager.getSessionId()` and Cate workspace ID is in handoff; trace state should be session-local. [CITED: node_modules/@earendil-works/pi-coding-agent/dist/core/session-manager.d.ts] |
 | Reference blocking system messages | Renderer Agent Store | Pi Extension | The extension can mark unresolved references in tool details; `agentStore` can append the required system message while preserving the tool result. [VERIFIED: codebase grep] |
 | Macro inline-source confirmation | Pi Extension UI bridge | Renderer AgentPanelChrome | `ctx.ui.confirm` emits `extension_ui_request`; Cate already renders confirm requests and returns `AGENT_UI_RESPONSE`. [CITED: node_modules/@earendil-works/pi-coding-agent/dist/core/extensions/types.d.ts] [VERIFIED: codebase grep] |
@@ -413,7 +413,7 @@ const args = {
 |---------------|---------|------------------|
 | V2 Authentication | yes | Keep FlashQuery bearer tokens in main-owned handoff and out of renderer/global Pi auth. [CITED: AGENTS.md] |
 | V3 Session Management | yes | Trace IDs are correlation metadata, not auth/session secrets; store them per Pi conversation. [ASSUMED] |
-| V4 Access Control | yes | Register only `hostEligible: true` and `status: current`; stale wrappers reject after workspace rebind. [VERIFIED: 17-03-SUMMARY.md] |
+| V4 Access Control | yes | Register FlashQuery tools unless they are explicitly ineligible (`deprecated`, `unavailable`, `removed`, or `hostEligible: false`); stale wrappers reject after workspace rebind. [VERIFIED: Phase 17 gap fix to `registry.ts`] |
 | V5 Input Validation | yes | Existing schema translator validates Pi tool params with TypeBox; macro/source params need confirmation/default validation. [VERIFIED: codebase grep] |
 | V6 Cryptography | limited | Use standard crypto randomness/hash for trace IDs; do not treat trace IDs as secrets. [ASSUMED] |
 

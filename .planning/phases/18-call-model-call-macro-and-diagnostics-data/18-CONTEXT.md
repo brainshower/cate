@@ -24,7 +24,7 @@ The implementation must build on Phase 17's bundled `src/agent/extensions/cate-f
 - FlashQuery roadmap companion material is traceability only, not Cate implementation scope.
 
 ### `call_model`
-- Fetch FlashQuery `list_purposes` and `list_models` through zero-cost discovery/resolver paths.
+- Fetch FlashQuery purpose/model metadata through zero-cost `call_model` resolver paths: `call_model` with `resolver: 'list_purposes'` and `call_model` with `resolver: 'list_models'`. Do not reintroduce direct MCP `list_purposes` or `list_models` tool calls.
 - Embed formatted purpose/model lists in the `call_model` Pi tool description.
 - If tool registration happens before discovery completes, register with placeholder text `Available purposes: loading...` and update registration after discovery.
 - Every `call_model` invocation must pass `return_messages: true`.
@@ -73,6 +73,9 @@ The implementation must build on Phase 17's bundled `src/agent/extensions/cate-f
 - `.planning/phases/17-flashquery-pi-extension-bootstrap/17-RESEARCH.md` - Phase 17 technical research on Pi extension patterns.
 - `.planning/phases/17-flashquery-pi-extension-bootstrap/17-PATTERNS.md` - Existing analog files and implementation patterns for FlashQuery Pi extension work.
 - `.planning/phases/17-flashquery-pi-extension-bootstrap/17-03-SUMMARY.md` - Generation-safe lifecycle, metadata refresh, stale-tool handling, and next-phase readiness.
+- `src/agent/extensions/cate-flashquery/client.ts` and `src/agent/extensions/cate-flashquery/client.test.ts` - Phase 17 gap fix: metadata discovery now uses `call_model` resolver calls.
+- `src/agent/extensions/cate-flashquery/registry.ts` and `src/agent/extensions/cate-flashquery/registry.test.ts` - Phase 17 gap fix: registry discovery treats tools as eligible unless explicitly ineligible (`deprecated`, `unavailable`, `removed`, or `hostEligible: false`).
+- `src/agent/extensions/cate-flashquery/lifecycle.ts`, `src/agent/extensions/cate-flashquery/index.ts`, `src/agent/main/flashQueryHandoffBridge.ts`, and `src/agent/extensions/cate-flashquery/handoff-rebind.integration.test.ts` - Phase 17 gap fix / current codebase shape: handoff changes are watched and refreshed for live sessions.
 </canonical_refs>
 
 <specifics>
