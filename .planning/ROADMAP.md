@@ -123,6 +123,13 @@ Canonical source docs:
 
 **Requirements:** REQ-015, REQ-016
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 18-01-PLAN.md — Specialize `call_model` descriptions, trace IDs, refs, and diagnostics.
+- [ ] 18-02-PLAN.md — Specialize `call_macro` confirmation, defaults, progress, and result handling.
+- [ ] 18-03-PLAN.md — Preserve diagnostics in agent state/session replay and record mocked/manual evidence.
+
 **Success criteria:**
 1. `call_model` descriptions use discovered purposes/models or `Available purposes: loading...`, then update after discovery.
 2. `call_model` sends `return_messages: true`, mints/reuses the required trace ID format, hydrates refs, and blocks unresolved refs with the exact system message.
