@@ -13,6 +13,19 @@ import path from 'path'
 import { app } from 'electron'
 import log from '../../main/logger'
 import { agentDirFor } from './agentDir'
+import { getWorkspaceToken } from '../../main/flashquery/credentials'
+import { listWorkspaces } from '../../main/workspaceManager'
+import { normalizeFlashQueryConnectionUrl } from '../../shared/types'
+
+export const FLASHQUERY_HANDOFF_FILE = 'flashquery-handoff.json'
+
+export interface FlashQueryExtensionHandoff {
+  version: 1
+  workspaceId: string
+  endpointUrl: string | null
+  authMode: 'none' | 'bearer'
+  bearerToken?: string
+}
 
 function sourceDir(): string | null {
   const candidates = [
@@ -52,5 +65,31 @@ export async function installFlashQueryExtension(cwd: string): Promise<void> {
     await copyIfMissing(path.join(src, 'package.json'), path.join(destDir, 'package.json'))
   } catch (err) {
     log.warn('[installFlashQueryExtension] install failed: %O', err)
+  }
+}
+
+export async function writeFlashQueryExtensionHandoff(
+  cwd: string,
+  workspaceId: string,
+): Promise<void> {
+  try {
+    const workspace = listWorkspaces().find((item) => item.id === workspaceId)
+    const endpointUrl = workspace?.flashqueryConnection?.url
+      ? normalizeFlashQueryConnectionUrl(workspace.flashqueryConnection.url) ?? null
+      : null
+    const token = endpointUrl ? await getWorkspaceToken(workspaceId) : null
+    const payload: FlashQueryExtensionHandoff = {
+      version: 1,
+      workspaceId,
+      endpointUrl,
+      authMode: token ? 'bearer' : 'none',
+      ...(token ? { bearerToken: token } : {}),
+    }
+    const file = path.join(agentDirFor(cwd), FLASHQUERY_HANDOFF_FILE)
+    await fsp.mkdir(path.dirname(file), { recursive: true })
+    await fsp.writeFile(file, `${JSON.stringify(payload, null, 2)}\n`, 'utf-8')
+    try { await fsp.chmod(file, 0o600) } catch { /* no file modes on this platform */ }
+  } catch (err) {
+    log.warn('[installFlashQueryExtension] handoff write failed: %O', err)
   }
 }

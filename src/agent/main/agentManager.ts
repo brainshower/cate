@@ -40,6 +40,7 @@ import type {
 import { AGENT_EVENT } from '../../shared/ipc-channels'
 import { installSubagentExtension } from './installSubagents'
 import { installPlanModeExtension } from './installPlanMode'
+import { installFlashQueryExtension, writeFlashQueryExtensionHandoff } from './installFlashQueryExtension'
 import { agentDirFor, prepareAgentDir, watchWorkspaceAuth, pushSharedToWorkspace } from './agentDir'
 import type { AuthManager } from './authManager'
 
@@ -178,6 +179,8 @@ export class AgentManager {
       await prepareAgentDir(opts.cwd)
       await installSubagentExtension(opts.cwd)
       await installPlanModeExtension(opts.cwd)
+      await installFlashQueryExtension(opts.cwd)
+      await writeFlashQueryExtensionHandoff(opts.cwd, opts.workspaceId)
 
       const extraArgs: string[] = []
       if (opts.sessionFile) extraArgs.push('--session', opts.sessionFile)

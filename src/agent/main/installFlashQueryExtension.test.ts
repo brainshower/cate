@@ -8,6 +8,14 @@ const mocks = vi.hoisted(() => ({
   agentRoot: '',
   info: vi.fn(),
   warn: vi.fn(),
+  workspaces: [] as Array<{
+    id: string
+    name: string
+    color: string
+    rootPath: string
+    flashqueryConnection?: { transport: 'http'; url: string }
+  }>,
+  tokens: new Map<string, string>(),
 }))
 
 vi.mock('electron', () => ({
@@ -25,6 +33,14 @@ vi.mock('../../main/logger', () => ({
 
 vi.mock('./agentDir', () => ({
   agentDirFor: (cwd: string) => path.join(mocks.agentRoot, path.basename(cwd), '.cate', 'pi-agent'),
+}))
+
+vi.mock('../../main/workspaceManager', () => ({
+  listWorkspaces: () => mocks.workspaces,
+}))
+
+vi.mock('../../main/flashquery/credentials', () => ({
+  getWorkspaceToken: vi.fn(async (workspaceId: string) => mocks.tokens.get(workspaceId) ?? null),
 }))
 
 function makeTmpDir(): string {
@@ -67,6 +83,8 @@ describe('installFlashQueryExtension', () => {
     vi.resetModules()
     mocks.info.mockReset()
     mocks.warn.mockReset()
+    mocks.workspaces = []
+    mocks.tokens.clear()
     const appRoot = makeTmpDir()
     const resourcesRoot = makeTmpDir()
     const agentRoot = makeTmpDir()
@@ -162,5 +180,78 @@ describe('installFlashQueryExtension', () => {
     expect(mocks.warn).toHaveBeenCalledWith(
       '[installFlashQueryExtension] source dir not found — FlashQuery extension not installed',
     )
+  })
+
+  it('T-U-013 writes workspace handoff with bearer token from the main credential store', async () => {
+    const cwd = path.join(makeTmpDir(), 'workspace-g')
+    dirs.push(path.dirname(cwd))
+    mocks.workspaces = [{
+      id: 'workspace-token',
+      name: 'Workspace',
+      color: '#00aaff',
+      rootPath: cwd,
+      flashqueryConnection: { transport: 'http', url: 'http://127.0.0.1:3210/mcp' },
+    }]
+    mocks.tokens.set('workspace-token', 'stored-token-secret')
+
+    const {
+      FLASHQUERY_HANDOFF_FILE,
+      writeFlashQueryExtensionHandoff,
+    } = await import('./installFlashQueryExtension')
+    await writeFlashQueryExtensionHandoff(cwd, 'workspace-token')
+
+    const file = path.join(mocks.agentRoot, 'workspace-g', '.cate', 'pi-agent', FLASHQUERY_HANDOFF_FILE)
+    expect(JSON.parse(fs.readFileSync(file, 'utf-8'))).toEqual({
+      version: 1,
+      workspaceId: 'workspace-token',
+      endpointUrl: 'http://127.0.0.1:3210',
+      authMode: 'bearer',
+      bearerToken: 'stored-token-secret',
+    })
+  })
+
+  it('T-U-013 does not fabricate a bearer token from sanitized workspace metadata', async () => {
+    const cwd = path.join(makeTmpDir(), 'workspace-h')
+    dirs.push(path.dirname(cwd))
+    mocks.workspaces = [{
+      id: 'workspace-no-token',
+      name: 'Workspace',
+      color: '#00aaff',
+      rootPath: cwd,
+      flashqueryConnection: { transport: 'http', url: 'https://flashquery.local/' },
+    }]
+
+    const {
+      FLASHQUERY_HANDOFF_FILE,
+      writeFlashQueryExtensionHandoff,
+    } = await import('./installFlashQueryExtension')
+    await writeFlashQueryExtensionHandoff(cwd, 'workspace-no-token')
+
+    const file = path.join(mocks.agentRoot, 'workspace-h', '.cate', 'pi-agent', FLASHQUERY_HANDOFF_FILE)
+    expect(JSON.parse(fs.readFileSync(file, 'utf-8'))).toEqual({
+      version: 1,
+      workspaceId: 'workspace-no-token',
+      endpointUrl: 'https://flashquery.local',
+      authMode: 'none',
+    })
+  })
+
+  it('T-U-013 keeps FlashQuery bearer tokens out of pi auth.json', async () => {
+    const cwd = path.join(makeTmpDir(), 'workspace-i')
+    dirs.push(path.dirname(cwd))
+    mocks.workspaces = [{
+      id: 'workspace-auth-boundary',
+      name: 'Workspace',
+      color: '#00aaff',
+      rootPath: cwd,
+      flashqueryConnection: { transport: 'http', url: 'https://flashquery.local' },
+    }]
+    mocks.tokens.set('workspace-auth-boundary', 'auth-boundary-secret')
+
+    const { writeFlashQueryExtensionHandoff } = await import('./installFlashQueryExtension')
+    await writeFlashQueryExtensionHandoff(cwd, 'workspace-auth-boundary')
+
+    const authFile = path.join(mocks.agentRoot, 'workspace-i', '.cate', 'pi-agent', 'auth.json')
+    expect(fs.existsSync(authFile)).toBe(false)
   })
 })
