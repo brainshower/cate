@@ -157,3 +157,62 @@ test('T-E-002 opens and saves independent FlashQuery frontmatter editors', async
     await server.close()
   }
 })
+
+test('T-E-007 editor refresh and frontmatter save fail visibly while FlashQuery is disconnected', async () => {
+  const server = await startFlashQueryStubServer({ expectedBearerToken: 'refresh-token' })
+  const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), 'cate-e2e-editor-disconnect-'))
+  let app: ElectronApplication | null = null
+  try {
+    server.seedDocuments({
+      'Disconnected.md': {
+        body: '# Disconnected\n\nOriginal body.',
+        frontmatter: { title: 'Disconnected', status: 'green' },
+      },
+    })
+    const launched = await launchApp()
+    app = launched.electronApp
+    const page = launched.mainWindow
+    const workspaceId = await configure(page, server.baseUrl, workspaceRoot)
+
+    const bodyPanelId = await openVaultEditor(page, 'Disconnected.md')
+    await expect.poll(() => page.evaluate((id) => window.__cateE2E!.editorText(id), bodyPanelId)).toContain('Original body')
+
+    await page.getByLabel('Open frontmatter').click()
+    const frontmatterUri = `flashquery://${workspaceId}/Disconnected.md?part=frontmatter`
+    const frontmatterPanelId = await page.waitForFunction((uri) => {
+      return window.__cateE2E!.editorPanelIdsForFilePath(uri)[0] ?? null
+    }, frontmatterUri).then((handle) => handle.jsonValue() as Promise<string>)
+    await expect.poll(() => page.evaluate((id) => window.__cateE2E!.editorText(id), frontmatterPanelId)).toContain('status')
+
+    server.setAvailable(false)
+    await page.evaluate((id) => window.__cateE2E!.retryFlashQuery(id), workspaceId)
+
+    await page.evaluate((id) => window.__cateE2E!.activatePanel(id), bodyPanelId)
+    await page.evaluate((id) => window.__cateE2E!.setEditorText(id, '# Disconnected\n\nLocal dirty body.'), bodyPanelId)
+    await page.getByLabel('Refresh from vault').click()
+    await expect(page.getByRole('dialog', { name: 'Unsaved changes' })).toBeVisible()
+    await page.getByRole('button', { name: 'Discard and refresh' }).click()
+    await expect(page.getByText('Refresh failed: FlashQuery is disconnected.')).toBeVisible()
+    await expect.poll(() => page.evaluate((id) => window.__cateE2E!.editorText(id), bodyPanelId)).toContain('Local dirty body')
+
+    await page.evaluate((id) => window.__cateE2E!.activatePanel(id), frontmatterPanelId)
+    await page.evaluate((id) => window.__cateE2E!.setEditorText(id, 'title: Offline\nstatus: red'), frontmatterPanelId)
+    await page.evaluate(async (id) => window.__cateE2E!.saveEditorPanel(id), frontmatterPanelId)
+    await expect(page.getByText(/Save failed:/)).toBeVisible()
+    await expect.poll(() => page.evaluate((id) => window.__cateE2E!.editorText(id), frontmatterPanelId)).toContain('status: red')
+    expect(server.documentFrontmatter('Disconnected.md')).toEqual({ title: 'Disconnected', status: 'green' })
+
+    server.setAvailable(true)
+    await page.evaluate((id) => window.__cateE2E!.retryFlashQuery(id), workspaceId)
+    await page.evaluate((id) => window.__cateE2E!.setEditorText(id, 'title: Reconnected\nstatus: blue'), frontmatterPanelId)
+    await page.evaluate(async (id) => {
+      const result = await window.__cateE2E!.saveEditorPanel(id)
+      if (result !== 'saved') throw new Error(`reconnected frontmatter save returned ${result}`)
+    }, frontmatterPanelId)
+    await expect(page.getByText(/Save failed:/)).toHaveCount(0)
+    expect(server.documentFrontmatter('Disconnected.md')).toEqual({ title: 'Reconnected', status: 'blue' })
+  } finally {
+    if (app) await closeApp(app)
+    await server.close()
+  }
+})

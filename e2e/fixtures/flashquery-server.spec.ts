@@ -274,7 +274,7 @@ test('T-E-003 FlashQuery stub supports deterministic document and memory search'
   }
 })
 
-test('T-E-004 T-E-007 FlashQuery stub supports deterministic vault index replacement and disconnects', async () => {
+test('FlashQuery stub search list-all supports deterministic vault index replacement and disconnects', async () => {
   const server = await startFlashQueryStubServer()
   try {
     server.seedDocuments({
@@ -282,27 +282,55 @@ test('T-E-004 T-E-007 FlashQuery stub supports deterministic vault index replace
       'New/Plan.md': '# New\n\nReplacement fixture.',
     })
 
-    expect(await callTool(server.baseUrl, 'list_vault_index', {})).toMatchObject({
-      entries: [
-        { filename: 'Plan.md', fullPath: 'New/Plan.md' },
-        { filename: 'Only.md', fullPath: 'Old/Only.md' },
+    expect(await callTool(server.baseUrl, 'search', {
+      query: '',
+      mode: 'filesystem',
+      entity_types: ['documents'],
+      limit: 1000,
+      include_archived: true,
+      list_all: true,
+    })).toMatchObject({
+      results: [
+        { entity_type: 'document', identifier: 'New/Plan.md' },
+        { entity_type: 'document', identifier: 'Old/Only.md' },
       ],
     })
 
     server.seedDocuments({
       'New/Plan.md': '# New\n\nReplacement fixture.',
     })
-    expect(await callTool(server.baseUrl, 'list_vault_index', {})).toMatchObject({
-      entries: [
-        { filename: 'Plan.md', fullPath: 'New/Plan.md' },
+    expect(await callTool(server.baseUrl, 'search', {
+      query: '',
+      mode: 'filesystem',
+      entity_types: ['documents'],
+      limit: 1000,
+      include_archived: true,
+      list_all: true,
+    })).toMatchObject({
+      results: [
+        { entity_type: 'document', identifier: 'New/Plan.md' },
       ],
     })
 
-    server.setConnected(false)
-    await expect(callTool(server.baseUrl, 'list_vault_index', {})).rejects.toThrow()
-    server.setConnected(true)
-    await expect(callTool(server.baseUrl, 'list_vault_index', {})).resolves.toMatchObject({
-      entries: [{ filename: 'Plan.md', fullPath: 'New/Plan.md' }],
+    server.setAvailable(false)
+    await expect(callTool(server.baseUrl, 'search', {
+      query: '',
+      mode: 'filesystem',
+      entity_types: ['documents'],
+      limit: 1000,
+      include_archived: true,
+      list_all: true,
+    })).rejects.toThrow()
+    server.setAvailable(true)
+    await expect(callTool(server.baseUrl, 'search', {
+      query: '',
+      mode: 'filesystem',
+      entity_types: ['documents'],
+      limit: 1000,
+      include_archived: true,
+      list_all: true,
+    })).resolves.toMatchObject({
+      results: [{ entity_type: 'document', identifier: 'New/Plan.md' }],
     })
   } finally {
     await server.close()

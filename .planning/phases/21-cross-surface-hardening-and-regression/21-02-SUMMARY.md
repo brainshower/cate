@@ -35,8 +35,8 @@ Reconciled Phase 21 Electron E2E coverage for `REQ-020` and created the UAT evid
 
 ## What Changed
 
-- Added deterministic fixture support for `list_vault_index` so E2E can prove Pi mention cache replacement through the same fixture server used by other FlashQuery flows.
-- Added a `setConnected(false|true)` fixture alias for explicit Phase 21 disconnect/reconnect semantics while preserving the existing `setAvailable` API.
+- Reconciled deterministic fixture support with the real FlashQuery contract: vault-index replacement is proven through the existing `search({ list_all: true, entity_types: ['documents'] })` path rather than a non-existent `list_vault_index` MCP tool.
+- Standardized fixture disconnect/reconnect control on the existing `setAvailable(false|true)` API.
 - Extended the fixture Playwright spec with vault-index replacement and disconnect/reconnect coverage.
 - Replaced the obsolete `T-E-010` disconnect label with the canonical `T-E-007 REQ-020` test title.
 - Created `21-UAT.md` mapping `T-E-001` through `T-E-007` plus `T-E-006b` to fresh command evidence and carrying forward honest blockers for `T-M-001` through `T-M-004`.
