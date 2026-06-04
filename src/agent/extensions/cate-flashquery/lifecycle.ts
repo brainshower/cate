@@ -5,6 +5,7 @@ import type { TSchema } from 'typebox'
 import { openFlashQueryClient, readFlashQueryHandoff } from './client'
 import { errorFlashQueryToolResult, normalizeFlashQueryToolResult } from './diagnostics'
 import type { FlashQueryToolDetails, FlashQueryToolResult } from './diagnostics'
+import { disconnectedCallMacroResult, executeCallMacroTool } from './macro-tool'
 import { buildCallModelDescription, executeCallModelTool } from './model-tool'
 import { registryRecordsToToolCandidates } from './registry'
 import { flashQuerySchemaToTypeBox } from './schema'
@@ -212,6 +213,9 @@ async function executeFlashQueryTool(
     if (entry.candidate.name === 'call_model') {
       return await executeCallModelTool(generation, entry.candidate, args, signal, onUpdate, ctx as ExtensionContext)
     }
+    if (entry.candidate.name === 'call_macro') {
+      return await executeCallMacroTool(generation, entry.candidate, args, signal, onUpdate, ctx as ExtensionContext)
+    }
     const result = await generation.client.callTool(entry.candidate.toolId, args, signal)
     return normalizeFlashQueryToolResult({
       candidate: entry.candidate,
@@ -238,6 +242,16 @@ function unavailableResult(
   toolName: string,
   generation: FlashQueryGeneration,
 ): FlashQueryToolResult {
+  if (candidate?.name === 'call_macro' || toolName === 'call_macro') {
+    return disconnectedCallMacroResult(candidate ?? {
+      name: toolName,
+      label: toolName,
+      description: toolName,
+      inputSchema: undefined,
+      toolId: toolName,
+      original: {},
+    }, generation)
+  }
   return errorFlashQueryToolResult({
     candidate: candidate ?? {
       name: toolName,
