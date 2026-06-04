@@ -61,6 +61,7 @@ This phase is primarily hardening, evidence, and closeout work. It may fix defec
 - `.planning/phases/18-call-model-call-macro-and-diagnostics-data/18-03-SUMMARY.md` - `call_model`/`call_macro` diagnostics preservation and manual evidence conventions.
 - `.planning/phases/19-pi-toolcard-observability-rendering/19-02-SUMMARY.md` - `T-E-006` ToolCard E2E evidence and blocked/passed `T-M-003` status conventions.
 - `.planning/phases/20-pi-mentions-and-clipboard-utilities/20-04-SUMMARY.md` - `T-E-004` mention E2E evidence, `T-E-003` clipboard preservation, and blocked `T-M-004` native clipboard verification.
+- `.planning/phases/20-pi-mentions-and-clipboard-utilities/20-UAT.md` - Latest gap-fix evidence for the Phase 19/20 `call_macro` trace-table defect: `T-U-019` updated, `T-E-006` migrated to the real macro envelope shape, new `T-E-006b` added in `e2e/flashquery-pi-macro-trace.spec.ts`, and live `T-M-002` still blocked pending a real host-model/macro run.
 
 ### Expected Code And Test Areas
 - `src/agent/extensions/cate-flashquery/lifecycle.ts` and `src/agent/extensions/cate-flashquery/lifecycle.test.ts` - Workspace rebind, metadata refresh, stale tool ownership, and `T-U-015`.
@@ -75,6 +76,7 @@ This phase is primarily hardening, evidence, and closeout work. It may fix defec
 - `e2e/flashquery-pi-mentions.spec.ts` - `T-E-004` and mention-cache portions of `T-E-007`.
 - `e2e/flashquery-pi-extension.spec.ts` - `T-E-005`.
 - `e2e/flashquery-pi-diagnostics.spec.ts` - `T-E-006`.
+- `e2e/flashquery-pi-macro-trace.spec.ts` - `T-E-006b` real `call_macro` response-envelope regression coverage added by the Phase 20 gap cleanup.
 - `e2e/flashquery-disconnect.spec.ts` - Legacy disconnect/retry coverage to reconcile with `T-E-007`.
 - `e2e/flashquery-visual-evidence.spec.ts` and evidence folders under `.planning/phases/*/evidence/visual/` - Existing visual-evidence conventions.
 </canonical_refs>
@@ -86,6 +88,7 @@ This phase is primarily hardening, evidence, and closeout work. It may fix defec
 - Keep E2E coverage distributed by surface but add one Phase 21 matrix/UAT doc that maps every required state to the test that proves it.
 - The final closeout plan should produce `21-UAT.md` and `21-VERIFICATION.md`; these docs should name any blocked manual checks rather than burying them in prose.
 - Existing Phase 20 summary says `T-M-004` is blocked pending human native macOS clipboard verification. Phase 21 should either close it with pasted values or keep it blocked with exact prerequisites.
+- Existing Phase 20 UAT says Gap 5 / CF-01 for `call_macro` trace-table rendering is structurally closed by automated real-envelope coverage (`T-U-019`, migrated `T-E-006`, and new `T-E-006b`), while `T-M-002` remains blocked for genuinely live host-model macro invocation, throttled progress, and `needs_user_input`.
 - Existing Phase 17 summary says live `T-M-001` needs a real FlashQuery HTTP MCP endpoint and configured Pi provider. Phase 21 should revisit this and record the result honestly.
 </specifics>
 
