@@ -147,6 +147,12 @@ Plans:
 
 **Requirements:** REQ-017
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 19-01-PLAN.md — Add component-level rich FlashQuery ToolCard rendering and T-U-019 coverage.
+- [ ] 19-02-PLAN.md — Extend mocked E2E ToolCard evidence and record T-M-003 manual evidence status.
+
 **Success criteria:**
 1. No new chat message type or standalone FlashQuery chat chrome is introduced.
 2. `call_model` collapsed summaries use the required resolver/name/iteration/FQ-call/tokens/cost/latency format when data is available.
