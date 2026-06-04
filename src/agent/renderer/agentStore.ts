@@ -93,7 +93,11 @@ export interface ToolMessage {
   diff?: DiffInfo
   /** Structured details for tools that emit them (currently: subagent). */
   subagent?: SubagentDetails
+  /** Structured FlashQuery diagnostics preserved for Phase 19 ToolCards. */
+  flashquery?: FlashQueryDetails
 }
+
+export type FlashQueryDetails = Record<string, unknown>
 
 /** Mirrors the SubagentDetails shape emitted by pi's subagent extension —
  *  see ~/.pi/agent/extensions/subagent/index.ts. We narrow defensively. */
@@ -703,6 +707,45 @@ function extractSubagentDetails(v: unknown): SubagentDetails | undefined {
   return { mode, results }
 }
 
+function extractFlashQueryDetails(v: unknown): FlashQueryDetails | undefined {
+  if (!v || typeof v !== 'object') return undefined
+  const details = (v as Record<string, unknown>).details
+  if (!details || typeof details !== 'object' || Array.isArray(details)) return undefined
+  const d = details as Record<string, unknown>
+  if (d.flashquery !== true) return undefined
+  return sanitizeFlashQueryDetails(d)
+}
+
+const FLASHQUERY_SECRET_KEYS = new Set([
+  'authorization',
+  'bearertoken',
+  'headers',
+  'requestinit',
+  'handoff',
+  'endpointurl',
+])
+
+function sanitizeFlashQueryDetails(value: unknown, seen = new WeakSet<object>()): FlashQueryDetails | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+  if (seen.has(value)) return undefined
+  seen.add(value)
+  const out: FlashQueryDetails = {}
+  for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+    if (FLASHQUERY_SECRET_KEYS.has(key.toLowerCase())) continue
+    const sanitized = sanitizeFlashQueryValue(item, seen)
+    if (sanitized !== undefined) out[key] = sanitized
+  }
+  return out
+}
+
+function sanitizeFlashQueryValue(value: unknown, seen: WeakSet<object>): unknown {
+  if (value == null) return value
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value
+  if (Array.isArray(value)) return value.map((item) => sanitizeFlashQueryValue(item, seen)).filter((item) => item !== undefined)
+  if (typeof value === 'object') return sanitizeFlashQueryDetails(value, seen)
+  return undefined
+}
+
 /** Best-effort parse of a tool's args — pi normally hands us objects but the
  *  occasional code path passes a JSON-encoded string. */
 function coerceArgs(args: unknown): Record<string, unknown> {
@@ -843,6 +886,8 @@ function handleEvent(panelId: string, event: { type: string; [key: string]: unkn
         const patch: Partial<ToolMessage> = {}
         const partial = extractContentText(event.partialResult)
         if (partial !== undefined) patch.partialText = partial
+        const flashquery = extractFlashQueryDetails(event.partialResult)
+        if (flashquery) patch.flashquery = flashquery
         if (toolMsg?.name === 'subagent') {
           const sub = extractSubagentDetails(event.partialResult)
           if (sub) patch.subagent = sub
@@ -866,6 +911,7 @@ function handleEvent(panelId: string, event: { type: string; [key: string]: unkn
         ) as ToolMessage | undefined
         const diff = toolMsg && !isError ? deriveDiff(toolMsg.name, toolMsg.args, result) : undefined
         const sub = toolMsg?.name === 'subagent' ? extractSubagentDetails(event.result) : undefined
+        const flashquery = extractFlashQueryDetails(event.result)
         useAgentStore.getState().updateToolCall(panelId, toolCallId, {
           status: isError ? 'error' : 'success',
           result,
@@ -873,6 +919,7 @@ function handleEvent(panelId: string, event: { type: string; [key: string]: unkn
           error: error ?? (isError ? 'Tool reported an error' : undefined),
           ...(diff ? { diff } : {}),
           ...(sub ? { subagent: sub } : {}),
+          ...(flashquery ? { flashquery } : {}),
         })
         return
       }

@@ -182,6 +182,8 @@ export interface RendererToolMessage {
   /** Structured subagent payload preserved from pi's `details` field. Shape
    *  mirrors `SubagentDetails` in the renderer store; serialized as-is. */
   subagent?: unknown
+  /** Structured FlashQuery diagnostics preserved from pi's `details` field. */
+  flashquery?: unknown
 }
 export interface RendererSystemMessage { type: 'system'; id: string; text: string; kind?: 'info' | 'warning' | 'error' }
 export type RendererMessage =
@@ -305,12 +307,14 @@ export async function loadSessionTranscript(filePath: string): Promise<RendererM
       const isError = msg.isError === true
       const text = extractText(msg.content) ?? ''
       const subagent = tool.name === 'subagent' ? normalizeSubagent(msg.details) : undefined
+      const flashquery = normalizeFlashQuery(msg.details)
       out[idx] = {
         ...tool,
         status: isError ? 'error' : 'success',
         result: isError ? undefined : text,
         error: isError ? text || 'Tool reported an error' : undefined,
         ...(subagent ? { subagent } : {}),
+        ...(flashquery ? { flashquery } : {}),
       }
       continue
     }
@@ -412,4 +416,41 @@ function normalizeSubagent(details: unknown): unknown {
     }]
   })
   return { mode, results }
+}
+
+function normalizeFlashQuery(details: unknown): unknown {
+  if (!details || typeof details !== 'object' || Array.isArray(details)) return undefined
+  const d = details as Record<string, unknown>
+  if (d.flashquery !== true) return undefined
+  return sanitizeFlashQueryDetails(d)
+}
+
+const FLASHQUERY_SECRET_KEYS = new Set([
+  'authorization',
+  'bearertoken',
+  'headers',
+  'requestinit',
+  'handoff',
+  'endpointurl',
+])
+
+function sanitizeFlashQueryDetails(value: unknown, seen = new WeakSet<object>()): unknown {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+  if (seen.has(value)) return undefined
+  seen.add(value)
+  const out: Record<string, unknown> = {}
+  for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+    if (FLASHQUERY_SECRET_KEYS.has(key.toLowerCase())) continue
+    const sanitized = sanitizeFlashQueryValue(item, seen)
+    if (sanitized !== undefined) out[key] = sanitized
+  }
+  return out
+}
+
+function sanitizeFlashQueryValue(value: unknown, seen: WeakSet<object>): unknown {
+  if (value == null) return value
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value
+  if (Array.isArray(value)) return value.map((item) => sanitizeFlashQueryValue(item, seen)).filter((item) => item !== undefined)
+  if (typeof value === 'object') return sanitizeFlashQueryDetails(value, seen)
+  return undefined
 }
