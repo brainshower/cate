@@ -25,7 +25,7 @@ This phase does not implement `call_model`/`call_macro` behavior, Pi ToolCard re
 - D-05 [locked]: Add `src/agent/main/installFlashQueryExtension.ts` mirroring `installPlanModeExtension` dev/prod source resolution, skip-if-exists behavior, and idempotent per-workspace install cache.
 - D-06 [locked]: `AgentManager.create()` installs the FlashQuery extension alongside subagent and plan-mode extensions without disrupting existing extension installs.
 - D-07 [locked]: Cate main owns installation and credential handoff. The extension owns MCP client connection, registry discovery, schema translation, registration, workspace rebinding, invocation dispatch, and FlashQuery progress subscriptions.
-- D-08 [locked]: FlashQuery credentials are Cate-provided and workspace-scoped. Do not write FlashQuery credentials into Pi global `auth.json`.
+- D-08 [locked]: FlashQuery credentials are Cate-provided and workspace-scoped. Workspace metadata stores the normalized FlashQuery URL; bearer tokens live in main-process `src/main/flashquery/credentials.ts` via electron-store. Do not write FlashQuery credentials into Pi global `auth.json`.
 - D-09 [locked]: FlashQuery must not be registered as a Pi provider and must not appear in `ProvidersView`.
 
 ### Tool Eligibility and Registration
@@ -74,6 +74,8 @@ This phase does not implement `call_model`/`call_macro` behavior, Pi ToolCard re
 - `src/agent/main/installPlanMode.ts` - Bundled extension installer pattern to mirror.
 - `src/agent/main/agentManager.ts` - Pi RPC lifecycle and bundled extension installation call site.
 - `src/agent/main/agentDir.ts` - Workspace-scoped Pi agent directory and auth mirroring pattern.
+- `src/main/flashquery/credentials.ts` - Main-process workspace token store; Phase 17 handoff must read bearer tokens from here instead of from renderer-visible workspace JSON.
+- `src/main/flashquery/credentials.test.ts` - Current token isolation and delete behavior tests.
 - `src/agent/extensions/cate-plan-mode/index.ts` - Current Cate bundled Pi extension pattern.
 - `src/agent/extensions/cate-plan-mode/package.json` - Pi extension package manifest pattern.
 - `node_modules/@earendil-works/pi-coding-agent/dist/core/extensions/types.d.ts` - Current Pi extension API surface, including `registerTool`, lifecycle events, and provider APIs.
@@ -89,7 +91,7 @@ This phase does not implement `call_model`/`call_macro` behavior, Pi ToolCard re
 - Add `src/agent/extensions/cate-flashquery/index.ts`, `src/agent/extensions/cate-flashquery/package.json`, and focused extension-local helpers for registry normalization, schema translation, connection lifecycle, and tool execution.
 - Add `src/agent/main/installFlashQueryExtension.ts` and `src/agent/main/installFlashQueryExtension.test.ts`.
 - Update `AgentManager.create()` to call `installFlashQueryExtension(opts.cwd)` after `installPlanModeExtension(opts.cwd)` or adjacent to other bundled extension installs.
-- Pass FlashQuery workspace connection metadata to the Pi extension through a workspace-scoped file or environment variable under `<cwd>/.cate/pi-agent/`, not through global Pi auth. If a file is used, write it with a restrictive `.gitignore`-protected location and never include bearer tokens in project-local VCS-friendly `.cate/workspace.json`.
+- Pass FlashQuery workspace connection metadata to the Pi extension through a workspace-scoped file or environment variable under `<cwd>/.cate/pi-agent/`, not through global Pi auth. If a file is used, write it with a restrictive `.gitignore`-protected location. The URL comes from sanitized workspace metadata; the bearer token, when present, comes from `getWorkspaceToken(workspaceId)`. Never include bearer tokens in project-local VCS-friendly `.cate/workspace.json`.
 - In extension tests, mock a registry containing `call_model`, `call_macro`, `search_tools`, a native document tool, a brokered MCP tool, a deprecated tool, an unavailable tool, and a non-host-eligible tool.
 - In workspace-switch tests, use a slow old-workspace call and assert it resolves through the old client while subsequent calls use the new client/registry.
 </specifics>

@@ -21,7 +21,7 @@ Phase 17 validation is split across installer unit tests, extension unit tests, 
 
 ## Required Assertions
 
-- T-U-013: installer copies bundled extension files idempotently in dev/prod source layouts and `AgentManager.create()` invokes it without disrupting existing extension installs.
+- T-U-013: installer copies bundled extension files idempotently in dev/prod source layouts and `AgentManager.create()` invokes it without disrupting existing extension installs. Handoff tests must prove bearer tokens are read from `src/main/flashquery/credentials.ts` / `getWorkspaceToken(workspaceId)` and are not written to Pi global `auth.json` or project-local workspace JSON.
 - T-U-014: registry filtering registers only `hostEligible: true` and `status: current`, includes brokered MCP tools, translates schemas, skips unavailable/deprecated tools, and does not register a provider.
 - T-U-015: workspace switch reconnects the FlashQuery MCP client, refreshes registry/models/purposes, unregisters or otherwise removes stale tools from subsequent availability, registers changed tools, and leaves in-flight old-workspace calls to complete.
 - T-E-005: with mocked agent/FlashQuery fixture where feasible, Cate startup installs the bundled extension and eligible fixture tools become Pi tools after agent startup.

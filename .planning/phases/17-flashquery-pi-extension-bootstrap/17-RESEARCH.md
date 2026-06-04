@@ -26,7 +26,7 @@ Pi extension code can register tools dynamically through `pi.registerTool(...)` 
 
 - Workspace FlashQuery connection metadata already exists on shared workspace/session types and renderer/main IPC surfaces from earlier phases.
 - Renderer code must not see bearer tokens. Existing FlashQuery privileged work goes through main/preload IPC and `FlashQueryClientManager`.
-- Phase 17 can introduce main-owned handoff material for Pi extension startup, but should keep secrets in the workspace-scoped Pi agent dir and outside project-local persisted workspace JSON.
+- Phase 17 can introduce main-owned handoff material for Pi extension startup, but should keep secrets in the workspace-scoped Pi agent dir and outside project-local persisted workspace JSON. Current bearer-token storage is `src/main/flashquery/credentials.ts`; workspace JSON should be treated as URL/config metadata, not the token source.
 
 ## Validation Architecture
 

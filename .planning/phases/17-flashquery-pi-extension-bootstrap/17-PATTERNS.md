@@ -11,10 +11,11 @@
 | Dynamic tool registration | `node_modules/@earendil-works/pi-coding-agent/examples/extensions/dynamic-tools.ts` | Register tools during `session_start` or refresh paths with `pi.registerTool({ name, label, description, parameters, execute })`. |
 | Provider anti-pattern | `node_modules/@earendil-works/pi-coding-agent/examples/extensions/custom-provider-gitlab-duo/index.ts` | Shows what provider registration looks like; Phase 17 must not call `pi.registerProvider` or add FlashQuery to `ProvidersView`. |
 | FlashQuery IPC/security | `src/main/ipc/flashquery.ts`, `src/main/flashquery/clientManager.ts`, `src/shared/types.ts` | Keep renderer away from secrets; normalize workspace connection data; main process owns privileged transport. |
+| FlashQuery token storage | `src/main/flashquery/credentials.ts`, `src/main/flashquery/credentials.test.ts` | Bearer tokens are isolated by workspace in main-process electron-store, not persisted into renderer-visible workspace JSON. |
 
 ## Data Flow
 
-`AgentManager.create()` prepares `<cwd>/.cate/pi-agent`, installs Cate's bundled Pi extensions, writes or refreshes workspace-scoped FlashQuery handoff material, then starts Pi with `PI_CODING_AGENT_DIR` pointed at that workspace. Pi auto-discovers `cate-flashquery`.
+`AgentManager.create()` prepares `<cwd>/.cate/pi-agent`, installs Cate's bundled Pi extensions, writes or refreshes workspace-scoped FlashQuery handoff material, then starts Pi with `PI_CODING_AGENT_DIR` pointed at that workspace. The handoff combines sanitized workspace connection metadata with bearer tokens loaded through `getWorkspaceToken(workspaceId)`. Pi auto-discovers `cate-flashquery`.
 
 The extension reads Cate-provided workspace FlashQuery connection metadata, opens an MCP client, fetches registry/model/purpose metadata, filters tools by `hostEligible: true` and `status: current`, translates schemas to Pi-compatible parameter schemas, and registers eligible tools with `pi.registerTool`. Tool execution delegates to the current FlashQuery client, preserving old clients for in-flight calls during workspace rebinding.
 
