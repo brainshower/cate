@@ -59,7 +59,8 @@ export async function executeCallMacroTool(
         })
       },
     })
-  } catch {
+  } catch (err) {
+    if (!isTransportDisconnectError(err)) throw err
     return disconnectedCallMacroResult(candidate, generation, traced.traceId)
   }
 
@@ -116,4 +117,25 @@ function progressMessage(progress: unknown): string {
     if (typeof message === 'string' && message.trim().length > 0) return message
   }
   return 'Running macro...'
+}
+
+function isTransportDisconnectError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false
+  const record = err as Record<string, unknown>
+  if (record.name === 'AbortError') return false
+  const message = typeof record.message === 'string' ? record.message.toLowerCase() : ''
+  if (message.length === 0) return false
+  return [
+    'connection closed',
+    'connection reset',
+    'connection refused',
+    'connect econn',
+    'econnreset',
+    'econnrefused',
+    'enotfound',
+    'network error',
+    'fetch failed',
+    'socket',
+    'transport',
+  ].some((needle) => message.includes(needle))
 }

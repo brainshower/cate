@@ -558,6 +558,34 @@ describe('cate-flashquery lifecycle', () => {
       details: { flashquery: true, toolName: 'call_macro', disconnected: true },
     })
   })
+
+  it('T-U-017 R-18-1 does not report aborted call_macro dispatches as disconnected', async () => {
+    const pi = mockPi()
+    const client = mockClient('ws-a', [eligible({ name: 'call_macro' })])
+    client.callTool = vi.fn(async () => {
+      throw new DOMException('The operation was aborted.', 'AbortError')
+    })
+    const lifecycle = createCateFlashQueryLifecycle(pi.api, {
+      readHandoff: async () => handoff('ws-a'),
+      openClient: async () => client,
+    })
+    await lifecycle.rebind('/workspace-a')
+
+    const result = await registeredTool(pi, 'call_macro').execute(
+      'macro-abort',
+      { source_ref: 'macros/a.md' },
+      undefined,
+      undefined,
+      { conversationId: 'conversation-1', ui: { confirm: vi.fn() } },
+    )
+
+    expect(result).toMatchObject({
+      isError: true,
+      details: { flashquery: true, toolName: 'call_macro' },
+    })
+    expect(result.content).not.toEqual([{ type: 'text', text: 'FlashQuery is not connected.' }])
+    expect(result.details).not.toHaveProperty('disconnected')
+  })
 })
 
 function mockPi() {
