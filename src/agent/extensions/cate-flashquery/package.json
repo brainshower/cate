@@ -1,0 +1,8 @@
+{
+  "name": "cate-flashquery",
+  "description": "FlashQuery workspace tool bridge for Cate's bundled Pi agent.",
+  "private": true,
+  "pi": {
+    "extensions": ["./index.ts"]
+  }
+}
