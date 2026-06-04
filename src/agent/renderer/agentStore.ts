@@ -22,6 +22,7 @@ import type {
   AgentSessionStats,
   AgentThinkingLevel,
   AgentToolApprovalRequest,
+  FlashQueryVaultIndexEntry,
 } from '../../shared/types'
 
 // -----------------------------------------------------------------------------
@@ -206,6 +207,10 @@ export interface PanelAgentState {
   followUpQueue: string[]
   extensionStatuses: ExtensionStatusEntry[]
   extensionWidgets: ExtensionWidgetEntry[]
+  vaultIndex: FlashQueryVaultIndexEntry[]
+  vaultIndexLoading: boolean
+  vaultIndexWorkspaceId: string | null
+  vaultIndexRequestId: number
 
   /** Pending dialog requests from pi extensions — rendered as in-panel UI. */
   uiRequests: AgentExtensionUIRequest[]
@@ -253,6 +258,8 @@ interface AgentStoreActions {
     lines: string[] | undefined,
     placement: 'aboveEditor' | 'belowEditor',
   ) => void
+  refreshVaultIndex: (panelId: string, workspaceId: string) => Promise<void>
+  clearVaultIndex: (panelId: string) => void
 
   addUiRequest: (panelId: string, req: AgentExtensionUIRequest) => void
   resolveUiRequest: (panelId: string, id: string) => void
@@ -286,6 +293,10 @@ function emptyPanel(): PanelAgentState {
     followUpQueue: [],
     extensionStatuses: [],
     extensionWidgets: [],
+    vaultIndex: [],
+    vaultIndexLoading: false,
+    vaultIndexWorkspaceId: null,
+    vaultIndexRequestId: 0,
     uiRequests: [],
   }
 }
@@ -570,6 +581,58 @@ export const useAgentStore = create<AgentStore>((set) => ({
     )
   },
 
+  async refreshVaultIndex(panelId, workspaceId) {
+    if (!workspaceId) return
+    let requestId = 0
+    set((state) =>
+      withPanel(state, panelId, (p) => {
+        requestId = p.vaultIndexRequestId + 1
+        const switchingWorkspace = p.vaultIndexWorkspaceId !== null && p.vaultIndexWorkspaceId !== workspaceId
+        return {
+          ...p,
+          vaultIndex: switchingWorkspace ? [] : p.vaultIndex,
+          vaultIndexLoading: true,
+          vaultIndexWorkspaceId: workspaceId,
+          vaultIndexRequestId: requestId,
+        }
+      }),
+    )
+    if (requestId === 0) return
+    try {
+      const entries = await window.electronAPI.flashqueryListVaultIndex(workspaceId)
+      set((state) =>
+        withPanel(state, panelId, (p) => {
+          if (p.vaultIndexRequestId !== requestId || p.vaultIndexWorkspaceId !== workspaceId) return p
+          return {
+            ...p,
+            vaultIndex: entries.slice(),
+            vaultIndexLoading: false,
+          }
+        }),
+      )
+    } catch (err) {
+      log.warn('[agentStore] refreshVaultIndex failed', err)
+      set((state) =>
+        withPanel(state, panelId, (p) => {
+          if (p.vaultIndexRequestId !== requestId || p.vaultIndexWorkspaceId !== workspaceId) return p
+          return { ...p, vaultIndexLoading: false }
+        }),
+      )
+    }
+  },
+
+  clearVaultIndex(panelId) {
+    set((state) =>
+      withPanel(state, panelId, (p) => ({
+        ...p,
+        vaultIndex: [],
+        vaultIndexLoading: false,
+        vaultIndexWorkspaceId: null,
+        vaultIndexRequestId: p.vaultIndexRequestId + 1,
+      })),
+    )
+  },
+
 
   addUiRequest(panelId, req) {
     set((state) =>
@@ -746,6 +809,38 @@ function sanitizeFlashQueryValue(value: unknown, seen: WeakSet<object>): unknown
   return undefined
 }
 
+const FLASHQUERY_MUTATING_DOCUMENT_TOOL_PATTERNS = [
+  /write.*document/i,
+  /create.*document/i,
+  /update.*document/i,
+  /delete.*document/i,
+  /archive.*document/i,
+  /move.*document/i,
+  /rename.*document/i,
+  /flashquery:writeDocument/i,
+]
+
+function isMutatingFlashQueryDocumentTool(toolMsg: ToolMessage | undefined, details: FlashQueryDetails | undefined): boolean {
+  if (!toolMsg || !details || details.flashquery !== true) return false
+  const detailToolName = asString(details.toolName)
+  const names = [toolMsg.name, detailToolName].filter((name): name is string => !!name)
+  return names.some((name) => FLASHQUERY_MUTATING_DOCUMENT_TOOL_PATTERNS.some((pattern) => pattern.test(name)))
+}
+
+function workspaceIdFromFlashQueryDetails(details: FlashQueryDetails | undefined): string | undefined {
+  if (!details) return undefined
+  return asString(details.workspaceId) ?? asString(details.workspace)
+}
+
+export function refreshVaultIndexForWorkspace(workspaceId: string): void {
+  const store = useAgentStore.getState()
+  for (const panelId of Object.keys(store.panels)) {
+    const panel = store.panels[panelId]
+    if (panel.vaultIndexWorkspaceId !== null && panel.vaultIndexWorkspaceId !== workspaceId) continue
+    void store.refreshVaultIndex(panelId, workspaceId)
+  }
+}
+
 /** Best-effort parse of a tool's args — pi normally hands us objects but the
  *  occasional code path passes a JSON-encoded string. */
 function coerceArgs(args: unknown): Record<string, unknown> {
@@ -912,6 +1007,15 @@ export function handleAgentEvent(panelId: string, event: { type: string; [key: s
         const diff = toolMsg && !isError ? deriveDiff(toolMsg.name, toolMsg.args, result) : undefined
         const sub = toolMsg?.name === 'subagent' ? extractSubagentDetails(event.result) : undefined
         const flashquery = extractFlashQueryDetails(event.result)
+        if (!isError && isMutatingFlashQueryDocumentTool(toolMsg, flashquery)) {
+          const previousFlashQuery = toolMsg?.flashquery
+          const workspaceId =
+            workspaceIdFromFlashQueryDetails(flashquery) ??
+            workspaceIdFromFlashQueryDetails(previousFlashQuery) ??
+            slice?.vaultIndexWorkspaceId ??
+            undefined
+          if (workspaceId) refreshVaultIndexForWorkspace(workspaceId)
+        }
         useAgentStore.getState().updateToolCall(panelId, toolCallId, {
           status: isError ? 'error' : 'success',
           result,
