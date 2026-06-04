@@ -4,6 +4,7 @@
 // =============================================================================
 
 import { useEffect, useRef, useCallback, useState } from 'react'
+import { Clipboard } from '@phosphor-icons/react'
 import { useRenderCount } from '../lib/perf/perfClient'
 import log from '../lib/logger'
 import * as monaco from 'monaco-editor'
@@ -566,6 +567,16 @@ export default function EditorPanel({
     }
   }, [flashQueryConnection, flashQueryStatus, markClean, refreshing, save])
 
+  const copyVaultPathOrReference = useCallback(async () => {
+    if (!activeVaultUri) return
+    const action = await window.electronAPI.showContextMenu([
+      { id: 'copy-path', label: 'Copy vault path' },
+      { id: 'copy-reference', label: 'Copy as reference' },
+    ])
+    if (action === 'copy-path') await navigator.clipboard.writeText(activeVaultUri.vaultPath)
+    if (action === 'copy-reference') await navigator.clipboard.writeText(`{{ref:${activeVaultUri.vaultPath}}}`)
+  }, [activeVaultUri])
+
   // ---------------------------------------------------------------------------
   // Mount: create regular editor OR diff editor
   // ---------------------------------------------------------------------------
@@ -914,25 +925,37 @@ export default function EditorPanel({
           {markdownPreview ? 'Source' : 'Preview'}
         </button>
       )}
-      {isFlashQueryBody && !diffMode && (
+      {activeVaultUri && !diffMode && (
         <div className="absolute top-2 right-5 z-10 flex items-center gap-1">
+          {isFlashQueryBody && (
+            <button
+              onClick={() => useAppStore.getState().openFlashQueryFrontmatterEditor(workspaceId, panelId)}
+              className="rounded bg-neutral-200/80 px-2 py-0.5 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-300 dark:bg-neutral-700/80 dark:text-neutral-300 dark:hover:bg-neutral-600"
+              title="Show metadata editor"
+              aria-label="Show metadata editor"
+            >
+              Frontmatter
+            </button>
+          )}
           <button
-            onClick={() => useAppStore.getState().openFlashQueryFrontmatterEditor(workspaceId, panelId)}
-            className="rounded bg-neutral-200/80 px-2 py-0.5 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-300 dark:bg-neutral-700/80 dark:text-neutral-300 dark:hover:bg-neutral-600"
-            title="Show metadata editor"
-            aria-label="Show metadata editor"
+            onClick={() => { void copyVaultPathOrReference() }}
+            className="flex h-[22px] w-[22px] items-center justify-center rounded bg-neutral-200/80 text-neutral-600 transition-colors hover:bg-neutral-300 dark:bg-neutral-700/80 dark:text-neutral-300 dark:hover:bg-neutral-600"
+            title="Clipboard"
+            aria-label="Copy vault path or reference"
           >
-            Frontmatter
+            <Clipboard size={13} />
           </button>
-          <button
-            onClick={() => { void refreshBodyFromVault() }}
-            disabled={refreshing}
-            className="rounded bg-neutral-200/80 px-2 py-0.5 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-300 disabled:opacity-60 dark:bg-neutral-700/80 dark:text-neutral-300 dark:hover:bg-neutral-600"
-            title="Refresh from vault"
-            aria-label="Refresh from vault"
-          >
-            {refreshing ? 'Refreshing...' : 'Refresh from vault'}
-          </button>
+          {isFlashQueryBody && (
+            <button
+              onClick={() => { void refreshBodyFromVault() }}
+              disabled={refreshing}
+              className="rounded bg-neutral-200/80 px-2 py-0.5 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-300 disabled:opacity-60 dark:bg-neutral-700/80 dark:text-neutral-300 dark:hover:bg-neutral-600"
+              title="Refresh from vault"
+              aria-label="Refresh from vault"
+            >
+              {refreshing ? 'Refreshing...' : 'Refresh from vault'}
+            </button>
+          )}
         </div>
       )}
       {markdownPreview && isMarkdown && (

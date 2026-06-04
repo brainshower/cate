@@ -167,6 +167,7 @@ type ElectronApiMock = Pick<
   | 'gitDiff'
   | 'gitDiffStaged'
   | 'onFlashQueryStatus'
+  | 'showContextMenu'
   | 'saveFileDialog'
   | 'confirmUnsavedChanges'
 >
@@ -201,6 +202,7 @@ function makeElectronApi(writeResult: FlashQueryWriteResult = { success: true, m
         statusListener = null
       }
     }),
+    showContextMenu: vi.fn().mockResolvedValue(null),
     saveFileDialog: vi.fn(() => Promise.resolve(null)),
     confirmUnsavedChanges: vi.fn(() => Promise.resolve('save' as const)),
   }
@@ -276,6 +278,10 @@ beforeEach(() => {
     disconnect() {}
   } as any
   setElectronApi(makeElectronApi())
+  Object.defineProperty(navigator, 'clipboard', {
+    configurable: true,
+    value: { writeText: vi.fn().mockResolvedValue(undefined) },
+  })
   seedWorkspace()
   useAgentStore.setState({ panels: {} })
 })
@@ -506,6 +512,47 @@ describe('EditorPanel FlashQuery save and dirty behavior', () => {
       filePath: vaultUri,
     })
     expect(api.flashqueryWriteDocument).toHaveBeenCalledWith('workspace-1', 'Docs/Plan.md', 'dirty close')
+  })
+})
+
+describe('EditorPanel FlashQuery clipboard title action', () => {
+  it('T-U-012 shows Clipboard for FlashQuery body and frontmatter editors only', async () => {
+    await renderEditor(vaultUri)
+    expect(screen.getByLabelText('Copy vault path or reference')).toBeTruthy()
+
+    cleanup()
+    monacoMock().reset()
+    await renderEditor('flashquery://workspace-1/Docs/Clipboard.md?part=frontmatter')
+    expect(screen.getByLabelText('Copy vault path or reference')).toBeTruthy()
+
+    cleanup()
+    monacoMock().reset()
+    await renderEditor(localPath)
+    expect(screen.queryByLabelText('Copy vault path or reference')).toBeNull()
+  })
+
+  it('T-U-012 copies decoded vault paths and whole-document references from the editor title action', async () => {
+    const api = makeElectronApi()
+    setElectronApi(api)
+    const encodedUri = 'flashquery://workspace-1/Docs/Space%20Plan.md'
+    await renderEditor(encodedUri)
+
+    vi.mocked(api.showContextMenu).mockResolvedValueOnce('copy-path')
+    fireEvent.click(screen.getByLabelText('Copy vault path or reference'))
+    await waitFor(() => expect(api.showContextMenu).toHaveBeenCalledWith([
+      { id: 'copy-path', label: 'Copy vault path' },
+      { id: 'copy-reference', label: 'Copy as reference' },
+    ]))
+    await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Docs/Space Plan.md'))
+
+    vi.mocked(api.showContextMenu).mockResolvedValueOnce('copy-reference')
+    fireEvent.click(screen.getByLabelText('Copy vault path or reference'))
+    await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith('{{ref:Docs/Space Plan.md}}'))
+
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalledWith(expect.stringContaining('%20'))
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalledWith(expect.stringContaining('flashquery://'))
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalledWith(expect.stringContaining('#'))
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalledWith(expect.stringContaining(']('))
   })
 })
 
