@@ -33,6 +33,11 @@ vi.mock('./terminalRegistry', () => ({
   terminalRegistry: { getEntry: vi.fn(() => null) },
 }))
 
+vi.mock('../../agent/renderer/agentStore', () => ({
+  handleAgentEvent: vi.fn(),
+  useAgentStore: { getState: vi.fn(() => ({ panels: {} })) },
+}))
+
 function cateE2EGlobal() {
   return window.__cateE2E
 }

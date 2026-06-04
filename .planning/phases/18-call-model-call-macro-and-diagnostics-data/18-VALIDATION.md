@@ -1,7 +1,7 @@
 ---
 phase: 18
 slug: call-model-call-macro-and-diagnostics-data
-status: draft
+status: complete
 nyquist_compliant: true
 plan_created_tests: true
 created: 2026-06-04
@@ -40,23 +40,23 @@ Final evidence should run under Node 20 or Node 22. The planning shell reported 
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 18-01-01 | 01 | 1 | REQ-015 | T18-token-leak / T18-stale-workspace | `call_model` wrapper keeps workspace credentials out of renderer and current tool details | unit | `npm test -- src/agent/extensions/cate-flashquery/lifecycle.test.ts` | yes, extend | pending |
-| 18-01-02 | 01 | 1 | REQ-015 | T18-trace-spoofing / T18-ref-confusion | `trace_id` uses required format and unresolved refs block before model dispatch | unit | `npm test -- src/agent/extensions/cate-flashquery/lifecycle.test.ts` | yes, extend | pending |
-| 18-01-03 | 01 | 1 | REQ-015 | T18-fabricated-progress | `call_model` sends `return_messages: true`, preserves diagnostics, and does not emit synthetic live progress | unit | `npm test -- src/agent/extensions/cate-flashquery/lifecycle.test.ts` | yes, extend | pending |
-| 18-02-01 | 02 | 2 | REQ-016 | T18-inline-macro-exec | Inline `source` requires confirmation and `source_ref` executes without confirmation | unit | `npm test -- src/agent/extensions/cate-flashquery/lifecycle.test.ts` | yes, extend | pending |
-| 18-02-02 | 02 | 2 | REQ-016 | T18-progress-spoofing | Macro defaults `interactive: true`, `progress: 'milestones'`, filters progress by token, and forwards latest real progress only | unit | `npm test -- src/agent/extensions/cate-flashquery/lifecycle.test.ts` | yes, extend | pending |
-| 18-02-03 | 02 | 2 | REQ-016 | T18-error-misclassification | `needs_user_input` remains a tool-result envelope and disconnected state returns `FlashQuery is not connected.` | unit | `npm test -- src/agent/extensions/cate-flashquery/lifecycle.test.ts` | yes, extend | pending |
-| 18-03-01 | 03 | 3 | REQ-015, REQ-016, REQ-017 | T18-diagnostics-loss | `agentStore` preserves structured FlashQuery details without breaking text extraction or subagent details | unit/component | `npm test -- src/agent/renderer/agentStore.test.ts src/agent/main/sessionFiles.test.ts` | created by plan | pending |
-| 18-03-02 | 03 | 3 | REQ-015, REQ-016, REQ-017 | T18-regression | Mocked Pi diagnostics events preserve final and partial details for later Phase 19 ToolCards | e2e | `npm run test:e2e -- e2e/flashquery-pi-diagnostics.spec.ts` | created by plan | pending |
+| 18-01-01 | 01 | 1 | REQ-015 | T18-token-leak / T18-stale-workspace | `call_model` wrapper keeps workspace credentials out of renderer and current tool details | unit | `npm test -- src/agent/extensions/cate-flashquery/lifecycle.test.ts` | yes | passed |
+| 18-01-02 | 01 | 1 | REQ-015 | T18-trace-spoofing / T18-ref-confusion | `trace_id` uses required format and unresolved refs block before model dispatch | unit | `npm test -- src/agent/extensions/cate-flashquery/lifecycle.test.ts` | yes | passed |
+| 18-01-03 | 01 | 1 | REQ-015 | T18-fabricated-progress | `call_model` sends `return_messages: true`, preserves diagnostics, and does not emit synthetic live progress | unit | `npm test -- src/agent/extensions/cate-flashquery/lifecycle.test.ts` | yes | passed |
+| 18-02-01 | 02 | 2 | REQ-016 | T18-inline-macro-exec | Inline `source` requires confirmation and `source_ref` executes without confirmation | unit | `npm test -- src/agent/extensions/cate-flashquery/lifecycle.test.ts` | yes | passed |
+| 18-02-02 | 02 | 2 | REQ-016 | T18-progress-spoofing | Macro defaults `interactive: true`, `progress: 'milestones'`, filters progress by token, and forwards latest real progress only | unit | `npm test -- src/agent/extensions/cate-flashquery/lifecycle.test.ts` | yes | passed |
+| 18-02-03 | 02 | 2 | REQ-016 | T18-error-misclassification | `needs_user_input` remains a tool-result envelope and disconnected state returns `FlashQuery is not connected.` | unit | `npm test -- src/agent/extensions/cate-flashquery/lifecycle.test.ts` | yes | passed |
+| 18-03-01 | 03 | 3 | REQ-015, REQ-016, REQ-017 | T18-diagnostics-loss | `agentStore` preserves structured FlashQuery details without breaking text extraction or subagent details | unit/component | `npm test -- src/agent/renderer/agentStore.test.ts src/agent/main/sessionFiles.test.ts` | yes | passed |
+| 18-03-02 | 03 | 3 | REQ-015, REQ-016, REQ-017 | T18-regression | Mocked Pi diagnostics events preserve final and partial details for later Phase 19 ToolCards | e2e | `npm run test:e2e -- e2e/flashquery-pi-diagnostics.spec.ts` | yes | passed |
 
 ---
 
 ## Plan-Created Test Files
 
-- [ ] `src/agent/renderer/agentStore.test.ts` - Plan 18-03 creates or extends tests for `T-U-018`.
-- [ ] `src/agent/main/sessionFiles.test.ts` - Plan 18-03 creates or extends transcript replay tests if session replay currently drops structured FlashQuery details.
-- [ ] `e2e/flashquery-pi-diagnostics.spec.ts` - Plan 18-03 creates required runnable mocked `T-E-006` coverage for diagnostic event preservation without implementing Phase 19 rendering.
-- [ ] `e2e/fixtures/flashquery-server.ts` - Plan 18-03 adds deterministic `call_model`, `call_macro`, progress, diagnostics, and disconnected fixture behavior if E2E uses real agent startup.
+- [x] `src/agent/renderer/agentStore.test.ts` - T-U-018 live event diagnostics preservation.
+- [x] `src/agent/main/sessionFiles.test.ts` - T-U-018 transcript replay diagnostics preservation.
+- [x] `e2e/flashquery-pi-diagnostics.spec.ts` - T-E-006 mocked diagnostic event preservation without implementing Phase 19 rendering.
+- [x] `e2e/fixtures/flashquery-server.ts` - Not modified; T-E-006 uses mocked renderer event dispatch instead of real server startup fixtures.
 
 ---
 
@@ -73,11 +73,19 @@ If credentials or live endpoints are unavailable, record manual-check blockers i
 
 ## Validation Sign-Off
 
-- [ ] All tasks have automated verify commands; tests that do not exist yet are created by the corresponding plan task.
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify.
-- [ ] Plan-created test files cover all missing references.
-- [ ] No watch-mode flags.
-- [ ] Feedback latency target documented.
+- [x] All tasks have automated verify commands; tests that did not exist were created by the corresponding plan task.
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify.
+- [x] Plan-created test files cover all missing references.
+- [x] No watch-mode flags.
+- [x] Feedback latency target documented.
 - [x] `nyquist_compliant: true` set in frontmatter.
 
-**Approval:** pending
+**Approval:** passed
+
+## Validation Audit 2026-06-04
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 0 |
+| Resolved | 8 |
+| Escalated | 2 manual-only live-provider checks |

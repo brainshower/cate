@@ -1,6 +1,6 @@
 ---
 phase: 18-call-model-call-macro-and-diagnostics-data
-status: partial
+status: complete
 automated: passed
 manual: blocked
 updated: 2026-06-04
@@ -24,7 +24,7 @@ npm run test:e2e -- e2e/flashquery-pi-diagnostics.spec.ts
 
 ## T-M-002 Manual: Real Macro Progress
 
-**Status:** Blocked pending live FlashQuery macro runtime and Pi provider credentials.
+**Status:** Manual-only blocker acknowledged pending live FlashQuery macro runtime and Pi provider credentials.
 
 **Expected observations when credentials/runtime are available:**
 
@@ -37,7 +37,7 @@ npm run test:e2e -- e2e/flashquery-pi-diagnostics.spec.ts
 
 ## T-M-003 Manual: Real `call_model` Refs And Diagnostics
 
-**Status:** Blocked pending live provider credentials and a configured FlashQuery model/purpose runtime.
+**Status:** Manual-only blocker acknowledged pending live provider credentials and a configured FlashQuery model/purpose runtime.
 
 **Expected observations when credentials/runtime are available:**
 
