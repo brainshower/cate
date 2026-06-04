@@ -337,6 +337,138 @@ describe('cate-flashquery lifecycle', () => {
       },
     })
   })
+
+  it('T-U-017 REQ-016 executes source_ref call_macro without confirmation and applies defaults', async () => {
+    const pi = mockPi()
+    const client = mockClient('ws-a', [eligible({ name: 'call_macro' })])
+    const lifecycle = createCateFlashQueryLifecycle(pi.api, {
+      readHandoff: async () => handoff('ws-a'),
+      openClient: async () => client,
+    })
+    await lifecycle.rebind('/workspace-a')
+    const ctx = { ui: { confirm: vi.fn() } }
+
+    const result = await registeredTool(pi, 'call_macro').execute(
+      'macro-1',
+      { source_ref: 'macros/summarize.md' },
+      undefined,
+      undefined,
+      ctx,
+    )
+
+    expect(ctx.ui.confirm).not.toHaveBeenCalled()
+    expect(client.callTool).toHaveBeenCalledWith(
+      'call_macro',
+      expect.objectContaining({
+        source_ref: 'macros/summarize.md',
+        interactive: true,
+        progress: 'milestones',
+      }),
+      expect.objectContaining({ onprogress: expect.any(Function) }),
+    )
+    expect(result.details).toMatchObject({ flashquery: true, toolName: 'call_macro' })
+  })
+
+  it('T-U-017 REQ-016 confirms inline source and cancels without dispatch', async () => {
+    const pi = mockPi()
+    const client = mockClient('ws-a', [eligible({ name: 'call_macro' })])
+    const lifecycle = createCateFlashQueryLifecycle(pi.api, {
+      readHandoff: async () => handoff('ws-a'),
+      openClient: async () => client,
+    })
+    await lifecycle.rebind('/workspace-a')
+    const ctx = { ui: { confirm: vi.fn(async () => false) } }
+
+    const result = await registeredTool(pi, 'call_macro').execute(
+      'macro-1',
+      { source: 'WRITE memory note' },
+      undefined,
+      undefined,
+      ctx,
+    )
+
+    expect(ctx.ui.confirm).toHaveBeenCalledWith(
+      expect.stringContaining('FlashQuery macro'),
+      expect.stringContaining('WRITE memory note'),
+      expect.any(Object),
+    )
+    expect(client.callTool).not.toHaveBeenCalled()
+    expect(result.content).toEqual([{ type: 'text', text: expect.stringContaining('cancelled') }])
+  })
+
+  it('T-U-017 REQ-016 preserves explicit macro options, forwards latest real progress, and keeps needs_user_input as a result', async () => {
+    const pi = mockPi()
+    const client = mockClient('ws-a', [eligible({ name: 'call_macro' })])
+    client.callTool = vi.fn(async (_name: string, _params: Record<string, unknown>, options?: { onprogress?: (progress: unknown) => void }) => {
+      options?.onprogress?.({ progressToken: 'token-1', progress: 0.4, message: 'Reading vault' })
+      options?.onprogress?.({ progressToken: 'token-1', progress: 0.7 })
+      return {
+        content: [{ type: 'text', text: 'Need a choice from the user' }],
+        needs_user_input: { prompt: 'Pick target' },
+        trace: [{ kind: 'tool', name: 'get_document', elapsed_ms: 12 }],
+      }
+    })
+    const lifecycle = createCateFlashQueryLifecycle(pi.api, {
+      readHandoff: async () => handoff('ws-a'),
+      openClient: async () => client,
+    })
+    await lifecycle.rebind('/workspace-a')
+    const onUpdate = vi.fn()
+
+    const result = await registeredTool(pi, 'call_macro').execute(
+      'macro-1',
+      { source_ref: 'macros/ask.md', interactive: false, progress: 'none' },
+      undefined,
+      onUpdate,
+      { ui: { confirm: vi.fn() } },
+    )
+
+    expect(client.callTool).toHaveBeenCalledWith(
+      'call_macro',
+      expect.objectContaining({ interactive: false, progress: 'none' }),
+      expect.objectContaining({ onprogress: expect.any(Function) }),
+    )
+    expect(onUpdate).toHaveBeenNthCalledWith(1, {
+      content: [{ type: 'text', text: 'Reading vault' }],
+      details: expect.objectContaining({ flashquery: true, toolName: 'call_macro', macroProgress: expect.any(Object) }),
+    })
+    expect(onUpdate).toHaveBeenNthCalledWith(2, {
+      content: [{ type: 'text', text: 'Running macro...' }],
+      details: expect.objectContaining({ flashquery: true, toolName: 'call_macro', macroProgress: expect.any(Object) }),
+    })
+    expect(onUpdate.mock.calls.map(([partial]) => partial.content[0].text).join('\n')).not.toMatch(/✓|pending|elapsed|complete 1\/|step row/i)
+    expect(result).not.toHaveProperty('isError')
+    expect(result.details).toMatchObject({
+      flashquery: true,
+      toolName: 'call_macro',
+      result: {
+        needs_user_input: { prompt: 'Pick target' },
+        trace: [{ kind: 'tool', name: 'get_document', elapsed_ms: 12 }],
+      },
+    })
+  })
+
+  it('T-U-017 REQ-016 returns exact disconnected text for stale call_macro execution', async () => {
+    const pi = mockPi()
+    const client = mockClient('ws-a', [eligible({ name: 'call_macro' })])
+    const lifecycle = createCateFlashQueryLifecycle(pi.api, {
+      readHandoff: vi.fn()
+        .mockResolvedValueOnce(handoff('ws-a'))
+        .mockResolvedValueOnce(null),
+      openClient: async () => client,
+    })
+    await lifecycle.rebind('/workspace-a')
+    const macroTool = registeredTool(pi, 'call_macro')
+    await lifecycle.rebind('/workspace-a')
+
+    const result = await macroTool.execute('macro-stale', { source_ref: 'macros/a.md' }, undefined, undefined, { ui: { confirm: vi.fn() } })
+
+    expect(result).toMatchObject({
+      isError: true,
+      content: [{ type: 'text', text: 'FlashQuery is not connected.' }],
+      details: { flashquery: true, toolName: 'call_macro', disconnected: true },
+    })
+  })
 })
 
 function mockPi() {
