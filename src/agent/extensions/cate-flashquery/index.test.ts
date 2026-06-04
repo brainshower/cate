@@ -98,8 +98,8 @@ describe('cate-flashquery extension registration', () => {
 
     expect(result).toMatchObject({
       isError: true,
-      content: [{ type: 'text', text: expect.stringContaining('FlashQuery disconnected') }],
-      details: { disconnected: true },
+      content: [{ type: 'text', text: expect.stringContaining('not available in the current FlashQuery workspace') }],
+      details: { stale: true },
     })
   })
 
@@ -133,6 +133,8 @@ function mockPi() {
 function mockClient(records: FlashQueryRegistryRecord[]): FlashQueryExtensionClient {
   return {
     listRegistryTools: vi.fn(async () => records),
+    listModels: vi.fn(async () => []),
+    listPurposes: vi.fn(async () => []),
     callTool: vi.fn(async () => ({ content: [{ type: 'text', text: 'ok' }] })),
     close: vi.fn(async () => {}),
   }

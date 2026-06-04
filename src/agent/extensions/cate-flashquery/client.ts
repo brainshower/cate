@@ -16,6 +16,8 @@ export interface FlashQueryHandoff {
 
 export interface FlashQueryExtensionClient {
   listRegistryTools(signal?: AbortSignal): Promise<FlashQueryRegistryRecord[]>
+  listModels(signal?: AbortSignal): Promise<unknown[]>
+  listPurposes(signal?: AbortSignal): Promise<unknown[]>
   callTool(name: string, params: Record<string, unknown>, signal?: AbortSignal): Promise<unknown>
   close(): Promise<void>
 }
@@ -73,6 +75,12 @@ export async function openFlashQueryClient(handoff: FlashQueryHandoff): Promise<
         }
       })
     },
+    async listModels(signal) {
+      return metadataListFromResult(await client.callTool({ name: 'list_models', arguments: {} }, undefined, { signal }))
+    },
+    async listPurposes(signal) {
+      return metadataListFromResult(await client.callTool({ name: 'list_purposes', arguments: {} }, undefined, { signal }))
+    },
     async callTool(name, params, signal) {
       return client.callTool({ name, arguments: params }, undefined, { signal })
     },
@@ -101,4 +109,34 @@ function metadataFrom(record: Record<string, unknown>): Record<string, unknown> 
 
 function firstString(...values: unknown[]): string | undefined {
   return values.find((value): value is string => typeof value === 'string' && value.length > 0)
+}
+
+function metadataListFromResult(result: unknown): unknown[] {
+  const parsed = parseMcpResult(result)
+  if (Array.isArray(parsed)) return parsed
+  if (parsed && typeof parsed === 'object') {
+    const record = parsed as Record<string, unknown>
+    if (Array.isArray(record.models)) return record.models
+    if (Array.isArray(record.purposes)) return record.purposes
+    if (Array.isArray(record.results)) return record.results
+    if (Array.isArray(record.items)) return record.items
+  }
+  return []
+}
+
+function parseMcpResult(result: unknown): unknown {
+  if (!result || typeof result !== 'object') return result
+  const content = (result as Record<string, unknown>).content
+  if (!Array.isArray(content)) return result
+  for (const item of content) {
+    if (!item || typeof item !== 'object') continue
+    const record = item as Record<string, unknown>
+    if (record.type !== 'text' || typeof record.text !== 'string') continue
+    try {
+      return JSON.parse(record.text)
+    } catch {
+      return result
+    }
+  }
+  return result
 }
