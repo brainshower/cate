@@ -1,8 +1,11 @@
-import type { AgentToolResult, ExtensionAPI } from '@earendil-works/pi-coding-agent'
+import type { AgentToolUpdateCallback, ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-agent'
 import { watch, type FSWatcher } from 'node:fs'
 import path from 'node:path'
 import type { TSchema } from 'typebox'
 import { openFlashQueryClient, readFlashQueryHandoff } from './client'
+import { errorFlashQueryToolResult, normalizeFlashQueryToolResult } from './diagnostics'
+import type { FlashQueryToolDetails, FlashQueryToolResult } from './diagnostics'
+import { buildCallModelDescription, executeCallModelTool } from './model-tool'
 import { registryRecordsToToolCandidates } from './registry'
 import { flashQuerySchemaToTypeBox } from './schema'
 import type { FlashQueryExtensionClient, FlashQueryHandoff } from './client'
@@ -16,20 +19,6 @@ export interface CateFlashQueryExtensionDeps {
   openClient?: (handoff: FlashQueryHandoff) => Promise<FlashQueryExtensionClient | null>
   watchHandoff?: (cwd: string, onChange: () => void) => () => void
 }
-
-export interface FlashQueryToolDetails {
-  flashquery: true
-  toolId: string
-  toolName: string
-  workspaceId?: string
-  generation?: number
-  result?: unknown
-  disconnected?: boolean
-  stale?: boolean
-  error?: string
-}
-
-export type FlashQueryToolResult = AgentToolResult<FlashQueryToolDetails> & { isError?: boolean }
 
 interface FlashQueryGeneration {
   id: number
@@ -185,10 +174,12 @@ function publishTools(
     pi.registerTool<TSchema, FlashQueryToolDetails>({
       name: candidate.name,
       label: candidate.label,
-      description: candidate.description,
+      description: candidate.name === 'call_model'
+        ? buildCallModelDescription(candidate, generation.models, generation.purposes)
+        : candidate.description,
       parameters: flashQuerySchemaToTypeBox(candidate.inputSchema),
-      async execute(_toolCallId, params, signal) {
-        return executeFlashQueryTool(generation, registeredTools, candidate.name, params, signal)
+      async execute(_toolCallId, params, signal, onUpdate, ctx) {
+        return executeFlashQueryTool(generation, registeredTools, candidate.name, params, signal, onUpdate, ctx)
       },
     })
   }
@@ -205,6 +196,8 @@ async function executeFlashQueryTool(
   toolName: string,
   params: unknown,
   signal?: AbortSignal,
+  onUpdate?: AgentToolUpdateCallback<FlashQueryToolDetails>,
+  ctx?: ExtensionContext,
 ): Promise<FlashQueryToolResult> {
   const entry = registeredTools.get(toolName)
   if (!entry || entry.generationId !== generation.id || entry.candidate.name !== toolName) {
@@ -216,22 +209,24 @@ async function executeFlashQueryTool(
       ? params as Record<string, unknown>
       : {}
     generation.activeCalls += 1
+    if (entry.candidate.name === 'call_model') {
+      return await executeCallModelTool(generation, entry.candidate, args, signal, onUpdate, ctx as ExtensionContext)
+    }
     const result = await generation.client.callTool(entry.candidate.toolId, args, signal)
-    return normalizeFlashQueryToolResult(result, entry.candidate, generation)
+    return normalizeFlashQueryToolResult({
+      candidate: entry.candidate,
+      handoff: generation.handoff,
+      generationId: generation.id,
+      result,
+    })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'FlashQuery tool call failed'
-    return {
-      isError: true,
-      content: [{ type: 'text' as const, text: message }],
-      details: {
-        flashquery: true,
-        toolId: entry.candidate.toolId,
-        toolName: entry.candidate.name,
-        workspaceId: generation.handoff.workspaceId,
-        generation: generation.id,
-        error: message,
-      } satisfies FlashQueryToolDetails,
-    }
+    return errorFlashQueryToolResult({
+      candidate: entry.candidate,
+      handoff: generation.handoff,
+      generationId: generation.id,
+      message,
+    })
   } finally {
     generation.activeCalls = Math.max(0, generation.activeCalls - 1)
     maybeCloseRetiredGeneration(generation)
@@ -243,59 +238,20 @@ function unavailableResult(
   toolName: string,
   generation: FlashQueryGeneration,
 ): FlashQueryToolResult {
-  return {
-    isError: true,
-    content: [{ type: 'text' as const, text: STALE_TOOL_MESSAGE }],
-    details: {
-      flashquery: true,
-      toolId: candidate?.toolId ?? toolName,
-      toolName,
-      workspaceId: generation.handoff.workspaceId,
-      generation: generation.id,
-      stale: true,
-      error: STALE_TOOL_MESSAGE,
-    } satisfies FlashQueryToolDetails,
-  }
-}
-
-function normalizeFlashQueryToolResult(
-  result: unknown,
-  candidate: FlashQueryToolCandidate,
-  generation: FlashQueryGeneration,
-): FlashQueryToolResult {
-  const resultObject = result && typeof result === 'object' ? result as Record<string, unknown> : {}
-  const content = Array.isArray(resultObject.content)
-    ? resultObject.content.filter(isTextOrImageContent)
-    : [{ type: 'text' as const, text: stringifyResult(result) }]
-  return {
-    ...(resultObject.isError === true ? { isError: true } : {}),
-    content,
-    details: {
-      flashquery: true,
-      toolId: candidate.toolId,
-      toolName: candidate.name,
-      workspaceId: generation.handoff.workspaceId,
-      generation: generation.id,
-      result,
-    } satisfies FlashQueryToolDetails,
-  }
-}
-
-function isTextOrImageContent(value: unknown): value is { type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string } {
-  if (!value || typeof value !== 'object') return false
-  const record = value as Record<string, unknown>
-  if (record.type === 'text') return typeof record.text === 'string'
-  if (record.type === 'image') return typeof record.data === 'string' && typeof record.mimeType === 'string'
-  return false
-}
-
-function stringifyResult(result: unknown): string {
-  if (typeof result === 'string') return result
-  try {
-    return JSON.stringify(result)
-  } catch {
-    return String(result)
-  }
+  return errorFlashQueryToolResult({
+    candidate: candidate ?? {
+      name: toolName,
+      label: toolName,
+      description: toolName,
+      inputSchema: undefined,
+      toolId: toolName,
+      original: {},
+    },
+    handoff: generation.handoff,
+    generationId: generation.id,
+    message: STALE_TOOL_MESSAGE,
+    stale: true,
+  })
 }
 
 function invalidateRegisteredTools(

@@ -18,8 +18,13 @@ export interface FlashQueryExtensionClient {
   listRegistryTools(signal?: AbortSignal): Promise<FlashQueryRegistryRecord[]>
   listModels(signal?: AbortSignal): Promise<unknown[]>
   listPurposes(signal?: AbortSignal): Promise<unknown[]>
-  callTool(name: string, params: Record<string, unknown>, signal?: AbortSignal): Promise<unknown>
+  callTool(name: string, params: Record<string, unknown>, options?: AbortSignal | FlashQueryToolCallOptions): Promise<unknown>
   close(): Promise<void>
+}
+
+export interface FlashQueryToolCallOptions {
+  signal?: AbortSignal
+  onprogress?: (progress: unknown) => void
 }
 
 export async function readFlashQueryHandoff(cwd: string): Promise<FlashQueryHandoff | null> {
@@ -89,13 +94,20 @@ export async function openFlashQueryClient(handoff: FlashQueryHandoff): Promise<
         { signal },
       ))
     },
-    async callTool(name, params, signal) {
-      return client.callTool({ name, arguments: params }, undefined, { signal })
+    async callTool(name, params, options) {
+      const requestOptions = normalizeToolCallOptions(options)
+      return client.callTool({ name, arguments: params }, undefined, requestOptions)
     },
     async close() {
       await client.close()
     },
   }
+}
+
+function normalizeToolCallOptions(options?: AbortSignal | FlashQueryToolCallOptions): FlashQueryToolCallOptions {
+  if (!options) return { signal: undefined }
+  if (typeof AbortSignal !== 'undefined' && options instanceof AbortSignal) return { signal: options }
+  return options as FlashQueryToolCallOptions
 }
 
 function buildMcpUrl(endpointUrl: string): string {
