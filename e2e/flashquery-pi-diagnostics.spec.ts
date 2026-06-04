@@ -54,37 +54,47 @@ test('T-E-006 preserves mocked FlashQuery Pi diagnostics through renderer tool m
         type: 'tool_execution_end',
         toolCallId: 'call-model-1',
         result: {
-          content: [{ type: 'text', text: 'Reference answer' }],
-          details: {
-            flashquery: true,
-            toolName: 'call_model',
-            traceId: 'cate-ws-12345678-conv-abcdefghijklmnop',
-            refs: [{ path: 'Path/to/Doc.md', resolved: true }],
-            diagnostics: {
-              resolver: 'purpose',
-              modelName: 'gpt-4.1-mini',
-              iterations: 2,
-              flashqueryCalls: 2,
-              tokens: 42,
-              cost_usd: 0.01,
-              latency_ms: 1234,
-              resolution_chain: [
-                { step: 'purpose', value: 'summarize-doc' },
-                { step: 'model', value: 'gpt-4.1-mini' },
-              ],
-              templateParams: { audience: 'developer', document: 'Path/to/Doc.md' },
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              content: [{ type: 'text', text: 'Reference answer' }],
+              metadata: {
+                resolver: 'purpose',
+                name: 'gpt-4.1-mini',
+                resolved_model_name: 'gpt-4.1-mini',
+                iterations: 2,
+                tokens: { input: 30, output: 12 },
+                cost_usd: 0.01,
+                latency_ms: 1234,
+                resolution_chain: [
+                  { step: 'purpose', value: 'summarize-doc' },
+                  { step: 'model', value: 'gpt-4.1-mini' },
+                ],
+                injected_references: [{ path: 'Path/to/Doc.md', resolved: true }],
+                tool_calls: [
+                  { index: 1, name: 'get_document', status: 'success', summary: 'Path/to/Doc.md' },
+                  { index: 2, name: 'search_memory', status: 'success', summary: '2 memories' },
+                ],
+                template_params: {
+                  audience: 'developer',
+                  document: 'Path/to/Doc.md',
+                  auth: `Bearer ${secretSentinel}`,
+                  credentials: secretSentinel,
+                  safeLookingValue: `Bearer ${secretSentinel}`,
+                },
+              },
               messages: [
                 { role: 'system', content: 'Use injected document references.' },
                 { role: 'user', content: longPayload },
               ],
+            }),
+          }],
+          details: {
+            flashquery: true,
+            toolName: 'call_model',
+            traceId: 'cate-ws-12345678-conv-abcdefghijklmnop',
+            diagnostics: {
               secretDiagnosticToken: secretSentinel,
-            },
-            result: {
-              longPayload,
-              serverToolLoop: [
-                { index: 1, name: 'get_document', status: 'success', summary: 'Path/to/Doc.md' },
-                { index: 2, name: 'search_memory', status: 'success', summary: '2 memories' },
-              ],
             },
           },
         },
@@ -159,12 +169,10 @@ test('T-E-006 preserves mocked FlashQuery Pi diagnostics through renderer tool m
       type: 'tool',
       name: 'call_model',
       status: 'success',
-      result: 'Reference answer',
+      result: expect.stringContaining('resolved_model_name'),
       flashquery: {
         flashquery: true,
         toolName: 'call_model',
-        diagnostics: { tokens: 42, cost_usd: 0.01, latency_ms: 1234 },
-        result: { serverToolLoop: [{ name: 'get_document' }, { name: 'search_memory' }] },
       },
     })
     expect(JSON.stringify(messages[0])).toContain(longPayload)

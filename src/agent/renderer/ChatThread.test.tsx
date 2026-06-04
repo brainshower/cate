@@ -41,49 +41,61 @@ function tool(overrides: Partial<ToolMessage>): ToolMessage {
   }
 }
 
+function callModelEnvelopeText(overrides: Record<string, unknown> = {}): string {
+  return JSON.stringify({
+    content: [{ type: 'text', text: 'Answer from FlashQuery' }],
+    metadata: {
+      resolver: 'purpose',
+      name: 'gpt-4.1-mini',
+      resolved_model_name: 'gpt-4.1-mini',
+      iterations: 3,
+      tokens: { input: 1000, output: 280 },
+      cost_usd: 0.024,
+      latency_ms: 1450,
+      resolution_chain: [
+        { step: 'purpose', value: 'research' },
+        { step: 'model', value: 'gpt-4.1-mini' },
+      ],
+      injected_references: [
+        { path: 'Docs/Brief.md', resolved: true },
+        { path: 'Docs/Missing.md', resolved: false, error: 'document not found' },
+      ],
+      tool_calls: [
+        { index: 1, tool: 'search_documents', status: 'success', summary: 'Found 2 docs' },
+        { index: 2, tool: 'get_document', status: 'success', summary: 'Loaded Docs/Brief.md' },
+      ],
+      template_params: {
+        audience: 'developer',
+        authorization: 'Bearer should-not-render',
+        auth: 'Basic should-not-render',
+        credentials: 'should-not-render',
+        headers: { authorization: 'Bearer should-not-render' },
+        endpointUrl: 'https://should-not-render.example',
+        requestInit: { cookie: 'should-not-render' },
+        handoff: { token: 'should-not-render' },
+        innocuous: 'Bearer should-not-render',
+      },
+    },
+    messages: [
+      { role: 'system', content: 'Use the project context.' },
+      { role: 'user', content: 'Summarize {{ref:Docs/Brief.md}}' },
+    ],
+    ...overrides,
+  })
+}
+
 function completedCallModel(overrides: Partial<ToolMessage> = {}): ToolMessage {
+  const result = callModelEnvelopeText()
   return tool({
     toolCallId: 'call-model-1',
     name: 'call_model',
-    result: 'Answer from FlashQuery',
+    result,
     flashquery: {
       flashquery: true,
       toolName: 'call_model',
       traceId: 'trace-REQ-017-T-U-019',
-      refs: [
-        { path: 'Docs/Brief.md', resolved: true },
-        { path: 'Docs/Missing.md', resolved: false, error: 'document not found' },
-      ],
       result: {
-        diagnostics: {
-          resolver: 'purpose',
-          modelName: 'gpt-4.1-mini',
-          iterations: 3,
-          flashqueryCalls: 2,
-          tokens: 1280,
-          costUsd: 0.024,
-          latencyMs: 1450,
-          resolutionChain: [
-            { step: 'purpose', value: 'research' },
-            { step: 'model', value: 'gpt-4.1-mini' },
-          ],
-          serverToolLoop: [
-            { index: 1, tool: 'search_documents', status: 'success', summary: 'Found 2 docs' },
-            { index: 2, tool: 'get_document', status: 'success', summary: 'Loaded Docs/Brief.md' },
-          ],
-          templateParams: {
-            audience: 'developer',
-            authorization: 'Bearer should-not-render',
-            headers: { authorization: 'Bearer should-not-render' },
-            endpointUrl: 'https://should-not-render.example',
-            requestInit: { cookie: 'should-not-render' },
-            handoff: { token: 'should-not-render' },
-          },
-          messages: [
-            { role: 'system', content: 'Use the project context.' },
-            { role: 'user', content: 'Summarize {{ref:Docs/Brief.md}}' },
-          ],
-        },
+        content: [{ type: 'text', text: result }],
       },
     },
     ...overrides,
@@ -134,6 +146,7 @@ describe('ChatThread FlashQuery ToolCard rendering', () => {
 
   it('T-U-019 REQ-017 omits partial or malformed call_model diagnostics and secret-like fields', () => {
     const message = completedCallModel({
+      result: 'Partial FlashQuery answer',
       flashquery: {
         flashquery: true,
         toolName: 'call_model',
@@ -148,11 +161,14 @@ describe('ChatThread FlashQuery ToolCard rendering', () => {
             latencyMs: undefined,
             templateParams: {
               authorization: 'Bearer should-not-render',
+              auth: 'Basic should-not-render',
+              credentials: 'should-not-render',
               bearerToken: 'should-not-render',
               headers: { cookie: 'should-not-render' },
               handoff: { token: 'should-not-render' },
               endpointUrl: 'https://should-not-render.example',
               requestInit: { signal: 'should-not-render' },
+              innocuous: 'Bearer should-not-render',
               visible: 'safe',
             },
           },
@@ -166,7 +182,10 @@ describe('ChatThread FlashQuery ToolCard rendering', () => {
     expect(container.textContent).not.toContain('NaN')
     expect(container.textContent).not.toContain(' · $')
     expect(container.textContent).not.toContain('Bearer')
+    expect(container.textContent).not.toContain('Basic')
     expect(container.textContent).not.toContain('authorization')
+    expect(container.textContent).not.toContain('auth')
+    expect(container.textContent).not.toContain('credentials')
     expect(container.textContent).not.toContain('bearerToken')
     expect(container.textContent).not.toContain('headers')
     expect(container.textContent).not.toContain('handoff')

@@ -847,14 +847,15 @@ function FlashQueryToolCard({ msg, shimmer }: { msg: ToolMessage; shimmer?: bool
   const isRunning = msg.status === 'running' || msg.status === 'pending'
   if (isRunning) return <ToolCard msg={msg} shimmer={shimmer} />
 
-  const diagnostics = flashQueryDiagnostics(msg.flashquery)
+  const diagnostics = flashQueryDiagnostics(msg.flashquery, msg.name === 'call_model' ? msg : undefined)
   const summary = msg.name === 'call_model'
     ? flashQueryCallModelSummary(msg, diagnostics)
     : flashQueryCallMacroSummary(msg, diagnostics)
   const sections = msg.name === 'call_model'
     ? flashQueryCallModelSections(msg, diagnostics)
     : flashQueryCallMacroSections(msg, diagnostics)
-  const hasExtras = sections.length > 0 || !!msg.result || !!msg.error || msg.args != null
+  const visibleResult = flashQueryVisibleResult(msg.result)
+  const hasExtras = sections.length > 0 || !!visibleResult || !!msg.error || msg.args != null
 
   return (
     <div className="text-[12px] cate-fade-in">
@@ -877,9 +878,9 @@ function FlashQueryToolCard({ msg, shimmer }: { msg: ToolMessage; shimmer?: bool
               {prettyArgs(msg.args)}
             </pre>
           )}
-          {msg.result && (
+          {visibleResult && (
             <pre className="text-[11px] text-primary/80 whitespace-pre-wrap break-words font-mono leading-snug max-h-[280px] overflow-auto">
-              {msg.result}
+              {visibleResult}
             </pre>
           )}
           {msg.error && (
@@ -902,17 +903,40 @@ function FlashQuerySectionBlock({ title, children }: { title: string; children: 
   )
 }
 
-function flashQueryDiagnostics(details: unknown): Record<string, unknown> {
+function flashQueryDiagnostics(details: unknown, msg?: ToolMessage): Record<string, unknown> {
   const root = asRecord(details)
   if (!root) return {}
   const result = asRecord(root.result)
   const diagnostics = asRecord(root.diagnostics)
   const resultDiagnostics = asRecord(result?.diagnostics) ?? asRecord(result?.details)
+  const callModelEnvelope = msg ? parseCallModelEnvelope(msg, root) : {}
   return {
+    ...callModelEnvelope,
     ...root,
     ...(diagnostics ?? {}),
     ...(result ?? {}),
     ...(resultDiagnostics ?? {}),
+  }
+}
+
+function parseCallModelEnvelope(msg: ToolMessage, details: Record<string, unknown>): Record<string, unknown> {
+  const envelopeText = msg.result ?? firstTextBlock(asRecord(details.result)?.content)
+  const envelope = parseJsonRecord(envelopeText)
+  const metadata = asRecord(envelope?.metadata)
+  if (!metadata) return {}
+  const tools = asRecord(metadata.tools)
+  return {
+    resolver: metadata.resolver,
+    modelName: firstValue(metadata.resolved_model_name, metadata.model_name, metadata.name, metadata.model),
+    iterations: firstValue(metadata.iterations, tools?.iterations),
+    tokens: totalTokens(metadata.tokens),
+    cost_usd: metadata.cost_usd,
+    latency_ms: metadata.latency_ms,
+    messages: envelope?.messages,
+    refs: firstValue(metadata.injected_references, metadata.refs),
+    resolution_chain: firstValue(metadata.resolution_chain, metadata.resolutionChain),
+    serverToolLoop: firstValue(metadata.tool_calls, tools?.calls_log, metadata.server_tool_loop),
+    templateParams: firstValue(metadata.template_params, metadata.templateParams, envelope?.template_params),
   }
 }
 
@@ -957,7 +981,7 @@ function flashQueryCallModelSections(msg: ToolMessage, diagnostics: Record<strin
     })
   }
 
-  const refs = flashQueryRefs(msg.flashquery)
+  const refs = flashQueryRefs(msg.flashquery, diagnostics)
   if (refs.length > 0) {
     sections.push({
       title: 'Injected refs',
@@ -1090,13 +1114,13 @@ function flashQueryResolutionChain(diagnostics: Record<string, unknown>): string
   })
 }
 
-function flashQueryRefs(details: unknown): Array<{ path: string; resolved?: boolean; error?: string }> {
+function flashQueryRefs(details: unknown, diagnostics?: Record<string, unknown>): Array<{ path: string; resolved?: boolean; error?: string }> {
   const root = asRecord(details)
-  const raw = asArray(root?.refs)
+  const raw = asArray(firstValue(root?.refs, diagnostics?.refs, diagnostics?.injectedRefs, diagnostics?.injected_references))
   if (!raw) return []
   return raw.flatMap((item) => {
     const record = asRecord(item)
-    const path = record ? firstString(record.path, record.ref, record.identifier) : undefined
+    const path = record ? firstString(record.path, record.ref, record.identifier, record.source) : undefined
     if (!path) return []
     return [{
       path,
@@ -1179,6 +1203,19 @@ function asNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }
 
+function totalTokens(value: unknown): number | undefined {
+  const direct = asNumber(value)
+  if (direct != null) return direct
+  const record = asRecord(value)
+  if (!record) return undefined
+  const total = asNumber(firstValue(record.total, record.total_tokens))
+  if (total != null) return total
+  const input = asNumber(firstValue(record.input, record.prompt, record.prompt_tokens))
+  const output = asNumber(firstValue(record.output, record.completion, record.completion_tokens))
+  if (input != null || output != null) return (input ?? 0) + (output ?? 0)
+  return undefined
+}
+
 function asRecord(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
@@ -1189,9 +1226,37 @@ function asArray(value: unknown): unknown[] | undefined {
   return Array.isArray(value) ? value : undefined
 }
 
+function firstTextBlock(content: unknown): string | undefined {
+  const blocks = asArray(content)
+  if (!blocks) return undefined
+  for (const block of blocks) {
+    const record = asRecord(block)
+    const text = record && record.type === 'text' ? firstString(record.text) : undefined
+    if (text) return text
+  }
+  return undefined
+}
+
+function parseJsonRecord(value: unknown): Record<string, unknown> | undefined {
+  if (typeof value !== 'string' || !value.trim()) return undefined
+  try {
+    return asRecord(JSON.parse(value))
+  } catch {
+    return undefined
+  }
+}
+
+function flashQueryVisibleResult(result: string | undefined): string | undefined {
+  if (!result) return undefined
+  const envelope = parseJsonRecord(result)
+  if (!envelope) return result
+  return firstTextBlock(envelope.content)
+}
+
 function sanitizeDisplayValue(value: unknown, seen = new WeakSet<object>()): unknown {
   if (value == null) return value
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value
+  if (typeof value === 'string') return sanitizeDiagnosticString(value)
+  if (typeof value === 'number' || typeof value === 'boolean') return value
   if (Array.isArray(value)) {
     const sanitized = value.map((item) => sanitizeDisplayValue(item, seen)).filter((item) => item !== undefined)
     return sanitized.length > 0 ? sanitized : undefined
@@ -1212,6 +1277,7 @@ function isSecretDiagnosticKey(key: string): boolean {
   const normalized = key.toLowerCase().replace(/[^a-z0-9]/g, '')
   if (normalized === 'tokens') return false
   return normalized.includes('authorization') ||
+    normalized.includes('auth') ||
     normalized.includes('bearer') ||
     normalized.includes('token') ||
     normalized.includes('header') ||
@@ -1221,7 +1287,12 @@ function isSecretDiagnosticKey(key: string): boolean {
     normalized.includes('requestinit') ||
     normalized.includes('apikey') ||
     normalized.includes('secret') ||
-    normalized.includes('password')
+    normalized.includes('password') ||
+    normalized.includes('credential')
+}
+
+function sanitizeDiagnosticString(value: string): string | undefined {
+  return /\b(Bearer|Basic)\s+[A-Za-z0-9._~+/-]+=*/i.test(value) ? undefined : value
 }
 
 // -----------------------------------------------------------------------------
