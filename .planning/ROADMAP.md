@@ -187,7 +187,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 20-01-PLAN.md — Build vault-index cache lifecycle and refresh triggers.
+- [x] 20-01-PLAN.md — Build vault-index cache lifecycle and refresh triggers.
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
