@@ -128,7 +128,7 @@ Canonical source docs:
 Plans:
 - [x] 18-01-PLAN.md — Specialize `call_model` descriptions, trace IDs, refs, and diagnostics.
 - [x] 18-02-PLAN.md — Specialize `call_macro` confirmation, defaults, progress, and result handling.
-- [ ] 18-03-PLAN.md — Preserve diagnostics in agent state/session replay and record mocked/manual evidence.
+- [x] 18-03-PLAN.md — Preserve diagnostics in agent state/session replay and record mocked/manual evidence.
 
 **Success criteria:**
 1. `call_model` descriptions use discovered purposes/models or `Available purposes: loading...`, then update after discovery.
@@ -139,7 +139,7 @@ Plans:
 6. Agent store events preserve structured FlashQuery details without breaking standard text extraction or existing subagent details.
 7. Targeted coverage includes T-U-016, T-U-017, T-U-018, T-E-006, T-M-002, and T-M-003.
 
-**Status:** Pending
+**Status:** Complete
 
 ### Phase 19: Pi ToolCard Observability Rendering
 
