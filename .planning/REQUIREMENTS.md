@@ -36,7 +36,7 @@ The product requirements document is the source of truth for detailed acceptance
 
 ### Pi Extension and Tools
 
-- [ ] **REQ-013**: Cate installs and initializes a bundled `src/agent/extensions/cate-flashquery/` Pi extension with workspace-scoped FlashQuery credentials.
+- [x] **REQ-013**: Cate installs and initializes a bundled `src/agent/extensions/cate-flashquery/` Pi extension with workspace-scoped FlashQuery credentials.
 - [ ] **REQ-014**: User can access all eligible current FlashQuery MCP tools as Pi tools, including native and brokered tools, while FlashQuery is not registered as a Pi provider.
 - [ ] **REQ-015**: User can invoke `call_model` as a Pi tool with discovery-enriched descriptions, per-conversation trace metadata, `return_messages: true`, reference hydration, and preserved diagnostics.
 - [ ] **REQ-016**: User can invoke `call_macro` as a Pi tool with source confirmation rules, interactive/progress defaults, filtered progress notifications, completed trace rendering, and disconnected errors.
@@ -91,7 +91,7 @@ The product requirements document is the source of truth for detailed acceptance
 | REQ-010 | Phase 16 | Complete |
 | REQ-011 | Phase 16 | Complete |
 | REQ-012 | Phase 16 | Complete |
-| REQ-013 | Phase 17 | Pending |
+| REQ-013 | Phase 17 | Complete |
 | REQ-014 | Phase 17 | Pending |
 | REQ-015 | Phase 18 | Pending |
 | REQ-016 | Phase 18 | Pending |

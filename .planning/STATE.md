@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: FlashQuery Milestone 2
 status: executing
-stopped_at: Completed Phase 16 Vault Search Panel
-last_updated: "2026-06-04T12:27:22.399Z"
-last_activity: 2026-06-04 -- Phase 17 planning complete
+stopped_at: Completed 17-01-PLAN.md
+last_updated: "2026-06-04T13:48:25.865Z"
+last_activity: 2026-06-04
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 12
-  completed_plans: 9
+  completed_plans: 10
   percent: 38
 ---
 
@@ -21,19 +21,19 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-03 after v1.2 FlashQuery Milestone 2 planning)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** Phase 17 — flashquery pi extension bootstrap
+**Current focus:** Phase 17 — flashquery-pi-extension-bootstrap
 
 ## Current Position
 
-Phase: 17
-Plan: Not started
+Phase: 17 (flashquery-pi-extension-bootstrap) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-06-04 -- Phase 17 planning complete
+Last activity: 2026-06-04
 
 ## Session Continuity
 
-Last session: 2026-06-03T23:24:27.299Z
-Stopped At: Completed Phase 16 Vault Search Panel
+Last session: 2026-06-04T13:48:25.842Z
+Stopped At: Completed 17-01-PLAN.md
 Resume File: None
 
 ## Next Up
@@ -65,6 +65,8 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table (updated
 | 2026-06-01 | Phase 13 downstream agents must read the upstream-sync requirements and test plan before acceptance, provenance, verification, or closeout decisions. | Prevents final closeout from drifting away from REQ-021, REQ-023, REQ-024, REQ-025, REQ-026, T-A-010, T-A-012..T-A-015, and T-E-001..T-E-005. |
 | 2026-06-03 | v1.2 uses the Milestone 2 requirements and test plan as mandatory source-of-truth docs. | Keeps refresh, frontmatter, vault search, Pi extension, reference, clipboard, and degradation work aligned to the product spec and coverage matrix. |
 | 2026-06-03 | v1.2 continues phase numbering from v1.1, starting at Phase 14. | Preserves the project roadmap's sequential phase history across shipped milestones. |
+
+- [Phase 17]: Plan 17.1 writes FlashQuery Pi handoff to workspace-scoped .cate/pi-agent/flashquery-handoff.json. — Bearer tokens are sourced only from main-process getWorkspaceToken(workspaceId), preserving the renderer and Pi auth.json token boundary.
 
 ## Deferred Items
 
@@ -102,6 +104,7 @@ Items acknowledged and deferred at milestone close on 2026-05-30:
 | Phase 10 P10.3 | 9 min | 3 tasks | 8 files |
 | Phase 12 P12.3 | 8 min | 3 tasks | 10 files |
 | Phase 13 P13.1 | 12 min | 2 tasks | 1 files |
+| Phase 17 P17.1 | 8min | 3 tasks | 6 files |
 
 ## Operator Next Steps
 
