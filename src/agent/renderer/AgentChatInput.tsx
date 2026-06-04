@@ -26,6 +26,13 @@ import type {
   FlashQueryVaultIndexEntry,
 } from '../../shared/types'
 
+interface ActiveMentionSegment {
+  start: number
+  end: number
+  filter: string
+  text: string
+}
+
 // Resolve the canvas-node element this popover lives inside, so portalled
 // content can be positioned relative to it (the node, not the viewport,
 // is the scroll/zoom frame of reference).
@@ -99,14 +106,21 @@ export function ChatInput({
   onTogglePlanMode: () => void
   placeholder?: string
 }) {
-  void vaultIndex
-  void vaultIndexLoading
+  const [cursorPos, setCursorPos] = useState(draft.length)
+  const [dismissedMentionStart, setDismissedMentionStart] = useState<number | null>(null)
+  const [mentionPortalTarget, setMentionPortalTarget] = useState<HTMLElement | null>(null)
+  const mentionPortal = useNodePortalTarget(textareaRef)
+
   useEffect(() => {
     const ta = textareaRef.current
     if (!ta) return
     ta.style.height = 'auto'
     ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'
   }, [draft, textareaRef])
+
+  useEffect(() => {
+    setCursorPos((pos) => Math.min(pos, draft.length))
+  }, [draft])
 
   // Slash popup is active when the draft starts with "/" and has no spaces
   // before the cursor — i.e. the user is still picking a command name.
@@ -134,6 +148,55 @@ export function ChatInput({
 
   const canSend = !disabled && (draft.trim().length > 0 || images.length > 0)
   const [dragOver, setDragOver] = useState(false)
+
+  const activeMention = useMemo<ActiveMentionSegment | null>(() => {
+    if (slashMatch != null) return null
+    const cursor = Math.max(0, Math.min(cursorPos, draft.length))
+    const beforeCursor = draft.slice(0, cursor)
+    const atIndex = beforeCursor.lastIndexOf('@')
+    if (atIndex < 0) return null
+    const segment = beforeCursor.slice(atIndex + 1)
+    if (/\s/.test(segment)) return null
+    if (dismissedMentionStart === atIndex) return null
+    return {
+      start: atIndex,
+      end: cursor,
+      filter: segment,
+      text: draft.slice(atIndex, cursor),
+    }
+  }, [cursorPos, dismissedMentionStart, draft, slashMatch])
+
+  const mentionMatches = useMemo(() => {
+    if (!activeMention) return []
+    const filter = activeMention.filter.toLowerCase()
+    return (vaultIndex ?? [])
+      .filter((entry) => entry.filename.toLowerCase().includes(filter))
+      .slice()
+      .sort((a, b) => a.fullPath.localeCompare(b.fullPath))
+  }, [activeMention, vaultIndex])
+
+  const mentionOpen = !!activeMention
+  const [selectedMentionIdx, setSelectedMentionIdx] = useState(0)
+  useEffect(() => { setSelectedMentionIdx(0) }, [activeMention?.start, activeMention?.filter])
+  useEffect(() => {
+    if (!mentionOpen) {
+      setMentionPortalTarget(null)
+      return
+    }
+    setMentionPortalTarget(mentionPortal.getTarget())
+  }, [mentionOpen, mentionPortal])
+
+  const dismissMention = useCallback(() => {
+    if (activeMention) setDismissedMentionStart(activeMention.start)
+  }, [activeMention])
+
+  const acceptMention = useCallback((entry: FlashQueryVaultIndexEntry): void => {
+    if (!activeMention) return
+    const next = `${draft.slice(0, activeMention.start)}{{ref:${entry.fullPath}}}${draft.slice(activeMention.end)}`
+    setDismissedMentionStart(activeMention.start)
+    onChange(next)
+    queueMicrotask(() => textareaRef.current?.focus())
+  }, [activeMention, draft, onChange, textareaRef])
 
   // Accept either an internal file drag (cate-files / cate-file) or external
   // image files. Returning true tells the dragover handler to claim the event
@@ -181,6 +244,15 @@ export function ChatInput({
             : 'border-white/10 focus-within:border-agent/50'
         }`}
       >
+        {mentionOpen && activeMention && (
+          <div
+            data-testid="agent-mention-highlight"
+            aria-hidden="true"
+            className="pointer-events-none absolute left-3 top-2 rounded bg-agent/20 px-0.5 font-mono text-[13px] text-agent-light"
+          >
+            {activeMention.text}
+          </div>
+        )}
         {popupOpen && (
           <SlashPopup
             commands={filteredCommands}
@@ -189,11 +261,28 @@ export function ChatInput({
             onHover={setSelectedIdx}
           />
         )}
+        {mentionOpen && mentionPortalTarget && createPortal(
+          <MentionPopup
+            loading={!!vaultIndexLoading}
+            entries={mentionMatches}
+            selectedIdx={selectedMentionIdx}
+            onPick={acceptMention}
+            onHover={setSelectedMentionIdx}
+          />,
+          mentionPortalTarget,
+        )}
         <ImageChips images={images} onRemove={onRemoveImage} />
         <textarea
           ref={textareaRef}
           value={draft}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => {
+            setCursorPos(e.target.selectionStart ?? e.target.value.length)
+            setDismissedMentionStart(null)
+            onChange(e.target.value)
+          }}
+          onSelect={(e) => {
+            setCursorPos(e.currentTarget.selectionStart ?? draft.length)
+          }}
           onPaste={onPaste}
           onKeyDown={(e) => {
             if (popupOpen) {
@@ -215,6 +304,32 @@ export function ChatInput({
               if (e.key === 'Escape') {
                 e.preventDefault()
                 onChange('')
+                return
+              }
+            }
+            if (mentionOpen) {
+              if (e.key === 'ArrowDown') {
+                e.preventDefault()
+                setSelectedMentionIdx((i) => Math.min(i + 1, Math.max(mentionMatches.length - 1, 0)))
+                return
+              }
+              if (e.key === 'ArrowUp') {
+                e.preventDefault()
+                setSelectedMentionIdx((i) => Math.max(i - 1, 0))
+                return
+              }
+              if ((e.key === 'Enter' || e.key === 'Tab') && mentionMatches.length > 0) {
+                e.preventDefault()
+                acceptMention(mentionMatches[selectedMentionIdx] ?? mentionMatches[0])
+                return
+              }
+              if (e.key === 'Escape') {
+                e.preventDefault()
+                dismissMention()
+                return
+              }
+              if (e.key === ' ' && mentionMatches.length === 0 && !vaultIndexLoading) {
+                dismissMention()
                 return
               }
             }
@@ -295,6 +410,55 @@ export function ChatInput({
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+// -----------------------------------------------------------------------------
+// Mention popup
+// -----------------------------------------------------------------------------
+
+function MentionPopup({
+  loading,
+  entries,
+  selectedIdx,
+  onPick,
+  onHover,
+}: {
+  loading: boolean
+  entries: FlashQueryVaultIndexEntry[]
+  selectedIdx: number
+  onPick: (entry: FlashQueryVaultIndexEntry) => void
+  onHover: (idx: number) => void
+}) {
+  return (
+    <div
+      data-testid="agent-mention-popup"
+      className="absolute bottom-full left-3 right-3 mb-1.5 max-h-[240px] overflow-y-auto rounded-xl border border-white/10 bg-surface-4/98 backdrop-blur-xl shadow-[0_12px_32px_rgba(0,0,0,0.45)] z-20"
+    >
+      {loading ? (
+        <div className="px-3 py-2 text-[12px] text-muted">Loading vault...</div>
+      ) : entries.length === 0 ? (
+        <div className="px-3 py-2 text-[12px] text-muted">No matching documents</div>
+      ) : entries.map((entry, i) => {
+        const active = i === selectedIdx
+        return (
+          <button
+            key={entry.fullPath}
+            data-testid="agent-mention-row"
+            type="button"
+            aria-selected={active}
+            onMouseEnter={() => onHover(i)}
+            onMouseDown={(e) => { e.preventDefault(); onPick(entry) }}
+            className={`w-full text-left px-3 py-2 flex flex-col gap-0.5 ${
+              active ? 'bg-white/10' : 'hover:bg-white/5'
+            }`}
+          >
+            <span className="text-[12.5px] text-primary font-medium truncate">{entry.filename}</span>
+            <span data-testid="agent-mention-fullpath" className="text-[11px] text-muted truncate">{entry.fullPath}</span>
+          </button>
+        )
+      })}
     </div>
   )
 }
