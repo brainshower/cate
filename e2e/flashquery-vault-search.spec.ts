@@ -82,9 +82,20 @@ test('T-E-003 Vault Search workflows and T-E-007 disconnect recovery use determi
     await page.evaluate(() => window.__cateE2E!.chooseNextContextMenuAction('copy-reference'))
     await planRow.click({ button: 'right' })
     await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('{{ref:Docs/Plan.md}}')
+    await expect.poll(() => page.evaluate(() => window.__cateE2E!.lastContextMenuItems().map((item) => item.id))).toContain('copy-path')
+    await expect.poll(() => page.evaluate(() => window.__cateE2E!.lastContextMenuItems().map((item) => item.id))).toContain('copy-reference')
+
+    await activateSearchAndRun(page, searchPanelId, 'plan')
+    planRow = page.getByTestId('vault-search-document-Docs/Plan.md')
+    await page.evaluate(() => window.__cateE2E!.chooseNextContextMenuAction('copy-path'))
+    await planRow.click({ button: 'right' })
+    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('Docs/Plan.md')
 
     await activateSearchAndRun(page, searchPanelId, 'memory')
     const memoryRow = page.getByTestId('vault-search-memory-memory-1')
+    await page.evaluate(() => window.__cateE2E!.chooseNextContextMenuAction('copy-reference'))
+    await memoryRow.click({ button: 'right' })
+    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('Docs/Plan.md')
     await memoryRow.dblclick()
     await expect(memoryRow).toHaveAttribute('aria-expanded', 'true')
 
