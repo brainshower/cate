@@ -16,6 +16,7 @@ import type { FlashQueryConnection, Point } from '../../shared/types'
 import type { NativeContextMenuItem } from '../../shared/electron-api'
 import * as monaco from 'monaco-editor'
 import { terminalRegistry } from './terminalRegistry'
+import { handleAgentEvent, useAgentStore } from '../../agent/renderer/agentStore'
 
 declare global {
   interface Window {
@@ -57,6 +58,8 @@ declare global {
       /** Write raw data to a terminal node's PTY (e.g. a flooding command). */
       writeTerminal(nodeId: string, data: string): boolean
       terminalLog(nodeId: string): Promise<string | null>
+      dispatchAgentEvent(panelId: string, event: { type: string; [key: string]: unknown }): void
+      agentMessages(panelId: string): unknown[]
       dragSnapshot(): {
         isDragging: boolean
         sourceKind: string | null
@@ -320,6 +323,14 @@ export function installE2EHarness(): void {
     }
   }
 
+  const dispatchAgentEvent = (panelId: string, event: { type: string; [key: string]: unknown }): void => {
+    handleAgentEvent(panelId, event)
+  }
+
+  const agentMessages = (panelId: string): unknown[] => {
+    return useAgentStore.getState().panels[panelId]?.messages ?? []
+  }
+
   window.__cateE2E = {
     ready: true,
     activeCanvasPanelId,
@@ -356,6 +367,8 @@ export function installE2EHarness(): void {
     terminalPtyId,
     writeTerminal,
     terminalLog,
+    dispatchAgentEvent,
+    agentMessages,
     dragSnapshot,
   }
 }

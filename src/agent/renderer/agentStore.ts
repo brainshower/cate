@@ -789,7 +789,7 @@ export function deriveDiff(name: string, args: unknown, result?: string): DiffIn
   return undefined
 }
 
-function handleEvent(panelId: string, event: { type: string; [key: string]: unknown }): void {
+export function handleAgentEvent(panelId: string, event: { type: string; [key: string]: unknown }): void {
   const store = useAgentStore.getState()
   if (!store.panels[panelId]) {
     useAgentStore.setState((state) => ({ panels: { ...state.panels, [panelId]: emptyPanel() } }))
@@ -1042,7 +1042,7 @@ function ensureSubscribed(): void {
   try {
     window.electronAPI.onAgentEvent((envelope) => {
       if (!envelope?.panelId || !envelope.event) return
-      handleEvent(envelope.panelId, envelope.event)
+      handleAgentEvent(envelope.panelId, envelope.event)
     })
     window.electronAPI.onAgentToolRequest((req) => {
       if (!req?.panelId) return
