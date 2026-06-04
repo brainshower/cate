@@ -82,14 +82,60 @@ Negative checks for every pasted value:
 - Must not contain a block-reference variant.
 - Must not contain markdown-link syntax.
 
+## Gap 5 / CF-01 Closeout — `call_macro` Trace Table (REQ-016 #8 / REQ-017 #4)
+
+This item was carried in from Phase 19 (Gap 4 / CF-01) and fixed in the Phase 20
+gap clean-up (commit `62ee09e`): the renderer now parses the **real** FlashQuery
+`call_macro` response envelope (trace as a JSON string inside `content[0].text`)
+via `parseCallMacroEnvelope`, so the completed trace step table populates against
+a live server.
+
+### Automated coverage added (closes the structural risk)
+
+| ID | Layer | Evidence | Status |
+| --- | --- | --- | --- |
+| T-U-019 (updated) | Component | `src/agent/renderer/ChatThread.test.tsx` — macro fixture rewritten to the real `{ content: [{ text: JSON.stringify({ task_id, result, trace }) }] }` shape | **executed, passed** |
+| T-E-006 (migrated) | E2E | `e2e/flashquery-pi-diagnostics.spec.ts` — macro fixture migrated off the fabricated top-level `details.result.trace` to the real envelope shape | **executed, passed** |
+| T-E-006b (new) | E2E | `e2e/flashquery-pi-macro-trace.spec.ts` — drives a `call_macro` through the real envelope (no fabricated trace), asserts `call_macro · 3 steps`, expanded trace rows, and live-progress `partialText` forwarding | **executed, passed** |
+
+> Executed in this session and confirmed green:
+> - `vitest run src/agent/renderer/ChatThread.test.tsx src/agent/renderer/agentStore.test.ts src/agent/renderer/AgentChatInput.atMention.test.tsx` → 23/23 passed.
+> - `npm run build` (required — `dist/` was stale relative to the gap-fix commit, and the Electron E2E runs the built app), then `playwright test e2e/flashquery-pi-macro-trace.spec.ts e2e/flashquery-pi-diagnostics.spec.ts` → 2/2 passed.
+> - Ran on Node v24.7.0; the `>=20 <23` `engines` constraint is advisory (not `engine-strict`), so the runners execute normally. `tsc --noEmit` exit 0.
+
+### Remaining manual check — T-M-002 (live macro), status: blocked
+
+The genuinely-live behaviors cannot be proven deterministically and remain a
+human check (Test Plan §6.1): a real host model deciding to invoke `call_macro`,
+a real server emitting throttled `notifications/progress`, and `needs_user_input`.
+
+Required manual steps (against real FlashQuery + a configured native Pi provider):
+
+1. Open Cate on macOS, connect a workspace to FlashQuery, and ensure a macro with
+   a multi-step trace exists (e.g. one that loads a doc, calls a model, writes a doc).
+2. In Pi chat, prompt the host model to run that macro (so it calls `call_macro`).
+3. While running: confirm the ToolCard shows a spinner + the most-recent progress
+   message text only — no fabricated per-step checkmarks, counts, or elapsed times.
+4. On completion: expand the ToolCard and confirm the trace step table is populated
+   from the live envelope (Type / Tool / Message columns per step).
+5. Negative: disconnect FlashQuery and invoke a macro; confirm the tool result is
+   exactly `FlashQuery is not connected.`
+6. Optional: trigger a `needs_user_input` macro and confirm it surfaces as a
+   tool-result message (no pause/resume protocol in Milestone 2).
+
+Expected: live progress shows a single rolling message; the completed table lists
+each trace step. Record observations here and flip to passed when run.
+
 ## Traceability Summary
 
 | Requirement | Automated IDs | Manual IDs | Result |
 | --- | --- | --- | --- |
 | REQ-018 | T-U-006, T-U-020, T-E-004 | none | automated evidence passed |
 | REQ-019 | T-U-011, T-U-012, T-E-003 | T-M-004 | automated evidence passed; native macOS clipboard evidence blocked |
+| REQ-016 / REQ-017 (Gap 5 / CF-01) | T-U-019, T-E-006, T-E-006b | T-M-002 | structural defect closed + automated regression added; live macro run blocked pending human |
 
 ## Sign-Off
 
 - REQ-018: passed automated UAT evidence.
 - REQ-019: passed automated UAT evidence; blocked manual T-M-004 native clipboard sign-off pending human pasted values.
+- Gap 5 / CF-01 (REQ-016 #8 / REQ-017 #4): structural defect closed (commit `62ee09e`) with real-envelope automated coverage (T-U-019 updated, T-E-006 migrated, T-E-006b added); blocked manual T-M-002 live-macro sign-off pending human run.

@@ -17,8 +17,18 @@ test('T-E-006 preserves mocked FlashQuery Pi diagnostics through renderer tool m
     }, panelId).then((handle) => handle.jsonValue() as Promise<string>)
     const longPayload = 'T-E-006-long-messages-payload ' + 'diagnostic-payload '.repeat(500)
     const secretSentinel = 'T-E-006-secret-sentinel'
+    // Real FlashQuery macro envelope: trace is a JSON string inside
+    // content[0].text, not a fabricated top-level details.result.trace.
+    const macroEnvelope = JSON.stringify({
+      task_id: 'macro-1',
+      result: { summary: 'Macro complete' },
+      trace: [
+        { kind: 'tool_call', name: 'get_document', message: 'Loaded macro source', at: '2026-06-04T12:00:00Z' },
+        { kind: 'model_call', name: 'call_model', message: 'Generated digest', at: '2026-06-04T12:00:01Z' },
+      ],
+    })
 
-    await page.evaluate(({ panelId, longPayload, secretSentinel }) => {
+    await page.evaluate(({ panelId, longPayload, secretSentinel, macroEnvelope }) => {
       const api = window.__cateE2E!
       api.dispatchAgentEvent(panelId, {
         type: 'tool_execution_start',
@@ -132,16 +142,11 @@ test('T-E-006 preserves mocked FlashQuery Pi diagnostics through renderer tool m
         type: 'tool_execution_end',
         toolCallId: 'call-macro-1',
         result: {
-          content: [{ type: 'text', text: 'Macro complete' }],
+          content: [{ type: 'text', text: macroEnvelope }],
           details: {
             flashquery: true,
             toolName: 'call_macro',
-            result: {
-              trace: [
-                { kind: 'tool_call', name: 'get_document', message: 'Loaded macro source', at: '2026-06-04T12:00:00Z' },
-                { kind: 'model_call', name: 'call_model', message: 'Generated digest', at: '2026-06-04T12:00:01Z' },
-              ],
-            },
+            result: { content: [{ type: 'text', text: macroEnvelope }] },
           },
         },
       })
@@ -163,7 +168,7 @@ test('T-E-006 preserves mocked FlashQuery Pi diagnostics through renderer tool m
           },
         },
       })
-    }, { panelId: agentKey, longPayload, secretSentinel })
+    }, { panelId: agentKey, longPayload, secretSentinel, macroEnvelope })
 
     const messages = await page.evaluate((panelId) => window.__cateE2E!.agentMessages(panelId), agentKey)
     expect(messages).toHaveLength(4)
@@ -195,14 +200,12 @@ test('T-E-006 preserves mocked FlashQuery Pi diagnostics through renderer tool m
       status: 'success',
       flashquery: {
         flashquery: true,
-        result: {
-          trace: [
-            { kind: 'tool_call', name: 'get_document' },
-            { kind: 'model_call', name: 'call_model' },
-          ],
-        },
+        toolName: 'call_macro',
       },
     })
+    // Real shape: trace is inside the content text, not a top-level result.trace.
+    expect((messages[2] as { flashquery?: { result?: Record<string, unknown> } }).flashquery?.result?.trace)
+      .toBeUndefined()
     expect(messages[3]).toMatchObject({
       type: 'tool',
       name: 'get_document',
