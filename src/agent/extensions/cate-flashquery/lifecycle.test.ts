@@ -173,6 +173,170 @@ describe('cate-flashquery lifecycle', () => {
     })
     expect(pi.unregisterProvider).not.toHaveBeenCalled()
   })
+
+  it('T-U-016 REQ-015 enriches call_model description from discovery metadata or loading placeholder', async () => {
+    const discoveredPi = mockPi()
+    const discoveredClient = mockClient('ws-a', [eligible({ name: 'call_model', description: 'Base call_model.' })], {
+      models: [{ id: 'gpt-5', name: 'GPT-5' }],
+      purposes: [{ id: 'architect', name: 'Architect' }],
+    })
+    const discoveredLifecycle = createCateFlashQueryLifecycle(discoveredPi.api, {
+      readHandoff: async () => handoff('ws-a'),
+      openClient: async () => discoveredClient,
+    })
+
+    await discoveredLifecycle.rebind('/workspace-a')
+
+    const discoveredTool = registeredTool(discoveredPi, 'call_model')
+    expect(discoveredTool.description).toContain('Architect')
+    expect(discoveredTool.description).toContain('architect')
+    expect(discoveredTool.description).toContain('GPT-5')
+    expect(discoveredTool.description).toContain('gpt-5')
+    expect(discoveredClient.callTool.mock.calls.map(([name]) => name)).not.toContain('list_models')
+    expect(discoveredClient.callTool.mock.calls.map(([name]) => name)).not.toContain('list_purposes')
+
+    const loadingPi = mockPi()
+    const loadingClient = mockClient('ws-b', [eligible({ name: 'call_model' })], {
+      models: [],
+      purposes: [],
+    })
+    const loadingLifecycle = createCateFlashQueryLifecycle(loadingPi.api, {
+      readHandoff: async () => handoff('ws-b'),
+      openClient: async () => loadingClient,
+    })
+
+    await loadingLifecycle.rebind('/workspace-b')
+
+    expect(registeredTool(loadingPi, 'call_model').description).toContain('Available purposes: loading...')
+  })
+
+  it('T-U-016 REQ-015 dispatches call_model with return messages, threaded trace IDs, and no live progress', async () => {
+    const pi = mockPi()
+    const client = mockClient('ws-a', [eligible({ name: 'call_model' })])
+    const lifecycle = createCateFlashQueryLifecycle(pi.api, {
+      readHandoff: async () => handoff('ws-a'),
+      openClient: async () => client,
+    })
+    await lifecycle.rebind('/workspace-a')
+    const tool = registeredTool(pi, 'call_model')
+    const onUpdate = vi.fn()
+    const ctx = { conversationId: 'conversation-1' }
+
+    const first = await tool.execute('call-1', { prompt: 'Summarize this.' }, undefined, onUpdate, ctx)
+    const second = await tool.execute('call-2', { prompt: 'Continue.' }, undefined, onUpdate, ctx)
+
+    expect(client.callTool).toHaveBeenNthCalledWith(
+      1,
+      'call_model',
+      expect.objectContaining({
+        prompt: 'Summarize this.',
+        return_messages: true,
+        _meta: { trace_id: expect.stringMatching(/^cate-ws-[a-z0-9]{8}-conv-[a-z2-7]{16}$/) },
+      }),
+      expect.any(Object),
+    )
+    expect(client.callTool).toHaveBeenNthCalledWith(
+      2,
+      'call_model',
+      expect.objectContaining({
+        return_messages: true,
+        _meta: { trace_id: client.callTool.mock.calls[0][1]._meta.trace_id },
+      }),
+      expect.any(Object),
+    )
+    expect(first.details).toMatchObject({ flashquery: true, toolName: 'call_model', traceId: client.callTool.mock.calls[0][1]._meta.trace_id })
+    expect(second.details).toMatchObject({ traceId: client.callTool.mock.calls[0][1]._meta.trace_id })
+    expect(onUpdate).not.toHaveBeenCalled()
+  })
+
+  it('T-U-016 REQ-015 hydrates resolved refs before call_model and preserves ref diagnostics', async () => {
+    const pi = mockPi()
+    const client = mockClient('ws-a', [eligible({ name: 'call_model' })])
+    client.callTool = vi.fn(async (name: string) => {
+      if (name === 'get_document') return { content: [{ type: 'text', text: '# Hydrated body' }] }
+      return { content: [{ type: 'text', text: 'model result' }], diagnostics: { tokens: 17 } }
+    })
+    const lifecycle = createCateFlashQueryLifecycle(pi.api, {
+      readHandoff: async () => handoff('ws-a'),
+      openClient: async () => client,
+    })
+    await lifecycle.rebind('/workspace-a')
+
+    const result = await registeredTool(pi, 'call_model').execute(
+      'call-1',
+      { messages: [{ role: 'user', content: 'Use {{ref:Path/to/Doc.md}} please.' }] },
+      undefined,
+      undefined,
+      { conversationId: 'conversation-1' },
+    )
+
+    expect(client.callTool).toHaveBeenNthCalledWith(
+      1,
+      'get_document',
+      { path: 'Path/to/Doc.md', include: ['body'] },
+      expect.any(Object),
+    )
+    expect(client.callTool).toHaveBeenNthCalledWith(
+      2,
+      'call_model',
+      expect.objectContaining({ return_messages: true }),
+      expect.any(Object),
+    )
+    expect(result.details).toMatchObject({
+      flashquery: true,
+      refs: [{ path: 'Path/to/Doc.md', resolved: true }],
+      diagnostics: { tokens: 17 },
+    })
+  })
+
+  it('T-U-016 REQ-015 blocks unresolved refs and preserves mid-stream error diagnostics', async () => {
+    const pi = mockPi()
+    const client = mockClient('ws-a', [eligible({ name: 'call_model' })])
+    client.callTool = vi.fn(async (name: string) => {
+      if (name === 'get_document') throw new Error('not found')
+      return { content: [{ type: 'text', text: 'should not dispatch' }] }
+    })
+    const lifecycle = createCateFlashQueryLifecycle(pi.api, {
+      readHandoff: async () => handoff('ws-a'),
+      openClient: async () => client,
+    })
+    await lifecycle.rebind('/workspace-a')
+    const tool = registeredTool(pi, 'call_model')
+
+    const unresolved = await tool.execute(
+      'call-1',
+      { prompt: 'Use {{ref:Path/to/Doc.md}}.' },
+      undefined,
+      undefined,
+      { conversationId: 'conversation-1' },
+    )
+
+    expect(unresolved).toMatchObject({
+      isError: true,
+      content: [{ type: 'text', text: 'Reference {{ref:Path/to/Doc.md}} could not be resolved (document not found).' }],
+      details: { flashquery: true, refs: [{ path: 'Path/to/Doc.md', resolved: false }] },
+    })
+    expect(client.callTool.mock.calls.map(([name]) => name)).toEqual(['get_document'])
+
+    client.callTool = vi.fn(async () => ({
+      isError: true,
+      content: [{ type: 'text', text: 'FlashQuery model stream failed' }],
+      diagnostics: { cost_usd: 0.03, tokens: 42 },
+      partial: true,
+    }))
+    const errored = await tool.execute('call-2', { prompt: 'No ref.' }, undefined, undefined, { conversationId: 'conversation-1' })
+
+    expect(errored).toMatchObject({
+      isError: true,
+      content: [{ type: 'text', text: 'FlashQuery model stream failed' }],
+      details: {
+        flashquery: true,
+        toolName: 'call_model',
+        diagnostics: { cost_usd: 0.03, tokens: 42 },
+        result: { partial: true },
+      },
+    })
+  })
 })
 
 function mockPi() {
@@ -186,11 +350,21 @@ function mockPi() {
   return { api, registerTool, unregisterProvider }
 }
 
-function mockClient(workspaceId: string, records: FlashQueryRegistryRecord[]): FlashQueryExtensionClient {
+function registeredTool(pi: ReturnType<typeof mockPi>, name: string) {
+  const tool = pi.registerTool.mock.calls.find(([registered]) => registered.name === name)?.[0]
+  if (!tool) throw new Error(`Tool not registered: ${name}`)
+  return tool
+}
+
+function mockClient(
+  workspaceId: string,
+  records: FlashQueryRegistryRecord[],
+  metadata: { models?: unknown[]; purposes?: unknown[] } = {},
+): FlashQueryExtensionClient & { callTool: ReturnType<typeof vi.fn> } {
   return {
     listRegistryTools: vi.fn(async () => records),
-    listModels: vi.fn(async () => [{ id: `${workspaceId}-model` }]),
-    listPurposes: vi.fn(async () => [{ id: `${workspaceId}-purpose` }]),
+    listModels: vi.fn(async () => metadata.models ?? [{ id: `${workspaceId}-model` }]),
+    listPurposes: vi.fn(async () => metadata.purposes ?? [{ id: `${workspaceId}-purpose` }]),
     callTool: vi.fn(async () => ({ content: [{ type: 'text', text: `${workspaceId} ok` }] })),
     close: vi.fn(async () => {}),
   }
