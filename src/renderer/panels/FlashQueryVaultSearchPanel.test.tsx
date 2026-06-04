@@ -217,8 +217,18 @@ describe('FlashQueryVaultSearchPanel T-U-010 core search behavior', () => {
     expect(screen.getByText('No results.')).toBeTruthy()
   })
 
-  it('shows more when totals exceed rows and reissues with a larger limit', async () => {
-    const api = makeElectronApi(vi.fn().mockResolvedValue(makeResponse({ total_documents: 2 })))
+  it('shows more when a realistic limit-sized response may have additional rows', async () => {
+    const documents = Array.from({ length: 50 }, (_, index) => ({
+      filename: `Cate-${String(index + 1).padStart(2, '0')}.md`,
+      fullPath: `Docs/Cate-${String(index + 1).padStart(2, '0')}.md`,
+      snippet: 'Cate pagination fixture',
+    }))
+    const api = makeElectronApi(vi.fn().mockResolvedValue(makeResponse({
+      documents,
+      memories: [],
+      total_documents: 50,
+      total_memories: 0,
+    })))
     setElectronApi(api)
     renderPanel()
     emitStatus({ workspaceId, status: 'live' })
@@ -230,6 +240,23 @@ describe('FlashQueryVaultSearchPanel T-U-010 core search behavior', () => {
     await waitFor(() => expect(api.flashquerySearch).toHaveBeenLastCalledWith(workspaceId, expect.objectContaining({
       limit: 100,
     })))
+  })
+
+  it('does not show more for a partial response with no total signal', async () => {
+    const api = makeElectronApi(vi.fn().mockResolvedValue(makeResponse({
+      memories: [],
+      total_documents: 1,
+      total_memories: 0,
+    })))
+    setElectronApi(api)
+    renderPanel()
+    emitStatus({ workspaceId, status: 'live' })
+
+    fireEvent.change(screen.getByPlaceholderText('Search the vault...'), { target: { value: 'cate' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+
+    expect(await screen.findByText('Docs/Plan.md')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Show more' })).toBeNull()
   })
 
   it('shows an in-flight spinner, ignores repeat clicks, and drops stale older responses', async () => {
@@ -274,6 +301,26 @@ describe('FlashQueryVaultSearchPanel T-U-010 core search behavior', () => {
     expect(await screen.findByTestId('vault-search-disconnected-icon')).toBeTruthy()
     expect((screen.getByRole('button', { name: 'Search' }) as HTMLButtonElement).disabled).toBe(true)
     expect(screen.queryByText('Docs/Plan.md')).toBeNull()
+  })
+
+  it('clears disconnect-origin errors on reconnect before the next search', async () => {
+    const api = makeElectronApi()
+    setElectronApi(api)
+    renderPanel()
+    emitStatus({ workspaceId, status: 'live' })
+
+    fireEvent.change(screen.getByPlaceholderText('Search the vault...'), { target: { value: 'cate' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    expect(await screen.findByText('Docs/Plan.md')).toBeTruthy()
+
+    emitStatus({ workspaceId, status: 'disconnected', error: 'FlashQuery is disconnected.' })
+    expect(await screen.findByTestId('vault-search-disconnected-icon')).toBeTruthy()
+
+    emitStatus({ workspaceId, status: 'live' })
+
+    expect(screen.getByText('Type a query and press Search.')).toBeTruthy()
+    expect(screen.queryByText('FlashQuery is disconnected.')).toBeNull()
+    expect((screen.getByRole('button', { name: 'Search' }) as HTMLButtonElement).disabled).toBe(false)
   })
 })
 

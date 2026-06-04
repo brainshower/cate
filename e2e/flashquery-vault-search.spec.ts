@@ -18,7 +18,9 @@ async function configure(page: Page, serverUrl: string, workspaceRoot: string) {
 
 async function activateSearchAndRun(page: Page, panelId: string, query: string) {
   await page.evaluate((id) => window.__cateE2E!.activatePanel(id), panelId)
-  await page.getByPlaceholder('Search the vault...').fill(query)
+  await page.getByRole('button', { name: 'Clear search' }).click()
+  const input = page.getByPlaceholder('Search the vault...')
+  await input.fill(query)
   await page.getByRole('button', { name: 'Search', exact: true }).click()
 }
 
@@ -54,18 +56,16 @@ test('T-E-003 Vault Search workflows and T-E-007 disconnect recovery use determi
     await page.getByPlaceholder('Search the vault...').fill('cate')
     await page.getByRole('button', { name: 'Search', exact: true }).click()
     await expect(page.getByText('Vault').first()).toBeVisible()
-    await expect(page.getByText('Memories').first()).toBeVisible()
-    await expect(page.getByText('Cate memory').first()).toBeVisible()
 
     await page.getByRole('button', { name: 'Show more' }).click()
     await expect.poll(() => server.lastSearchArgs()).toMatchObject({ limit: 100 })
+    await expect(page.getByText('Memories').first()).toBeVisible()
+    await expect(page.getByText('Cate memory').first()).toBeVisible()
 
-    await page.getByPlaceholder('Search the vault...').fill('nomatch')
-    await page.getByRole('button', { name: 'Search', exact: true }).click()
+    await activateSearchAndRun(page, searchPanelId, 'nomatch')
     await expect(page.getByText('No results.').first()).toBeVisible()
 
-    await page.getByPlaceholder('Search the vault...').fill('plan')
-    await page.getByRole('button', { name: 'Search', exact: true }).click()
+    await activateSearchAndRun(page, searchPanelId, 'plan')
     const planPath = page.getByText('Docs/Plan.md').first()
     await expect(planPath).toBeVisible()
     await planPath.dblclick()
@@ -83,11 +83,12 @@ test('T-E-003 Vault Search workflows and T-E-007 disconnect recovery use determi
     await planRow.click({ button: 'right' })
     await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('{{ref:Docs/Plan.md}}')
 
-    await activateSearchAndRun(page, searchPanelId, 'cate')
+    await activateSearchAndRun(page, searchPanelId, 'memory')
     const memoryRow = page.getByTestId('vault-search-memory-memory-1')
     await memoryRow.dblclick()
     await expect(memoryRow).toHaveAttribute('aria-expanded', 'true')
 
+    await activateSearchAndRun(page, searchPanelId, 'cate')
     const listbox = page.getByRole('listbox', { name: 'Vault search results' })
     await page.getByTestId('vault-search-document-Docs/Cate-01.md').click()
     await expect(page.getByTestId('vault-search-document-Docs/Cate-01.md')).toHaveAttribute('aria-selected', 'true')
@@ -112,9 +113,10 @@ test('T-E-003 Vault Search workflows and T-E-007 disconnect recovery use determi
     server.setAvailable(true)
     await page.evaluate((id) => window.__cateE2E!.retryFlashQuery(id), workspaceId)
     await expect(page.getByText('Live').first()).toBeVisible()
+    await expect(page.getByText('Type a query and press Search.')).toBeVisible()
+    await expect(page.getByText('FlashQuery is disconnected.')).toHaveCount(0)
     await page.getByRole('button', { name: 'mixed' }).click()
-    await page.getByPlaceholder('Search the vault...').fill('plan')
-    await page.getByRole('button', { name: 'Search', exact: true }).click()
+    await activateSearchAndRun(page, searchPanelId, 'plan')
     await expect(page.getByText('Docs/Plan.md').first()).toBeVisible()
   } finally {
     if (app) await closeApp(app)

@@ -209,8 +209,7 @@ test('T-E-003 FlashQuery stub supports deterministic document and memory search'
       entity_types: ['documents'],
       limit: 50,
     })).toMatchObject({
-      total_documents: 1,
-      total_memories: 0,
+      total: 1,
       results: [
         {
           entity_type: 'document',
@@ -226,8 +225,7 @@ test('T-E-003 FlashQuery stub supports deterministic document and memory search'
       entity_types: ['memories'],
       limit: 50,
     })).toMatchObject({
-      total_documents: 0,
-      total_memories: 1,
+      total: 1,
       results: [
         {
           entity_type: 'memory',
@@ -243,8 +241,7 @@ test('T-E-003 FlashQuery stub supports deterministic document and memory search'
       entity_types: ['documents', 'memories'],
       limit: 50,
     })).toMatchObject({
-      total_documents: 1,
-      total_memories: 1,
+      total: 2,
       results: [
         { entity_type: 'document', identifier: 'Docs/Plan.md' },
         { entity_type: 'memory', identifier: 'memory-1' },
@@ -259,11 +256,9 @@ test('T-E-003 FlashQuery stub supports deterministic document and memory search'
       include_archived: true,
       list_all: true,
     })).toMatchObject({
-      total_documents: 2,
-      total_memories: 2,
+      total: 1,
       results: [
         { entity_type: 'document', identifier: 'Docs/Other.md' },
-        { entity_type: 'memory', identifier: 'memory-1' },
       ],
     })
     expect(server.lastSearchArgs()).toEqual({

@@ -100,6 +100,7 @@ export default function FlashQueryVaultSearchPanel({ workspaceId }: PanelProps) 
   const [expandedMemoryIds, setExpandedMemoryIds] = useState<Set<string>>(() => new Set())
   const latestRequestRef = useRef(0)
   const e2eInjectedStatusRef = useRef(false)
+  const disconnectErrorRef = useRef(false)
 
   const host = useMemo(() => connection ? hostFromUrl(connection.url) : '', [connection])
   const chipState = statusToChip(status)
@@ -149,9 +150,19 @@ export default function FlashQueryVaultSearchPanel({ workspaceId }: PanelProps) 
 
   const clearResultsForDisconnect = useCallback((message?: string) => {
     latestRequestRef.current += 1
+    disconnectErrorRef.current = true
     setSearching(false)
     setResults(null)
+    setSearched(false)
     setError(message ?? 'FlashQuery is disconnected.')
+  }, [])
+
+  const clearDisconnectErrorForRecovery = useCallback(() => {
+    if (!disconnectErrorRef.current) return
+    disconnectErrorRef.current = false
+    setResults(null)
+    setSearched(false)
+    setError(null)
   }, [])
 
   const dispatchSearch = useCallback(async (nextLimit = DEFAULT_LIMIT) => {
@@ -170,6 +181,7 @@ export default function FlashQueryVaultSearchPanel({ workspaceId }: PanelProps) 
     }
     setSearching(true)
     setSearched(true)
+    disconnectErrorRef.current = false
     setError(null)
     try {
       const response = await window.electronAPI.flashquerySearch(workspaceId, params)
@@ -236,8 +248,9 @@ export default function FlashQueryVaultSearchPanel({ workspaceId }: PanelProps) 
       e2eInjectedStatusRef.current = false
       setStatus({ kind: payload.status, error: payload.error })
       if (payload.status === 'disconnected') clearResultsForDisconnect(payload.error)
+      else clearDisconnectErrorForRecovery()
     })
-  }, [clearResultsForDisconnect, workspaceId])
+  }, [clearDisconnectErrorForRecovery, clearResultsForDisconnect, workspaceId])
 
   useEffect(() => {
     if (!window.electronAPI.isE2E) return
@@ -251,10 +264,11 @@ export default function FlashQueryVaultSearchPanel({ workspaceId }: PanelProps) 
       e2eInjectedStatusRef.current = true
       setStatus({ kind: payload.status, error: payload.error })
       if (payload.status === 'disconnected') clearResultsForDisconnect(payload.error)
+      else clearDisconnectErrorForRecovery()
     }
     window.addEventListener('cate:e2e-flashquery-status', handleE2EStatus)
     return () => window.removeEventListener('cate:e2e-flashquery-status', handleE2EStatus)
-  }, [clearResultsForDisconnect, workspaceId])
+  }, [clearDisconnectErrorForRecovery, clearResultsForDisconnect, workspaceId])
 
   useEffect(() => {
     if (!connection || status?.kind !== 'connecting') return
@@ -392,6 +406,15 @@ export default function FlashQueryVaultSearchPanel({ workspaceId }: PanelProps) 
     const hasRows = entity === 'documents'
       ? (results?.documents.length ?? 0) > 0
       : (results?.memories.length ?? 0) > 0
+    const groupCount = entity === 'documents'
+      ? (results?.documents.length ?? 0)
+      : (results?.memories.length ?? 0)
+    const returnedCount = (results?.documents.length ?? 0) + (results?.memories.length ?? 0)
+    const mayHaveMore = hasRows && (
+      total > groupCount ||
+      groupCount >= limit ||
+      returnedCount >= limit
+    )
     return (
       <section className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
@@ -399,7 +422,7 @@ export default function FlashQueryVaultSearchPanel({ workspaceId }: PanelProps) 
           <span className="text-[11px] text-muted">{total}</span>
         </div>
         {hasRows ? <div role="list" className="flex flex-col gap-1.5">{children}</div> : <div className="rounded bg-surface-3 px-3 py-4 text-center text-xs text-muted">No results.</div>}
-        {hasRows && total > (entity === 'documents' ? results!.documents.length : results!.memories.length) && (
+        {mayHaveMore && (
           <button
             type="button"
             className="self-start rounded bg-surface-5 px-2.5 py-1 text-xs text-secondary transition-colors hover:bg-hover hover:text-primary"

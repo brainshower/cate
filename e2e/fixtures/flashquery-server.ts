@@ -265,15 +265,13 @@ function makeMcpServer(
       const memoryResults = wantsMemories
         ? memorySearchResults(memories, query, list_all === true)
         : []
-      const limitedDocuments = documentResults.slice(0, limit)
-      const limitedMemories = memoryResults.slice(0, limit)
+      const results = [...documentResults, ...memoryResults].slice(0, limit)
       return mcpText({
         query,
         entity_types,
-        total: limitedDocuments.length + limitedMemories.length,
-        total_documents: documentResults.length,
-        total_memories: memoryResults.length,
-        results: [...limitedDocuments, ...limitedMemories],
+        mode,
+        total: results.length,
+        results,
       })
     },
   )
