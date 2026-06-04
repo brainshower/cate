@@ -115,7 +115,7 @@ Canonical source docs:
 6. FlashQuery is absent from ProvidersView and is not registered as a Pi provider.
 7. Targeted coverage includes T-U-013, T-U-014, T-U-015, T-E-005, and T-M-001.
 
-**Status:** In Progress — 2/3 plans executed
+**Status:** Complete
 
 ### Phase 18: `call_model`, `call_macro`, and Diagnostics Data
 
@@ -191,7 +191,7 @@ Canonical source docs:
 
 ## Current Status
 
-Active milestone: v1.2 FlashQuery Milestone 2. Next phase: Phase 17 FlashQuery Pi Extension Bootstrap, Plan 17.2.
+Active milestone: v1.2 FlashQuery Milestone 2. Phase 17 is complete and ready for verification; next implementation phase is Phase 18.
 
 ## Notes
 
