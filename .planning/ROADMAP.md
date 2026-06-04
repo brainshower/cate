@@ -127,7 +127,7 @@ Canonical source docs:
 
 Plans:
 - [x] 18-01-PLAN.md — Specialize `call_model` descriptions, trace IDs, refs, and diagnostics.
-- [ ] 18-02-PLAN.md — Specialize `call_macro` confirmation, defaults, progress, and result handling.
+- [x] 18-02-PLAN.md — Specialize `call_macro` confirmation, defaults, progress, and result handling.
 - [ ] 18-03-PLAN.md — Preserve diagnostics in agent state/session replay and record mocked/manual evidence.
 
 **Success criteria:**
