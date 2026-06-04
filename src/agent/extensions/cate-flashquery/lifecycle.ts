@@ -15,6 +15,7 @@ import type { FlashQueryToolCandidate } from './registry'
 
 const STALE_TOOL_MESSAGE = 'FlashQuery tool is not available in the current FlashQuery workspace.'
 const RETIRED_CLIENT_CLOSE_TIMEOUT_MS = 5_000
+const CALL_MODEL_METADATA_MAX_REFRESH_ATTEMPTS = 3
 
 export interface CateFlashQueryExtensionDeps {
   readHandoff?: (cwd: string) => Promise<FlashQueryHandoff | null>
@@ -29,6 +30,8 @@ interface FlashQueryGeneration {
   candidates: FlashQueryToolCandidate[]
   models: unknown[]
   purposes: unknown[]
+  callModelMetadataRefreshAttempts: number
+  callModelMetadataNeedsRetry: boolean
   activeCalls: number
   retiring: boolean
   closeTimer: ReturnType<typeof setTimeout> | null
@@ -91,6 +94,8 @@ export function createCateFlashQueryLifecycle(
           candidates: registryRecordsToToolCandidates(records),
           models: [],
           purposes: [],
+          callModelMetadataRefreshAttempts: 0,
+          callModelMetadataNeedsRetry: false,
           activeCalls: 0,
           retiring: false,
           closeTimer: null,
@@ -139,13 +144,23 @@ async function refreshCallModelMetadata(
   signal: AbortSignal | undefined,
 ): Promise<void> {
   if (!generation.candidates.some((candidate) => candidate.name === 'call_model')) return
+  if (generation.callModelMetadataRefreshAttempts >= CALL_MODEL_METADATA_MAX_REFRESH_ATTEMPTS) return
+  generation.callModelMetadataRefreshAttempts += 1
+  let failed = false
   const [models, purposes] = await Promise.all([
-    generation.client.listModels(signal).catch(() => []),
-    generation.client.listPurposes(signal).catch(() => []),
+    generation.client.listModels(signal).catch(() => {
+      failed = true
+      return []
+    }),
+    generation.client.listPurposes(signal).catch(() => {
+      failed = true
+      return []
+    }),
   ])
   if (generation.closed || generation.retiring) return
   generation.models = models
   generation.purposes = purposes
+  generation.callModelMetadataNeedsRetry = failed
   const callModel = generation.candidates.find((candidate) => candidate.name === 'call_model')
   if (callModel) publishTool(pi, generation, registeredTools, callModel)
 }
@@ -211,12 +226,13 @@ function publishTool(
       : candidate.description,
     parameters: flashQuerySchemaToTypeBox(candidate.inputSchema),
     async execute(_toolCallId, params, signal, onUpdate, ctx) {
-      return executeFlashQueryTool(generation, registeredTools, candidate.name, params, signal, onUpdate, ctx)
+      return executeFlashQueryTool(pi, generation, registeredTools, candidate.name, params, signal, onUpdate, ctx)
     },
   })
 }
 
 async function executeFlashQueryTool(
+  pi: ExtensionAPI,
   generation: FlashQueryGeneration,
   registeredTools: Map<string, RegisteredFlashQueryTool>,
   toolName: string,
@@ -234,6 +250,9 @@ async function executeFlashQueryTool(
     const args = params && typeof params === 'object' && !Array.isArray(params)
       ? params as Record<string, unknown>
       : {}
+    if (generation.callModelMetadataNeedsRetry) {
+      await refreshCallModelMetadata(pi, generation, registeredTools, signal)
+    }
     generation.activeCalls += 1
     if (entry.candidate.name === 'call_model') {
       return await executeCallModelTool(generation, entry.candidate, args, signal, onUpdate, ctx as ExtensionContext)

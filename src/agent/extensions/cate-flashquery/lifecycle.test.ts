@@ -226,6 +226,41 @@ describe('cate-flashquery lifecycle', () => {
     expect(registeredTool(loadingPi, 'call_model').description).toContain('Available purposes: loading...')
   })
 
+  it('T-U-016 R-18-2 refreshes call_model description after a transient discovery failure', async () => {
+    const pi = mockPi()
+    const client = mockClient('ws-a', [eligible({ name: 'call_model' })])
+    client.listModels = vi.fn()
+      .mockRejectedValueOnce(new Error('transient model discovery failure'))
+      .mockResolvedValueOnce([{ id: 'gpt-5', name: 'GPT-5' }])
+    client.listPurposes = vi.fn()
+      .mockRejectedValueOnce(new Error('transient purpose discovery failure'))
+      .mockResolvedValueOnce([{ id: 'architect', name: 'Architect' }])
+    const lifecycle = createCateFlashQueryLifecycle(pi.api, {
+      readHandoff: async () => handoff('ws-a'),
+      openClient: async () => client,
+    })
+
+    await lifecycle.rebind('/workspace-a')
+
+    expect(registeredTool(pi, 'call_model').description).toContain('Available purposes: loading...')
+
+    await registeredTool(pi, 'call_model').execute(
+      'call-after-discovery-failure',
+      { prompt: 'Continue.' },
+      undefined,
+      undefined,
+      { conversationId: 'conversation-1' },
+    )
+
+    const recoveredTool = registeredTool(pi, 'call_model')
+    expect(recoveredTool.description).toContain('Architect')
+    expect(recoveredTool.description).toContain('architect')
+    expect(recoveredTool.description).toContain('GPT-5')
+    expect(recoveredTool.description).toContain('gpt-5')
+    expect(client.listModels).toHaveBeenCalledTimes(2)
+    expect(client.listPurposes).toHaveBeenCalledTimes(2)
+  })
+
   it('T-U-016 REQ-015 dispatches call_model with return messages, threaded trace IDs, and no live progress', async () => {
     const pi = mockPi()
     const client = mockClient('ws-a', [eligible({ name: 'call_model' })])
