@@ -416,7 +416,7 @@ describe('EditorPanel FlashQuery save and dirty behavior', () => {
     expect(useAppStore.getState().workspaces[0].panels[panelId].title).toBe('Plan.md')
   })
 
-  it('T-I-086 failed vault save preserves dirty state and surfaces a visible error', async () => {
+  it('T-I-086 REQ-020 failed vault save preserves editor text, dirty state, and surfaces a visible error', async () => {
     const api = makeElectronApi({ success: false, error: 'FlashQuery offline' })
     setElectronApi(api)
     await renderEditor(vaultUri)
@@ -428,6 +428,7 @@ describe('EditorPanel FlashQuery save and dirty behavior', () => {
     })
 
     expect((await screen.findByRole('alert')).textContent).toBe('Save failed: FlashQuery offline')
+    expect(monacoMock().latestEditor().getValue()).toBe('changed')
     expect(useAppStore.getState().workspaces[0].panels[panelId].isDirty).toBe(true)
   })
 
@@ -599,7 +600,7 @@ describe('EditorPanel FlashQuery frontmatter behavior', () => {
     ))
   })
 
-  it('T-U-008 blocks invalid YAML without calling write IPC', async () => {
+  it('T-U-008 REQ-020 blocks invalid YAML while preserving frontmatter text and dirty state', async () => {
     const api = makeElectronApi()
     vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({ body: '', frontmatter: {} })
     setElectronApi(api)
@@ -612,6 +613,7 @@ describe('EditorPanel FlashQuery frontmatter behavior', () => {
     })
 
     expect((await screen.findByRole('alert')).textContent).toMatch(/Invalid frontmatter YAML/)
+    expect(monacoMock().latestEditor().getValue()).toBe('- bad')
     expect(api.flashqueryWriteDocument).not.toHaveBeenCalled()
     expect(useAppStore.getState().workspaces[0].panels[panelId].isDirty).toBe(true)
   })
@@ -727,7 +729,7 @@ describe('EditorPanel FlashQuery refresh behavior', () => {
     await waitFor(() => expect(monacoMock().latestEditor().getValue()).toBe('saved server body'))
   })
 
-  it('T-U-009 refresh failure preserves editor content and dirty state', async () => {
+  it('T-U-009 T-U-021 REQ-020 refresh failure preserves editor content and dirty state', async () => {
     const refreshUri = 'flashquery://workspace-1/Docs/RefreshFailure.md'
     const api = makeElectronApi()
     vi.mocked(api.flashqueryGetDocument)
@@ -747,7 +749,7 @@ describe('EditorPanel FlashQuery refresh behavior', () => {
     expect(useAppStore.getState().workspaces[0].panels[panelId].isDirty).toBe(true)
   })
 
-  it('T-U-009 disconnected refresh fails locally without issuing a read request', async () => {
+  it('T-U-009 T-U-021 REQ-020 disconnected refresh fails locally without issuing a read request', async () => {
     const refreshUri = 'flashquery://workspace-1/Docs/Disconnected.md'
     const api = makeElectronApi()
     vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({ body: 'old body' })
@@ -762,6 +764,7 @@ describe('EditorPanel FlashQuery refresh behavior', () => {
     expect((await screen.findByRole('alert')).textContent).toBe('Refresh failed: FlashQuery is disconnected.')
     expect(api.flashqueryGetDocument).toHaveBeenCalledTimes(1)
     expect(monacoMock().latestEditor().getValue()).toBe('old body')
+    expect(useAppStore.getState().workspaces[0].panels[panelId].isDirty).toBe(false)
   })
 })
 

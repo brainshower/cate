@@ -149,11 +149,11 @@ describe('agentStore vault-index cache lifecycle', () => {
     })
   })
 
-  it('T-U-006 discards older late refresh responses while keeping loading stable', async () => {
+  it('T-U-006 T-U-021 REQ-020 discards older late refresh responses while keeping loading stable', async () => {
     let resolveFirst!: (entries: Array<{ filename: string; fullPath: string }>) => void
     let resolveSecond!: (entries: Array<{ filename: string; fullPath: string }>) => void
-    const firstEntries = [{ filename: 'Old.md', fullPath: 'Docs/Old.md' }]
-    const secondEntries = [{ filename: 'New.md', fullPath: 'Docs/New.md' }]
+    const firstEntries = [{ filename: 'Only.md', fullPath: 'Old/Only.md' }]
+    const secondEntries = [{ filename: 'Plan.md', fullPath: 'New/Plan.md' }]
     vi.mocked(window.electronAPI.flashqueryListVaultIndex)
       .mockReturnValueOnce(new Promise((resolve) => { resolveFirst = resolve }))
       .mockReturnValueOnce(new Promise((resolve) => { resolveSecond = resolve }))
@@ -168,6 +168,9 @@ describe('agentStore vault-index cache lifecycle', () => {
     resolveFirst(firstEntries)
     await first
     expect(useAgentStore.getState().panels[panelId].vaultIndex).toEqual([])
+    expect(useAgentStore.getState().panels[panelId].vaultIndex).not.toContainEqual(
+      expect.objectContaining({ fullPath: 'Old/Only.md' }),
+    )
     expect(useAgentStore.getState().panels[panelId].vaultIndexLoading).toBe(true)
 
     resolveSecond(secondEntries)
@@ -176,7 +179,7 @@ describe('agentStore vault-index cache lifecycle', () => {
     expect(useAgentStore.getState().panels[panelId].vaultIndexLoading).toBe(false)
   })
 
-  it('T-U-006 clears cache metadata and blocks pending stale responses', async () => {
+  it('T-U-006 T-U-021 REQ-020 clears cache metadata and blocks pending stale responses', async () => {
     let resolvePending!: (entries: Array<{ filename: string; fullPath: string }>) => void
     vi.mocked(window.electronAPI.flashqueryListVaultIndex).mockReturnValueOnce(
       new Promise((resolve) => { resolvePending = resolve }),
@@ -194,15 +197,18 @@ describe('agentStore vault-index cache lifecycle', () => {
       vaultIndexWorkspaceId: null,
     })
 
-    resolvePending([{ filename: 'Stale.md', fullPath: 'Docs/Stale.md' }])
+    resolvePending([{ filename: 'Only.md', fullPath: 'Old/Only.md' }])
     await pending
 
     expect(useAgentStore.getState().panels[panelId].vaultIndex).toEqual([])
+    expect(useAgentStore.getState().panels[panelId].vaultIndex).not.toContainEqual(
+      expect.objectContaining({ fullPath: 'Old/Only.md' }),
+    )
   })
 
-  it('T-U-006 clears old workspace entries before loading replacement entries', async () => {
-    const wsAEntries = [{ filename: 'A.md', fullPath: 'A/A.md' }]
-    const wsBEntries = [{ filename: 'B.md', fullPath: 'B/B.md' }]
+  it('T-U-006 T-U-021 REQ-020 clears old workspace entries before loading replacement entries', async () => {
+    const wsAEntries = [{ filename: 'Only.md', fullPath: 'Old/Only.md' }]
+    const wsBEntries = [{ filename: 'Plan.md', fullPath: 'New/Plan.md' }]
     vi.mocked(window.electronAPI.flashqueryListVaultIndex)
       .mockResolvedValueOnce(wsAEntries)
       .mockResolvedValueOnce(wsBEntries)
@@ -218,6 +224,9 @@ describe('agentStore vault-index cache lifecycle', () => {
       vaultIndexLoading: true,
       vaultIndexWorkspaceId: 'ws-b',
     })
+    expect(useAgentStore.getState().panels[panelId].vaultIndex).not.toContainEqual(
+      expect.objectContaining({ fullPath: 'Old/Only.md' }),
+    )
 
     await refreshB
     expect(useAgentStore.getState().panels[panelId].vaultIndex).toEqual(wsBEntries)

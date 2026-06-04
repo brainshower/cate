@@ -186,10 +186,15 @@ describe('AgentChatInput T-U-020 REQ-018 @ mention autocomplete', () => {
     expect(screen.getByText('/help')).toBeTruthy()
   })
 
-  it('renders exact loading text and adds no footer buttons, footer pills, or rich-input chips', () => {
-    renderInput({ draft: '@', vaultIndexLoading: true })
+  it('T-U-021 REQ-020 renders exact loading text without stale old-workspace matches', () => {
+    renderInput({
+      draft: '@old',
+      vaultIndex: [{ filename: 'Only.md', fullPath: 'Old/Only.md' }],
+      vaultIndexLoading: true,
+    })
 
     expect(screen.getByText('Loading vault...')).toBeTruthy()
+    expect(screen.queryByText('Old/Only.md')).toBeNull()
     expect(screen.queryByTestId('agent-reference-chip')).toBeNull()
     expect(screen.queryByText(/footer pill/i)).toBeNull()
     expect(screen.queryByText(/document-reference/i)).toBeNull()

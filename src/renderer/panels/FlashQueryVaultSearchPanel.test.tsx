@@ -286,7 +286,7 @@ describe('FlashQueryVaultSearchPanel T-U-010 core search behavior', () => {
     expect(screen.queryByText('Old.md')).toBeNull()
   })
 
-  it('clears current results and disables Search on disconnect', async () => {
+  it('T-U-021 REQ-020 clears current results and disables Search on disconnect', async () => {
     const api = makeElectronApi()
     setElectronApi(api)
     renderPanel()
@@ -296,9 +296,10 @@ describe('FlashQueryVaultSearchPanel T-U-010 core search behavior', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Search' }))
     expect(await screen.findByText('Docs/Plan.md')).toBeTruthy()
 
-    emitStatus({ workspaceId, status: 'disconnected', error: 'offline' })
+    emitStatus({ workspaceId, status: 'disconnected', error: 'FlashQuery is disconnected.' })
 
     expect(await screen.findByTestId('vault-search-disconnected-icon')).toBeTruthy()
+    expect(screen.getByText('FlashQuery is disconnected.')).toBeTruthy()
     expect((screen.getByRole('button', { name: 'Search' }) as HTMLButtonElement).disabled).toBe(true)
     expect(screen.queryByText('Docs/Plan.md')).toBeNull()
   })

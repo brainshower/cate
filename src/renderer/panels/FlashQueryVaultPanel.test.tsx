@@ -412,7 +412,7 @@ describe('FlashQueryVaultPanel row and folder behavior', () => {
     )
   })
 
-  it('T-U-012 copies exact vault tree paths and whole-document references', async () => {
+  it('T-U-012 T-U-021 REQ-020 copies exact vault tree paths and whole-document references', async () => {
     const api = await renderLiveTree([
       { name: 'Project.md', type: 'document', vaultPath: 'Docs/Project.md' },
     ])
