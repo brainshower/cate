@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: FlashQuery Milestone 2
-status: executing
-stopped_at: Completed 20-04-PLAN.md with T-M-004 blocked pending human native clipboard verification
-last_updated: "2026-06-04T19:49:12.737Z"
+status: needs-review
+stopped_at: Completed Phase 21 automated verification and preflight; manual/live checks T-M-001 through T-M-004 remain blocked pending owner review
+last_updated: "2026-06-04T21:34:31Z"
 last_activity: 2026-06-04
 progress:
   total_phases: 8
   completed_phases: 7
-  total_plans: 21
-  completed_plans: 21
-  percent: 88
+  total_plans: 25
+  completed_plans: 25
+  percent: 100
 ---
 
 # Project State
@@ -21,26 +21,26 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-03 after v1.2 FlashQuery Milestone 2 planning)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** Phase 21 — cross-surface connection degradation
+**Current focus:** Phase 21 - cross-surface connection degradation closeout and owner review
 
 ## Current Position
 
-Phase: 20 (pi-mentions-and-clipboard-utilities) — COMPLETE
+Phase: 21 (cross-surface-hardening-and-regression)
 Plan: 4 of 4
-Status: Complete with T-M-004 blocked pending human native macOS clipboard verification
+Status: Needs Review - automated verification passed; manual/live checks T-M-001 through T-M-004 remain blocked
 Last activity: 2026-06-04
 
 ## Session Continuity
 
-Last session: 2026-06-04T19:49:12.493Z
-Stopped At: Completed 20-04-PLAN.md with T-M-004 blocked pending human native clipboard verification
+Last session: 2026-06-04T21:34:31Z
+Stopped At: Completed Phase 21 automated verification and preflight; manual/live checks T-M-001 through T-M-004 remain blocked pending owner review
 Resume File: None
 
 ## Next Up
 
-Plan or execute Phase 21: cross-surface connection degradation.
+Owner review of Phase 21 release-readiness: either record live/manual evidence for T-M-001 through T-M-004, accept the blockers as known manual follow-up, or open a follow-up phase/issue.
 
-Phase 20 has 4/4 plans complete covering vault-index cache lifecycle, Pi `@` mention autocomplete, clipboard utilities, E2E coverage, and UAT traceability. T-M-004 native macOS clipboard verification is blocked until a human records pasted clipboard values in `20-UAT.md`.
+Phase 21 has 4/4 plans complete. Final focused suites, `npm run typecheck`, `npm test`, `npm run test:e2e`, and `npm run preflight` passed on 2026-06-04. `21-VERIFICATION.md` records the full REQ-020 matrix and keeps the blocked manual checks visible.
 
 ## Decisions
 
@@ -65,6 +65,7 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table (updated
 | 2026-06-01 | Phase 13 downstream agents must read the upstream-sync requirements and test plan before acceptance, provenance, verification, or closeout decisions. | Prevents final closeout from drifting away from REQ-021, REQ-023, REQ-024, REQ-025, REQ-026, T-A-010, T-A-012..T-A-015, and T-E-001..T-E-005. |
 | 2026-06-03 | v1.2 uses the Milestone 2 requirements and test plan as mandatory source-of-truth docs. | Keeps refresh, frontmatter, vault search, Pi extension, reference, clipboard, and degradation work aligned to the product spec and coverage matrix. |
 | 2026-06-03 | v1.2 continues phase numbering from v1.1, starting at Phase 14. | Preserves the project roadmap's sequential phase history across shipped milestones. |
+| 2026-06-04 | Phase 21 is left in Needs Review after automated verification passed. | Live/manual checks T-M-001 through T-M-004 require a real FlashQuery/Pi/provider/native clipboard environment or owner acceptance before release-readiness is complete. |
 
 - [Phase 17]: Plan 17.1 writes FlashQuery Pi handoff to workspace-scoped .cate/pi-agent/flashquery-handoff.json. — Bearer tokens are sourced only from main-process getWorkspaceToken(workspaceId), preserving the renderer and Pi auth.json token boundary.
 - [Phase 17]: Plan 17.2 uses MCP listTools metadata as the FlashQuery registry source for hostEligible/current Pi tool registration.
@@ -118,7 +119,12 @@ Items acknowledged and deferred at milestone close on 2026-05-30:
 | Phase 20 P02 | 9min | 2 tasks | 2 files |
 | Phase 20 P03 | 14min | 2 tasks | 5 files |
 | Phase 20 P04 | 42min | 3 tasks | 7 files |
+| Phase 21 P01 | 18min | 2 tasks | 7 files |
+| Phase 21 P02 | 24min | 3 tasks | 4 files |
+| Phase 21 P03 | 20min | 3 tasks | 10 files |
+| Phase 21 P04 | 21min | 4 tasks | verification docs + planning state |
 
 ## Operator Next Steps
 
-- Plan Phase 21 with /gsd-plan-phase 21, or record human T-M-004 pasted clipboard evidence in `.planning/phases/20-pi-mentions-and-clipboard-utilities/20-UAT.md`.
+- Review `.planning/phases/21-cross-surface-hardening-and-regression/21-VERIFICATION.md` and decide whether to accept blocked manual/live checks T-M-001 through T-M-004 as follow-up.
+- Record human T-M-004 pasted clipboard evidence in `.planning/phases/20-pi-mentions-and-clipboard-utilities/20-UAT.md` and `.planning/phases/21-cross-surface-hardening-and-regression/21-UAT.md` when available.

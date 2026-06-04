@@ -69,6 +69,15 @@ Visual evidence notes are recorded in `.planning/phases/21-cross-surface-hardeni
 - The Milestone 2 UI Spec was reviewed for editor refresh/frontmatter, Vault Search, Pi ToolCard, Pi `@` mention, and clipboard surfaces.
 - Screenshot-specific coverage for Vault Search, expanded ToolCard, Pi `@` mention, and clipboard-menu states remains limited by the existing visual evidence flow; those surfaces are covered behaviorally by focused unit/component/E2E evidence and manual blockers where required.
 
+## Final Verification
+
+Final closeout evidence is recorded in `.planning/phases/21-cross-surface-hardening-and-regression/21-VERIFICATION.md`.
+
+- Focused unit/component suites passed.
+- Focused E2E suites for `T-E-001` through `T-E-007` plus `T-E-006b` passed.
+- `npm run typecheck`, `npm test`, `npm run test:e2e`, and `npm run preflight` passed.
+- Phase status remains `needs-review` because `T-M-001`, `T-M-002`, `T-M-003`, and `T-M-004` are still blocked pending live/manual evidence or owner acceptance.
+
 ## Sign-Off
 
 Automated Phase 21 E2E evidence is passed for `T-E-001` through `T-E-007` plus `T-E-006b`. Manual/live checks remain blocked with exact prerequisites and must not be marked passed without human-observed evidence.
