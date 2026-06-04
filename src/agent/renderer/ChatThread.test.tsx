@@ -201,7 +201,7 @@ describe('ChatThread FlashQuery ToolCard rendering', () => {
       }),
     ])
 
-    expect(screen.getByText('Used')).toBeTruthy()
+    expect(screen.getAllByText('Used').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('call_model')).toBeTruthy()
     expect(container.querySelector('.cate-notif-pulse')).toBeTruthy()
     expect(container.textContent).not.toContain('iter')
@@ -247,8 +247,8 @@ describe('ChatThread FlashQuery ToolCard rendering', () => {
     expect(within(table).getByText('get_document')).toBeTruthy()
     expect(within(table).getByText('Updated target')).toBeTruthy()
 
-    expect(screen.getByText('Used')).toBeTruthy()
-    expect(screen.getByText('call_macro')).toBeTruthy()
+    expect(screen.getAllByText('Used').length).toBeGreaterThanOrEqual(1)
+    fireEvent.click(screen.getByText('call_macro'))
     expect(screen.getByText('Running macro step from FlashQuery')).toBeTruthy()
     expect(document.body.textContent).not.toContain('1/2')
     expect(document.body.textContent).not.toContain('elapsed')

@@ -7,7 +7,7 @@
 // expands what they want to see.
 // =============================================================================
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useRenderCount } from '../../renderer/lib/perf/perfClient'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -296,6 +296,9 @@ function MessageRow({
   }
   if (msg.type === 'tool' && msg.name === 'subagent') {
     return <SubagentCard msg={msg} shimmer={shimmer} />
+  }
+  if (msg.type === 'tool' && isRichFlashQueryTool(msg)) {
+    return <FlashQueryToolCard msg={msg} shimmer={shimmer} />
   }
   if (msg.type === 'tool' && msg.name === 'plan_complete') {
     return (
@@ -817,6 +820,408 @@ function SubagentToolCallRow({ call }: { call: SubagentToolCall }) {
       )}
     </div>
   )
+}
+
+// -----------------------------------------------------------------------------
+// FlashQuery ToolCards — final-only rich details for call_model / call_macro.
+// -----------------------------------------------------------------------------
+
+interface FlashQuerySection {
+  title: string
+  node: ReactNode
+}
+
+interface FlashQueryTraceRow {
+  step?: string
+  status?: string
+  tool?: string
+  message?: string
+}
+
+function isRichFlashQueryTool(msg: ToolMessage): boolean {
+  return Boolean(msg.flashquery && (msg.name === 'call_model' || msg.name === 'call_macro'))
+}
+
+function FlashQueryToolCard({ msg, shimmer }: { msg: ToolMessage; shimmer?: boolean }) {
+  const [expanded, setExpanded] = useState(false)
+  const isRunning = msg.status === 'running' || msg.status === 'pending'
+  if (isRunning) return <ToolCard msg={msg} shimmer={shimmer} />
+
+  const diagnostics = flashQueryDiagnostics(msg.flashquery)
+  const summary = msg.name === 'call_model'
+    ? flashQueryCallModelSummary(msg, diagnostics)
+    : flashQueryCallMacroSummary(msg, diagnostics)
+  const sections = msg.name === 'call_model'
+    ? flashQueryCallModelSections(msg, diagnostics)
+    : flashQueryCallMacroSections(msg, diagnostics)
+  const hasExtras = sections.length > 0 || !!msg.result || !!msg.error || msg.args != null
+
+  return (
+    <div className="text-[12px] cate-fade-in">
+      <button
+        onClick={() => hasExtras && setExpanded((v) => !v)}
+        className={`w-full flex items-center gap-1.5 text-left ${shimmer ? 'cate-notif-pulse' : ''} ${hasExtras ? 'hover:text-primary' : 'cursor-default'}`}
+      >
+        <span className="text-muted shrink-0">Used</span>
+        <span className="truncate text-primary/90 font-mono flex-1">{summary}</span>
+      </button>
+      {expanded && hasExtras && (
+        <div className="mt-1 pl-4 space-y-1.5">
+          {sections.map((section) => (
+            <FlashQuerySectionBlock key={section.title} title={section.title}>
+              {section.node}
+            </FlashQuerySectionBlock>
+          ))}
+          {sections.length === 0 && (
+            <pre className="text-[11px] text-muted whitespace-pre-wrap break-words font-mono leading-snug max-h-[280px] overflow-auto">
+              {prettyArgs(msg.args)}
+            </pre>
+          )}
+          {msg.result && (
+            <pre className="text-[11px] text-primary/80 whitespace-pre-wrap break-words font-mono leading-snug max-h-[280px] overflow-auto">
+              {msg.result}
+            </pre>
+          )}
+          {msg.error && (
+            <pre className="text-[11px] text-rose-300/90 whitespace-pre-wrap break-words font-mono leading-snug">
+              {msg.error}
+            </pre>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FlashQuerySectionBlock({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <div className="text-[11px] text-muted font-mono">{title}</div>
+      {children}
+    </div>
+  )
+}
+
+function flashQueryDiagnostics(details: unknown): Record<string, unknown> {
+  const root = asRecord(details)
+  if (!root) return {}
+  const result = asRecord(root.result)
+  const diagnostics = asRecord(root.diagnostics)
+  const resultDiagnostics = asRecord(result?.diagnostics) ?? asRecord(result?.details)
+  return {
+    ...root,
+    ...(diagnostics ?? {}),
+    ...(result ?? {}),
+    ...(resultDiagnostics ?? {}),
+  }
+}
+
+function flashQueryCallModelSummary(msg: ToolMessage, diagnostics: Record<string, unknown>): string {
+  const parts = ['call_model']
+  const resolver = firstString(diagnostics.resolver, diagnostics.resolutionStrategy, diagnostics.purpose, diagnostics.purposeName)
+  const modelName = firstString(diagnostics.modelName, diagnostics.model, diagnostics.name)
+  if (resolver && modelName) parts.push(`via ${resolver} ${modelName}`)
+  const iterations = asNumber(firstValue(diagnostics.iterations, diagnostics.iterationCount))
+  if (iterations != null) parts.push(`${iterations} iter`)
+  const flashqueryCalls = asNumber(firstValue(diagnostics.flashqueryCalls, diagnostics.fqCalls, diagnostics.toolCalls))
+    ?? flashQueryLoopRows(diagnostics).length
+  if (flashqueryCalls > 0) parts.push(`${flashqueryCalls} FQ calls`)
+  const tokens = asNumber(firstValue(diagnostics.tokens, diagnostics.totalTokens, asRecord(diagnostics.usage)?.total))
+  if (tokens != null) parts.push(`${tokens} tok`)
+  const cost = flashQueryCost(diagnostics)
+  if (cost != null) parts.push(formatFlashQueryCost(cost))
+  const latencySeconds = flashQueryLatencySeconds(diagnostics)
+  if (latencySeconds != null) parts.push(`${formatFlashQuerySeconds(latencySeconds)}s`)
+  return parts.join(' · ') || toolSummary(msg)
+}
+
+function flashQueryCallMacroSummary(msg: ToolMessage, diagnostics: Record<string, unknown>): string {
+  const trace = flashQueryTraceRows(diagnostics)
+  if (trace.length > 0) return `call_macro · ${trace.length} step${trace.length === 1 ? '' : 's'}`
+  return toolSummary(msg)
+}
+
+function flashQueryCallModelSections(msg: ToolMessage, diagnostics: Record<string, unknown>): FlashQuerySection[] {
+  const sections: FlashQuerySection[] = []
+  const chain = flashQueryResolutionChain(diagnostics)
+  if (chain.length > 0) {
+    sections.push({
+      title: 'Resolution chain',
+      node: (
+        <div className="space-y-0.5 font-mono text-[11px] text-primary/80">
+          {chain.map((row, index) => (
+            <div key={index}>{row}</div>
+          ))}
+        </div>
+      ),
+    })
+  }
+
+  const refs = flashQueryRefs(msg.flashquery)
+  if (refs.length > 0) {
+    sections.push({
+      title: 'Injected refs',
+      node: (
+        <div className="space-y-0.5 font-mono text-[11px] text-primary/80">
+          {refs.map((ref, index) => (
+            <div key={index} className="flex gap-2">
+              <span className={ref.resolved === false ? 'text-amber-300' : 'text-primary/80'}>{ref.path}</span>
+              {ref.error && <span className="text-muted">{ref.error}</span>}
+            </div>
+          ))}
+        </div>
+      ),
+    })
+  }
+
+  const loopRows = flashQueryLoopRows(diagnostics)
+  if (loopRows.length > 0) {
+    sections.push({
+      title: 'FlashQuery tool loop',
+      node: (
+        <div className="border-l-2 border-teal-400/70 pl-2 space-y-1 font-mono text-[11px]">
+          {loopRows.map((row, index) => (
+            <div key={index} className="flex gap-2 text-primary/80">
+              <span className="text-teal-300 shrink-0">{row.index ?? index + 1}</span>
+              <span className="text-primary/90 shrink-0">{row.tool}</span>
+              {row.status && <span className="text-muted shrink-0">{row.status}</span>}
+              {row.summary && <span className="text-primary/70 truncate">{row.summary}</span>}
+            </div>
+          ))}
+        </div>
+      ),
+    })
+  }
+
+  const cost = flashQueryCost(diagnostics)
+  if (cost != null) {
+    sections.push({
+      title: 'Cost',
+      node: <div className="font-mono text-[11px] text-primary/80">{formatFlashQueryCost(cost)}</div>,
+    })
+  }
+
+  const templateParams = sanitizeDisplayValue(firstValue(diagnostics.templateParams, diagnostics.params))
+  if (templateParams != null) {
+    sections.push({
+      title: 'Template params',
+      node: (
+        <pre className="text-[11px] text-primary/80 whitespace-pre-wrap break-words font-mono leading-snug max-h-[280px] overflow-auto">
+          {JSON.stringify(templateParams, null, 2)}
+        </pre>
+      ),
+    })
+  }
+
+  const messages = sanitizeDisplayValue(diagnostics.messages)
+  if (messages != null) {
+    sections.push({
+      title: 'Messages',
+      node: <FlashQueryMessagesPayload payload={messages} />,
+    })
+  }
+
+  return sections
+}
+
+function flashQueryCallMacroSections(msg: ToolMessage, diagnostics: Record<string, unknown>): FlashQuerySection[] {
+  const trace = flashQueryTraceRows(diagnostics)
+  if (trace.length === 0) return []
+  return [{
+    title: 'Trace',
+    node: (
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-[11px] border border-white/10 rounded-md font-mono">
+          <thead>
+            <tr>
+              <th className="text-left px-2 py-1 border-b border-white/10 bg-white/[0.04] font-medium text-muted">Step</th>
+              <th className="text-left px-2 py-1 border-b border-white/10 bg-white/[0.04] font-medium text-muted">Status</th>
+              <th className="text-left px-2 py-1 border-b border-white/10 bg-white/[0.04] font-medium text-muted">Tool</th>
+              <th className="text-left px-2 py-1 border-b border-white/10 bg-white/[0.04] font-medium text-muted">Message</th>
+            </tr>
+          </thead>
+          <tbody>
+            {trace.map((row, index) => (
+              <tr key={index}>
+                <td className="px-2 py-1 border-b border-white/5 align-top text-primary/80">{row.step ?? index + 1}</td>
+                <td className="px-2 py-1 border-b border-white/5 align-top text-primary/70">{row.status ?? ''}</td>
+                <td className="px-2 py-1 border-b border-white/5 align-top text-primary/80">{row.tool ?? ''}</td>
+                <td className="px-2 py-1 border-b border-white/5 align-top text-primary/70">{row.message ?? ''}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    ),
+  }]
+}
+
+function FlashQueryMessagesPayload({ payload }: { payload: unknown }) {
+  const [expanded, setExpanded] = useState(false)
+  return (
+    <div className="space-y-1">
+      <button
+        onClick={() => setExpanded((value) => !value)}
+        className="text-[11px] text-muted hover:text-primary font-mono"
+      >
+        Messages payload
+      </button>
+      {expanded && (
+        <pre className="text-[11px] text-primary/80 whitespace-pre-wrap break-words font-mono leading-snug max-h-[280px] overflow-auto">
+          {JSON.stringify(payload, null, 2)}
+        </pre>
+      )}
+    </div>
+  )
+}
+
+function flashQueryResolutionChain(diagnostics: Record<string, unknown>): string[] {
+  const raw = asArray(firstValue(diagnostics.resolutionChain, diagnostics.resolution_chain, diagnostics.resolution))
+  if (!raw) return []
+  return raw.flatMap((item) => {
+    if (typeof item === 'string' && item.trim()) return [item]
+    const record = asRecord(item)
+    if (!record) return []
+    const step = firstString(record.step, record.kind, record.type, record.resolver)
+    const value = firstString(record.value, record.name, record.model, record.purpose, record.id)
+    if (step && value) return [`${step}: ${value}`]
+    if (value) return [value]
+    return []
+  })
+}
+
+function flashQueryRefs(details: unknown): Array<{ path: string; resolved?: boolean; error?: string }> {
+  const root = asRecord(details)
+  const raw = asArray(root?.refs)
+  if (!raw) return []
+  return raw.flatMap((item) => {
+    const record = asRecord(item)
+    const path = record ? firstString(record.path, record.ref, record.identifier) : undefined
+    if (!path) return []
+    return [{
+      path,
+      resolved: typeof record?.resolved === 'boolean' ? record.resolved : undefined,
+      error: firstString(record?.error),
+    }]
+  })
+}
+
+function flashQueryLoopRows(diagnostics: Record<string, unknown>): Array<{ index?: number; tool: string; status?: string; summary?: string }> {
+  const raw = asArray(firstValue(diagnostics.serverToolLoop, diagnostics.toolLoop, diagnostics.flashqueryToolLoop, diagnostics.tools))
+  if (!raw) return []
+  return raw.flatMap((item, index) => {
+    const record = asRecord(item)
+    const tool = record ? firstString(record.tool, record.name, record.toolName) : undefined
+    if (!tool) return []
+    return [{
+      index: asNumber(record?.index) ?? asNumber(record?.step) ?? index + 1,
+      tool,
+      status: firstString(record?.status),
+      summary: firstString(record?.summary, record?.message, record?.text),
+    }]
+  })
+}
+
+function flashQueryTraceRows(diagnostics: Record<string, unknown>): FlashQueryTraceRow[] {
+  const raw = asArray(firstValue(diagnostics.trace, diagnostics.macroTrace, diagnostics.steps))
+  if (!raw) return []
+  return raw.flatMap((item) => {
+    const record = asRecord(item)
+    if (!record) return []
+    const row = {
+      step: firstString(record.step, record.name, record.id),
+      status: firstString(record.status, record.state),
+      tool: firstString(record.tool, record.toolName),
+      message: firstString(record.message, record.summary, record.text),
+    }
+    return row.step || row.status || row.tool || row.message ? [row] : []
+  })
+}
+
+function flashQueryCost(diagnostics: Record<string, unknown>): number | undefined {
+  return asNumber(firstValue(
+    diagnostics.costUsd,
+    diagnostics.cost_usd,
+    diagnostics.cost,
+    asRecord(diagnostics.usage)?.cost,
+    asRecord(asRecord(diagnostics.usage)?.cost)?.total,
+  ))
+}
+
+function flashQueryLatencySeconds(diagnostics: Record<string, unknown>): number | undefined {
+  const seconds = asNumber(firstValue(diagnostics.latencySeconds, diagnostics.latency_s, diagnostics.elapsedSeconds))
+  if (seconds != null) return seconds
+  const ms = asNumber(firstValue(diagnostics.latencyMs, diagnostics.latency_ms, diagnostics.elapsedMs))
+  return ms != null ? ms / 1000 : undefined
+}
+
+function formatFlashQueryCost(cost: number): string {
+  return `$${cost.toFixed(3)}`
+}
+
+function formatFlashQuerySeconds(seconds: number): string {
+  return seconds.toFixed(2).replace(/\.?0+$/, '')
+}
+
+function firstValue(...values: unknown[]): unknown {
+  return values.find((value) => value !== undefined && value !== null)
+}
+
+function firstString(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim().length > 0) return value
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+  }
+  return undefined
+}
+
+function asNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined
+}
+
+function asArray(value: unknown): unknown[] | undefined {
+  return Array.isArray(value) ? value : undefined
+}
+
+function sanitizeDisplayValue(value: unknown, seen = new WeakSet<object>()): unknown {
+  if (value == null) return value
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value
+  if (Array.isArray(value)) {
+    const sanitized = value.map((item) => sanitizeDisplayValue(item, seen)).filter((item) => item !== undefined)
+    return sanitized.length > 0 ? sanitized : undefined
+  }
+  if (typeof value !== 'object') return undefined
+  if (seen.has(value)) return undefined
+  seen.add(value)
+  const out: Record<string, unknown> = {}
+  for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+    if (isSecretDiagnosticKey(key)) continue
+    const sanitized = sanitizeDisplayValue(item, seen)
+    if (sanitized !== undefined) out[key] = sanitized
+  }
+  return Object.keys(out).length > 0 ? out : undefined
+}
+
+function isSecretDiagnosticKey(key: string): boolean {
+  const normalized = key.toLowerCase().replace(/[^a-z0-9]/g, '')
+  if (normalized === 'tokens') return false
+  return normalized.includes('authorization') ||
+    normalized.includes('bearer') ||
+    normalized.includes('token') ||
+    normalized.includes('header') ||
+    normalized.includes('cookie') ||
+    normalized.includes('handoff') ||
+    normalized.includes('endpoint') ||
+    normalized.includes('requestinit') ||
+    normalized.includes('apikey') ||
+    normalized.includes('secret') ||
+    normalized.includes('password')
 }
 
 // -----------------------------------------------------------------------------
