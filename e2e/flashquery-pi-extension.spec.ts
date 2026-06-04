@@ -26,17 +26,15 @@ test('T-E-005 installs cate-flashquery extension and fetches eligible fixture re
       {
         name: 'fixture_native_search',
         description: 'Eligible native FlashQuery fixture tool',
-        metadata: { hostEligible: true, status: 'current', source: 'flashquery_native', toolId: 'fixture_native_search' },
       },
       {
         name: 'github.create_issue',
         description: 'Eligible brokered MCP fixture tool',
-        metadata: { hostEligible: true, status: 'current', source: 'brokered_mcp', server: 'github', toolId: 'github.create_issue' },
       },
       {
         name: 'fixture_deprecated',
         description: 'Ineligible deprecated fixture tool',
-        metadata: { hostEligible: true, status: 'deprecated', source: 'flashquery_native', toolId: 'fixture_deprecated' },
+        metadata: { status: 'deprecated', toolId: 'fixture_deprecated' },
       },
     ])
 

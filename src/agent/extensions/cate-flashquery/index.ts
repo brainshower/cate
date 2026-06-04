@@ -16,6 +16,7 @@ export function createCateFlashQueryExtension(
 
   pi.on('session_start', async (_event, ctx) => {
     await lifecycle.rebind(ctx.cwd, ctx.signal)
+    lifecycle.watchHandoff(ctx.cwd)
   })
 
   pi.on('session_shutdown', async () => {

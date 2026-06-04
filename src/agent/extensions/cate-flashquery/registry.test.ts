@@ -6,18 +6,17 @@ import {
 import type { FlashQueryRegistryRecord } from './registry'
 
 describe('cate-flashquery registry normalization', () => {
-  it('T-U-014 returns host-eligible current model, macro, search, native, and brokered MCP candidates', () => {
+  it('T-U-014 returns real tools/list model, macro, search, native, and brokered MCP candidates', () => {
     const records: FlashQueryRegistryRecord[] = [
-      eligible({ name: 'call_model', label: 'Call Model', purpose: 'delegate model work' }),
-      eligible({ name: 'call_macro', model: 'macro-runner' }),
-      eligible({ name: 'search_tools' }),
-      eligible({ name: 'get_document', source: 'flashquery_native', server: 'vault' }),
-      eligible({ name: 'github.create_issue', source: 'brokered_mcp', server: 'github', toolId: 'github.create_issue' }),
+      realTool({ name: 'call_model', label: 'Call Model', purpose: 'delegate model work' }),
+      realTool({ name: 'call_macro', model: 'macro-runner' }),
+      realTool({ name: 'search_tools' }),
+      realTool({ name: 'get_document', server: 'vault' }),
+      realTool({ name: 'github.create_issue', server: 'github' }),
       eligible({ name: 'deprecated_tool', status: 'deprecated' }),
       eligible({ name: 'unavailable_tool', status: 'unavailable' }),
       eligible({ name: 'removed_tool', status: 'removed' }),
       eligible({ name: 'hidden_tool', hostEligible: false }),
-      { name: 'missing_metadata', status: 'current' },
     ]
 
     const candidates = registryRecordsToToolCandidates(records)
@@ -35,16 +34,15 @@ describe('cate-flashquery registry normalization', () => {
       purpose: 'delegate model work',
     })
     expect(candidates.find((candidate) => candidate.name === 'github_create_issue')).toMatchObject({
-      source: 'brokered_mcp',
       server: 'github',
       toolId: 'github.create_issue',
     })
   })
 
-  it('T-U-014 accepts hostEligible and metadata fields from registry metadata', () => {
+  it('T-U-014 accepts richer hostEligible and metadata fields when FlashQuery emits them', () => {
     const candidates = registryRecordsToToolCandidates([{
       name: 'memory.search',
-      status: 'current',
+      status: 'final',
       metadata: {
         hostEligible: true,
         source: 'flashquery_native',
@@ -100,10 +98,18 @@ describe('cate-flashquery registry normalization', () => {
   })
 })
 
+function realTool(overrides: FlashQueryRegistryRecord): FlashQueryRegistryRecord {
+  return {
+    name: 'tool',
+    inputSchema: { type: 'object', properties: {} },
+    ...overrides,
+  }
+}
+
 function eligible(overrides: FlashQueryRegistryRecord): FlashQueryRegistryRecord {
   return {
     name: 'tool',
-    status: 'current',
+    status: 'final',
     hostEligible: true,
     inputSchema: { type: 'object', properties: {} },
     ...overrides,

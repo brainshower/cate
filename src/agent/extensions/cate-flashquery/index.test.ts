@@ -10,11 +10,11 @@ describe('cate-flashquery extension registration', () => {
   it('T-U-014 registers eligible native and brokered FlashQuery tools and never registers a provider', async () => {
     const pi = mockPi()
     const client = mockClient([
-      eligible({ name: 'call_model' }),
-      eligible({ name: 'call_macro' }),
-      eligible({ name: 'search_tools' }),
-      eligible({ name: 'get_document', source: 'flashquery_native' }),
-      eligible({ name: 'github.create_issue', source: 'brokered_mcp', server: 'github', toolId: 'github.create_issue' }),
+      realTool({ name: 'call_model' }),
+      realTool({ name: 'call_macro' }),
+      realTool({ name: 'search_tools' }),
+      realTool({ name: 'get_document' }),
+      realTool({ name: 'github.create_issue', server: 'github' }),
       eligible({ name: 'deprecated_tool', status: 'deprecated' }),
       eligible({ name: 'unavailable_tool', status: 'unavailable' }),
       eligible({ name: 'hidden_tool', hostEligible: false }),
@@ -73,6 +73,36 @@ describe('cate-flashquery extension registration', () => {
         toolName: 'github_create_issue',
       },
     })
+  })
+
+  it('T-U-015 watches the workspace handoff and rebinds the live extension on changes', async () => {
+    const pi = mockPi()
+    const handoffWatcher: { onChange?: () => void } = {}
+    const clientA = mockClient([realTool({ name: 'workspace_a_tool' })])
+    const clientB = mockClient([realTool({ name: 'workspace_b_tool' })])
+    const handoffs = [handoff('workspace-a'), handoff('workspace-b')]
+    const clients = [clientA, clientB]
+
+    createCateFlashQueryExtension(pi.api, {
+      readHandoff: async () => handoffs.shift() ?? handoff('workspace-b'),
+      openClient: async () => clients.shift() ?? clientB,
+      watchHandoff: vi.fn((_cwd, onChange) => {
+        handoffWatcher.onChange = onChange
+        return vi.fn()
+      }),
+    })
+    await pi.handlers.session_start?.({}, { cwd: '/workspace', signal: undefined })
+
+    handoffWatcher.onChange?.()
+    await vi.waitFor(() => {
+      expect(pi.registerTool.mock.calls.map(([tool]) => tool.name)).toContain('workspace_b_tool')
+    })
+
+    expect(clientA.close).toHaveBeenCalledTimes(1)
+    expect(pi.registerTool.mock.calls.map(([tool]) => tool.name)).toEqual([
+      'workspace_a_tool',
+      'workspace_b_tool',
+    ])
   })
 
   it('T-U-014 returns a disconnected error result when no current FlashQuery client is available', async () => {
@@ -150,10 +180,18 @@ function eligible(overrides: FlashQueryRegistryRecord): FlashQueryRegistryRecord
   }
 }
 
-function handoff(): FlashQueryHandoff {
+function realTool(overrides: FlashQueryRegistryRecord): FlashQueryRegistryRecord {
+  return {
+    name: 'tool',
+    inputSchema: { type: 'object', properties: {} },
+    ...overrides,
+  }
+}
+
+function handoff(workspaceId = 'workspace-1'): FlashQueryHandoff {
   return {
     version: 1,
-    workspaceId: 'workspace-1',
+    workspaceId,
     endpointUrl: 'http://127.0.0.1:3210',
     authMode: 'none',
   }

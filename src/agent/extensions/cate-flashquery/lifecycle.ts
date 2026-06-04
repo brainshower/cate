@@ -1,4 +1,6 @@
 import type { AgentToolResult, ExtensionAPI } from '@earendil-works/pi-coding-agent'
+import { watch, type FSWatcher } from 'node:fs'
+import path from 'node:path'
 import type { TSchema } from 'typebox'
 import { openFlashQueryClient, readFlashQueryHandoff } from './client'
 import { registryRecordsToToolCandidates } from './registry'
@@ -12,6 +14,7 @@ const RETIRED_CLIENT_CLOSE_TIMEOUT_MS = 5_000
 export interface CateFlashQueryExtensionDeps {
   readHandoff?: (cwd: string) => Promise<FlashQueryHandoff | null>
   openClient?: (handoff: FlashQueryHandoff) => Promise<FlashQueryExtensionClient | null>
+  watchHandoff?: (cwd: string, onChange: () => void) => () => void
 }
 
 export interface FlashQueryToolDetails {
@@ -49,6 +52,7 @@ interface RegisteredFlashQueryTool {
 
 export interface CateFlashQueryLifecycle {
   rebind(cwd: string, signal?: AbortSignal): Promise<void>
+  watchHandoff(cwd: string): void
   shutdown(): Promise<void>
   currentGeneration(): FlashQueryGeneration | null
   registeredToolNames(): string[]
@@ -60,9 +64,11 @@ export function createCateFlashQueryLifecycle(
 ): CateFlashQueryLifecycle {
   const readHandoffImpl = deps.readHandoff ?? readFlashQueryHandoff
   const openClientImpl = deps.openClient ?? openFlashQueryClient
+  const watchHandoffImpl = deps.watchHandoff ?? watchFlashQueryHandoff
   const registeredTools = new Map<string, RegisteredFlashQueryTool>()
   let current: FlashQueryGeneration | null = null
   let nextGenerationId = 0
+  let stopWatching: (() => void) | null = null
 
   const lifecycle: CateFlashQueryLifecycle = {
     async rebind(cwd, signal) {
@@ -113,7 +119,15 @@ export function createCateFlashQueryLifecycle(
         throw err
       }
     },
+    watchHandoff(cwd) {
+      stopWatching?.()
+      stopWatching = watchHandoffImpl(cwd, () => {
+        void lifecycle.rebind(cwd).catch(() => {})
+      })
+    },
     async shutdown() {
+      stopWatching?.()
+      stopWatching = null
       const generation = current
       current = null
       invalidateRegisteredTools(registeredTools, nextGenerationId + 1)
@@ -128,6 +142,32 @@ export function createCateFlashQueryLifecycle(
   }
 
   return lifecycle
+}
+
+function watchFlashQueryHandoff(cwd: string, onChange: () => void): () => void {
+  const handoffFile = path.join(cwd, '.cate', 'pi-agent', 'flashquery-handoff.json')
+  const handoffDir = path.dirname(handoffFile)
+  const handoffName = path.basename(handoffFile)
+  let watcher: FSWatcher | null = null
+  let timer: ReturnType<typeof setTimeout> | null = null
+
+  try {
+    watcher = watch(handoffDir, { persistent: false }, (_event, filename) => {
+      if (filename && filename.toString() !== handoffName) return
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => {
+        timer = null
+        onChange()
+      }, 100)
+    })
+  } catch {
+    return () => {}
+  }
+
+  return () => {
+    if (timer) clearTimeout(timer)
+    watcher?.close()
+  }
 }
 
 function publishTools(

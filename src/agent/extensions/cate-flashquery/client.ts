@@ -76,10 +76,18 @@ export async function openFlashQueryClient(handoff: FlashQueryHandoff): Promise<
       })
     },
     async listModels(signal) {
-      return metadataListFromResult(await client.callTool({ name: 'list_models', arguments: {} }, undefined, { signal }))
+      return metadataListFromResult(await client.callTool(
+        { name: 'call_model', arguments: { resolver: 'list_models' } },
+        undefined,
+        { signal },
+      ))
     },
     async listPurposes(signal) {
-      return metadataListFromResult(await client.callTool({ name: 'list_purposes', arguments: {} }, undefined, { signal }))
+      return metadataListFromResult(await client.callTool(
+        { name: 'call_model', arguments: { resolver: 'list_purposes' } },
+        undefined,
+        { signal },
+      ))
     },
     async callTool(name, params, signal) {
       return client.callTool({ name, arguments: params }, undefined, { signal })

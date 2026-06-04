@@ -28,7 +28,7 @@ export interface FlashQueryToolCandidate {
   original: FlashQueryRegistryRecord
 }
 
-const CURRENT_STATUS = 'current'
+const INELIGIBLE_STATUSES = new Set(['deprecated', 'unavailable', 'removed'])
 
 export function normalizePiToolName(input: string): string {
   const normalized = input
@@ -84,8 +84,9 @@ export function areToolCandidatesStale(
 
 function isEligible(record: FlashQueryRegistryRecord): boolean {
   const status = firstString(record.status, record.metadata?.status)
-  if (status !== CURRENT_STATUS) return false
-  return record.hostEligible === true || record.metadata?.hostEligible === true
+  if (status && INELIGIBLE_STATUSES.has(status)) return false
+  if (record.hostEligible === false || record.metadata?.hostEligible === false) return false
+  return true
 }
 
 function distinctName(baseName: string, used: Map<string, number>): string {
