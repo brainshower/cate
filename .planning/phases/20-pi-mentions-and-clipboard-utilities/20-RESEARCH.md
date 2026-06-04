@@ -268,7 +268,7 @@ if (action === 'copy-reference') await navigator.clipboard.writeText(`{{ref:${fu
 - Slash popup currently renders inline absolute; other popovers in the same file use `createPortal`, so the mention dropdown needs the portal variant explicitly. [VERIFIED: codebase grep]
 - `FlashQueryVaultPanel` document context menu currently has `Open`, `Open frontmatter`, and `Open on Canvas`, but no copy actions. [VERIFIED: codebase grep]
 - `EditorPanel` title action row currently has `Frontmatter` and `Refresh from vault`, but no Clipboard menu. [VERIFIED: codebase grep]
-- Cache refresh after successful extension-dispatched mutating FlashQuery document tools is not wired; generic extension tool execution results already carry `details.flashquery`, `toolName`, and status in agent events, so the trigger should inspect successful FlashQuery tool completions. [VERIFIED: codebase grep]
+- Cache refresh after successful extension-dispatched mutating FlashQuery document tools is not wired; generic extension tool execution results carry FlashQuery metadata in `event.result.details`, which `agentStore.ts` sanitizes into `ToolMessage.flashquery`, while the original Pi tool name is also available as `ToolMessage.name` from the start event. The trigger should inspect successful `tool_execution_end` completions using those current post-Phase-19 shapes. [VERIFIED: codebase grep]
 - E2E fixture supports search/list-all but T-E-004 does not exist yet. [VERIFIED: codebase grep]
 
 ## Common Pitfalls
@@ -351,16 +351,16 @@ if (action === 'copy-reference') await copyDocumentValue(`{{ref:${result.fullPat
 
 | # | Claim | Section | Risk if Wrong |
 |---|-------|---------|---------------|
-| A1 | Extension-dispatched mutating document tools can be detected in renderer by successful `tool_execution_end` events with `details.flashquery === true` and tool names such as `write_document`. [ASSUMED] | Known Gaps / Architecture Patterns | If Pi event details omit enough metadata for some tools, planner needs a lower-level extension callback or explicit renderer event. |
+| A1 | Extension-dispatched mutating document tools can be detected in renderer by successful `tool_execution_end` events whose `event.result.details.flashquery === true` survives sanitization, with tool names from `ToolMessage.name` and/or sanitized `flashquery.toolName` such as `write_document`. [ASSUMED] | Known Gaps / Architecture Patterns | If Pi event details omit enough metadata for some tools, executor needs a lower-level extension callback or explicit renderer event. |
 | A2 | T-E-004 can use the existing real Pi panel shell plus mocked/harnessed state rather than a live provider. [ASSUMED] | Validation Architecture | If the composer cannot be exercised without a configured provider/session, planner must add a harness-only route or use mocked component E2E. |
 
 ## Open Questions (RESOLVED)
 
 1. **Where should successful mutating extension tools publish cache-refresh intent?**
-   - What we know: generic FlashQuery tool execution results include sanitized `details.flashquery` and `toolName` in agent events. [VERIFIED: codebase grep]
+   - What we know: generic FlashQuery tool execution results include FlashQuery metadata under `event.result.details`; `agentStore.ts` extracts and sanitizes it into `ToolMessage.flashquery`, and the existing tool message keeps the Pi tool name as `ToolMessage.name`. [VERIFIED: codebase grep]
    - What's unclear: whether every mutating document tool uses stable names and result shapes. [ASSUMED]
    - Recommendation: Plan a small helper that classifies known document-mutating tool names first, with tests around successful vs failed `tool_execution_end`. [ASSUMED]
-   - RESOLVED: Phase 20 will publish cache-refresh intent from the renderer agent-store event path by classifying successful FlashQuery document-mutating tool completions. Plan 20-01 owns the helper and requires tests for successful mutation, failed mutation, and non-mutating/read-only tools. If implementation finds a tool event lacks enough metadata, that is an execution deviation to solve locally by adding a narrowly scoped extension detail field or renderer bridge event, not a product-scope question.
+   - RESOLVED: Phase 20 will publish cache-refresh intent from the renderer agent-store event path by classifying successful FlashQuery document-mutating tool completions using the current post-Phase-19 event shape: locate the `ToolMessage` by `toolCallId`, read `ToolMessage.name`, and read sanitized FlashQuery details extracted from `event.result.details` when present. Plan 20-01 owns the helper and requires tests for successful mutation, failed mutation, and non-mutating/read-only tools. If implementation finds a tool event lacks enough metadata, that is an execution deviation to solve locally by adding a narrowly scoped extension detail field or renderer bridge event, not a product-scope question.
 
 2. **Should `@` mention loading fetch start only when an agent panel exists?**
    - What we know: D-17 places cache in `agentStore.ts` and the cache serves Pi chat only. [CITED: 20-CONTEXT.md]
