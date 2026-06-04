@@ -1,6 +1,7 @@
 import type { AgentToolUpdateCallback, ExtensionContext } from '@earendil-works/pi-coding-agent'
 import type { FlashQueryExtensionClient, FlashQueryHandoff } from './client'
 import { normalizeFlashQueryToolResult, type FlashQueryToolDetails, type FlashQueryToolResult } from './diagnostics'
+import { withFlashQueryTrace } from './dispatch'
 import type { FlashQueryToolCandidate } from './registry'
 
 export const FLASHQUERY_DISCONNECTED_MESSAGE = 'FlashQuery is not connected.'
@@ -32,39 +33,49 @@ export async function executeCallMacroTool(
     if (!confirmed) return macroCancelledResult(candidate, generation)
   }
 
+  const { interactive: _unsupportedInteractive, ...macroArgs } = args
+  const traced = withFlashQueryTrace(generation.handoff, ctx, macroArgs)
   const dispatchArgs = {
-    ...args,
-    interactive: args.interactive ?? true,
-    progress: args.progress ?? 'milestones',
+    ...traced.args,
+    progress: macroArgs.progress ?? 'milestones',
+    _meta: traced.args._meta,
   }
-  const result = await generation.client.callTool(candidate.toolId, dispatchArgs, {
-    signal,
-    onprogress(progress) {
-      onUpdate?.({
-        content: [{ type: 'text' as const, text: progressMessage(progress) }],
-        details: {
-          flashquery: true,
-          toolId: candidate.toolId,
-          toolName: candidate.name,
-          workspaceId: generation.handoff.workspaceId,
-          generation: generation.id,
-          macroProgress: progress,
-        },
-      })
-    },
-  })
+  let result: unknown
+  try {
+    result = await generation.client.callTool(candidate.toolId, dispatchArgs, {
+      signal,
+      onprogress(progress) {
+        onUpdate?.({
+          content: [{ type: 'text' as const, text: progressMessage(progress) }],
+          details: {
+            flashquery: true,
+            toolId: candidate.toolId,
+            toolName: candidate.name,
+            workspaceId: generation.handoff.workspaceId,
+            generation: generation.id,
+            traceId: traced.traceId,
+            macroProgress: progress,
+          },
+        })
+      },
+    })
+  } catch {
+    return disconnectedCallMacroResult(candidate, generation, traced.traceId)
+  }
 
   return normalizeFlashQueryToolResult({
     candidate,
     handoff: generation.handoff,
     generationId: generation.id,
     result,
+    traceId: traced.traceId,
   })
 }
 
 export function disconnectedCallMacroResult(
   candidate: FlashQueryToolCandidate,
   generation: Pick<CallMacroGenerationContext, 'id' | 'handoff'>,
+  traceId?: string,
 ): FlashQueryToolResult {
   return {
     isError: true,
@@ -75,6 +86,7 @@ export function disconnectedCallMacroResult(
       toolName: candidate.name,
       workspaceId: generation.handoff.workspaceId,
       generation: generation.id,
+      ...(traceId ? { traceId } : {}),
       disconnected: true,
       error: FLASHQUERY_DISCONNECTED_MESSAGE,
     },

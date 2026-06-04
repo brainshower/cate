@@ -5,6 +5,7 @@ import type { TSchema } from 'typebox'
 import { openFlashQueryClient, readFlashQueryHandoff } from './client'
 import { errorFlashQueryToolResult, normalizeFlashQueryToolResult } from './diagnostics'
 import type { FlashQueryToolDetails, FlashQueryToolResult } from './diagnostics'
+import { withFlashQueryTrace } from './dispatch'
 import { disconnectedCallMacroResult, executeCallMacroTool } from './macro-tool'
 import { buildCallModelDescription, executeCallModelTool } from './model-tool'
 import { registryRecordsToToolCandidates } from './registry'
@@ -77,11 +78,7 @@ export function createCateFlashQueryLifecycle(
           return
         }
 
-        const [records, models, purposes] = await Promise.all([
-          client.listRegistryTools(signal),
-          client.listModels(signal).catch(() => []),
-          client.listPurposes(signal).catch(() => []),
-        ])
+        const records = await client.listRegistryTools(signal)
         if (generationId !== nextGenerationId) {
           await client.close().catch(() => {})
           return
@@ -92,8 +89,8 @@ export function createCateFlashQueryLifecycle(
           handoff,
           client,
           candidates: registryRecordsToToolCandidates(records),
-          models,
-          purposes,
+          models: [],
+          purposes: [],
           activeCalls: 0,
           retiring: false,
           closeTimer: null,
@@ -101,6 +98,7 @@ export function createCateFlashQueryLifecycle(
         }
         current = generation
         publishTools(pi, generation, registeredTools)
+        await refreshCallModelMetadata(pi, generation, registeredTools, signal)
         if (previous) retireGeneration(previous)
       } catch (err) {
         invalidateRegisteredTools(registeredTools, generationId)
@@ -132,6 +130,24 @@ export function createCateFlashQueryLifecycle(
   }
 
   return lifecycle
+}
+
+async function refreshCallModelMetadata(
+  pi: ExtensionAPI,
+  generation: FlashQueryGeneration,
+  registeredTools: Map<string, RegisteredFlashQueryTool>,
+  signal: AbortSignal | undefined,
+): Promise<void> {
+  if (!generation.candidates.some((candidate) => candidate.name === 'call_model')) return
+  const [models, purposes] = await Promise.all([
+    generation.client.listModels(signal).catch(() => []),
+    generation.client.listPurposes(signal).catch(() => []),
+  ])
+  if (generation.closed || generation.retiring) return
+  generation.models = models
+  generation.purposes = purposes
+  const callModel = generation.candidates.find((candidate) => candidate.name === 'call_model')
+  if (callModel) publishTool(pi, generation, registeredTools, callModel)
 }
 
 function watchFlashQueryHandoff(cwd: string, onChange: () => void): () => void {
@@ -167,28 +183,37 @@ function publishTools(
 ): void {
   const nextNames = new Set(generation.candidates.map((candidate) => candidate.name))
   for (const candidate of generation.candidates) {
-    registeredTools.set(candidate.name, {
-      name: candidate.name,
-      generationId: generation.id,
-      candidate,
-    })
-    pi.registerTool<TSchema, FlashQueryToolDetails>({
-      name: candidate.name,
-      label: candidate.label,
-      description: candidate.name === 'call_model'
-        ? buildCallModelDescription(candidate, generation.models, generation.purposes)
-        : candidate.description,
-      parameters: flashQuerySchemaToTypeBox(candidate.inputSchema),
-      async execute(_toolCallId, params, signal, onUpdate, ctx) {
-        return executeFlashQueryTool(generation, registeredTools, candidate.name, params, signal, onUpdate, ctx)
-      },
-    })
+    publishTool(pi, generation, registeredTools, candidate)
   }
 
   for (const [name, entry] of registeredTools) {
     if (nextNames.has(name)) continue
     registeredTools.set(name, { ...entry, generationId: generation.id, candidate: entry.candidate })
   }
+}
+
+function publishTool(
+  pi: ExtensionAPI,
+  generation: FlashQueryGeneration,
+  registeredTools: Map<string, RegisteredFlashQueryTool>,
+  candidate: FlashQueryToolCandidate,
+): void {
+  registeredTools.set(candidate.name, {
+    name: candidate.name,
+    generationId: generation.id,
+    candidate,
+  })
+  pi.registerTool<TSchema, FlashQueryToolDetails>({
+    name: candidate.name,
+    label: candidate.label,
+    description: candidate.name === 'call_model'
+      ? buildCallModelDescription(candidate, generation.models, generation.purposes)
+      : candidate.description,
+    parameters: flashQuerySchemaToTypeBox(candidate.inputSchema),
+    async execute(_toolCallId, params, signal, onUpdate, ctx) {
+      return executeFlashQueryTool(generation, registeredTools, candidate.name, params, signal, onUpdate, ctx)
+    },
+  })
 }
 
 async function executeFlashQueryTool(
@@ -216,12 +241,14 @@ async function executeFlashQueryTool(
     if (entry.candidate.name === 'call_macro') {
       return await executeCallMacroTool(generation, entry.candidate, args, signal, onUpdate, ctx as ExtensionContext)
     }
-    const result = await generation.client.callTool(entry.candidate.toolId, args, signal)
+    const traced = withFlashQueryTrace(generation.handoff, ctx, args)
+    const result = await generation.client.callTool(entry.candidate.toolId, traced.args, { signal })
     return normalizeFlashQueryToolResult({
       candidate: entry.candidate,
       handoff: generation.handoff,
       generationId: generation.id,
       result,
+      traceId: traced.traceId,
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'FlashQuery tool call failed'

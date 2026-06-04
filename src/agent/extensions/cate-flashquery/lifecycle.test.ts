@@ -27,7 +27,7 @@ describe('cate-flashquery lifecycle', () => {
       models: [{ id: 'ws-a-model' }],
       purposes: [{ id: 'ws-a-purpose' }],
     })
-    expect(pi.registerTool.mock.calls.map(([tool]) => tool.name)).toEqual(['call_model', 'search_tools'])
+    expect(new Set(pi.registerTool.mock.calls.map(([tool]) => tool.name))).toEqual(new Set(['call_model', 'search_tools']))
   })
 
   it('T-U-015 rebinds workspaces, refreshes metadata, and ignores late old responses', async () => {
@@ -83,8 +83,22 @@ describe('cate-flashquery lifecycle', () => {
     oldCall.resolve({ content: [{ type: 'text', text: 'old result' }] })
     const oldResult = await oldResultPromise
 
-    expect(clientA.callTool).toHaveBeenCalledWith('old_shared_tool', { value: 'old' }, undefined)
-    expect(clientB.callTool).toHaveBeenCalledWith('new_shared_tool', { value: 'new' }, undefined)
+    expect(clientA.callTool).toHaveBeenCalledWith(
+      'old_shared_tool',
+      expect.objectContaining({
+        value: 'old',
+        _meta: { trace_id: expect.stringMatching(/^cate-ws-[a-z0-9]{8}-conv-[a-z2-7]{16}$/) },
+      }),
+      { signal: undefined },
+    )
+    expect(clientB.callTool).toHaveBeenCalledWith(
+      'new_shared_tool',
+      expect.objectContaining({
+        value: 'new',
+        _meta: { trace_id: expect.stringMatching(/^cate-ws-[a-z0-9]{8}-conv-[a-z2-7]{16}$/) },
+      }),
+      { signal: undefined },
+    )
     expect(oldResult.details).toMatchObject({ workspaceId: 'ws-a', generation: 1 })
     expect(newResult.details).toMatchObject({ workspaceId: 'ws-b', generation: 2 })
     expect(clientA.close).toHaveBeenCalledTimes(1)
@@ -187,7 +201,9 @@ describe('cate-flashquery lifecycle', () => {
 
     await discoveredLifecycle.rebind('/workspace-a')
 
-    const discoveredTool = registeredTool(discoveredPi, 'call_model')
+    const discoveredRegistrations = registeredTools(discoveredPi, 'call_model')
+    expect(discoveredRegistrations[0].description).toContain('Available purposes: loading...')
+    const discoveredTool = discoveredRegistrations.at(-1)!
     expect(discoveredTool.description).toContain('Architect')
     expect(discoveredTool.description).toContain('architect')
     expect(discoveredTool.description).toContain('GPT-5')
@@ -273,7 +289,7 @@ describe('cate-flashquery lifecycle', () => {
     expect(client.callTool).toHaveBeenNthCalledWith(
       1,
       'get_document',
-      { path: 'Path/to/Doc.md', include: ['body'] },
+      { identifiers: 'Path/to/Doc.md', include: ['body'] },
       expect.any(Object),
     )
     expect(client.callTool).toHaveBeenNthCalledWith(
@@ -346,7 +362,7 @@ describe('cate-flashquery lifecycle', () => {
       openClient: async () => client,
     })
     await lifecycle.rebind('/workspace-a')
-    const ctx = { ui: { confirm: vi.fn() } }
+    const ctx = { conversationId: 'conversation-1', ui: { confirm: vi.fn() } }
 
     const result = await registeredTool(pi, 'call_macro').execute(
       'macro-1',
@@ -361,12 +377,57 @@ describe('cate-flashquery lifecycle', () => {
       'call_macro',
       expect.objectContaining({
         source_ref: 'macros/summarize.md',
-        interactive: true,
         progress: 'milestones',
+        _meta: { trace_id: expect.stringMatching(/^cate-ws-[a-z0-9]{8}-conv-[a-z2-7]{16}$/) },
       }),
       expect.objectContaining({ onprogress: expect.any(Function) }),
     )
-    expect(result.details).toMatchObject({ flashquery: true, toolName: 'call_macro' })
+    expect(client.callTool.mock.calls[0][1]).not.toHaveProperty('interactive')
+    expect(result.details).toMatchObject({
+      flashquery: true,
+      toolName: 'call_macro',
+      traceId: client.callTool.mock.calls[0][1]._meta.trace_id,
+    })
+  })
+
+  it('T-U-016 REQ-015 threads one conversation trace through generic, macro, and model FlashQuery calls', async () => {
+    const pi = mockPi()
+    const client = mockClient('ws-a', [
+      eligible({ name: 'search' }),
+      eligible({ name: 'call_macro' }),
+      eligible({ name: 'call_model' }),
+    ])
+    const lifecycle = createCateFlashQueryLifecycle(pi.api, {
+      readHandoff: async () => handoff('ws-a'),
+      openClient: async () => client,
+    })
+    await lifecycle.rebind('/workspace-a')
+    const ctx = { conversationId: 'conversation-1', ui: { confirm: vi.fn() } }
+
+    await registeredTool(pi, 'search').execute('search-1', { query: 'planning', _meta: { caller: 'host' } }, undefined, undefined, ctx)
+    await registeredTool(pi, 'call_macro').execute('macro-1', { source_ref: 'macros/a.md' }, undefined, undefined, ctx)
+    await registeredTool(pi, 'call_model').execute('model-1', { prompt: 'Summarize.' }, undefined, undefined, ctx)
+
+    const traceId = client.callTool.mock.calls[0][1]._meta.trace_id
+    expect(traceId).toMatch(/^cate-ws-[a-z0-9]{8}-conv-[a-z2-7]{16}$/)
+    expect(client.callTool).toHaveBeenNthCalledWith(
+      1,
+      'search',
+      expect.objectContaining({ query: 'planning', _meta: { caller: 'host', trace_id: traceId } }),
+      expect.any(Object),
+    )
+    expect(client.callTool).toHaveBeenNthCalledWith(
+      2,
+      'call_macro',
+      expect.objectContaining({ _meta: { trace_id: traceId } }),
+      expect.any(Object),
+    )
+    expect(client.callTool).toHaveBeenNthCalledWith(
+      3,
+      'call_model',
+      expect.objectContaining({ _meta: { trace_id: traceId }, return_messages: true }),
+      expect.any(Object),
+    )
   })
 
   it('T-U-017 REQ-016 confirms inline source and cancels without dispatch', async () => {
@@ -425,9 +486,10 @@ describe('cate-flashquery lifecycle', () => {
 
     expect(client.callTool).toHaveBeenCalledWith(
       'call_macro',
-      expect.objectContaining({ interactive: false, progress: 'none' }),
+      expect.objectContaining({ progress: 'none' }),
       expect.objectContaining({ onprogress: expect.any(Function) }),
     )
+    expect(client.callTool.mock.calls[0][1]).not.toHaveProperty('interactive')
     expect(onUpdate).toHaveBeenNthCalledWith(1, {
       content: [{ type: 'text', text: 'Reading vault' }],
       details: expect.objectContaining({ flashquery: true, toolName: 'call_macro', macroProgress: expect.any(Object) }),
@@ -469,6 +531,33 @@ describe('cate-flashquery lifecycle', () => {
       details: { flashquery: true, toolName: 'call_macro', disconnected: true },
     })
   })
+
+  it('T-U-017 REQ-016 returns exact disconnected text for live call_macro transport failures', async () => {
+    const pi = mockPi()
+    const client = mockClient('ws-a', [eligible({ name: 'call_macro' })])
+    client.callTool = vi.fn(async () => {
+      throw new Error('fetch failed')
+    })
+    const lifecycle = createCateFlashQueryLifecycle(pi.api, {
+      readHandoff: async () => handoff('ws-a'),
+      openClient: async () => client,
+    })
+    await lifecycle.rebind('/workspace-a')
+
+    const result = await registeredTool(pi, 'call_macro').execute(
+      'macro-live-disconnect',
+      { source_ref: 'macros/a.md' },
+      undefined,
+      undefined,
+      { conversationId: 'conversation-1', ui: { confirm: vi.fn() } },
+    )
+
+    expect(result).toMatchObject({
+      isError: true,
+      content: [{ type: 'text', text: 'FlashQuery is not connected.' }],
+      details: { flashquery: true, toolName: 'call_macro', disconnected: true },
+    })
+  })
 })
 
 function mockPi() {
@@ -483,9 +572,15 @@ function mockPi() {
 }
 
 function registeredTool(pi: ReturnType<typeof mockPi>, name: string) {
-  const tool = pi.registerTool.mock.calls.find(([registered]) => registered.name === name)?.[0]
+  const tool = registeredTools(pi, name).at(-1)
   if (!tool) throw new Error(`Tool not registered: ${name}`)
   return tool
+}
+
+function registeredTools(pi: ReturnType<typeof mockPi>, name: string) {
+  return pi.registerTool.mock.calls
+    .map(([registered]) => registered)
+    .filter((registered) => registered.name === name)
 }
 
 function mockClient(

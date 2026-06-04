@@ -1,9 +1,9 @@
 import type { AgentToolUpdateCallback, ExtensionContext } from '@earendil-works/pi-coding-agent'
 import type { FlashQueryExtensionClient, FlashQueryHandoff } from './client'
 import { errorFlashQueryToolResult, normalizeFlashQueryToolResult, type FlashQueryToolDetails, type FlashQueryToolResult } from './diagnostics'
+import { withFlashQueryTrace } from './dispatch'
 import { findFlashQueryRefs, resolveFlashQueryRefs } from './refs'
 import type { FlashQueryToolCandidate } from './registry'
-import { getOrCreateFlashQueryTraceId } from './trace'
 
 export interface CallModelGenerationContext {
   id: number
@@ -41,7 +41,8 @@ export async function executeCallModelTool(
   const args = params && typeof params === 'object' && !Array.isArray(params)
     ? { ...(params as Record<string, unknown>) }
     : {}
-  const traceId = getOrCreateFlashQueryTraceId(generation.handoff.workspaceId, ctx)
+  const traced = withFlashQueryTrace(generation.handoff, ctx, args)
+  const traceId = traced.traceId
   const refs = await resolveFlashQueryRefs(generation.client, findFlashQueryRefs(args), { signal })
   const unresolved = refs.find((ref) => !ref.resolved)
   if (unresolved) {
@@ -55,16 +56,9 @@ export async function executeCallModelTool(
     })
   }
 
-  const existingMeta = args._meta && typeof args._meta === 'object' && !Array.isArray(args._meta)
-    ? args._meta as Record<string, unknown>
-    : {}
   const dispatchArgs = {
-    ...args,
+    ...traced.args,
     return_messages: true,
-    _meta: {
-      ...existingMeta,
-      trace_id: traceId,
-    },
   }
   const result = await generation.client.callTool(candidate.toolId, dispatchArgs, { signal })
   return normalizeFlashQueryToolResult({

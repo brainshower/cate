@@ -26,14 +26,13 @@ describe('cate-flashquery extension registration', () => {
     })
     await pi.handlers.session_start?.({}, { cwd: '/workspace', signal: undefined })
 
-    expect(pi.registerTool).toHaveBeenCalledTimes(5)
-    expect(pi.registerTool.mock.calls.map(([tool]) => tool.name)).toEqual([
+    expect(new Set(pi.registerTool.mock.calls.map(([tool]) => tool.name))).toEqual(new Set([
       'call_model',
       'call_macro',
       'search_tools',
       'get_document',
       'github_create_issue',
-    ])
+    ]))
     expect(pi.registerProvider).not.toHaveBeenCalled()
     for (const [tool] of pi.registerTool.mock.calls) {
       expect(tool).toMatchObject({
@@ -64,7 +63,14 @@ describe('cate-flashquery extension registration', () => {
     const [tool] = pi.registerTool.mock.calls[0]
     const result = await tool.execute('call-1', { title: 'Bug' }, AbortSignal.timeout(1_000), undefined, {})
 
-    expect(client.callTool).toHaveBeenCalledWith('github.create_issue', { title: 'Bug' }, expect.any(AbortSignal))
+    expect(client.callTool).toHaveBeenCalledWith(
+      'github.create_issue',
+      expect.objectContaining({
+        title: 'Bug',
+        _meta: { trace_id: expect.stringMatching(/^cate-ws-[a-z0-9]{8}-conv-[a-z2-7]{16}$/) },
+      }),
+      { signal: expect.any(AbortSignal) },
+    )
     expect(result).toMatchObject({
       content: [{ type: 'text', text: 'created issue' }],
       details: {

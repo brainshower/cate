@@ -17,7 +17,7 @@ export async function resolveFlashQueryRefs(
   const diagnostics: FlashQueryRefDiagnostic[] = []
   for (const path of refs) {
     try {
-      const result = await client.callTool('get_document', { path, include: ['body'] }, { signal: options.signal })
+      const result = await client.callTool('get_document', { identifiers: path, include: ['body'] }, { signal: options.signal })
       if (isErrorResult(result)) {
         diagnostics.push({ path, resolved: false, error: extractErrorText(result) })
       } else {
@@ -69,5 +69,19 @@ function extractBody(result: unknown): string | undefined {
   const text = content.find((item): item is { type: 'text'; text: string } => {
     return Boolean(item && typeof item === 'object' && (item as Record<string, unknown>).type === 'text' && typeof (item as Record<string, unknown>).text === 'string')
   })
+  const parsed = parseJsonRecord(text?.text)
+  if (typeof parsed?.body === 'string') return parsed.body
   return text?.text
+}
+
+function parseJsonRecord(text: string | undefined): Record<string, unknown> | undefined {
+  if (!text) return undefined
+  try {
+    const parsed = JSON.parse(text)
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : undefined
+  } catch {
+    return undefined
+  }
 }
