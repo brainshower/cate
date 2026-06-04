@@ -60,6 +60,15 @@ Build evidence:
 | ToolCard diagnostics | T-E-006 and T-E-006b | automated passed; manual T-M-002/T-M-003 blocked |
 | Broad disconnect/reconnect | T-E-007 and focused search/mention/disconnect specs | passed |
 
+## Visual Evidence
+
+Visual evidence notes are recorded in `.planning/phases/21-cross-surface-hardening-and-regression/evidence/visual/NOTES.md`.
+
+- `npm run test:e2e -- e2e/flashquery-visual-evidence.spec.ts` passed.
+- Captured full-page FlashQuery surfaces plus live/connecting/disconnected status-chip screenshots in dark and light themes.
+- The Milestone 2 UI Spec was reviewed for editor refresh/frontmatter, Vault Search, Pi ToolCard, Pi `@` mention, and clipboard surfaces.
+- Screenshot-specific coverage for Vault Search, expanded ToolCard, Pi `@` mention, and clipboard-menu states remains limited by the existing visual evidence flow; those surfaces are covered behaviorally by focused unit/component/E2E evidence and manual blockers where required.
+
 ## Sign-Off
 
 Automated Phase 21 E2E evidence is passed for `T-E-001` through `T-E-007` plus `T-E-006b`. Manual/live checks remain blocked with exact prerequisites and must not be marked passed without human-observed evidence.

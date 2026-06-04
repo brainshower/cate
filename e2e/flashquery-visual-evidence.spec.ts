@@ -6,15 +6,11 @@ import { closeApp, launchApp } from './fixtures/electron-app'
 import { startFlashQueryStubServer } from './fixtures/flashquery-server'
 import type { ElectronApplication, Page } from 'playwright'
 
-const PHASE_12_EVIDENCE_DIR = path.resolve(
+const PHASE_21_EVIDENCE_DIR = path.resolve(
   process.cwd(),
-  '.planning/phases/12-upstream-value-visual-evidence-audit/evidence/visual',
+  '.planning/phases/21-cross-surface-hardening-and-regression/evidence/visual',
 )
-const PHASE_13_EVIDENCE_DIR = path.resolve(
-  process.cwd(),
-  '.planning/phases/13-release-readiness-provenance-closeout/evidence/visual',
-)
-const EVIDENCE_DIRS = [PHASE_12_EVIDENCE_DIR, PHASE_13_EVIDENCE_DIR]
+const EVIDENCE_DIRS = [PHASE_21_EVIDENCE_DIR]
 
 async function captureAllEvidenceDirs(page: Page, fileName: string, options: { fullPage?: boolean } = {}) {
   for (const evidenceDir of EVIDENCE_DIRS) {
