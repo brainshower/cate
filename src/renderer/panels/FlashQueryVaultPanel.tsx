@@ -337,10 +337,14 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
       { id: 'open', label: 'Open' },
       { id: 'open-frontmatter', label: 'Open frontmatter' },
       { id: 'open-on-canvas', label: 'Open on Canvas' },
+      { id: 'copy-path', label: 'Copy vault path' },
+      { id: 'copy-reference', label: 'Copy as reference' },
     ])
     if (action === 'open') openDocumentLegacy(entry, 'dock')
     if (action === 'open-frontmatter') useAppStore.getState().openFlashQueryFrontmatterForPath(workspaceId, entry.vaultPath)
     if (action === 'open-on-canvas') openDocumentLegacy(entry, 'canvas')
+    if (action === 'copy-path') await navigator.clipboard.writeText(entry.vaultPath)
+    if (action === 'copy-reference') await navigator.clipboard.writeText(`{{ref:${entry.vaultPath}}}`)
   }, [openDocumentLegacy, selectPath, workspaceId])
 
   useEffect(() => {

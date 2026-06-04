@@ -121,6 +121,10 @@ beforeEach(() => {
   seedWorkspace({ transport: 'http', url: 'https://flashquery.local:8787/mcp' })
   useUIStore.setState({ showFlashQueryConnectionDialog: false })
   useAgentStore.setState({ panels: {} })
+  Object.defineProperty(navigator, 'clipboard', {
+    configurable: true,
+    value: { writeText: vi.fn().mockResolvedValue(undefined) },
+  })
   createEditorSpy = vi.fn(() => 'editor-1')
   updatePanelTitleSpy = vi.fn()
   useAppStore.setState({
@@ -384,7 +388,7 @@ describe('FlashQueryVaultPanel row and folder behavior', () => {
     expect(updatePanelTitleSpy).toHaveBeenCalledWith(workspaceId, 'editor-1', 'Errors 4.md')
   })
 
-  it('T-U-007 opens document context actions through exactly Open, Open frontmatter, and Open on Canvas', async () => {
+  it('T-U-007 opens document context actions with copy path and reference utilities', async () => {
     const api = await renderLiveTree([
       { name: 'Project.md', type: 'document', vaultPath: 'Project.md' },
     ])
@@ -397,6 +401,8 @@ describe('FlashQueryVaultPanel row and folder behavior', () => {
       { id: 'open', label: 'Open' },
       { id: 'open-frontmatter', label: 'Open frontmatter' },
       { id: 'open-on-canvas', label: 'Open on Canvas' },
+      { id: 'copy-path', label: 'Copy vault path' },
+      { id: 'copy-reference', label: 'Copy as reference' },
     ])
     expect(createEditorSpy).toHaveBeenCalledWith(
       workspaceId,
@@ -404,6 +410,24 @@ describe('FlashQueryVaultPanel row and folder behavior', () => {
       undefined,
       { target: 'canvas' },
     )
+  })
+
+  it('T-U-012 copies exact vault tree paths and whole-document references', async () => {
+    const api = await renderLiveTree([
+      { name: 'Project.md', type: 'document', vaultPath: 'Docs/Project.md' },
+    ])
+
+    vi.mocked(api.showContextMenu).mockResolvedValueOnce('copy-path')
+    fireEvent.contextMenu(screen.getByRole('treeitem', { name: /Project.md/ }))
+    await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Docs/Project.md'))
+
+    vi.mocked(api.showContextMenu).mockResolvedValueOnce('copy-reference')
+    fireEvent.contextMenu(screen.getByRole('treeitem', { name: /Project.md/ }))
+    await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith('{{ref:Docs/Project.md}}'))
+
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalledWith(expect.stringContaining('flashquery://'))
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalledWith(expect.stringContaining('#'))
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalledWith(expect.stringContaining(']('))
   })
 
   it('T-U-007 opens frontmatter from the document context menu with a frontmatter URI', async () => {

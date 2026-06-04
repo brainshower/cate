@@ -368,6 +368,23 @@ describe('FlashQueryVaultSearchPanel T-U-011 result interactions', () => {
     await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith('{{ref:Docs/Plan.md}}'))
   })
 
+  it('T-U-011 copies exact document paths from search rows without URI or anchor variants', async () => {
+    const api = makeElectronApi()
+    setElectronApi(api)
+    vi.mocked(api.showContextMenu).mockResolvedValueOnce('copy-path')
+    renderPanel()
+    emitStatus({ workspaceId, status: 'live' })
+
+    fireEvent.change(screen.getByPlaceholderText('Search the vault...'), { target: { value: 'cate' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    fireEvent.contextMenu(await screen.findByText('Docs/Plan.md'))
+
+    await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Docs/Plan.md'))
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalledWith(expect.stringContaining('flashquery://'))
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalledWith(expect.stringContaining('#'))
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalledWith(expect.stringContaining(']('))
+  })
+
   it('opens documents on canvas and stores reveal handoff from the context menu', async () => {
     const api = makeElectronApi()
     setElectronApi(api)
