@@ -4,6 +4,7 @@ import { ArrowsClockwise, CaretRight, CircleNotch, FileText, Folder, FolderOpen,
 import { Chip, type ConnectionStatus } from '../components/Chip'
 import { useAppStore } from '../stores/appStore'
 import { useUIStore } from '../stores/uiStore'
+import { refreshVaultIndexForWorkspace } from '../../agent/renderer/agentStore'
 import { buildVaultUri } from '../../shared/flashqueryUri'
 import type { FlashQueryConnectionStatus, FlashQueryVaultEntry } from '../../shared/types'
 import type { PanelProps } from './types'
@@ -231,6 +232,7 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
         lastSelectedPathRef.current = null
       }
       setRootLoaded(true)
+      refreshVaultIndexForWorkspace(workspaceId)
     } finally {
       if (requestId === listRequestRef.current) {
         rootLoadingRef.current = false

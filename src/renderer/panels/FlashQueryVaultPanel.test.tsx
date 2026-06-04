@@ -13,6 +13,7 @@ vi.mock('../lib/logger', () => ({
 
 import FlashQueryVaultPanel from './FlashQueryVaultPanel'
 import { SidebarViewContent, VIEW_META } from '../sidebar/Sidebar'
+import { useAgentStore } from '../../agent/renderer/agentStore'
 import { useAppStore } from '../stores/appStore'
 import { useUIStore } from '../stores/uiStore'
 import type { FlashQueryStatusBroadcastPayload, FlashQueryVaultEntry } from '../../shared/types'
@@ -20,7 +21,7 @@ import { Vault } from '@phosphor-icons/react'
 
 type ElectronApiMock = Pick<
   Window['electronAPI'],
-  'flashqueryListVault' | 'flashqueryRetry' | 'onFlashQueryStatus' | 'showContextMenu'
+  'flashqueryListVault' | 'flashqueryListVaultIndex' | 'flashqueryRetry' | 'onFlashQueryStatus' | 'showContextMenu'
 >
 
 const workspaceId = 'workspace-1'
@@ -35,6 +36,7 @@ const makeElectronApi = (
   flashqueryListVault: vi.fn((_: string, vaultPath?: string) => Promise.resolve(
     vaultPath ? childrenByPath[vaultPath] ?? [] : entries,
   )),
+  flashqueryListVaultIndex: vi.fn(() => Promise.resolve([])),
   flashqueryRetry: vi.fn().mockResolvedValue(undefined),
   onFlashQueryStatus: vi.fn((callback) => {
     statusListener = callback
@@ -57,6 +59,7 @@ const makeSequencedElectronApi = (
       rootIndex += 1
       return Promise.resolve(response)
     }),
+    flashqueryListVaultIndex: vi.fn(() => Promise.resolve([])),
     flashqueryRetry: vi.fn().mockResolvedValue(undefined),
     onFlashQueryStatus: vi.fn((callback) => {
       statusListener = callback
@@ -117,6 +120,7 @@ beforeEach(() => {
   setElectronApi(makeElectronApi())
   seedWorkspace({ transport: 'http', url: 'https://flashquery.local:8787/mcp' })
   useUIStore.setState({ showFlashQueryConnectionDialog: false })
+  useAgentStore.setState({ panels: {} })
   createEditorSpy = vi.fn(() => 'editor-1')
   updatePanelTitleSpy = vi.fn()
   useAppStore.setState({
@@ -233,6 +237,26 @@ describe('FlashQueryVaultPanel State', () => {
     expect(screen.getByText('Project.md')).toBeTruthy()
     expect(screen.queryByText('Project Brief')).toBeNull()
   })
+
+  it('T-U-006 refreshes the agent vault-index cache after a successful vault tree refresh', async () => {
+    const api = makeElectronApi([
+      { name: 'Project.md', type: 'document', vaultPath: 'Project.md' },
+    ])
+    vi.mocked(api.flashqueryListVaultIndex).mockResolvedValueOnce([
+      { filename: 'Project.md', fullPath: 'Project.md' },
+    ])
+    setElectronApi(api)
+    useAgentStore.getState().init('agent-panel')
+
+    renderPanel()
+    emitStatus({ workspaceId, status: 'live' })
+
+    await waitFor(() => expect(api.flashqueryListVault).toHaveBeenCalledWith(workspaceId))
+    await waitFor(() => expect(api.flashqueryListVaultIndex).toHaveBeenCalledWith(workspaceId))
+    expect(useAgentStore.getState().panels['agent-panel'].vaultIndex).toEqual([
+      { filename: 'Project.md', fullPath: 'Project.md' },
+    ])
+  })
 })
 
 describe('FlashQueryVaultPanel row and folder behavior', () => {
@@ -286,6 +310,7 @@ describe('FlashQueryVaultPanel row and folder behavior', () => {
         if (vaultPath === 'Notes') return pending.promise
         return Promise.resolve(rootEntries)
       }),
+      flashqueryListVaultIndex: vi.fn(() => Promise.resolve([])),
       flashqueryRetry: vi.fn().mockResolvedValue(undefined),
       onFlashQueryStatus: vi.fn((callback) => {
         statusListener = callback

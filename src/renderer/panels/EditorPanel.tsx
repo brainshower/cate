@@ -12,6 +12,7 @@ import remarkGfm from 'remark-gfm'
 import type { EditorPanelProps } from './types'
 import { useAppStore } from '../stores/appStore'
 import { useSettingsStore } from '../stores/settingsStore'
+import { refreshVaultIndexForWorkspace } from '../../agent/renderer/agentStore'
 import {
   registerEditorSave,
   unregisterEditorSave,
@@ -467,6 +468,7 @@ export default function EditorPanel({
           log.error('[EditorPanel] Failed to save vault document:', message)
           return false
         }
+        refreshVaultIndexForWorkspace(vaultUri.workspaceId)
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to save vault document'
         setSaveError(message)

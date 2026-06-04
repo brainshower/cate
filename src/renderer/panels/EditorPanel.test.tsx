@@ -152,6 +152,7 @@ import * as monaco from 'monaco-editor'
 import log from '../lib/logger'
 import EditorPanel from './EditorPanel'
 import { VaultBadge } from '../components/VaultBadge'
+import { useAgentStore } from '../../agent/renderer/agentStore'
 import { useAppStore } from '../stores/appStore'
 import { confirmCloseDirtyPanels } from '../lib/confirmCloseDirty'
 import type { FlashQueryStatusBroadcastPayload, FlashQueryWriteResult, PanelState } from '../../shared/types'
@@ -162,6 +163,7 @@ type ElectronApiMock = Pick<
   | 'fsWriteFile'
   | 'flashqueryGetDocument'
   | 'flashqueryWriteDocument'
+  | 'flashqueryListVaultIndex'
   | 'gitDiff'
   | 'gitDiffStaged'
   | 'onFlashQueryStatus'
@@ -190,6 +192,7 @@ function makeElectronApi(writeResult: FlashQueryWriteResult = { success: true, m
       modified: 'ignored-modified',
     })),
     flashqueryWriteDocument: vi.fn(() => Promise.resolve(writeResult)),
+    flashqueryListVaultIndex: vi.fn(() => Promise.resolve([])),
     gitDiff: vi.fn(() => Promise.resolve('')),
     gitDiffStaged: vi.fn(() => Promise.resolve('')),
     onFlashQueryStatus: vi.fn((callback) => {
@@ -274,6 +277,7 @@ beforeEach(() => {
   } as any
   setElectronApi(makeElectronApi())
   seedWorkspace()
+  useAgentStore.setState({ panels: {} })
 })
 
 afterEach(() => {
@@ -342,6 +346,32 @@ describe('EditorPanel FlashQuery save and dirty behavior', () => {
     expect(api.flashqueryWriteDocument).toHaveBeenCalledTimes(1)
     expect(vi.mocked(api.flashqueryWriteDocument).mock.calls[0]).toHaveLength(3)
     expect(api.fsWriteFile).not.toHaveBeenCalled()
+  })
+
+  it('T-U-006 refreshes the agent vault-index cache after a successful FlashQuery document write', async () => {
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryListVaultIndex).mockResolvedValueOnce([
+      { filename: 'Plan.md', fullPath: 'Docs/Plan.md' },
+    ])
+    setElectronApi(api)
+    useAgentStore.getState().init('agent-panel')
+    await renderEditor(vaultUri)
+
+    act(() => {
+      monacoMock().focusLatestEditor()
+      monacoMock().setLatestValue('updated vault body')
+      window.dispatchEvent(new Event('save-file'))
+    })
+
+    await waitFor(() => expect(api.flashqueryWriteDocument).toHaveBeenCalledWith(
+      'workspace-1',
+      'Docs/Plan.md',
+      'updated vault body',
+    ))
+    await waitFor(() => expect(api.flashqueryListVaultIndex).toHaveBeenCalledWith('workspace-1'))
+    expect(useAgentStore.getState().panels['agent-panel'].vaultIndex).toEqual([
+      { filename: 'Plan.md', fullPath: 'Docs/Plan.md' },
+    ])
   })
 
   it('T-I-084 saves local editor through fsWriteFile', async () => {

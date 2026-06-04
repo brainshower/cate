@@ -23,6 +23,7 @@ import type {
   AgentImageAttachment,
   AgentSlashCommand,
   AgentThinkingLevel,
+  FlashQueryVaultIndexEntry,
 } from '../../shared/types'
 
 // Resolve the canvas-node element this popover lives inside, so portalled
@@ -54,6 +55,8 @@ export function ChatInput({
   running,
   textareaRef,
   commands,
+  vaultIndex,
+  vaultIndexLoading,
   images,
   onAddImage,
   onRemoveImage,
@@ -78,6 +81,8 @@ export function ChatInput({
   running: boolean
   textareaRef: React.RefObject<HTMLTextAreaElement>
   commands: AgentSlashCommand[]
+  vaultIndex?: FlashQueryVaultIndexEntry[]
+  vaultIndexLoading?: boolean
   images: AgentImageAttachment[]
   onAddImage: (img: AgentImageAttachment) => void
   onRemoveImage: (idx: number) => void
@@ -94,6 +99,8 @@ export function ChatInput({
   onTogglePlanMode: () => void
   placeholder?: string
 }) {
+  void vaultIndex
+  void vaultIndexLoading
   useEffect(() => {
     const ta = textareaRef.current
     if (!ta) return

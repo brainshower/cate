@@ -45,6 +45,7 @@ import {
 } from './AgentPanelChrome'
 import type {
   AgentImageAttachment,
+  FlashQueryConnectionStatus,
   AgentModelRef,
   AgentRpcState,
   AgentSessionListEntry,
@@ -130,6 +131,8 @@ export default function AgentPanel({ panelId, workspaceId }: PanelProps) {
   const followUpQueue = slice?.followUpQueue ?? []
   const extensionStatuses = slice?.extensionStatuses ?? []
   const extensionWidgets = slice?.extensionWidgets ?? []
+  const vaultIndex = slice?.vaultIndex ?? []
+  const vaultIndexLoading = slice?.vaultIndexLoading ?? false
 
   const uiRequests = slice?.uiRequests ?? []
   const currentUiRequest = uiRequests[0]
@@ -150,6 +153,7 @@ export default function AgentPanel({ panelId, workspaceId }: PanelProps) {
   const [draft, setDraft] = useState('')
   const [draftImages, setDraftImages] = useState<AgentImageAttachment[]>([])
   const [commands, setCommands] = useState<AgentSlashCommand[]>([])
+  const [flashQueryStatus, setFlashQueryStatus] = useState<FlashQueryConnectionStatus | null>(null)
   /** Map of local user-message id → pi entryId, populated from getForkMessages
    *  so the hover "fork from here" button can find an entryId for messages we
    *  appended before pi assigned one. */
@@ -198,6 +202,26 @@ export default function AgentPanel({ panelId, workspaceId }: PanelProps) {
 
   useEffect(() => { refreshAuth() }, [refreshAuth])
   useEffect(() => { if (view === 'chat') refreshAuth() }, [view, refreshAuth])
+
+  useEffect(() => {
+    setFlashQueryStatus(null)
+    if (!workspace?.flashqueryConnection) return
+    return window.electronAPI.onFlashQueryStatus((payload) => {
+      if (payload.workspaceId !== workspaceId) return
+      setFlashQueryStatus(payload.status)
+    })
+  }, [workspace?.flashqueryConnection, workspaceId])
+
+  useEffect(() => {
+    if (!activeAgentKey) return
+    if (!workspace?.flashqueryConnection || flashQueryStatus === 'disconnected') {
+      useAgentStore.getState().clearVaultIndex(activeAgentKey)
+      return
+    }
+    if (flashQueryStatus === 'live') {
+      void useAgentStore.getState().refreshVaultIndex(activeAgentKey, workspaceId)
+    }
+  }, [activeAgentKey, flashQueryStatus, workspace?.flashqueryConnection, workspaceId])
 
   const refreshModels = useCallback(async (key?: string) => {
     const k = key ?? activeAgentKey
@@ -917,6 +941,8 @@ export default function AgentPanel({ panelId, workspaceId }: PanelProps) {
                       running={running}
                       textareaRef={textareaRef}
                       commands={commands}
+                      vaultIndex={vaultIndex}
+                      vaultIndexLoading={vaultIndexLoading}
                       images={draftImages}
                       onAddImage={handleAddImage}
                       onRemoveImage={handleRemoveImage}
@@ -974,6 +1000,8 @@ export default function AgentPanel({ panelId, workspaceId }: PanelProps) {
                   running={running}
                   textareaRef={textareaRef}
                   commands={commands}
+                  vaultIndex={vaultIndex}
+                  vaultIndexLoading={vaultIndexLoading}
                   images={draftImages}
                   onAddImage={handleAddImage}
                   onRemoveImage={handleRemoveImage}
