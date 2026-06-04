@@ -10,6 +10,18 @@ vi.mock('../stores/appStore', () => ({
   },
 }))
 
+vi.mock('./FlashQueryVaultPanel', () => ({
+  default: function MockFlashQueryVaultPanel() {
+    return null
+  },
+}))
+
+vi.mock('./FlashQueryVaultSearchPanel', () => ({
+  default: function MockFlashQueryVaultSearchPanel() {
+    return null
+  },
+}))
+
 describe('PANEL_REGISTRY flashqueryVault entry', () => {
   it('registers the FlashQuery Vault renderer metadata', async () => {
     const { PANEL_REGISTRY } = await import('./registry')

@@ -131,7 +131,13 @@ test('T-E-001 happy path / T-E-008 plus T-E-009 opens on canvas', async () => {
     await expect(welcomeRow).toBeVisible()
     await welcomeRow.click({ button: 'right' })
     const menuItems = await page.evaluate(() => window.__cateE2E!.lastContextMenuItems())
-    expect(menuItems.map((item) => item.label)).toEqual(['Open', 'Open frontmatter', 'Open on Canvas'])
+    expect(menuItems.map((item) => item.label)).toEqual([
+      'Open',
+      'Open frontmatter',
+      'Open on Canvas',
+      'Copy vault path',
+      'Copy as reference',
+    ])
     const canvasPanelId = await page.waitForFunction(() => {
       const ids = window.__cateE2E!.editorPanelIdsForPath('Welcome.md')
       return ids.find((panelId) => window.__cateE2E!.panelLocation(panelId) === 'canvas') ?? null
