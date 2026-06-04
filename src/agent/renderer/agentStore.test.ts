@@ -262,4 +262,55 @@ describe('agentStore vault-index cache lifecycle', () => {
 
     await waitFor(() => expect(window.electronAPI.flashqueryListVaultIndex).toHaveBeenCalledWith('ws-a'))
   })
+
+  it('T-U-006 does not repopulate a cleared panel from an unrelated workspace refresh', async () => {
+    const wsAEntries = [{ filename: 'A.md', fullPath: 'A/A.md' }]
+    const wsBEntries = [{ filename: 'B.md', fullPath: 'B/B.md' }]
+    vi.mocked(window.electronAPI.flashqueryListVaultIndex)
+      .mockResolvedValueOnce(wsBEntries)
+      .mockResolvedValueOnce(wsAEntries)
+    const { refreshVaultIndexForWorkspace, useAgentStore } = await import('./agentStore')
+    const panelId = 'agent-panel'
+
+    useAgentStore.getState().init(panelId)
+    await useAgentStore.getState().refreshVaultIndex(panelId, 'ws-b')
+    useAgentStore.getState().clearVaultIndex(panelId)
+    vi.mocked(window.electronAPI.flashqueryListVaultIndex).mockClear()
+
+    refreshVaultIndexForWorkspace('ws-a')
+
+    expect(window.electronAPI.flashqueryListVaultIndex).not.toHaveBeenCalled()
+    expect(useAgentStore.getState().panels[panelId]).toMatchObject({
+      vaultIndex: [],
+      vaultIndexWorkspaceId: null,
+      vaultIndexLoading: false,
+    })
+  })
+
+  it('T-U-006 refreshes cache for real FlashQuery mutating document tool names', async () => {
+    vi.mocked(window.electronAPI.flashqueryListVaultIndex).mockResolvedValue([])
+    const { useAgentStore } = await import('./agentStore')
+    const panelId = 'agent-panel'
+
+    useAgentStore.getState().init(panelId)
+    await useAgentStore.getState().refreshVaultIndex(panelId, 'ws-a')
+    vi.mocked(window.electronAPI.flashqueryListVaultIndex).mockClear()
+
+    for (const [index, toolName] of ['remove_document', 'copy_document', 'manage_directory'].entries()) {
+      dispatchAgentEvent({
+        panelId,
+        event: { type: 'tool_execution_start', toolCallId: `tool-${index}`, toolName, args: {} },
+      })
+      dispatchAgentEvent({
+        panelId,
+        event: {
+          type: 'tool_execution_end',
+          toolCallId: `tool-${index}`,
+          result: { content: [{ type: 'text', text: 'Done' }], details: { flashquery: true, toolName, workspaceId: 'ws-a' } },
+        },
+      })
+    }
+
+    await waitFor(() => expect(window.electronAPI.flashqueryListVaultIndex).toHaveBeenCalledTimes(3))
+  })
 })

@@ -294,20 +294,25 @@ describe('ChatThread FlashQuery ToolCard rendering', () => {
   })
 
   it('T-U-019 REQ-017 renders completed call_macro trace as a structured table and keeps running progress generic', () => {
+    const macroEnvelope = JSON.stringify({
+      task_id: 'macro-1',
+      result: { summary: 'Macro complete' },
+      trace: [
+        { kind: 'tool_call', name: 'get_document', message: 'Loaded source', at: '2026-06-04T12:00:00Z', elapsed_ms: 12 },
+        { kind: 'model_call', name: 'call_model', message: 'Generated digest', at: '2026-06-04T12:00:01Z', elapsed_ms: 240 },
+        { kind: 'fail', name: 'write_document', message: 'Updated target', at: '2026-06-04T12:00:02Z' },
+      ],
+    })
     renderThread([
       tool({
         toolCallId: 'call-macro-1',
         name: 'call_macro',
-        result: 'Macro complete',
+        result: macroEnvelope,
         flashquery: {
           flashquery: true,
           toolName: 'call_macro',
           result: {
-            trace: [
-              { kind: 'tool_call', name: 'get_document', message: 'Loaded source', at: '2026-06-04T12:00:00Z', elapsed_ms: 12 },
-              { kind: 'model_call', name: 'call_model', message: 'Generated digest', at: '2026-06-04T12:00:01Z', elapsed_ms: 240 },
-              { kind: 'fail', name: 'write_document', message: 'Updated target', at: '2026-06-04T12:00:02Z' },
-            ],
+            content: [{ type: 'text', text: macroEnvelope }],
           },
         },
       }),

@@ -66,7 +66,7 @@ describe('AgentChatInput T-U-020 REQ-018 @ mention autocomplete', () => {
     { filename: 'Other.md', fullPath: 'Docs/Plan References/Other.md' },
   ]
 
-  it('opens above the textarea, shows filename and fullPath rows, and highlights the active segment', () => {
+  it('opens above the textarea and shows filename and fullPath rows without a stray segment overlay', () => {
     renderInput({ draft: '@pla', vaultIndex: entries })
 
     const popup = screen.getByTestId('agent-mention-popup')
@@ -74,7 +74,20 @@ describe('AgentChatInput T-U-020 REQ-018 @ mention autocomplete', () => {
     expect(within(popup).getByText('Plan.md')).toBeTruthy()
     expect(within(popup).getByText('Docs/A Plan.md')).toBeTruthy()
     expect(within(popup).getByText('Planning.md')).toBeTruthy()
-    expect(screen.getByTestId('agent-mention-highlight').textContent).toBe('@pla')
+    expect(screen.queryByTestId('agent-mention-highlight')).toBeNull()
+  })
+
+  it('anchors the mention popup to the composer when wrapped by a canvas node', () => {
+    renderInput({ draft: '@pla', vaultIndex: entries })
+
+    const popup = screen.getByTestId('agent-mention-popup')
+    const composer = document.querySelector('[data-agent-composer]')
+    const canvasNode = document.querySelector('[data-node-id]')
+
+    expect(composer).toBeTruthy()
+    expect(canvasNode).toBeTruthy()
+    expect(popup.parentElement).toBe(composer)
+    expect(popup.parentElement).not.toBe(canvasNode)
   })
 
   it('filters by filename only case-insensitively and sorts matches by fullPath', () => {
@@ -152,7 +165,7 @@ describe('AgentChatInput T-U-020 REQ-018 @ mention autocomplete', () => {
   it('dismisses on Escape and no-match space literal fallback without changing slash popup behavior', () => {
     const { textarea, onChange } = renderInput({ draft: '@missing', vaultIndex: entries })
 
-    expect(screen.getByTestId('agent-mention-highlight')).toBeTruthy()
+    expect(screen.queryByTestId('agent-mention-highlight')).toBeNull()
     fireEvent.keyDown(textarea, { key: 'Escape' })
     expect(screen.queryByTestId('agent-mention-popup')).toBeNull()
     expect(screen.queryByTestId('agent-mention-highlight')).toBeNull()

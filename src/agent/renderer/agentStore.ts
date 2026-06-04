@@ -209,6 +209,7 @@ export interface PanelAgentState {
   extensionWidgets: ExtensionWidgetEntry[]
   vaultIndex: FlashQueryVaultIndexEntry[]
   vaultIndexLoading: boolean
+  ownerWorkspaceId: string | null
   vaultIndexWorkspaceId: string | null
   vaultIndexRequestId: number
 
@@ -224,7 +225,7 @@ interface AgentStoreState {
 }
 
 interface AgentStoreActions {
-  init: (panelId: string) => void
+  init: (panelId: string, ownerWorkspaceId?: string) => void
   dispose: (panelId: string) => void
   appendUser: (panelId: string, text: string) => void
   beginAssistant: (panelId: string) => void
@@ -295,6 +296,7 @@ function emptyPanel(): PanelAgentState {
     extensionWidgets: [],
     vaultIndex: [],
     vaultIndexLoading: false,
+    ownerWorkspaceId: null,
     vaultIndexWorkspaceId: null,
     vaultIndexRequestId: 0,
     uiRequests: [],
@@ -320,10 +322,24 @@ function withPanel(
 export const useAgentStore = create<AgentStore>((set) => ({
   panels: {},
 
-  init(panelId) {
+  init(panelId, ownerWorkspaceId) {
     set((state) => {
-      if (state.panels[panelId]) return state
-      return { panels: { ...state.panels, [panelId]: emptyPanel() } }
+      const existing = state.panels[panelId]
+      if (existing) {
+        if (!ownerWorkspaceId || existing.ownerWorkspaceId === ownerWorkspaceId) return state
+        return {
+          panels: {
+            ...state.panels,
+            [panelId]: { ...existing, ownerWorkspaceId },
+          },
+        }
+      }
+      return {
+        panels: {
+          ...state.panels,
+          [panelId]: { ...emptyPanel(), ownerWorkspaceId: ownerWorkspaceId ?? null },
+        },
+      }
     })
   },
 
@@ -592,6 +608,7 @@ export const useAgentStore = create<AgentStore>((set) => ({
           ...p,
           vaultIndex: switchingWorkspace ? [] : p.vaultIndex,
           vaultIndexLoading: true,
+          ownerWorkspaceId: p.ownerWorkspaceId ?? workspaceId,
           vaultIndexWorkspaceId: workspaceId,
           vaultIndexRequestId: requestId,
         }
@@ -809,22 +826,21 @@ function sanitizeFlashQueryValue(value: unknown, seen: WeakSet<object>): unknown
   return undefined
 }
 
-const FLASHQUERY_MUTATING_DOCUMENT_TOOL_PATTERNS = [
-  /write.*document/i,
-  /create.*document/i,
-  /update.*document/i,
-  /delete.*document/i,
-  /archive.*document/i,
-  /move.*document/i,
-  /rename.*document/i,
-  /flashquery:writeDocument/i,
-]
+const FLASHQUERY_MUTATING_DOCUMENT_TOOLS = new Set([
+  'write_document',
+  'copy_document',
+  'move_document',
+  'archive_document',
+  'remove_document',
+  'manage_directory',
+  'flashquery:writedocument',
+])
 
 function isMutatingFlashQueryDocumentTool(toolMsg: ToolMessage | undefined, details: FlashQueryDetails | undefined): boolean {
   if (!toolMsg || !details || details.flashquery !== true) return false
   const detailToolName = asString(details.toolName)
   const names = [toolMsg.name, detailToolName].filter((name): name is string => !!name)
-  return names.some((name) => FLASHQUERY_MUTATING_DOCUMENT_TOOL_PATTERNS.some((pattern) => pattern.test(name)))
+  return names.some((name) => FLASHQUERY_MUTATING_DOCUMENT_TOOLS.has(name.toLowerCase()))
 }
 
 function workspaceIdFromFlashQueryDetails(details: FlashQueryDetails | undefined): string | undefined {
@@ -836,7 +852,7 @@ export function refreshVaultIndexForWorkspace(workspaceId: string): void {
   const store = useAgentStore.getState()
   for (const panelId of Object.keys(store.panels)) {
     const panel = store.panels[panelId]
-    if (panel.vaultIndexWorkspaceId !== null && panel.vaultIndexWorkspaceId !== workspaceId) continue
+    if (panel.ownerWorkspaceId !== workspaceId) continue
     void store.refreshVaultIndex(panelId, workspaceId)
   }
 }

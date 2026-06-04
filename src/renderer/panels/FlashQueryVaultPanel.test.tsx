@@ -250,7 +250,7 @@ describe('FlashQueryVaultPanel State', () => {
       { filename: 'Project.md', fullPath: 'Project.md' },
     ])
     setElectronApi(api)
-    useAgentStore.getState().init('agent-panel')
+    useAgentStore.getState().init('agent-panel', workspaceId)
 
     renderPanel()
     emitStatus({ workspaceId, status: 'live' })

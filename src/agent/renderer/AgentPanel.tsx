@@ -334,7 +334,7 @@ export default function AgentPanel({ panelId, workspaceId }: PanelProps) {
 
       if (cancelled || myGen !== openGenRef.current) return
       const key = newAgentKey()
-      useAgentStore.getState().init(key)
+      useAgentStore.getState().init(key, workspaceId)
       // Resume: prefer the chat's last-used model recorded in the session.
       // Fresh chat: prefer the user-configured default, else fall through to
       // the availableModels effect below.
@@ -430,7 +430,7 @@ export default function AgentPanel({ panelId, workspaceId }: PanelProps) {
   const handleNewChat = useCallback(async () => {
     const myGen = ++openGenRef.current
     const key = newAgentKey()
-    useAgentStore.getState().init(key)
+    useAgentStore.getState().init(key, workspaceId)
     // New chats always start with the user-configured default. If no default
     // is set, fall through to the default-pick effect (first available).
     const model = loadDefaultModel()
@@ -459,7 +459,7 @@ export default function AgentPanel({ panelId, workspaceId }: PanelProps) {
     // default-pick effect once auth resolves).
     const myGen = ++openGenRef.current
     const key = newAgentKey()
-    useAgentStore.getState().init(key)
+    useAgentStore.getState().init(key, workspaceId)
     const entry = chats.find((c) => c.path === sessionFile)
     const model: AgentModelRef | null = entry?.lastModel
       ? { provider: entry.lastModel.provider, model: entry.lastModel.model }

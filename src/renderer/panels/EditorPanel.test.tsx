@@ -360,7 +360,7 @@ describe('EditorPanel FlashQuery save and dirty behavior', () => {
       { filename: 'Plan.md', fullPath: 'Docs/Plan.md' },
     ])
     setElectronApi(api)
-    useAgentStore.getState().init('agent-panel')
+    useAgentStore.getState().init('agent-panel', workspaceId)
     await renderEditor(vaultUri)
 
     act(() => {

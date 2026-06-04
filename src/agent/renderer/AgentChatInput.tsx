@@ -112,7 +112,6 @@ export function ChatInput({
   const [cursorPos, setCursorPos] = useState(draft.length)
   const [dismissedMentionStart, setDismissedMentionStart] = useState<number | null>(null)
   const [mentionPortalTarget, setMentionPortalTarget] = useState<HTMLElement | null>(null)
-  const mentionPortal = useNodePortalTarget(textareaRef)
 
   useEffect(() => {
     const ta = textareaRef.current
@@ -186,8 +185,8 @@ export function ChatInput({
       setMentionPortalTarget(null)
       return
     }
-    setMentionPortalTarget(mentionPortal.getTarget())
-  }, [mentionOpen, mentionPortal])
+    setMentionPortalTarget(textareaRef.current?.closest('[data-agent-composer]') as HTMLElement | null)
+  }, [mentionOpen, textareaRef])
 
   const dismissMention = useCallback(() => {
     if (activeMention) setDismissedMentionStart(activeMention.start)
@@ -248,15 +247,6 @@ export function ChatInput({
             : 'border-white/10 focus-within:border-agent/50'
         }`}
       >
-        {mentionOpen && activeMention && (
-          <div
-            data-testid="agent-mention-highlight"
-            aria-hidden="true"
-            className="pointer-events-none absolute left-3 top-2 rounded bg-agent/20 px-0.5 font-mono text-[13px] text-agent-light"
-          >
-            {activeMention.text}
-          </div>
-        )}
         {popupOpen && (
           <SlashPopup
             commands={filteredCommands}

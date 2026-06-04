@@ -856,7 +856,7 @@ function FlashQueryToolCard({ msg, shimmer }: { msg: ToolMessage; shimmer?: bool
   const isRunning = msg.status === 'running' || msg.status === 'pending'
   if (isRunning) return <ToolCard msg={msg} shimmer={shimmer} />
 
-  const diagnostics = flashQueryDiagnostics(msg.flashquery, msg.name === 'call_model' ? msg : undefined)
+  const diagnostics = flashQueryDiagnostics(msg.flashquery, msg)
   const summary = msg.name === 'call_model'
     ? flashQueryCallModelSummary(msg, diagnostics)
     : flashQueryCallMacroSummary(msg, diagnostics)
@@ -918,9 +918,14 @@ function flashQueryDiagnostics(details: unknown, msg?: ToolMessage): Record<stri
   const result = asRecord(root.result)
   const diagnostics = asRecord(root.diagnostics)
   const resultDiagnostics = asRecord(result?.diagnostics) ?? asRecord(result?.details)
-  const callModelEnvelope = msg ? parseCallModelEnvelope(msg, root) : {}
+  const envelope =
+    msg?.name === 'call_model'
+      ? parseCallModelEnvelope(msg, root)
+      : msg?.name === 'call_macro'
+      ? parseCallMacroEnvelope(msg, root)
+      : {}
   return {
-    ...callModelEnvelope,
+    ...envelope,
     ...root,
     ...(diagnostics ?? {}),
     ...(result ?? {}),
@@ -954,6 +959,18 @@ function parseCallModelEnvelope(msg: ToolMessage, details: Record<string, unknow
     brokeredToolLoop: metadata.tool_calls,
     nativeToolLoop: tools?.calls_log,
     serverToolLoop: metadata.server_tool_loop,
+  }
+}
+
+function parseCallMacroEnvelope(msg: ToolMessage, details: Record<string, unknown>): Record<string, unknown> {
+  const envelopeText = msg.result ?? firstTextBlock(asRecord(details.result)?.content)
+  const envelope = parseJsonRecord(envelopeText)
+  const trace = asArray(envelope?.trace)
+  if (!trace) return {}
+  return {
+    trace,
+    macroResult: envelope?.result,
+    taskId: firstValue(envelope?.task_id, envelope?.taskId),
   }
 }
 
