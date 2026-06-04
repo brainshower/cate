@@ -68,6 +68,8 @@
 
 Phase 19 is a renderer presentation phase, not a FlashQuery extension, IPC, or store-schema phase. [VERIFIED: 19-CONTEXT.md] Phase 18 already produced the data input: ordinary `ToolMessage` objects can carry sanitized `flashquery` details from live Pi tool events and session replay. [VERIFIED: src/agent/renderer/agentStore.ts] [VERIFIED: src/agent/main/sessionFiles.ts] The planner should keep all implementation inside the existing Pi chat/ToolCard path and should not create new message types, standalone FlashQuery rows, or new chat chrome. [VERIFIED: Milestone 2 Requirements.md]
 
+Post-planning review of the Phase 18 gap-fix commit `89d361d` found no Phase 19 scope invalidation. The fix changed extension-side details that Phase 19 should treat as current source context: `dispatch.ts` now owns trace metadata injection, `lifecycle.ts` retries failed `call_model` metadata discovery, `refs.ts` preflights refs through `get_document` with `identifiers`, and `model-tool.ts`/`macro-tool.ts` continue to return ordinary Pi tool results with `details.flashquery`. Phase 19 plans should read those files before shaping mocks or rendering assumptions, but the renderer strategy remains unchanged: consume existing `ToolMessage.flashquery` defensively and omit unknown/missing keys. [VERIFIED: git show 89d361d] [VERIFIED: src/agent/extensions/cate-flashquery/dispatch.ts] [VERIFIED: src/agent/extensions/cate-flashquery/lifecycle.ts]
+
 The closest local analog is the `subagent` rich-card branch in `MessageRow`: it keeps the message type as `tool`, branches by tool name/details, and renders richer expanded content without changing chat thread architecture. [VERIFIED: src/agent/renderer/ChatThread.tsx] Phase 19 should use the same pattern for `call_model` and `call_macro`, but leave other FlashQuery tools on the existing generic `ToolCard` implementation. [VERIFIED: 19-CONTEXT.md]
 
 **Primary recommendation:** Add FlashQuery-specific summary/detail helpers in or near `src/agent/renderer/ChatThread.tsx`, branch only for `msg.flashquery && (msg.name === 'call_model' || msg.name === 'call_macro')`, and extend `T-U-019` plus mocked `T-E-006` to assert actual collapsed/expanded UI behavior. [VERIFIED: codebase grep]
@@ -161,6 +163,13 @@ src/agent/renderer/
 ├── ChatThread.tsx               # Add FlashQuery ToolCard branch/helpers or local component
 ├── ChatThread.test.tsx          # Add T-U-019 component coverage
 └── agentStore.ts                # Read-only input; do not change message union unless a test exposes a real gap
+
+src/agent/extensions/cate-flashquery/
+├── dispatch.ts                  # Gap-fixed trace injection helper to read before interpreting trace metadata
+├── lifecycle.ts                 # Gap-fixed metadata retry path to read before mocking call_model details
+├── model-tool.ts                # call_model result/details source
+├── macro-tool.ts                # call_macro result/progress/details source
+└── refs.ts                      # Gap-fixed ref preflight source
 
 e2e/
 └── flashquery-pi-diagnostics.spec.ts  # Extend from preservation checks to UI assertions

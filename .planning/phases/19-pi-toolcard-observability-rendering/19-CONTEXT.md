@@ -76,13 +76,14 @@ This phase consumes the structured FlashQuery diagnostics preserved by Phase 18.
 ### Expected Code Areas
 - `src/agent/renderer/ChatThread.tsx` - Existing Pi chat thread and ToolCard rendering path.
 - `src/agent/renderer/agentStore.ts` and `src/agent/main/sessionFiles.ts` - Phase 18 FlashQuery details preservation source.
-- `src/agent/extensions/cate-flashquery/diagnostics.ts`, `src/agent/extensions/cate-flashquery/model-tool.ts`, and `src/agent/extensions/cate-flashquery/macro-tool.ts` - Structured diagnostics shapes emitted by specialized FlashQuery tool wrappers.
+- `src/agent/extensions/cate-flashquery/diagnostics.ts`, `src/agent/extensions/cate-flashquery/model-tool.ts`, `src/agent/extensions/cate-flashquery/macro-tool.ts`, `src/agent/extensions/cate-flashquery/dispatch.ts`, `src/agent/extensions/cate-flashquery/refs.ts`, and `src/agent/extensions/cate-flashquery/lifecycle.ts` - Current Phase 18 gap-fixed structured diagnostics, trace injection, reference preflight, and metadata retry paths emitted by specialized FlashQuery tool wrappers.
 - `e2e/flashquery-pi-diagnostics.spec.ts` and `src/renderer/lib/e2eHarness.ts` - Existing mocked diagnostics E2E harness to extend for ToolCard UI assertions.
 </canonical_refs>
 
 <specifics>
 ## Specific Ideas
 
+- Phase 18 gap fixes in commit `89d361d` added `src/agent/extensions/cate-flashquery/dispatch.ts`, changed trace injection to flow through `withFlashQueryTrace`, changed `refs.ts` to preflight `get_document` with `identifiers`, and added `call_model` metadata retry state in `lifecycle.ts`. Phase 19 remains a renderer ToolCard phase, but executors should read these current files before shaping mocked diagnostics or interpreting live `call_model`/`call_macro` details.
 - The collapsed summary must prefer product-specified values when present, but partial data must not produce `undefined`, `NaN`, broken currency, or broken latency text.
 - The expanded server-side tool-loop block should appear only after completion when diagnostics include tool-loop data.
 - Long returned messages payloads should be collapsed by default or behind an explicit disclosure control so the ToolCard remains scan-friendly.
