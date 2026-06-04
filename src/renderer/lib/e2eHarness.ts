@@ -59,6 +59,7 @@ declare global {
       writeTerminal(nodeId: string, data: string): boolean
       terminalLog(nodeId: string): Promise<string | null>
       dispatchAgentEvent(panelId: string, event: { type: string; [key: string]: unknown }): void
+      agentPanelIds(): string[]
       agentMessages(panelId: string): unknown[]
       dragSnapshot(): {
         isDragging: boolean
@@ -331,6 +332,10 @@ export function installE2EHarness(): void {
     return useAgentStore.getState().panels[panelId]?.messages ?? []
   }
 
+  const agentPanelIds = (): string[] => {
+    return Object.keys(useAgentStore.getState().panels)
+  }
+
   window.__cateE2E = {
     ready: true,
     activeCanvasPanelId,
@@ -368,6 +373,7 @@ export function installE2EHarness(): void {
     writeTerminal,
     terminalLog,
     dispatchAgentEvent,
+    agentPanelIds,
     agentMessages,
     dragSnapshot,
   }
