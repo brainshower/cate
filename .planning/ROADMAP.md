@@ -182,6 +182,22 @@ Plans:
 
 **Requirements:** REQ-018, REQ-019
 
+**Plans:** 4 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 20-01-PLAN.md — Build vault-index cache lifecycle and refresh triggers.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 20-02-PLAN.md — Add AgentChatInput `@` mention dropdown and literal reference insertion.
+- [ ] 20-03-PLAN.md — Add vault tree and editor title clipboard utilities while preserving search row behavior.
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 20-04-PLAN.md — Add E2E/manual evidence and UAT traceability.
+
 **Success criteria:**
 
 1. Agent chat input detects active `@` segments near the existing slash popover pattern and shows the dropdown through the existing portal pattern.
