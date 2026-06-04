@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
+import fs from 'fs'
+import path from 'path'
 import { createCateFlashQueryExtension } from './index'
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent'
 import type { FlashQueryExtensionClient, FlashQueryHandoff } from './client'
@@ -99,6 +101,18 @@ describe('cate-flashquery extension registration', () => {
       content: [{ type: 'text', text: expect.stringContaining('FlashQuery disconnected') }],
       details: { disconnected: true },
     })
+  })
+
+  it('T-U-014 keeps FlashQuery out of provider registration and ProvidersView rows', () => {
+    const extensionSource = fs.readFileSync(path.join(__dirname, 'index.ts'), 'utf-8')
+    const providersView = fs.readFileSync(
+      path.join(__dirname, '..', '..', 'renderer', 'ProvidersView.tsx'),
+      'utf-8',
+    )
+
+    expect(extensionSource).not.toContain('registerProvider')
+    expect(providersView).not.toMatch(/provider\s*[:=]\s*['"]flashquery['"]/i)
+    expect(providersView).not.toMatch(/id\s*[:=]\s*['"]flashquery['"]/i)
   })
 })
 
