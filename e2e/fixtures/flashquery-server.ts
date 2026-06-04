@@ -7,6 +7,7 @@ import { z } from 'zod'
 export interface FlashQueryStubCounts {
   infoRequestCount: number
   mcpPostCount: number
+  mcpMethods: string[]
 }
 
 export interface FlashQueryStubDocument {
@@ -46,6 +47,7 @@ export interface FlashQueryStubServer {
   lastGetArgs: () => Record<string, unknown> | null
   lastSearchArgs: () => Record<string, unknown> | null
   lastWriteArgs: () => Record<string, unknown> | null
+  sawMcpMethod: (method: string) => boolean
 }
 
 export interface FlashQueryStubServerOptions {
@@ -305,6 +307,7 @@ export async function startFlashQueryStubServer(
 ): Promise<FlashQueryStubServer> {
   let infoRequestCount = 0
   let mcpPostCount = 0
+  const mcpMethods: string[] = []
   let available = true
   let lastGetArgs: Record<string, unknown> | null = null
   let lastSearchArgs: Record<string, unknown> | null = null
@@ -340,6 +343,7 @@ export async function startFlashQueryStubServer(
 
     if (req.method === 'POST' && url.pathname === '/mcp') {
       mcpPostCount += 1
+      recordJsonRpcMethods(req, mcpMethods)
       if (req.headers.authorization !== expectedAuthorization) {
         jsonResponse(res, 401, {
           error: req.headers.authorization ? 'invalid_authorization' : 'missing_authorization',
@@ -394,10 +398,11 @@ export async function startFlashQueryStubServer(
         else resolve()
       })
     }),
-    counts: () => ({ infoRequestCount, mcpPostCount }),
+    counts: () => ({ infoRequestCount, mcpPostCount, mcpMethods: [...mcpMethods] }),
     resetCounts: () => {
       infoRequestCount = 0
       mcpPostCount = 0
+      mcpMethods.length = 0
     },
     setAvailable: (nextAvailable: boolean) => {
       available = nextAvailable
@@ -463,5 +468,31 @@ export async function startFlashQueryStubServer(
     lastGetArgs: () => lastGetArgs ? { ...lastGetArgs } : null,
     lastSearchArgs: () => lastSearchArgs ? { ...lastSearchArgs } : null,
     lastWriteArgs: () => lastWriteArgs ? { ...lastWriteArgs } : null,
+    sawMcpMethod: (method: string) => mcpMethods.includes(method),
   }
+}
+
+function recordJsonRpcMethods(req: IncomingMessage, methods: string[]): void {
+  const originalEmit = req.emit.bind(req)
+  const chunks: Buffer[] = []
+  req.emit = ((event: string | symbol, ...args: unknown[]) => {
+    if (event === 'data' && Buffer.isBuffer(args[0])) {
+      chunks.push(args[0])
+    }
+    if (event === 'end' && chunks.length > 0) {
+      try {
+        const parsed = JSON.parse(Buffer.concat(chunks).toString('utf-8'))
+        const messages = Array.isArray(parsed) ? parsed : [parsed]
+        for (const message of messages) {
+          if (message && typeof message === 'object') {
+            const method = (message as Record<string, unknown>).method
+            if (typeof method === 'string') methods.push(method)
+          }
+        }
+      } catch {
+        // The MCP transport owns request validation; method recording is best-effort evidence.
+      }
+    }
+    return originalEmit(event, ...args)
+  }) as IncomingMessage['emit']
 }

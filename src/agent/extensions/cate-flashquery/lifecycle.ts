@@ -71,39 +71,47 @@ export function createCateFlashQueryLifecycle(
       const previous = current
       current = null
 
-      const handoff = await readHandoffImpl(cwd)
-      const client = handoff ? await openClientImpl(handoff) : null
-      if (!handoff || !client) {
+      let client: FlashQueryExtensionClient | null = null
+      try {
+        const handoff = await readHandoffImpl(cwd)
+        client = handoff ? await openClientImpl(handoff) : null
+        if (!handoff || !client) {
+          invalidateRegisteredTools(registeredTools, generationId)
+          if (previous) retireGeneration(previous)
+          return
+        }
+
+        const [records, models, purposes] = await Promise.all([
+          client.listRegistryTools(signal),
+          client.listModels(signal).catch(() => []),
+          client.listPurposes(signal).catch(() => []),
+        ])
+        if (generationId !== nextGenerationId) {
+          await client.close().catch(() => {})
+          return
+        }
+
+        const generation: FlashQueryGeneration = {
+          id: generationId,
+          handoff,
+          client,
+          candidates: registryRecordsToToolCandidates(records),
+          models,
+          purposes,
+          activeCalls: 0,
+          retiring: false,
+          closeTimer: null,
+          closed: false,
+        }
+        current = generation
+        publishTools(pi, generation, registeredTools)
+        if (previous) retireGeneration(previous)
+      } catch (err) {
         invalidateRegisteredTools(registeredTools, generationId)
         if (previous) retireGeneration(previous)
-        return
+        await client?.close().catch(() => {})
+        throw err
       }
-
-      const [records, models, purposes] = await Promise.all([
-        client.listRegistryTools(signal),
-        client.listModels(signal).catch(() => []),
-        client.listPurposes(signal).catch(() => []),
-      ])
-      if (generationId !== nextGenerationId) {
-        await client.close().catch(() => {})
-        return
-      }
-
-      const generation: FlashQueryGeneration = {
-        id: generationId,
-        handoff,
-        client,
-        candidates: registryRecordsToToolCandidates(records),
-        models,
-        purposes,
-        activeCalls: 0,
-        retiring: false,
-        closeTimer: null,
-        closed: false,
-      }
-      current = generation
-      publishTools(pi, generation, registeredTools)
-      if (previous) retireGeneration(previous)
     },
     async shutdown() {
       const generation = current

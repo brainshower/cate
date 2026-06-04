@@ -114,20 +114,24 @@ describe('installFlashQueryExtension', () => {
     })
   })
 
-  it('T-U-013 leaves existing destination files untouched', async () => {
+  it('T-U-013 refreshes an existing stale managed extension bundle', async () => {
     writeExtensionSource(mocks.appPath, 'dev-source')
     const cwd = path.join(makeTmpDir(), 'workspace-b')
     dirs.push(path.dirname(cwd))
     const dest = path.join(mocks.agentRoot, 'workspace-b', '.cate', 'pi-agent', 'extensions', 'cate-flashquery')
     fs.mkdirSync(dest, { recursive: true })
-    fs.writeFileSync(path.join(dest, 'index.ts'), 'user-edited-index')
-    fs.writeFileSync(path.join(dest, 'package.json'), 'user-edited-package')
+    fs.writeFileSync(path.join(dest, 'index.ts'), 'stale-index')
+    fs.writeFileSync(path.join(dest, 'package.json'), 'stale-package')
+    fs.writeFileSync(path.join(dest, '.cate-bundle-version'), '1\n')
 
     const { installFlashQueryExtension } = await import('./installFlashQueryExtension')
     await installFlashQueryExtension(cwd)
 
-    expect(fs.readFileSync(path.join(dest, 'index.ts'), 'utf-8')).toBe('user-edited-index')
-    expect(fs.readFileSync(path.join(dest, 'package.json'), 'utf-8')).toBe('user-edited-package')
+    expect(fs.readFileSync(path.join(dest, 'index.ts'), 'utf-8')).toContain('dev-source')
+    expect(JSON.parse(fs.readFileSync(path.join(dest, 'package.json'), 'utf-8'))).toEqual({
+      name: 'dev-source',
+    })
+    expect(fs.readFileSync(path.join(dest, '.cate-bundle-version'), 'utf-8')).toBe('3\n')
   })
 
   it('T-U-013 is cached per workspace agent dir', async () => {
@@ -143,6 +147,25 @@ describe('installFlashQueryExtension', () => {
     await installFlashQueryExtension(cwd)
 
     expect(fs.existsSync(path.join(dest, 'index.ts'))).toBe(false)
+  })
+
+  it('T-U-013 retries after a failed install instead of caching the failure', async () => {
+    writeExtensionSource(mocks.appPath, 'retry-source')
+    const cwd = path.join(makeTmpDir(), 'workspace-c2')
+    dirs.push(path.dirname(cwd))
+    const agentDir = path.join(mocks.agentRoot, 'workspace-c2', '.cate', 'pi-agent')
+    const destParent = path.join(agentDir, 'extensions')
+    fs.mkdirSync(agentDir, { recursive: true })
+    fs.writeFileSync(destParent, 'not-a-directory')
+
+    const { installFlashQueryExtension } = await import('./installFlashQueryExtension')
+    await installFlashQueryExtension(cwd)
+
+    fs.rmSync(destParent, { force: true })
+    await installFlashQueryExtension(cwd)
+
+    const dest = path.join(destParent, 'cate-flashquery')
+    expect(fs.readFileSync(path.join(dest, 'index.ts'), 'utf-8')).toContain('retry-source')
   })
 
   it('T-U-013 prefers the development source path when both dev and prod exist', async () => {

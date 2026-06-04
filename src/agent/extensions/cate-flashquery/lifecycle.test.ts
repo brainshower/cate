@@ -90,6 +90,33 @@ describe('cate-flashquery lifecycle', () => {
     expect(clientA.close).toHaveBeenCalledTimes(1)
   })
 
+  it('T-U-015 invalidates old workspace tools when rebind to a new workspace fails', async () => {
+    const pi = mockPi()
+    const clientA = mockClient('ws-a', [eligible({ name: 'old_tool' })])
+    const lifecycle = createCateFlashQueryLifecycle(pi.api, {
+      readHandoff: vi.fn()
+        .mockResolvedValueOnce(handoff('ws-a'))
+        .mockResolvedValueOnce(handoff('ws-b')),
+      openClient: vi.fn()
+        .mockResolvedValueOnce(clientA)
+        .mockRejectedValueOnce(new Error('new workspace unavailable')),
+    })
+
+    await lifecycle.rebind('/workspace-a')
+    const oldTool = pi.registerTool.mock.calls.find(([tool]) => tool.name === 'old_tool')?.[0]
+
+    await expect(lifecycle.rebind('/workspace-b')).rejects.toThrow('new workspace unavailable')
+    const staleResult = await oldTool.execute('call-after-failed-rebind', {}, undefined, undefined, {})
+
+    expect(staleResult).toMatchObject({
+      isError: true,
+      content: [{ type: 'text', text: expect.stringContaining('not available in the current FlashQuery workspace') }],
+      details: { stale: true },
+    })
+    expect(clientA.callTool).not.toHaveBeenCalled()
+    expect(clientA.close).toHaveBeenCalledTimes(1)
+  })
+
   it('T-U-015 reconciles removed, changed, and newly available tools without provider unregister APIs', async () => {
     const pi = mockPi()
     const clientA = mockClient('ws-a', [

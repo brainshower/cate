@@ -18,6 +18,8 @@ import { listWorkspaces } from '../../main/workspaceManager'
 import { normalizeFlashQueryConnectionUrl } from '../../shared/types'
 
 export const FLASHQUERY_HANDOFF_FILE = 'flashquery-handoff.json'
+const BUNDLED_FLASHQUERY_EXTENSION_VERSION = 3
+const BUNDLE_VERSION_FILE = '.cate-bundle-version'
 
 export interface FlashQueryExtensionHandoff {
   version: 1
@@ -38,23 +40,41 @@ function sourceDir(): string | null {
   return null
 }
 
-async function copyIfMissing(src: string, dest: string): Promise<void> {
-  try {
-    await fsp.access(dest)
-    return
-  } catch { /* fall through */ }
+async function copyRuntimeFile(src: string, dest: string): Promise<void> {
   await fsp.mkdir(path.dirname(dest), { recursive: true })
   await fsp.copyFile(src, dest)
   log.info('[installFlashQueryExtension] installed %s', dest)
 }
 
-async function copyExtensionFilesIfMissing(srcDir: string, destDir: string): Promise<void> {
+async function copyExtensionRuntimeFiles(srcDir: string, destDir: string): Promise<void> {
   const entries = await fsp.readdir(srcDir, { withFileTypes: true })
   for (const entry of entries) {
     if (!entry.isFile()) continue
     if (entry.name !== 'package.json' && !entry.name.endsWith('.ts')) continue
     if (entry.name.endsWith('.test.ts')) continue
-    await copyIfMissing(path.join(srcDir, entry.name), path.join(destDir, entry.name))
+    await copyRuntimeFile(path.join(srcDir, entry.name), path.join(destDir, entry.name))
+  }
+}
+
+async function installManagedBundle(srcDir: string, destDir: string): Promise<void> {
+  const marker = path.join(destDir, BUNDLE_VERSION_FILE)
+  const currentVersion = await fsp.readFile(marker, 'utf-8').catch(() => null)
+  if (currentVersion?.trim() === String(BUNDLED_FLASHQUERY_EXTENSION_VERSION)) return
+
+  const tmpDir = `${destDir}.tmp-${process.pid}-${Date.now()}`
+  await fsp.rm(tmpDir, { recursive: true, force: true })
+  try {
+    await copyExtensionRuntimeFiles(srcDir, tmpDir)
+    await fsp.writeFile(
+      path.join(tmpDir, BUNDLE_VERSION_FILE),
+      `${BUNDLED_FLASHQUERY_EXTENSION_VERSION}\n`,
+      'utf-8',
+    )
+    await fsp.rm(destDir, { recursive: true, force: true })
+    await fsp.rename(tmpDir, destDir)
+  } catch (err) {
+    await fsp.rm(tmpDir, { recursive: true, force: true }).catch(() => {})
+    throw err
   }
 }
 
@@ -69,10 +89,11 @@ export async function installFlashQueryExtension(cwd: string): Promise<void> {
       log.warn('[installFlashQueryExtension] source dir not found — FlashQuery extension not installed')
       return
     }
-    installed.add(home)
     const destDir = path.join(home, 'extensions', 'cate-flashquery')
-    await copyExtensionFilesIfMissing(src, destDir)
+    await installManagedBundle(src, destDir)
+    installed.add(home)
   } catch (err) {
+    installed.delete(home)
     log.warn('[installFlashQueryExtension] install failed: %O', err)
   }
 }

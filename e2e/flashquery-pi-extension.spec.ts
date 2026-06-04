@@ -55,6 +55,7 @@ test('T-E-005 installs cate-flashquery extension and fetches eligible fixture re
     await expect.poll(() => fs.existsSync(path.join(extensionDir, 'package.json'))).toBe(true)
     await expect.poll(() => fs.existsSync(path.join(extensionDir, 'lifecycle.ts'))).toBe(true)
     await expect.poll(() => server.counts().mcpPostCount, { timeout: 15_000 }).toBeGreaterThan(0)
+    await expect.poll(() => server.sawMcpMethod('tools/list'), { timeout: 15_000 }).toBe(true)
   } finally {
     if (app) await closeApp(app)
     await server.close()
