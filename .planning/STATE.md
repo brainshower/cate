@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: FlashQuery Milestone 2
 status: executing
-stopped_at: Completed 17-01-PLAN.md
-last_updated: "2026-06-04T13:48:25.865Z"
+stopped_at: Completed 17-02-PLAN.md
+last_updated: "2026-06-04T14:00:56.756Z"
 last_activity: 2026-06-04
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 12
-  completed_plans: 10
+  completed_plans: 11
   percent: 38
 ---
 
@@ -26,14 +26,14 @@ See: `.planning/PROJECT.md` (updated 2026-06-03 after v1.2 FlashQuery Milestone 
 ## Current Position
 
 Phase: 17 (flashquery-pi-extension-bootstrap) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-06-04
 
 ## Session Continuity
 
-Last session: 2026-06-04T13:48:25.842Z
-Stopped At: Completed 17-01-PLAN.md
+Last session: 2026-06-04T14:00:56.730Z
+Stopped At: Completed 17-02-PLAN.md
 Resume File: None
 
 ## Next Up
@@ -67,6 +67,8 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table (updated
 | 2026-06-03 | v1.2 continues phase numbering from v1.1, starting at Phase 14. | Preserves the project roadmap's sequential phase history across shipped milestones. |
 
 - [Phase 17]: Plan 17.1 writes FlashQuery Pi handoff to workspace-scoped .cate/pi-agent/flashquery-handoff.json. — Bearer tokens are sourced only from main-process getWorkspaceToken(workspaceId), preserving the renderer and Pi auth.json token boundary.
+- [Phase 17]: Plan 17.2 uses MCP listTools metadata as the FlashQuery registry source for hostEligible/current Pi tool registration.
+- [Phase 17]: Plan 17.2 translates unknown or malformed FlashQuery schemas to permissive TypeBox object schemas so registration remains safe.
 
 ## Deferred Items
 
@@ -105,6 +107,7 @@ Items acknowledged and deferred at milestone close on 2026-05-30:
 | Phase 12 P12.3 | 8 min | 3 tasks | 10 files |
 | Phase 13 P13.1 | 12 min | 2 tasks | 1 files |
 | Phase 17 P17.1 | 8min | 3 tasks | 6 files |
+| Phase 17 P17.2 | 9min | 4 tasks | 7 files |
 
 ## Operator Next Steps
 
