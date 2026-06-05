@@ -48,7 +48,7 @@ requirements: [REQ-020]
 | 21-02-02 | 02 | 2 | REQ-020 / T-E-001 / T-E-002 / T-E-003 / T-E-004 / T-E-007 | T-21-01-I / T-21-03-T | Real Electron paths prove refresh, frontmatter, search, mention cache, disconnect, reconnect, stale-cache, and copy-reference behavior. | e2e | `npm run test:e2e -- e2e/flashquery-editor-refresh-frontmatter.spec.ts e2e/flashquery-vault-search.spec.ts e2e/flashquery-pi-mentions.spec.ts e2e/flashquery-disconnect.spec.ts` | yes | green |
 | 21-02-03 | 02 | 2 | REQ-020 / T-E-005 / T-E-006 / T-E-006b | T-21-02-S / T-21-04-I | Pi extension install, ToolCard diagnostics, and real call_macro envelope traces render through app-level paths without new chat message types. | e2e | `npm run test:e2e -- e2e/flashquery-pi-extension.spec.ts e2e/flashquery-pi-diagnostics.spec.ts e2e/flashquery-pi-macro-trace.spec.ts` | yes | green |
 | 21-03-01 | 03 | 3 | REQ-020 / UI polish | T-21-03-T | Visual evidence captures FlashQuery surfaces and status-chip states while documenting screenshot limitations. | e2e visual | `npm run test:e2e -- e2e/flashquery-visual-evidence.spec.ts` | yes | green |
-| 21-03-02 | 03 | 3 | REQ-020 / T-M-001 / T-M-002 / T-M-003 / T-M-004 | T-21-10-R | Manual checks are either passed with concrete evidence or blocked with exact prerequisites; no ambiguous skipped state. | manual/UAT | `test -f .planning/phases/21-cross-surface-hardening-and-regression/21-UAT.md && rg -n "T-M-001|T-M-002|T-M-003|T-M-004|blocked|passed" .planning/phases/21-cross-surface-hardening-and-regression/21-UAT.md` | yes | blocked/manual |
+| 21-03-02 | 03 | 3 | REQ-020 / T-M-001 / T-M-002 / T-M-003 / T-M-004 | T-21-10-R | Manual/live checks are either passed with concrete evidence or blocked with exact prerequisites; native clipboard T-M-004 is automated. | manual/UAT + E2E | `npm run test:e2e -- e2e/flashquery-native-clipboard.spec.ts && test -f .planning/phases/21-cross-surface-hardening-and-regression/21-UAT.md && rg -n "T-M-001|T-M-002|T-M-003|T-M-004|blocked|passed" .planning/phases/21-cross-surface-hardening-and-regression/21-UAT.md` | yes | partial: T-M-004 green; T-M-001..003 blocked |
 | 21-04-01 | 04 | 4 | REQ-020 / final verification | T-21-03-T | Final typecheck, unit, E2E, and preflight evidence is recorded with skipped/manual blockers explicit. | closeout | `npm run typecheck && npm test && npm run test:e2e && npm run preflight` | yes | green |
 
 *Status: pending · green · red · flaky · blocked/manual*
@@ -63,7 +63,7 @@ Existing infrastructure covers all automated Phase 21 requirements.
 - `src/agent/renderer/AgentChatInput.atMention.test.tsx` covers no-stale-match loading behavior during cache refresh.
 - `src/agent/extensions/cate-flashquery/lifecycle.test.ts` and `index.test.ts` cover `T-U-015` and Phase 21 lifecycle hardening.
 - `src/renderer/panels/EditorPanel.test.tsx`, `FlashQueryVaultSearchPanel.test.tsx`, and `FlashQueryVaultPanel.test.tsx` cover editor, frontmatter, search, and clipboard-adjacent `REQ-020` regressions.
-- `e2e/flashquery-editor-refresh-frontmatter.spec.ts`, `flashquery-vault-search.spec.ts`, `flashquery-pi-mentions.spec.ts`, `flashquery-disconnect.spec.ts`, `flashquery-pi-extension.spec.ts`, `flashquery-pi-diagnostics.spec.ts`, `flashquery-pi-macro-trace.spec.ts`, and `flashquery-visual-evidence.spec.ts` cover the Electron and visual evidence surface.
+- `e2e/flashquery-editor-refresh-frontmatter.spec.ts`, `flashquery-vault-search.spec.ts`, `flashquery-pi-mentions.spec.ts`, `flashquery-disconnect.spec.ts`, `flashquery-pi-extension.spec.ts`, `flashquery-pi-diagnostics.spec.ts`, `flashquery-pi-macro-trace.spec.ts`, `flashquery-native-clipboard.spec.ts`, and `flashquery-visual-evidence.spec.ts` cover the Electron and visual evidence surface.
 
 ---
 
@@ -74,9 +74,9 @@ Existing infrastructure covers all automated Phase 21 requirements.
 | Live FlashQuery/Pi tool registration and workspace-switch stale tool behavior | REQ-013, REQ-014, REQ-020 / T-M-001 | Requires real FlashQuery HTTP MCP endpoint and configured native Pi provider credentials. | Start Cate with real FlashQuery and a native Pi provider; verify native and brokered eligible tools register, stale tools disappear or reject after workspace switch, and FlashQuery is absent from ProvidersView. |
 | Live host-model `call_macro` progress and interaction behavior | REQ-016, REQ-020 / T-M-002 | Requires a real host-model run, progress-emitting macro, `needs_user_input`, and disconnected macro scenario. | Invoke `call_macro` through the host model; verify spinner/latest progress, final trace, `needs_user_input`, and disconnected behavior. |
 | Live host-model `call_model` references and diagnostics | REQ-015, REQ-017, REQ-020 / T-M-003 | Requires configured Pi provider, live FlashQuery runtime, document-reference fixture, and real host-model tool choice. | Invoke `call_model` with `{{ref:<fullPath>}}`; verify purpose/model resolution, injected refs, messages payload, cost/tokens/latency, and server-side FlashQuery tool-loop diagnostics. |
-| Native macOS pasted clipboard values | REQ-019, REQ-020 / T-M-004 | Native clipboard and OS menu behavior require human-observed paste results. | Copy vault paths/references from vault tree, search row, and editor title actions; paste into plain text and verify exact `Docs/Plan.md` and `{{ref:Docs/Plan.md}}` values with no anchors or Markdown links. |
+| Native macOS pasted clipboard values | REQ-019, REQ-020 / T-M-004 | Automated by `e2e/flashquery-native-clipboard.spec.ts`; no longer manual-only for Phase 21. | The E2E invokes vault tree, search row, and editor title copy actions and reads Electron's native clipboard for exact `Docs/Plan.md` and `{{ref:Docs/Plan.md}}` values with no URI, encoding, anchor, block-ref, or Markdown-link variants. |
 
-Manual checks above are blocked in `21-UAT.md` and `21-VERIFICATION.md` with exact prerequisites. They do not represent missing automated Nyquist coverage, but they do block release-readiness until resolved or accepted by the owner.
+Manual/live checks above are blocked in `21-UAT.md` and `21-VERIFICATION.md` with exact prerequisites except `T-M-004`, which is now automated. The remaining blockers do not represent missing automated Nyquist coverage, but they do block release-readiness until resolved or accepted by the owner.
 
 ---
 
@@ -105,7 +105,7 @@ Previously recorded final closeout evidence in `21-VERIFICATION.md` also include
 | Metric | Count |
 |--------|-------|
 | Automated gaps found | 0 |
-| Manual/live blockers retained | 4 |
+| Manual/live blockers retained | 3 |
 | Commands re-run | 3 |
 
 | Command | Result |
@@ -114,7 +114,7 @@ Previously recorded final closeout evidence in `21-VERIFICATION.md` also include
 | `npm test -- src/renderer/panels/EditorPanel.test.tsx src/renderer/panels/FlashQueryVaultSearchPanel.test.tsx src/renderer/panels/FlashQueryVaultPanel.test.tsx` | passed: 3 files, 72 tests |
 | `npm run typecheck` | passed |
 
-No Nyquist gap-filler was spawned because the existing automated requirement map remained covered and green. `T-M-001` through `T-M-004` remain explicit manual/live blockers, not missing automated coverage.
+No Nyquist gap-filler was spawned because the existing automated requirement map remained covered and green. `T-M-001` through `T-M-003` remain explicit manual/live blockers, not missing automated coverage. `T-M-004` is now covered by native clipboard E2E.
 
 ---
 
@@ -127,4 +127,4 @@ No Nyquist gap-filler was spawned because the existing automated requirement map
 - [x] Focused feedback latency target documented and met for local validation commands.
 - [x] `nyquist_compliant: true` set in frontmatter.
 
-**Approval:** approved for automated Nyquist coverage on 2026-06-04; release-readiness remains blocked pending owner decision or manual/live evidence for `T-M-001` through `T-M-004`.
+**Approval:** approved for automated Nyquist coverage on 2026-06-04; release-readiness remains blocked pending owner decision or manual/live evidence for `T-M-001` through `T-M-003`.

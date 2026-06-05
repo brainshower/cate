@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: FlashQuery Milestone 2
 status: needs-review
-stopped_at: Completed Phase 21 automated verification and preflight; manual/live checks T-M-001 through T-M-004 remain blocked pending owner review
-last_updated: "2026-06-04T21:34:31Z"
+stopped_at: Automated T-M-004 native clipboard evidence added; Phase 21 still needs owner review for T-M-001 through T-M-003
+last_updated: "2026-06-05T00:14:45Z"
 last_activity: 2026-06-04
 progress:
   total_phases: 8
@@ -27,20 +27,20 @@ See: `.planning/PROJECT.md` (updated 2026-06-03 after v1.2 FlashQuery Milestone 
 
 Phase: 21 (cross-surface-hardening-and-regression)
 Plan: 4 of 4
-Status: Needs Review - automated verification passed; manual/live checks T-M-001 through T-M-004 remain blocked
+Status: Needs Review - automated verification passed; manual/live checks T-M-001 through T-M-003 remain blocked; T-M-004 native clipboard coverage automated
 Last activity: 2026-06-04
 
 ## Session Continuity
 
-Last session: 2026-06-04T21:34:31Z
-Stopped At: Completed Phase 21 automated verification and preflight; manual/live checks T-M-001 through T-M-004 remain blocked pending owner review
+Last session: 2026-06-05T00:14:45Z
+Stopped At: Automated T-M-004 native clipboard evidence added; Phase 21 still needs owner review for T-M-001 through T-M-003
 Resume File: None
 
 ## Next Up
 
-Owner review of Phase 21 release-readiness: either record live/manual evidence for T-M-001 through T-M-004, accept the blockers as known manual follow-up, or open a follow-up phase/issue.
+Owner review of Phase 21 release-readiness: either record live/manual evidence for T-M-001 through T-M-003, accept the blockers as known manual follow-up, or open a follow-up phase/issue.
 
-Phase 21 has 4/4 plans complete. Final focused suites, `npm run typecheck`, `npm test`, `npm run test:e2e`, and `npm run preflight` passed on 2026-06-04. `21-VERIFICATION.md` records the full REQ-020 matrix and keeps the blocked manual checks visible.
+Phase 21 has 4/4 plans complete. Final focused suites, `npm run typecheck`, `npm test`, `npm run test:e2e`, and `npm run preflight` passed on 2026-06-04. `T-M-004` native clipboard coverage passed on 2026-06-04 via `e2e/flashquery-native-clipboard.spec.ts`. `21-VERIFICATION.md` records the full REQ-020 matrix and keeps the remaining blocked manual/live checks visible.
 
 ## Decisions
 
@@ -65,7 +65,8 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table (updated
 | 2026-06-01 | Phase 13 downstream agents must read the upstream-sync requirements and test plan before acceptance, provenance, verification, or closeout decisions. | Prevents final closeout from drifting away from REQ-021, REQ-023, REQ-024, REQ-025, REQ-026, T-A-010, T-A-012..T-A-015, and T-E-001..T-E-005. |
 | 2026-06-03 | v1.2 uses the Milestone 2 requirements and test plan as mandatory source-of-truth docs. | Keeps refresh, frontmatter, vault search, Pi extension, reference, clipboard, and degradation work aligned to the product spec and coverage matrix. |
 | 2026-06-03 | v1.2 continues phase numbering from v1.1, starting at Phase 14. | Preserves the project roadmap's sequential phase history across shipped milestones. |
-| 2026-06-04 | Phase 21 is left in Needs Review after automated verification passed. | Live/manual checks T-M-001 through T-M-004 require a real FlashQuery/Pi/provider/native clipboard environment or owner acceptance before release-readiness is complete. |
+| 2026-06-04 | Phase 21 is left in Needs Review after automated verification passed. | At closeout, live/manual checks T-M-001 through T-M-004 required real FlashQuery/Pi/provider/native clipboard evidence or owner acceptance before release-readiness could be complete. |
+| 2026-06-04 | T-M-004 native clipboard verification is automated. | `e2e/flashquery-native-clipboard.spec.ts` drives vault tree, search row, and editor title copy actions and reads Electron's native clipboard, removing the native clipboard item from the manual blocker list. |
 
 - [Phase 17]: Plan 17.1 writes FlashQuery Pi handoff to workspace-scoped .cate/pi-agent/flashquery-handoff.json. — Bearer tokens are sourced only from main-process getWorkspaceToken(workspaceId), preserving the renderer and Pi auth.json token boundary.
 - [Phase 17]: Plan 17.2 uses MCP listTools metadata as the FlashQuery registry source for hostEligible/current Pi tool registration.
@@ -126,5 +127,5 @@ Items acknowledged and deferred at milestone close on 2026-05-30:
 
 ## Operator Next Steps
 
-- Review `.planning/phases/21-cross-surface-hardening-and-regression/21-VERIFICATION.md` and decide whether to accept blocked manual/live checks T-M-001 through T-M-004 as follow-up.
-- Record human T-M-004 pasted clipboard evidence in `.planning/phases/20-pi-mentions-and-clipboard-utilities/20-UAT.md` and `.planning/phases/21-cross-surface-hardening-and-regression/21-UAT.md` when available.
+- Review `.planning/phases/21-cross-surface-hardening-and-regression/21-VERIFICATION.md` and decide whether to accept blocked manual/live checks T-M-001 through T-M-003 as follow-up.
+- Decide whether to attempt deterministic or env-gated automation for the remaining live macro/model/provider checks.

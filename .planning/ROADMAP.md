@@ -208,7 +208,7 @@ Plans:
 6. Vault tree, search rows, and FlashQuery editor title actions copy forward-slash vault paths and whole-document references only.
 7. Targeted coverage includes T-U-006, T-U-011, T-U-012, T-U-020, T-E-004, and T-M-004.
 
-**Status:** Complete with T-M-004 pending human native macOS clipboard verification
+**Status:** Complete; T-M-004 native clipboard coverage automated by `e2e/flashquery-native-clipboard.spec.ts`
 
 ### Phase 21: Cross-Surface Hardening and Regression
 
@@ -226,7 +226,7 @@ Plans:
 6. Milestone UI polish is checked against the Milestone 2 UI Spec where applicable.
 7. Final verification runs targeted suites, `npm run typecheck`, and `npm run preflight` where practical, with skipped portions explicitly recorded.
 
-**Status:** Needs Review - automated verification passed; manual/live checks `T-M-001` through `T-M-004` remain blocked pending human evidence or owner acceptance.
+**Status:** Needs Review - automated verification passed; manual/live checks `T-M-001` through `T-M-003` remain blocked pending human/live evidence or owner acceptance. `T-M-004` native clipboard coverage is automated.
 
 **Coverage:** 8 phases, 20/20 requirements mapped.
 
@@ -234,7 +234,7 @@ Plans:
 
 ## Current Status
 
-Active milestone: v1.2 FlashQuery Milestone 2. Phase 21 automated verification and preflight are complete. The milestone is waiting on owner review of blocked manual/live checks `T-M-001` through `T-M-004` before it can be treated as fully release-ready.
+Active milestone: v1.2 FlashQuery Milestone 2. Phase 21 automated verification and preflight are complete. `T-M-004` native clipboard coverage is now automated; the milestone is waiting on owner review of blocked manual/live checks `T-M-001` through `T-M-003` before it can be treated as fully release-ready.
 
 ## Notes
 

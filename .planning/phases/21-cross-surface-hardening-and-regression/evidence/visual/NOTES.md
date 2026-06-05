@@ -41,7 +41,7 @@ All generated PNG files are non-empty and have expected dimensions: full-page ca
 - Vault Search is visually specified in the UI Spec and behaviorally covered by `T-E-003` plus `T-U-021`; this visual evidence flow does not currently create a Vault Search panel screenshot.
 - Pi ToolCard diagnostics are behaviorally covered by `T-E-006` and `T-E-006b`; this visual evidence flow does not currently capture expanded ToolCard screenshots.
 - Pi `@` mention popover is behaviorally covered by `T-E-004` and `T-U-021`; this visual evidence flow does not currently capture the popover.
-- Clipboard menus are covered through component/E2E menu and clipboard assertions; native macOS pasted clipboard verification remains blocked as `T-M-004`.
+- Clipboard menus are covered through component/E2E menu and clipboard assertions; native clipboard verification now passes through `e2e/flashquery-native-clipboard.spec.ts` as `T-M-004`.
 
 ## Blockers
 
@@ -52,4 +52,4 @@ Manual/live blockers remain recorded in `21-UAT.md`:
 - `T-M-001`: blocked pending real FlashQuery endpoint and configured native Pi provider.
 - `T-M-002`: blocked pending real host-model `call_macro`, progress-emitting macro, `needs_user_input`, and disconnected macro check.
 - `T-M-003`: blocked pending live host-model `call_model` with document refs and diagnostics.
-- `T-M-004`: blocked pending native macOS pasted clipboard values.
+- `T-M-004`: passed by native clipboard E2E.

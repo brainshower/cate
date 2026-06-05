@@ -11,6 +11,7 @@ provides:
   - Extended T-E-003 Electron coverage for search row copy path/reference preservation
   - Phase 20 UAT traceability for REQ-018 and REQ-019
   - Truthful blocked T-M-004 native macOS clipboard checkpoint
+  - "Addendum 2026-06-04: T-M-004 native clipboard coverage automated by e2e/flashquery-native-clipboard.spec.ts"
 affects: [phase-20-closeout]
 tech-stack:
   added: []
@@ -28,6 +29,7 @@ key-files:
 key-decisions:
   - "Docket Agent composers now portal mention dropdowns into their own composer wrapper; canvas composers keep the node portal target."
   - "T-M-004 is blocked, not passed, because no human macOS pasted clipboard values were captured in this session."
+  - "Addendum 2026-06-04: T-M-004 is now covered by an Electron native clipboard E2E that reads the main-process clipboard."
 patterns-established:
   - "E2E can refresh/read/clear agent vault-index state through the existing harness while still driving the real textarea and mention popup."
 requirements-completed: [REQ-018, REQ-019]
@@ -97,13 +99,17 @@ completed: 2026-06-04
 
 All automated build, typecheck, unit, focused E2E, full unit, and full E2E commands passed. T-M-004 remains blocked pending human native macOS clipboard verification.
 
+### Addendum 2026-06-04
+
+`T-M-004` is no longer blocked. `e2e/flashquery-native-clipboard.spec.ts` was added and `npm run test:e2e -- e2e/flashquery-native-clipboard.spec.ts` passed, verifying vault tree, search row, and editor title copy actions against Electron's native clipboard.
+
 ## User Setup Required
 
-To close T-M-004 as passed, a human must run the manual steps in `20-UAT.md` on macOS and paste the exact clipboard values for vault tree, search row, and editor title actions.
+T-M-004 is now closed by automated native clipboard evidence in `20-UAT.md`.
 
 ## Next Phase Readiness
 
-Phase 20 implementation and automated validation are complete. The only remaining non-automated item is the explicitly blocked T-M-004 native clipboard sign-off.
+Phase 20 implementation and automated validation are complete. The former T-M-004 native clipboard blocker is closed by automated evidence; live macro T-M-002 remains tracked separately in UAT as a carried-forward live/manual blocker.
 
 ---
 *Phase: 20-pi-mentions-and-clipboard-utilities*

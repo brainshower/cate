@@ -45,7 +45,7 @@ Build evidence:
 | T-M-001 | REQ-013, REQ-014, REQ-020 | blocked | Requires real FlashQuery HTTP MCP endpoint plus configured native Pi provider. Current automated substitutes passed: `T-U-015`, `T-E-005`, and Phase 21 focused Pi extension E2E. Still requires human confirmation that native and brokered eligible tools register, stale tools disappear or reject after workspace switch, and FlashQuery is absent from ProvidersView. |
 | T-M-002 | REQ-016 | blocked | Automated real-envelope regression is passed through `T-E-006b`, but this is not a replacement for the live check. Still requires real host-model `call_macro`, progress-emitting macro, live progress observation, final trace confirmation, `needs_user_input`, and disconnected macro behavior. |
 | T-M-003 | REQ-015, REQ-017 | blocked | Mocked ToolCard/diagnostics E2E passed through `T-E-006`, but live host-model `call_model` with document refs was not run. Still requires configured Pi provider, live FlashQuery runtime, purpose/model resolution, injected refs, messages payload, cost/tokens/latency, and server-side FlashQuery tool-loop diagnostics. |
-| T-M-004 | REQ-019 | blocked | Automated component/E2E clipboard assertions passed, but native macOS pasted clipboard values were not captured by a human. Still requires pasted values for vault tree, search row, and editor title `Copy vault path` / `Copy as reference`, exactly `Docs/Plan.md` and `{{ref:Docs/Plan.md}}`, with no section anchors or markdown links. |
+| T-M-004 | REQ-019 | passed by automated native clipboard E2E | `npm run test:e2e -- e2e/flashquery-native-clipboard.spec.ts` passed on 2026-06-04. The test invokes vault tree, search row, and FlashQuery editor title copy actions and reads Electron's native clipboard, verifying exact `Docs/Plan.md` and `{{ref:Docs/Plan.md}}` values with no URI, encoding, anchor, block-ref, or markdown-link variants. |
 
 ## Phase 21 Cross-Surface Matrix
 
@@ -55,7 +55,7 @@ Build evidence:
 | Frontmatter save | T-E-002 plus T-E-007 editor-open disconnect case, T-U-021 editor/frontmatter assertions | passed |
 | Vault Search | T-E-003, T-U-021 search assertions | passed |
 | Pi `@` cache | T-E-004, T-U-021 agent store/input assertions | passed |
-| Clipboard reference actions | T-E-003 plus component assertions; T-M-004 remains native-only | automated passed; manual blocked |
+| Clipboard reference actions | T-E-003 plus component assertions; T-M-004 native clipboard E2E | automated passed |
 | Pi extension tools | T-E-005, T-U-015 lifecycle assertions | automated passed; manual T-M-001 blocked |
 | ToolCard diagnostics | T-E-006 and T-E-006b | automated passed; manual T-M-002/T-M-003 blocked |
 | Broad disconnect/reconnect | T-E-007 distributed across editor, search, mention-cache, and status-chip specs | passed |
@@ -76,8 +76,8 @@ Final closeout evidence is recorded in `.planning/phases/21-cross-surface-harden
 - Focused unit/component suites passed.
 - Focused E2E suites for `T-E-001` through `T-E-007` plus `T-E-006b` passed.
 - `npm run typecheck`, `npm test`, `npm run test:e2e`, and `npm run preflight` passed.
-- Phase status remains `needs-review` because `T-M-001`, `T-M-002`, `T-M-003`, and `T-M-004` are still blocked pending live/manual evidence or owner acceptance.
+- Phase status remains `needs-review` because `T-M-001`, `T-M-002`, and `T-M-003` are still blocked pending live/manual evidence or owner acceptance. `T-M-004` is covered by automated native clipboard E2E.
 
 ## Sign-Off
 
-Automated Phase 21 E2E evidence is passed for `T-E-001` through `T-E-007` plus `T-E-006b`. Manual/live checks remain blocked with exact prerequisites and must not be marked passed without human-observed evidence.
+Automated Phase 21 E2E evidence is passed for `T-E-001` through `T-E-007`, `T-E-006b`, and `T-M-004`. Manual/live checks `T-M-001` through `T-M-003` remain blocked with exact prerequisites and must not be marked passed without human/live evidence.

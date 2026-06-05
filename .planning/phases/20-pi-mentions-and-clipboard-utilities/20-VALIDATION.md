@@ -1,10 +1,11 @@
 ---
 phase: 20
 slug: pi-mentions-and-clipboard-utilities
-status: draft
+status: complete-with-live-macro-blocker
 nyquist_compliant: true
-wave_0_complete: false
+wave_0_complete: true
 created: 2026-06-04
+updated: 2026-06-05T00:14:45Z
 ---
 
 # Phase 20 - Validation Strategy
@@ -21,6 +22,7 @@ created: 2026-06-04
 | **Config file** | `vitest.config.ts`, `playwright.config.ts` |
 | **Quick run command** | `npm test -- src/agent/renderer/AgentChatInput.atMention.test.tsx src/agent/renderer/agentStore.test.ts src/renderer/panels/FlashQueryVaultPanel.test.tsx src/renderer/panels/EditorPanel.test.tsx` |
 | **Full suite command** | `npm run typecheck && npm test && npm run test:e2e` |
+| **Native clipboard command** | `npm run test:e2e -- e2e/flashquery-native-clipboard.spec.ts` |
 | **Estimated runtime** | Focused tests ~60-180 seconds; E2E depends on Electron build freshness |
 
 **Environment caveat:** local research found Node `v24.7.0`, while Cate requires `>=20 <23`. Executors should switch to Node 20 or 22 before relying on npm validation results.
@@ -46,7 +48,7 @@ created: 2026-06-04
 | 20-02-02 | 02 | 2 | REQ-018 | stale-workspace-ui | E2E proves workspace-switch replacement and disconnect clearing | E2E | `npm run test:e2e -- e2e/flashquery-pi-mentions.spec.ts` | no, Wave 0 | pending |
 | 20-03-01 | 03 | 1 | REQ-019 | clipboard-integrity | Vault tree and editor title copy only forward-slash paths and whole-document refs | component | `npm test -- src/renderer/panels/FlashQueryVaultPanel.test.tsx src/renderer/panels/EditorPanel.test.tsx` | yes, additions needed | pending |
 | 20-03-02 | 03 | 2 | REQ-019 | clipboard-integrity | Search row copy behavior remains intact | component/E2E | `npm test -- src/renderer/panels/FlashQueryVaultSearchPanel.test.tsx && npm run test:e2e -- e2e/flashquery-vault-search.spec.ts` | yes | pending |
-| 20-04-01 | 04 | 3 | REQ-019 | native-clipboard | Native macOS clipboard contents verified manually | manual | `test -f .planning/phases/20-pi-mentions-and-clipboard-utilities/20-UAT.md && rg -n "T-M-004|REQ-019" .planning/phases/20-pi-mentions-and-clipboard-utilities/20-UAT.md` | no, Wave 0 | pending |
+| 20-04-01 | 04 | 3 | REQ-019 | native-clipboard | Vault tree, search row, and editor title actions write exact whole-document path/reference values to Electron's native clipboard | E2E | `npm run test:e2e -- e2e/flashquery-native-clipboard.spec.ts` | yes | green |
 
 ---
 
@@ -57,7 +59,8 @@ created: 2026-06-04
 - [ ] `src/renderer/panels/FlashQueryVaultPanel.test.tsx` additions - T-U-012 vault tree `Copy vault path` and `Copy as reference`.
 - [ ] `src/renderer/panels/EditorPanel.test.tsx` additions - T-U-012 editor title Clipboard action visibility and copy menu.
 - [ ] `e2e/flashquery-pi-mentions.spec.ts` or equivalent - T-E-004 Pi chat mention insertion, workspace-switch cache replacement, disconnect cache clearing, and no extra footer UI.
-- [ ] `.planning/phases/20-pi-mentions-and-clipboard-utilities/20-UAT.md` - T-M-004 manual native clipboard evidence.
+- [x] `e2e/flashquery-native-clipboard.spec.ts` - T-M-004 native clipboard coverage for vault tree, search row, and editor title actions.
+- [x] `.planning/phases/20-pi-mentions-and-clipboard-utilities/20-UAT.md` - T-M-004 automated native clipboard evidence.
 
 ---
 
@@ -65,7 +68,21 @@ created: 2026-06-04
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| Native macOS clipboard contents from vault tree, search row, and editor title actions | REQ-019 / T-M-004 | Native clipboard and OS menu behavior can be mocked but should be confirmed on macOS | In a connected workspace, invoke each copy action, paste into a plain text target, and verify exact `Docs/Plan.md` or `{{ref:Docs/Plan.md}}` style output. Confirm no section anchors or markdown links appear. |
+| Live host-model macro progress, completed trace, `needs_user_input`, and disconnected macro behavior | REQ-016 / T-M-002 | Requires a real FlashQuery runtime, configured native Pi provider, host-model tool selection, and progress-emitting macro | Run the live macro scenario from `20-UAT.md`; keep blocked until human/live evidence is recorded. |
+
+## Validation Audit 2026-06-04
+
+| Metric | Count |
+|--------|-------|
+| Native clipboard blockers automated | 1 |
+| Live/manual blockers remaining | 1 |
+| New E2E files added | 1 |
+
+| Command | Result |
+|---------|--------|
+| `npm run test:e2e -- e2e/flashquery-native-clipboard.spec.ts` | passed: 1 Playwright Electron test |
+| `npm test -- src/renderer/panels/FlashQueryVaultPanel.test.tsx src/renderer/panels/FlashQueryVaultSearchPanel.test.tsx src/renderer/panels/EditorPanel.test.tsx` | passed: 3 files, 72 tests |
+| `npm run typecheck` | passed |
 
 ---
 
@@ -78,4 +95,4 @@ created: 2026-06-04
 - [x] Feedback latency target documented
 - [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved for `REQ-019` automated native clipboard coverage on 2026-06-04; live macro `T-M-002` remains blocked pending human/live evidence.

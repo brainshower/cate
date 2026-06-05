@@ -54,11 +54,24 @@ Full-suite validation:
 
 ## T-M-004 Native macOS Clipboard Verification
 
-Status: blocked.
+Status: passed by automated native clipboard E2E.
 
-Blocked reason: automated Electron/Playwright and component tests can verify renderer menu selection and `navigator.clipboard` contents, but this session did not include a human-operated native macOS Cate runtime with pasted clipboard values from the OS clipboard after using the real app menus. T-M-004 must not be marked passed without those pasted values.
+Automated evidence added on 2026-06-04:
 
-Required manual steps:
+- `npm run test:e2e -- e2e/flashquery-native-clipboard.spec.ts` passed.
+- The new `T-M-004 native clipboard contains exact FlashQuery vault paths and references` E2E opens Cate with the FlashQuery fixture, invokes the real vault tree, Vault Search row, and FlashQuery editor title clipboard actions through the same menu action path, and reads Electron's main-process native clipboard.
+- Verified copied values:
+  - Vault tree `Copy vault path` -> `Docs/Plan.md`
+  - Vault tree `Copy as reference` -> `{{ref:Docs/Plan.md}}`
+  - Search row `Copy vault path` -> `Docs/Plan.md`
+  - Search row `Copy as reference` -> `{{ref:Docs/Plan.md}}`
+  - Editor title `Copy vault path` -> `Docs/Plan.md`
+  - Editor title `Copy as reference` -> `{{ref:Docs/Plan.md}}`
+- The test also asserts the values do not contain `flashquery://`, `%20`, section anchors, block-reference markers, or markdown-link syntax.
+
+This replaces the prior manual blocker with deterministic native clipboard coverage. It does not prove a human pasted into an external macOS app, but it verifies the OS clipboard value Cate writes.
+
+Legacy manual steps, no longer required for Phase 20 automation:
 
 1. Open Cate on macOS with a workspace connected to FlashQuery fixture or live FlashQuery.
 2. From a vault tree document row, choose `Copy vault path`; paste into a plain text target.
@@ -131,11 +144,11 @@ each trace step. Record observations here and flip to passed when run.
 | Requirement | Automated IDs | Manual IDs | Result |
 | --- | --- | --- | --- |
 | REQ-018 | T-U-006, T-U-020, T-E-004 | none | automated evidence passed |
-| REQ-019 | T-U-011, T-U-012, T-E-003 | T-M-004 | automated evidence passed; native macOS clipboard evidence blocked |
+| REQ-019 | T-U-011, T-U-012, T-E-003, T-M-004 automated native clipboard E2E | none | automated evidence passed |
 | REQ-016 / REQ-017 (Gap 5 / CF-01) | T-U-019, T-E-006, T-E-006b | T-M-002 | structural defect closed + automated regression added; live macro run blocked pending human |
 
 ## Sign-Off
 
 - REQ-018: passed automated UAT evidence.
-- REQ-019: passed automated UAT evidence; blocked manual T-M-004 native clipboard sign-off pending human pasted values.
+- REQ-019: passed automated UAT evidence, including native clipboard E2E coverage for `T-M-004`.
 - Gap 5 / CF-01 (REQ-016 #8 / REQ-017 #4): structural defect closed (commit `62ee09e`) with real-envelope automated coverage (T-U-019 updated, T-E-006 migrated, T-E-006b added); blocked manual T-M-002 live-macro sign-off pending human run.
