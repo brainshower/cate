@@ -5,7 +5,7 @@ status: complete-with-manual-blockers
 nyquist_compliant: true
 wave_0_complete: true
 created: 2026-06-04
-updated: 2026-06-04T23:42:20Z
+updated: 2026-06-05T00:04:50Z
 requirements: [REQ-020]
 ---
 
@@ -100,6 +100,22 @@ Manual checks above are blocked in `21-UAT.md` and `21-VERIFICATION.md` with exa
 
 Previously recorded final closeout evidence in `21-VERIFICATION.md` also includes passing focused E2E, visual E2E, full unit, full E2E, and `npm run preflight`.
 
+## Validation Re-Audit 2026-06-04
+
+| Metric | Count |
+|--------|-------|
+| Automated gaps found | 0 |
+| Manual/live blockers retained | 4 |
+| Commands re-run | 3 |
+
+| Command | Result |
+|---------|--------|
+| `npm test -- src/agent/renderer/agentStore.test.ts src/agent/renderer/AgentChatInput.atMention.test.tsx src/agent/extensions/cate-flashquery/lifecycle.test.ts src/agent/extensions/cate-flashquery/index.test.ts` | passed: 4 files, 38 tests |
+| `npm test -- src/renderer/panels/EditorPanel.test.tsx src/renderer/panels/FlashQueryVaultSearchPanel.test.tsx src/renderer/panels/FlashQueryVaultPanel.test.tsx` | passed: 3 files, 72 tests |
+| `npm run typecheck` | passed |
+
+No Nyquist gap-filler was spawned because the existing automated requirement map remained covered and green. `T-M-001` through `T-M-004` remain explicit manual/live blockers, not missing automated coverage.
+
 ---
 
 ## Validation Sign-Off
@@ -112,4 +128,3 @@ Previously recorded final closeout evidence in `21-VERIFICATION.md` also include
 - [x] `nyquist_compliant: true` set in frontmatter.
 
 **Approval:** approved for automated Nyquist coverage on 2026-06-04; release-readiness remains blocked pending owner decision or manual/live evidence for `T-M-001` through `T-M-004`.
-
