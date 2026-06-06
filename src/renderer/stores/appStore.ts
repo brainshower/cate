@@ -563,6 +563,10 @@ function placePanelInCanvasNode(
     } else {
       liveDockStore.getState().dockPanel(panelId, 'center')
     }
+    target.canvasStore.getState().setNodeDockLayout(
+      target.nodeId,
+      liveDockStore.getState().zones.center.layout,
+    )
   } else {
     target.canvasStore.getState().setNodeDockLayout(
       target.nodeId,

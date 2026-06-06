@@ -72,9 +72,10 @@ interface CanvasPanelProps {
 // CanvasNodeWrapper — reads its own node slice so re-renders stay local
 // ---------------------------------------------------------------------------
 
-const CanvasNodeWrapper = React.memo(({ nodeId, canvasPanelId, renderPanelContent }: {
+const CanvasNodeWrapper = React.memo(({ nodeId, canvasPanelId, workspaceId, renderPanelContent }: {
   nodeId: string
   canvasPanelId: string
+  workspaceId: string
   renderPanelContent?: (panelId: string, nodeId: string, zoomLevel: number) => React.ReactNode
 }) => {
   useRenderCount('CanvasNodeWrapper')
@@ -144,7 +145,7 @@ const CanvasNodeWrapper = React.memo(({ nodeId, canvasPanelId, renderPanelConten
   // added later (e.g. async restore) doesn't get pruned by an early run.
   // ------------------------------------------------------------------
   const workspacePanels = useAppStore(
-    (s) => s.workspaces.find((w) => w.id === useAppStore.getState().selectedWorkspaceId)?.panels,
+    (s) => s.workspaces.find((w) => w.id === workspaceId)?.panels,
   )
   useEffect(() => {
     if (!workspacePanels) return
@@ -186,6 +187,7 @@ const CanvasNodeWrapper = React.memo(({ nodeId, canvasPanelId, renderPanelConten
   return (
     <CanvasNode
       nodeId={node.id}
+      workspaceId={workspaceId}
       isFocused={isFocused}
       dockStoreApi={dockStoreApi}
       renderPanel={renderPanel}
@@ -321,6 +323,7 @@ export default function CanvasPanel({ panelId, workspaceId, nodeId, renderPanelC
               key={nId}
               nodeId={nId}
               canvasPanelId={panelId}
+              workspaceId={workspaceId}
               renderPanelContent={renderPanelContent}
             />
           ))}

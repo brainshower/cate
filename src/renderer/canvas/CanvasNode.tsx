@@ -44,6 +44,7 @@ function handToolPanShouldWin(e: React.MouseEvent): boolean {
 
 export interface CanvasNodeProps {
   nodeId: string
+  workspaceId?: string
   isFocused: boolean
   activityState?: NodeActivityState
   /** Per-node DockStore that owns the layout for this node. Created in CanvasPanel. */
@@ -131,6 +132,7 @@ const TAB_ICON_SIZE = 12
 
 const CanvasNode: React.FC<CanvasNodeProps> = ({
   nodeId,
+  workspaceId,
   isFocused,
   activityState,
   dockStoreApi,
@@ -207,7 +209,8 @@ const CanvasNode: React.FC<CanvasNodeProps> = ({
     [handleResizeStart],
   )
   const { handleMouseDown } = useNodeResizeCursor()
-  const wsId = useAppStore((s) => s.selectedWorkspaceId)
+  const selectedWorkspaceId = useAppStore((s) => s.selectedWorkspaceId)
+  const wsId = workspaceId ?? selectedWorkspaceId
   const currentWorkspace = useSelectedWorkspace()
 
   // Terminals follow the single unified theme, so node chrome is never tinted
@@ -405,6 +408,7 @@ const CanvasNode: React.FC<CanvasNodeProps> = ({
           renderPanel={renderPanel}
           getPanelTitle={getPanelTitle}
           getPanel={getPanel}
+          workspaceId={wsId}
           onClosePanel={handleClosePanel}
           excludePanelTypes={CANVAS_EXCLUDED_TYPES}
           localOnly
@@ -659,6 +663,7 @@ const CanvasNode: React.FC<CanvasNodeProps> = ({
 export default React.memo(CanvasNode, (prev, next) => {
   return (
     prev.nodeId === next.nodeId &&
+    prev.workspaceId === next.workspaceId &&
     prev.isFocused === next.isFocused &&
     prev.activityState === next.activityState &&
     prev.dockStoreApi === next.dockStoreApi &&

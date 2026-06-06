@@ -188,17 +188,19 @@ export function DockTabBar(props: DockTabBarProps) {
         const panel = getPanel(panelId)
         const panelType = (panel?.type ?? 'editor') as PanelType
         // Vault editor tabs need extra room because the VaultBadge claims
-        // ~120 px of chrome; the regular 200 px cap would force both the
-        // filename and the badge to truncate. 280 px fits a normal vault
-        // filename, the badge, and the close X with breathing room.
+        // chrome after the filename. Keep the title lane readable first,
+        // especially in canvas-node mini-docks where the badge is compacted.
         const isVaultEditor = panel?.type === 'editor' && !!panel?.filePath?.startsWith('flashquery://')
+        const tabWidthClass = isVaultEditor
+          ? compact ? 'max-w-[320px] min-w-[190px]' : 'max-w-[360px] min-w-[220px]'
+          : 'max-w-[200px]'
         const pill = (
           <TabPill
             key={panelId}
             panelId={panelId}
             className={`
               group relative flex items-center gap-1.5 whitespace-nowrap
-              cursor-grab select-none min-w-0 flex-1 ${isVaultEditor ? 'max-w-[280px]' : 'max-w-[200px]'}
+              cursor-grab select-none min-w-0 flex-1 ${tabWidthClass}
               border-r border-white/5
               ${compact ? 'pl-2 pr-1.5 text-[11px]' : 'pl-3 pr-2 text-xs'}
               ${isActive ? 'text-secondary font-medium' : 'text-muted hover:text-secondary'}
@@ -277,7 +279,7 @@ export function DockTabBar(props: DockTabBarProps) {
               >{getPanelTitle(panelId)}</span>
             )}
             {panel?.type === 'editor' && (
-              <VaultBadge filePath={panel.filePath} connectionUrl={connectionUrl} />
+              <VaultBadge filePath={panel.filePath} connectionUrl={connectionUrl} compact={compact} />
             )}
             {agentInfoByPanel[panelId]?.state === 'waitingForInput' && (
               <span className="cate-await-indicator shrink-0" aria-label="awaiting input">

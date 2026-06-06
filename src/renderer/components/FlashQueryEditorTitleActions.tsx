@@ -1,4 +1,5 @@
 import { ArrowClockwise, Clipboard, FileText } from '@phosphor-icons/react'
+import { useState, type MouseEvent, type ReactNode } from 'react'
 import type { PanelState } from '../../shared/types'
 import { parseVaultUri } from '../../shared/flashqueryUri'
 import { useAppStore } from '../stores/appStore'
@@ -27,6 +28,54 @@ function dispatchEditorAction(panelId: string, action: FlashQueryEditorTitleActi
   )
 }
 
+interface ActionButtonProps {
+  label: string
+  tooltip: string
+  className: string
+  children: ReactNode
+  onClick: (event: MouseEvent<HTMLButtonElement>) => void
+}
+
+function ActionButton({ label, tooltip, className, children, onClick }: ActionButtonProps) {
+  const [tooltipRect, setTooltipRect] = useState<DOMRect | null>(null)
+  const tooltipId = `flashquery-action-tooltip-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
+
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      aria-describedby={tooltipRect ? tooltipId : undefined}
+      title={tooltip}
+      className={`${className} relative`}
+      onClick={onClick}
+      onMouseDown={(e) => e.stopPropagation()}
+      onMouseEnter={(e) => setTooltipRect(e.currentTarget.getBoundingClientRect())}
+      onMouseLeave={() => setTooltipRect(null)}
+      onFocus={(e) => setTooltipRect(e.currentTarget.getBoundingClientRect())}
+      onBlur={() => setTooltipRect(null)}
+    >
+      {children}
+      {tooltipRect && (
+        <span
+          id={tooltipId}
+          role="tooltip"
+          className="pointer-events-none fixed z-[9999] rounded-md border border-subtle bg-surface-4 px-2 py-1 text-muted shadow-2xl"
+          style={{
+            top: tooltipRect.bottom + 6,
+            left: tooltipRect.left + (tooltipRect.width / 2),
+            transform: 'translateX(-50%)',
+            fontSize: 10,
+            lineHeight: 1.35,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {tooltip}
+        </span>
+      )}
+    </button>
+  )
+}
+
 export function FlashQueryEditorTitleActions({
   panel,
   workspaceId,
@@ -44,48 +93,42 @@ export function FlashQueryEditorTitleActions({
   return (
     <>
       {vaultUri.part === 'body' && (
-        <button
-          type="button"
-          aria-label="Refresh from vault"
-          title="Refresh from vault"
+        <ActionButton
+          label="Refresh from vault"
+          tooltip="Reload this document from FlashQuery"
           className={buttonClass}
           onClick={(e) => {
             e.stopPropagation()
             dispatchEditorAction(panel.id, 'refresh-from-vault')
           }}
-          onMouseDown={(e) => e.stopPropagation()}
         >
           <ArrowClockwise size={iconSize} />
-        </button>
+        </ActionButton>
       )}
       {vaultUri.part === 'body' && (
-        <button
-          type="button"
-          aria-label="Open frontmatter"
-          title="Open frontmatter"
+        <ActionButton
+          label="Open frontmatter"
+          tooltip="Open this document's frontmatter"
           className={buttonClass}
           onClick={(e) => {
             e.stopPropagation()
             openFlashQueryFrontmatterEditor(workspaceId, panel.id)
           }}
-          onMouseDown={(e) => e.stopPropagation()}
         >
           <FileText size={iconSize} />
-        </button>
+        </ActionButton>
       )}
-      <button
-        type="button"
-        aria-label="Copy vault path or reference"
-        title="Copy vault path or reference"
+      <ActionButton
+        label="Copy vault path or reference"
+        tooltip="Copy the FlashQuery vault path"
         className={buttonClass}
         onClick={(e) => {
           e.stopPropagation()
           dispatchEditorAction(panel.id, 'copy-reference')
         }}
-        onMouseDown={(e) => e.stopPropagation()}
       >
         <Clipboard size={iconSize} />
-      </button>
+      </ActionButton>
     </>
   )
 }

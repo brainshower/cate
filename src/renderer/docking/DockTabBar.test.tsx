@@ -1,5 +1,5 @@
 import React from 'react'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const { openFlashQueryFrontmatterEditorSpy } = vi.hoisted(() => ({
@@ -92,7 +92,7 @@ describe('DockTabBar vault badge wiring', () => {
 
     expect(screen.getByTestId('vault-badge')).toBeTruthy()
     expect(screen.getByText('· fq.local:3100')).toBeTruthy()
-    expect(document.querySelector('[data-tab-panel-id="editor-1"]')?.className).toContain('max-w-[280px]')
+    expect(document.querySelector('[data-tab-panel-id="editor-1"]')?.className).toContain('max-w-[360px]')
   })
 
   it('keeps badge chrome free of revision, conflict, and version UI copy', () => {
@@ -277,6 +277,29 @@ describe('FlashQueryEditorTitleActions', () => {
     screen.getByLabelText('Open frontmatter').click()
 
     expect(openFlashQueryFrontmatterEditorSpy).toHaveBeenCalledWith('workspace-1', 'editor-1')
+  })
+
+  it('shows visible hover tooltips for FlashQuery title actions', () => {
+    const panel: PanelState = {
+      id: 'editor-1',
+      type: 'editor',
+      title: 'Plan.md',
+      isDirty: false,
+      filePath: 'flashquery://workspace-1/Docs/Plan.md',
+    }
+
+    render(<FlashQueryEditorTitleActions panel={panel} workspaceId="workspace-1" />)
+
+    fireEvent.mouseEnter(screen.getByLabelText('Refresh from vault'))
+    expect(screen.getByRole('tooltip', { name: 'Reload this document from FlashQuery' })).toBeTruthy()
+
+    fireEvent.mouseLeave(screen.getByLabelText('Refresh from vault'))
+    fireEvent.mouseEnter(screen.getByLabelText('Open frontmatter'))
+    expect(screen.getByRole('tooltip', { name: "Open this document's frontmatter" })).toBeTruthy()
+
+    fireEvent.mouseLeave(screen.getByLabelText('Open frontmatter'))
+    fireEvent.mouseEnter(screen.getByLabelText('Copy vault path or reference'))
+    expect(screen.getByRole('tooltip', { name: 'Copy the FlashQuery vault path' })).toBeTruthy()
   })
 
   it('T-U-012 dispatches copy and refresh title actions to the mounted editor panel', () => {

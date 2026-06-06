@@ -6,6 +6,7 @@ import { ChipSurface } from './Chip'
 interface VaultBadgeProps {
   filePath?: string
   connectionUrl?: string
+  compact?: boolean
 }
 
 function getConnectionHost(connectionUrl?: string): string | null {
@@ -17,7 +18,7 @@ function getConnectionHost(connectionUrl?: string): string | null {
   }
 }
 
-export function VaultBadge({ filePath, connectionUrl }: VaultBadgeProps) {
+export function VaultBadge({ filePath, connectionUrl, compact = false }: VaultBadgeProps) {
   const vaultUri = filePath ? parseVaultUri(filePath) : null
   const [hovering, setHovering] = useState(false)
   const [showTooltip, setShowTooltip] = useState(false)
@@ -40,7 +41,7 @@ export function VaultBadge({ filePath, connectionUrl }: VaultBadgeProps) {
     <ChipSurface
       data-testid="vault-badge"
       aria-label={host ? `Vault · ${host}` : 'Vault'}
-      className="max-w-[120px]"
+      className={compact ? 'max-w-[86px] px-1.5 gap-1' : 'max-w-[120px]'}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
       onFocus={() => setHovering(true)}
@@ -56,7 +57,7 @@ export function VaultBadge({ filePath, connectionUrl }: VaultBadgeProps) {
         style={{ color: '#5AD8B8', flex: '0 0 auto' }}
       />
       <span className="text-primary">Vault</span>
-      {host && (
+      {host && !compact && (
         <span className="text-muted truncate min-w-0" data-testid="vault-badge-host">
           · {host}
         </span>
