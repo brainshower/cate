@@ -28,6 +28,12 @@ import {
 import { viewToCanvas as viewToCanvasCoords } from '../lib/coordinates'
 import { REGION_FILL_COLORS } from '../../shared/colors'
 
+function dockLayoutContainsPanel(layout: DockLayoutNode | null | undefined, panelId: string): boolean {
+  if (!layout) return false
+  if (layout.type === 'tabs') return layout.panelIds.includes(panelId)
+  return layout.children.some((child) => dockLayoutContainsPanel(child, panelId))
+}
+
 // -----------------------------------------------------------------------------
 // Store interface
 // -----------------------------------------------------------------------------
@@ -686,7 +692,9 @@ export function createCanvasStore(): UseBoundStore<StoreApi<CanvasStore>> {
 
   nodeForPanel(panelId) {
     const { nodes } = get()
-    const found = Object.values(nodes).find((n) => n.panelId === panelId)
+    const found = Object.values(nodes).find((n) =>
+      n.panelId === panelId || dockLayoutContainsPanel(n.dockLayout, panelId)
+    )
     return found?.id ?? null
   },
 

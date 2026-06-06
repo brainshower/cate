@@ -66,6 +66,27 @@ describe('canvasStore.addNode panelId dedup invariant', () => {
   })
 })
 
+describe('canvasStore.nodeForPanel', () => {
+  it('resolves panels nested inside a canvas node tab layout', () => {
+    const store = createCanvasStore()
+    const nodeId = store.getState().addNode(
+      'primary-panel',
+      'editor',
+      { x: 0, y: 0 },
+      { width: 100, height: 80 },
+    )
+
+    store.getState().setNodeDockLayout(nodeId, {
+      type: 'tabs',
+      id: 'stack-1',
+      panelIds: ['primary-panel', 'secondary-panel'],
+      activeIndex: 1,
+    })
+
+    expect(store.getState().nodeForPanel('secondary-panel')).toBe(nodeId)
+  })
+})
+
 // Regression: a canvas tab dragged onto a canvas viewport (or any other path
 // that reached addNode with panelType==='canvas') used to create a nested
 // canvas — broken interaction (ambiguous drag targets, duplicate stores keyed

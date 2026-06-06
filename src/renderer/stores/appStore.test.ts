@@ -55,8 +55,16 @@ const makeCanvasOpsWithNode = (
           size,
           zOrder: 1,
           creationIndex: 1,
+          dockLayout: {
+            type: 'tabs',
+            id: 'stack-1',
+            panelIds: [panelId],
+            activeIndex: 0,
+          },
         },
       },
+      setNodeDockLayout: vi.fn(),
+      focusNode: vi.fn(),
     }),
   } as unknown as CanvasOperations['storeApi'],
   ...overrides,
@@ -268,34 +276,137 @@ describe('appStore.openFlashQueryFrontmatterEditor', () => {
     expect(panels).toHaveLength(1)
   })
 
-  it('T-U-007 places canvas frontmatter beside the source canvas panel', () => {
+  it('T-U-007 re-places an existing orphaned frontmatter editor instead of no-op focusing it', () => {
+    const sourcePanelId = useAppStore.getState().createEditor(
+      workspaceId,
+      'flashquery://workspace-1/Docs/Plan.md',
+      undefined,
+      { target: 'dock', zone: 'center' },
+    )
+    const orphanPanelId = useAppStore.getState().createEditor(
+      workspaceId,
+      'flashquery://workspace-1/Docs/Plan.md?part=frontmatter',
+      undefined,
+      { target: 'none' },
+    )
+
+    const result = useAppStore.getState().openFlashQueryFrontmatterEditor(workspaceId, sourcePanelId)
+
+    expect(result).toBe(orphanPanelId)
+    const panels = Object.values(useAppStore.getState().workspaces[0].panels)
+      .filter((panel) => panel.filePath === 'flashquery://workspace-1/Docs/Plan.md?part=frontmatter')
+    expect(panels).toHaveLength(1)
+    const stack = useDockStore.getState().zones.center.layout
+    expect(stack?.type === 'tabs' ? stack.panelIds : []).toEqual([sourcePanelId, orphanPanelId])
+    expect(stack?.type === 'tabs' ? stack.activeIndex : -1).toBe(1)
+  })
+
+  it('T-U-007 opens canvas frontmatter as a tab in the source canvas node', () => {
     const addNodeAndFocus = vi.fn()
+    const setNodeDockLayout = vi.fn()
+    const focusNode = vi.fn()
     const sourcePanelId = useAppStore.getState().createEditor(
       workspaceId,
       'flashquery://workspace-1/Docs/Plan.md',
       { x: 100, y: 120 },
       { target: 'canvas', position: { x: 100, y: 120 } },
     )
-    setCanvasOperations(makeCanvasOpsWithNode(sourcePanelId, { x: 100, y: 120 }, { width: 640, height: 420 }, { addNodeAndFocus }))
+    setCanvasOperations(makeCanvasOpsWithNode(
+      sourcePanelId,
+      { x: 100, y: 120 },
+      { width: 640, height: 420 },
+      {
+        addNodeAndFocus,
+        storeApi: {
+          getState: () => ({
+            nodeForPanel: (candidate: string) => candidate === sourcePanelId ? 'node-1' : null,
+            nodes: {
+              'node-1': {
+                id: 'node-1',
+                panelId: sourcePanelId,
+                origin: { x: 100, y: 120 },
+                size: { width: 640, height: 420 },
+                zOrder: 1,
+                creationIndex: 1,
+                dockLayout: {
+                  type: 'tabs',
+                  id: 'stack-1',
+                  panelIds: [sourcePanelId],
+                  activeIndex: 0,
+                },
+              },
+            },
+            setNodeDockLayout,
+            focusNode,
+          }),
+        } as unknown as CanvasOperations['storeApi'],
+      },
+    ))
 
     const frontmatterPanelId = useAppStore.getState().openFlashQueryFrontmatterEditor(workspaceId, sourcePanelId)
 
-    expect(addNodeAndFocus).toHaveBeenCalledWith(frontmatterPanelId, 'editor', { x: 780, y: 120 })
+    expect(addNodeAndFocus).not.toHaveBeenCalledWith(frontmatterPanelId, 'editor', expect.anything())
+    expect(setNodeDockLayout).toHaveBeenCalledWith('node-1', {
+      type: 'tabs',
+      id: 'stack-1',
+      panelIds: [sourcePanelId, frontmatterPanelId],
+      activeIndex: 1,
+    })
+    expect(focusNode).toHaveBeenCalledWith('node-1')
   })
 
   it('T-U-007 opens frontmatter by vault path through an existing body panel when available', () => {
     const addNodeAndFocus = vi.fn()
+    const setNodeDockLayout = vi.fn()
+    const focusNode = vi.fn()
     const sourcePanelId = useAppStore.getState().createEditor(
       workspaceId,
       'flashquery://workspace-1/Docs/Plan.md',
       { x: 100, y: 120 },
       { target: 'canvas', position: { x: 100, y: 120 } },
     )
-    setCanvasOperations(makeCanvasOpsWithNode(sourcePanelId, { x: 100, y: 120 }, { width: 640, height: 420 }, { addNodeAndFocus }))
+    setCanvasOperations(makeCanvasOpsWithNode(
+      sourcePanelId,
+      { x: 100, y: 120 },
+      { width: 640, height: 420 },
+      {
+        addNodeAndFocus,
+        storeApi: {
+          getState: () => ({
+            nodeForPanel: (candidate: string) => candidate === sourcePanelId ? 'node-1' : null,
+            nodes: {
+              'node-1': {
+                id: 'node-1',
+                panelId: sourcePanelId,
+                origin: { x: 100, y: 120 },
+                size: { width: 640, height: 420 },
+                zOrder: 1,
+                creationIndex: 1,
+                dockLayout: {
+                  type: 'tabs',
+                  id: 'stack-1',
+                  panelIds: [sourcePanelId],
+                  activeIndex: 0,
+                },
+              },
+            },
+            setNodeDockLayout,
+            focusNode,
+          }),
+        } as unknown as CanvasOperations['storeApi'],
+      },
+    ))
 
     const frontmatterPanelId = useAppStore.getState().openFlashQueryFrontmatterForPath(workspaceId, 'Docs/Plan.md')
 
-    expect(addNodeAndFocus).toHaveBeenCalledWith(frontmatterPanelId, 'editor', { x: 780, y: 120 })
+    expect(addNodeAndFocus).not.toHaveBeenCalledWith(frontmatterPanelId, 'editor', expect.anything())
+    expect(setNodeDockLayout).toHaveBeenCalledWith('node-1', {
+      type: 'tabs',
+      id: 'stack-1',
+      panelIds: [sourcePanelId, frontmatterPanelId],
+      activeIndex: 1,
+    })
+    expect(focusNode).toHaveBeenCalledWith('node-1')
     expect(useAppStore.getState().workspaces[0].panels[frontmatterPanelId!].filePath)
       .toBe('flashquery://workspace-1/Docs/Plan.md?part=frontmatter')
   })

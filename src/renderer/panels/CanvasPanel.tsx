@@ -27,7 +27,7 @@ import {
   findNodeDockStore,
   findNodeIdForDockStore,
 } from './nodeDockRegistry'
-import { getPanelDef } from '../panels/registry'
+import { getPanelDef, renderPanelComponent } from '../panels/registry'
 
 // Re-export the lookup helpers so existing callers (drag dispatcher, drop
 // resolver) keep working through the same import path. New code should import
@@ -168,9 +168,14 @@ const CanvasNodeWrapper = React.memo(({ nodeId, canvasPanelId, renderPanelConten
   // Only TerminalPanel actually consumes zoom, and it reads it reactively from
   // the canvas store context itself, so the value passed here is incidental.
   const renderPanel = useCallback(
-    (panelId: string) =>
-      renderPanelContent?.(panelId, nodeId, canvasStoreApi.getState().zoomLevel) ?? null,
-    [renderPanelContent, nodeId, canvasStoreApi],
+    (panelId: string) => {
+      const zoomLevel = canvasStoreApi.getState().zoomLevel
+      const injected = renderPanelContent?.(panelId, nodeId, zoomLevel)
+      if (injected) return injected
+      const panel = currentWorkspace?.panels[panelId]
+      return panel ? renderPanelComponent(panel, { workspaceId: currentWorkspace.id, nodeId, zoomLevel }) : null
+    },
+    [renderPanelContent, nodeId, canvasStoreApi, currentWorkspace],
   )
 
   if (!node) return null

@@ -101,7 +101,7 @@ test('T-E-002 opens and saves independent FlashQuery frontmatter editors', async
     const workspaceId = await configure(page, server.baseUrl, workspaceRoot)
 
     const bodyPanelId = await openVaultEditor(page, 'Frontmatter.md')
-    await page.getByLabel('Open frontmatter').click()
+    await page.locator(`[data-tab-panel-id="${bodyPanelId}"]`).getByLabel('Open frontmatter').click()
     const frontmatterUri = `flashquery://${workspaceId}/Frontmatter.md?part=frontmatter`
     const frontmatterPanelId = await page.waitForFunction((uri) => {
       return window.__cateE2E!.editorPanelIdsForFilePath(uri)[0] ?? null
@@ -152,6 +152,49 @@ test('T-E-002 opens and saves independent FlashQuery frontmatter editors', async
     }, bodyPanelId)
     expect(server.documentBody('Frontmatter.md')).toContain('Body edited independently')
     expect(server.documentFrontmatter('Frontmatter.md')).toEqual({ title: 'Updated', status: 'green' })
+  } finally {
+    if (app) await closeApp(app)
+    await server.close()
+  }
+})
+
+test('T-E-002 opens Canvas-hosted FlashQuery frontmatter from the tab action', async () => {
+  const server = await startFlashQueryStubServer({ expectedBearerToken: 'refresh-token' })
+  const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), 'cate-e2e-canvas-frontmatter-'))
+  let app: ElectronApplication | null = null
+  try {
+    server.seedDocuments({
+      'CanvasFrontmatter.md': {
+        body: '# Canvas Frontmatter\n\nBody stays on the same Canvas node.',
+        frontmatter: { title: 'Canvas Frontmatter', status: 'green' },
+      },
+    })
+    const launched = await launchApp()
+    app = launched.electronApp
+    const page = launched.mainWindow
+    const workspaceId = await configure(page, server.baseUrl, workspaceRoot)
+
+    await page.evaluate(() => window.__cateE2E!.createFlashQueryVault({ x: 260, y: 180 }))
+    const row = page.getByRole('treeitem', { name: 'CanvasFrontmatter.md' }).first()
+    await expect(row).toBeVisible()
+    await page.evaluate(() => window.__cateE2E!.chooseNextContextMenuAction('open-on-canvas'))
+    await row.click({ button: 'right' })
+
+    const bodyPanelId = await page.waitForFunction(() => {
+      return window.__cateE2E!.editorPanelIdsForPath('CanvasFrontmatter.md')
+        .find((panelId) => window.__cateE2E!.panelLocation(panelId) === 'canvas') ?? null
+    }).then((handle) => handle.jsonValue() as Promise<string>)
+    await expect.poll(() => page.evaluate((id) => window.__cateE2E!.editorText(id), bodyPanelId)).toContain('Body stays')
+
+    await page.getByLabel('Open frontmatter').click()
+    const frontmatterUri = `flashquery://${workspaceId}/CanvasFrontmatter.md?part=frontmatter`
+    const frontmatterPanelId = await page.waitForFunction((uri) => {
+      return window.__cateE2E!.editorPanelIdsForFilePath(uri)[0] ?? null
+    }, frontmatterUri).then((handle) => handle.jsonValue() as Promise<string>)
+
+    await expect(page.locator('[data-tab-panel-id]').filter({ hasText: 'CanvasFrontmatter.md Frontmatter' })).toBeVisible()
+    await expect.poll(() => page.evaluate((id) => window.__cateE2E!.editorText(id), frontmatterPanelId)).toContain('status: green')
+    expect(server.lastGetArgs()).toEqual({ identifiers: 'CanvasFrontmatter.md', include: ['frontmatter'] })
   } finally {
     if (app) await closeApp(app)
     await server.close()

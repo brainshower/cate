@@ -33,6 +33,7 @@ import { useDockStore } from './dockStore'
 import { createCanvasOps } from '../lib/canvasBridge'
 import { getOrCreateCanvasStoreForPanel, releaseCanvasStoreForPanel } from './canvasStore'
 import { buildVaultUri, parseVaultUri } from '../../shared/flashqueryUri'
+import { findNodeDockStore } from '../panels/nodeDockRegistry'
 
 // -----------------------------------------------------------------------------
 // Canvas operations callback — injected at init to decouple from canvasStore
@@ -468,7 +469,112 @@ function activeCanvasNodeOffset(workspaceId: string, sourcePanelId: string): Poi
   }
 }
 
-function focusExistingPanel(workspaceId: string, panelId: string): void {
+function findCanvasNodeForPanel(
+  workspaceId: string,
+  panelId: string,
+): { canvasStore: StoreApi<CanvasStore>; nodeId: string; node: CanvasNodeState } | null {
+  const canvasStore = getWorkspaceCanvasStore(workspaceId)
+  if (typeof canvasStore?.getState !== 'function') return null
+  const state = canvasStore?.getState()
+  const nodeId = state?.nodeForPanel(panelId)
+  const node = nodeId ? state?.nodes[nodeId] : undefined
+  return canvasStore && nodeId && node ? { canvasStore, nodeId, node } : null
+}
+
+function replaceStackInLayout(
+  node: import('../../shared/types').DockLayoutNode,
+  stackId: string,
+  replacement: import('../../shared/types').DockTabStack,
+): import('../../shared/types').DockLayoutNode {
+  if (node.type === 'tabs') return node.id === stackId ? replacement : node
+  return {
+    ...node,
+    children: node.children.map((child) => replaceStackInLayout(child, stackId, replacement)),
+  }
+}
+
+function layoutWithPanelTabbedAfter(
+  layout: import('../../shared/types').DockLayoutNode | null | undefined,
+  sourcePanelId: string,
+  panelId: string,
+): import('../../shared/types').DockLayoutNode {
+  const fallbackStackId = generateId()
+  if (!layout) {
+    return {
+      type: 'tabs',
+      id: fallbackStackId,
+      panelIds: [sourcePanelId, panelId],
+      activeIndex: 1,
+    }
+  }
+
+  const sourceStack = findStackContainingPanel(layout, sourcePanelId)
+  if (!sourceStack) {
+    return {
+      type: 'tabs',
+      id: fallbackStackId,
+      panelIds: [sourcePanelId, panelId],
+      activeIndex: 1,
+    }
+  }
+
+  const sourceIndex = sourceStack.panelIds.indexOf(sourcePanelId)
+  const panelIds = sourceStack.panelIds.filter((id) => id !== panelId)
+  const insertIndex = sourceIndex >= 0 ? sourceIndex + 1 : panelIds.length
+  panelIds.splice(insertIndex, 0, panelId)
+
+  return replaceStackInLayout(layout, sourceStack.id, {
+    ...sourceStack,
+    panelIds,
+    activeIndex: insertIndex,
+  })
+}
+
+function activatePanelInLayout(
+  layout: import('../../shared/types').DockLayoutNode | null | undefined,
+  panelId: string,
+): import('../../shared/types').DockLayoutNode | null | undefined {
+  if (!layout) return layout
+  const stack = findStackContainingPanel(layout, panelId)
+  const index = stack?.panelIds.indexOf(panelId) ?? -1
+  if (!stack || index < 0) return layout
+  return replaceStackInLayout(layout, stack.id, { ...stack, activeIndex: index })
+}
+
+function placePanelInCanvasNode(
+  workspaceId: string,
+  sourcePanelId: string,
+  panelId: string,
+): boolean {
+  const target = findCanvasNodeForPanel(workspaceId, sourcePanelId)
+  if (!target) return false
+
+  const liveDockStore = findNodeDockStore(target.nodeId)
+  if (liveDockStore) {
+    const layout = liveDockStore.getState().zones.center.layout
+    const sourceStack = findStackContainingPanel(layout, sourcePanelId)
+    const sourceIndex = sourceStack?.panelIds.indexOf(sourcePanelId) ?? -1
+    if (sourceStack) {
+      liveDockStore.getState().dockPanel(panelId, 'center', {
+        type: 'tab',
+        stackId: sourceStack.id,
+        index: sourceIndex >= 0 ? sourceIndex + 1 : undefined,
+      })
+    } else {
+      liveDockStore.getState().dockPanel(panelId, 'center')
+    }
+  } else {
+    target.canvasStore.getState().setNodeDockLayout(
+      target.nodeId,
+      layoutWithPanelTabbedAfter(target.node.dockLayout, sourcePanelId, panelId),
+    )
+  }
+
+  target.canvasStore.getState().focusNode(target.nodeId)
+  return true
+}
+
+function focusExistingPanel(workspaceId: string, panelId: string): boolean {
   const dockLocation = useDockStore.getState().panelLocations[panelId]
   if (dockLocation?.type === 'dock') {
     const snapshot = useDockStore.getState().getSnapshot()
@@ -476,11 +582,29 @@ function focusExistingPanel(workspaceId: string, panelId: string): void {
     const stack = findStackContainingPanel(layout, panelId)
     const index = stack?.panelIds.indexOf(panelId) ?? -1
     if (index >= 0) useDockStore.getState().setActiveTab(stack!.id, index)
-    return
+    return index >= 0
+  }
+  const target = findCanvasNodeForPanel(workspaceId, panelId)
+  if (target) {
+    const liveDockStore = findNodeDockStore(target.nodeId)
+    if (liveDockStore) {
+      const layout = liveDockStore.getState().zones.center.layout
+      const stack = findStackContainingPanel(layout, panelId)
+      const index = stack?.panelIds.indexOf(panelId) ?? -1
+      if (stack && index >= 0) liveDockStore.getState().setActiveTab(stack.id, index)
+    } else {
+      const nextLayout = activatePanelInLayout(target.node.dockLayout, panelId)
+      if (nextLayout && nextLayout !== target.node.dockLayout) {
+        target.canvasStore.getState().setNodeDockLayout(target.nodeId, nextLayout)
+      }
+    }
+    target.canvasStore.getState().focusNode(target.nodeId)
+    return true
   }
   if (workspaceId === useAppStore.getState().selectedWorkspaceId) {
     getActiveCanvasOps()?.focusPanelNode(panelId)
   }
+  return false
 }
 
 function findStackContainingPanel(
@@ -863,7 +987,29 @@ export const useAppStore = create<AppStore>((set, get) => ({
       panel.type === 'editor' && panel.filePath === frontmatterUri
     )
     if (existing) {
-      focusExistingPanel(workspaceId, existing.id)
+      if (!focusExistingPanel(workspaceId, existing.id)) {
+        const sourceLocation = useDockStore.getState().panelLocations[sourcePanelId]
+        if (sourceLocation?.type === 'dock') {
+          const snapshot = useDockStore.getState().getSnapshot()
+          const sourceStack = findStackContainingPanel(snapshot.zones[sourceLocation.zone].layout, sourcePanelId)
+          const sourceIndex = sourceStack?.panelIds.indexOf(sourcePanelId) ?? -1
+          useDockStore.getState().dockPanel(
+            existing.id,
+            sourceLocation.zone,
+            sourceStack
+              ? {
+                  type: 'tab',
+                  stackId: sourceStack.id,
+                  index: sourceIndex >= 0 ? sourceIndex + 1 : undefined,
+                }
+              : undefined,
+          )
+        } else if (!placePanelInCanvasNode(workspaceId, sourcePanelId, existing.id)) {
+          const placement = { target: 'canvas' as const, position: activeCanvasNodeOffset(workspaceId, sourcePanelId) }
+          placePanel(existing.id, 'editor', placement, placement.position, workspaceId === get().selectedWorkspaceId)
+        }
+        focusExistingPanel(workspaceId, existing.id)
+      }
       return existing.id
     }
 
@@ -903,6 +1049,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
           ...(dockTarget as Extract<DockDropTarget, { type: 'tab' }>),
           index: sourceIndex >= 0 ? sourceIndex + 1 : undefined,
         })
+      } else if (placePanelInCanvasNode(workspaceId, sourcePanelId, panelId)) {
+        // Inserted into the source canvas node's private tab strip.
       } else {
         placePanel(panelId, 'editor', placement, placement?.target === 'canvas' ? placement.position : undefined, workspaceId === get().selectedWorkspaceId)
       }
