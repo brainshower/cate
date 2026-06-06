@@ -40,19 +40,33 @@ describe('cate-flashquery registry normalization', () => {
   })
 
   it('T-U-014 accepts richer hostEligible and metadata fields when FlashQuery emits them', () => {
-    const candidates = registryRecordsToToolCandidates([{
-      name: 'memory.search',
-      status: 'final',
-      metadata: {
-        hostEligible: true,
-        source: 'flashquery_native',
-        label: 'Search Memories',
-        description: 'Search stored memories.',
-        inputSchema: { type: 'object', properties: { query: { type: 'string' } } },
+    const candidates = registryRecordsToToolCandidates([
+      {
+        name: 'memory.search',
+        status: 'final',
+        metadata: {
+          hostEligible: true,
+          source: 'flashquery_native',
+          label: 'Search Memories',
+          description: 'Search stored memories.',
+          inputSchema: { type: 'object', properties: { query: { type: 'string' } } },
+        },
       },
-    }])
+      {
+        name: 'macro.run',
+        metadata: {
+          status: 'transitional',
+          hostEligible: true,
+        },
+      },
+      {
+        name: 'legacy.current',
+        status: 'current',
+        hostEligible: true,
+      },
+    ])
 
-    expect(candidates).toHaveLength(1)
+    expect(candidates).toHaveLength(3)
     expect(candidates[0]).toMatchObject({
       name: 'memory_search',
       label: 'Search Memories',
@@ -63,6 +77,37 @@ describe('cate-flashquery registry normalization', () => {
       type: 'object',
       properties: { query: { type: 'string' } },
     })
+    expect(candidates.map((candidate) => candidate.name)).toEqual([
+      'memory_search',
+      'macro_run',
+      'legacy_current',
+    ])
+  })
+
+  it('T-U-014 rejects enriched records unless hostEligible is true and status is current', () => {
+    const records: FlashQueryRegistryRecord[] = [
+      eligible({ name: 'final_tool', status: 'final' }),
+      eligible({ name: 'transitional_tool', status: 'transitional' }),
+      eligible({ name: 'legacy_current_tool', status: 'current' }),
+      eligible({ name: 'removed_tool', status: 'removed' }),
+      eligible({ name: 'deprecated_tool', status: 'deprecated' }),
+      eligible({ name: 'unavailable_tool', status: 'unavailable' }),
+      eligible({ name: 'experimental_tool', status: 'experimental' }),
+      eligible({ name: 'draft_tool', status: 'draft' }),
+      eligible({ name: 'unknown_status_tool', status: 'legacy' }),
+      { name: 'status_only_tool', status: 'final', inputSchema: { type: 'object', properties: {} } },
+      { name: 'host_only_tool', hostEligible: true, inputSchema: { type: 'object', properties: {} } },
+      eligible({
+        name: 'metadata_false_tool',
+        metadata: { status: 'final', hostEligible: false },
+      }),
+    ]
+
+    expect(registryRecordsToToolCandidates(records).map((candidate) => candidate.name)).toEqual([
+      'final_tool',
+      'transitional_tool',
+      'legacy_current_tool',
+    ])
   })
 
   it('T-U-014 gives colliding names stable distinct Pi tool names', () => {

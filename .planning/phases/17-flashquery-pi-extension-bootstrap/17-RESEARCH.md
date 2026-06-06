@@ -33,7 +33,7 @@ Pi extension code can register tools dynamically through `pi.registerTool(...)` 
 Validation should prove three independent surfaces:
 
 1. Installer behavior: extension files are copied idempotently in dev/prod path layouts, and `AgentManager.create()` still installs subagent and plan-mode extensions.
-2. Extension registry behavior: mocked FlashQuery registry data produces Pi tools only for `hostEligible: true` and `status: current`, includes native and brokered MCP tools, translates schemas, and never calls `registerProvider`.
+2. Extension registry behavior: mocked FlashQuery registry data preserves plain host-filtered `tools/list` records, produces Pi tools for enriched records only when `hostEligible: true` and status is `final`, `transitional`, or legacy `current`, includes native and brokered MCP tools, translates schemas, and never calls `registerProvider`.
 3. Workspace lifecycle behavior: a workspace rebind reconnects the MCP client, refreshes metadata, prevents stale tools from being offered/executed after refresh, registers changed tools, and lets an old in-flight call finish on the old client.
 
 ## Recommended Plan Shape

@@ -17,7 +17,7 @@
 
 `AgentManager.create()` prepares `<cwd>/.cate/pi-agent`, installs Cate's bundled Pi extensions, writes or refreshes workspace-scoped FlashQuery handoff material, then starts Pi with `PI_CODING_AGENT_DIR` pointed at that workspace. The handoff combines sanitized workspace connection metadata with bearer tokens loaded through `getWorkspaceToken(workspaceId)`. Pi auto-discovers `cate-flashquery`.
 
-The extension reads Cate-provided workspace FlashQuery connection metadata, opens an MCP client, fetches registry/model/purpose metadata, filters tools by `hostEligible: true` and `status: current`, translates schemas to Pi-compatible parameter schemas, and registers eligible tools with `pi.registerTool`. Tool execution delegates to the current FlashQuery client, preserving old clients for in-flight calls during workspace rebinding.
+The extension reads Cate-provided workspace FlashQuery connection metadata, opens an MCP client, fetches registry/model/purpose metadata, trusts plain host-filtered `tools/list` records that omit eligibility metadata, filters enriched records to `hostEligible: true` plus `status: final`, `status: transitional`, or legacy `status: current`, translates schemas to Pi-compatible parameter schemas, and registers eligible tools with `pi.registerTool`. Tool execution delegates to the current FlashQuery client, preserving old clients for in-flight calls during workspace rebinding.
 
 ## Implementation Guidance
 

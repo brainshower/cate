@@ -7,7 +7,7 @@ requires:
   - phase: 17.1
     provides: "Bundled cate-flashquery extension installation and workspace-scoped FlashQuery handoff"
 provides:
-  - "FlashQuery registry normalization and hostEligible/current filtering"
+  - "FlashQuery registry normalization and host-eligible current-status filtering"
   - "Pi-safe TypeBox schema translation for FlashQuery MCP tool schemas"
   - "session_start registration of eligible native and brokered FlashQuery tools"
   - "FlashQuery tool execution dispatch through the current workspace MCP client"
@@ -33,7 +33,7 @@ key-decisions:
   - "Keep malformed or unknown FlashQuery schemas registration-safe with a permissive object TypeBox fallback."
   - "Register FlashQuery as Pi tools only; no provider API calls and no ProvidersView entry."
 patterns-established:
-  - "registryRecordsToToolCandidates centralizes hostEligible/current filtering and deterministic Pi tool naming."
+  - "registryRecordsToToolCandidates centralizes plain host-filtered record handling, enriched hostEligible/current-status filtering, and deterministic Pi tool naming."
   - "flashQuerySchemaToTypeBox translates MCP JSON schemas without throwing during registration."
   - "createCateFlashQueryExtension accepts injectable handoff/client dependencies for deterministic Pi extension tests."
 requirements-completed: [REQ-014]
@@ -55,7 +55,7 @@ completed: 2026-06-04
 
 ## Accomplishments
 
-- Added `registry.ts` to filter FlashQuery records to `hostEligible: true` and `status: current`, preserve native/brokered metadata, and normalize deterministic Pi-safe tool names.
+- Added `registry.ts` to preserve real host-filtered `tools/list` records, filter enriched FlashQuery records to `hostEligible: true` and current statuses (`final` / `transitional`, with legacy `current` compatibility), preserve native/brokered metadata, and normalize deterministic Pi-safe tool names.
 - Added `schema.ts` to translate FlashQuery/MCP object schemas into Pi-compatible TypeBox schemas with required, optional, enum, nullable, array, numeric, boolean, and permissive fallback behavior.
 - Added `client.ts` and wired `index.ts` so `session_start` reads the 17.1 handoff, opens the current workspace MCP client, lists registry tools, registers eligible candidates, and dispatches executions by original FlashQuery tool ID.
 - Added focused T-U-014 tests covering eligible `call_model`, `call_macro`, `search_tools`, native tools, brokered MCP tools, ineligible filtering, schema translation, dispatch, disconnected results, and provider absence.

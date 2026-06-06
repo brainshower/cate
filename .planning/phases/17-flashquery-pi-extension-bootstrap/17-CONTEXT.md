@@ -29,7 +29,7 @@ This phase does not implement `call_model`/`call_macro` behavior, Pi ToolCard re
 - D-09 [locked]: FlashQuery must not be registered as a Pi provider and must not appear in `ProvidersView`.
 
 ### Tool Eligibility and Registration
-- D-10 [locked]: Register only FlashQuery tools with metadata `hostEligible: true` and `status: current`.
+- D-10 [locked]: Register plain host-filtered FlashQuery `tools/list` records without eligibility metadata. When eligibility metadata is present, register only records with `hostEligible: true` and `status: final`, `status: transitional`, or legacy `status: current`.
 - D-11 [locked]: Eligible tools explicitly include FlashQuery-native tools, brokered MCP tools, `call_model`, `call_macro`, and `search_tools`.
 - D-12 [locked]: Unavailable, deprecated, non-current, or non-host-eligible tools must not be registered.
 - D-13 [locked]: Tool schemas must be translated to Pi `TypeBox` parameter schemas or another Pi-supported equivalent before `pi.registerTool`.

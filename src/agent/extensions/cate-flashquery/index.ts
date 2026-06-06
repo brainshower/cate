@@ -1,6 +1,6 @@
 // =============================================================================
 // cate-flashquery — bundled Pi extension for Cate-provided FlashQuery workspace
-// handoff. It registers host-eligible current FlashQuery MCP tools as Pi tools
+// handoff. It registers FlashQuery's host-visible MCP tools as Pi tools
 // and delegates execution through the current workspace's FlashQuery client.
 // =============================================================================
 
