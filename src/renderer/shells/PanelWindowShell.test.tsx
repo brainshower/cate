@@ -7,7 +7,9 @@ const source = readFileSync(join(process.cwd(), 'src/renderer/shells/PanelWindow
 describe('PanelWindowShell vault badge wiring', () => {
   it('renders VaultBadge in detached editor title chrome from displayPanel filePath', () => {
     expect(source).toContain("import { VaultBadge } from '../components/VaultBadge'")
+    expect(source).toContain("import { FlashQueryEditorTitleActions } from '../components/FlashQueryEditorTitleActions'")
     expect(source).toContain("displayPanel.type === 'editor'")
+    expect(source).toContain('<FlashQueryEditorTitleActions panel={displayPanel} workspaceId={workspaceId} compact />')
     expect(source).toContain('<VaultBadge filePath={displayPanel.filePath} connectionUrl={connectionUrl} />')
   })
 

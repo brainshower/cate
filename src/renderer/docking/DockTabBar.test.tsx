@@ -164,9 +164,57 @@ describe('DockTabBar vault badge wiring', () => {
       />,
     )
 
+    expect(screen.getByLabelText('Copy vault path or reference')).toBeTruthy()
+    expect(screen.getByLabelText('Refresh from vault')).toBeTruthy()
     screen.getByLabelText('Open frontmatter').click()
 
     expect(openFlashQueryFrontmatterEditorSpy).toHaveBeenCalledWith('workspace-1', 'editor-1')
+  })
+
+  it('T-U-012 dispatches copy and refresh title actions to the mounted editor panel', () => {
+    const stack: DockTabStack = { type: 'tabs', id: 'stack-1', panelIds: ['editor-1'], activeIndex: 0 }
+    const panel: PanelState = {
+      id: 'editor-1',
+      type: 'editor',
+      title: 'Plan.md',
+      isDirty: false,
+      filePath: 'flashquery://workspace-1/Docs/Plan.md',
+    }
+    const events: unknown[] = []
+    const listener = (event: Event) => events.push((event as CustomEvent).detail)
+    window.addEventListener('flashquery-editor-title-action', listener)
+
+    render(
+      <DockTabBar
+        stack={stack}
+        workspaceId="workspace-1"
+        getPanel={() => panel}
+        getPanelTitle={() => 'Plan.md'}
+        onClosePanel={vi.fn()}
+        onTabClick={vi.fn()}
+        onTabMouseDown={vi.fn()}
+        onTabContextMenu={vi.fn()}
+        renameId={null}
+        renameValue=""
+        renameInputRef={{ current: null }}
+        setRenameValue={vi.fn()}
+        setRenameId={vi.fn()}
+        commitRename={vi.fn()}
+        beginRename={vi.fn()}
+        springLoadTimer={{ current: null }}
+        setActiveTab={vi.fn()}
+        showTabPlaceholder={false}
+      />,
+    )
+
+    screen.getByLabelText('Copy vault path or reference').click()
+    screen.getByLabelText('Refresh from vault').click()
+    window.removeEventListener('flashquery-editor-title-action', listener)
+
+    expect(events).toEqual([
+      { panelId: 'editor-1', action: 'copy-reference' },
+      { panelId: 'editor-1', action: 'refresh-from-vault' },
+    ])
   })
 
   it('T-U-007 hides Open frontmatter for frontmatter, local-file, terminal, and vault tabs', () => {

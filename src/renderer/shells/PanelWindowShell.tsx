@@ -16,6 +16,7 @@ import { useAppStore } from '../stores/appStore'
 import { applyTheme } from '../lib/themeManager'
 import { applyCanvasChildPanels } from '../lib/applyCanvasChildPanels'
 import { VaultBadge } from '../components/VaultBadge'
+import { FlashQueryEditorTitleActions } from '../components/FlashQueryEditorTitleActions'
 
 interface PanelWindowShellProps {
   panelType?: string
@@ -206,12 +207,17 @@ export default function PanelWindowShell({ panelType, panelId, workspaceId }: Pa
           <PanelTypeIcon type={displayPanel.type} />
         </div>
         <span className="text-xs text-secondary truncate min-w-0">{displayPanel.title}</span>
+        <span className="flex-1 min-w-0" />
         {displayPanel.type === 'editor' && (
-          <span className="ml-2 shrink-0">
+          <span className="mr-1 flex shrink-0 items-center gap-0.5" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+            <FlashQueryEditorTitleActions panel={displayPanel} workspaceId={workspaceId} compact />
+          </span>
+        )}
+        {displayPanel.type === 'editor' && (
+          <span className="mr-2 shrink-0">
             <VaultBadge filePath={displayPanel.filePath} connectionUrl={connectionUrl} />
           </span>
         )}
-        <span className="flex-1 min-w-0" />
         <button
           className="w-5 h-5 flex items-center justify-center rounded hover:bg-hover text-muted hover:text-primary transition-colors"
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}

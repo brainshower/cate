@@ -8,15 +8,15 @@
 import React from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import type { PanelState, PanelType, DockTabStack as DockTabStackType } from '../../shared/types'
-import { FileText, X } from '@phosphor-icons/react'
+import { X } from '@phosphor-icons/react'
 import { useDragStore, useTabSourceVisibility } from '../drag'
 import { PANEL_REGISTRY, getPanelDef } from '../panels/registry'
 import { useAppStore } from '../stores/appStore'
 import { useAgentInfoByPanel } from '../hooks/useAgentPanelInfo'
 import { VaultBadge } from '../components/VaultBadge'
+import { FlashQueryEditorTitleActions } from '../components/FlashQueryEditorTitleActions'
 import { worktreeTitleStyle } from '../lib/worktreeTitleStyle'
 import { isMiddleClick } from '../lib/mouse'
-import { parseVaultUri } from '../../shared/flashqueryUri'
 
 const AWAIT_COLOR = '#c08a5a'
 
@@ -142,7 +142,6 @@ export function DockTabBar(props: DockTabBarProps) {
       ? s.workspaces.find((workspace) => workspace.id === workspaceId)?.flashqueryConnection?.url
       : undefined
   ))
-  const openFlashQueryFrontmatterEditor = useAppStore((s) => s.openFlashQueryFrontmatterEditor)
 
   // Build the visible tab list (skip the in-flight tab when source === this
   // stack) and choose where to slot the placeholder. Clamp to >=1 so a
@@ -194,8 +193,6 @@ export function DockTabBar(props: DockTabBarProps) {
         // filename and the badge to truncate. 280 px fits a normal vault
         // filename, the badge, and the close X with breathing room.
         const isVaultEditor = panel?.type === 'editor' && !!panel?.filePath?.startsWith('flashquery://')
-        const vaultUri = panel?.type === 'editor' && panel.filePath ? parseVaultUri(panel.filePath) : null
-        const canOpenFrontmatter = isActive && panel?.type === 'editor' && vaultUri?.part === 'body' && !!workspaceId
         const pill = (
           <TabPill
             key={panelId}
@@ -280,23 +277,11 @@ export function DockTabBar(props: DockTabBarProps) {
                 style={worktreeTitleStyle(worktreeColorByPanel[panelId], agentInfoByPanel[panelId]?.state === 'running')}
               >{getPanelTitle(panelId)}</span>
             )}
+            {isActive && panel?.type === 'editor' && (
+              <FlashQueryEditorTitleActions panel={panel} workspaceId={workspaceId} compact={compact} />
+            )}
             {panel?.type === 'editor' && (
               <VaultBadge filePath={panel.filePath} connectionUrl={connectionUrl} />
-            )}
-            {canOpenFrontmatter && (
-              <button
-                type="button"
-                aria-label="Open frontmatter"
-                title="Open frontmatter"
-                className="shrink-0 rounded-sm p-0.5 text-muted opacity-0 transition-colors hover:bg-hover hover:text-primary group-hover:opacity-80 focus:opacity-100"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  openFlashQueryFrontmatterEditor(workspaceId, panelId)
-                }}
-                onMouseDown={(e) => e.stopPropagation()}
-              >
-                <FileText size={compact ? 12 : 11} />
-              </button>
             )}
             {agentInfoByPanel[panelId]?.state === 'waitingForInput' && (
               <span className="cate-await-indicator shrink-0" aria-label="awaiting input">

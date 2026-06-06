@@ -4,7 +4,6 @@
 // =============================================================================
 
 import { useEffect, useRef, useCallback, useState } from 'react'
-import { Clipboard } from '@phosphor-icons/react'
 import { useRenderCount } from '../lib/perf/perfClient'
 import log from '../lib/logger'
 import * as monaco from 'monaco-editor'
@@ -31,6 +30,10 @@ import {
   stripManagedFrontmatterFields,
 } from '../lib/flashqueryFrontmatter'
 import { FlashQueryRefreshConfirmDialog } from '../dialogs/FlashQueryRefreshConfirmDialog'
+import {
+  FLASHQUERY_EDITOR_TITLE_ACTION_EVENT,
+  type FlashQueryEditorTitleActionDetail,
+} from '../components/FlashQueryEditorTitleActions'
 
 // -----------------------------------------------------------------------------
 // Monaco worker setup for Electron (Vite bundler)
@@ -381,7 +384,6 @@ export default function EditorPanel({
   )
   const rootPath = ws?.rootPath
   const flashQueryConnection = ws?.flashqueryConnection
-  const isFlashQueryBody = activeVaultUri?.part === 'body'
   const isFlashQueryFrontmatter = activeVaultUri?.part === 'frontmatter'
   const isMarkdown = !!filePath && /\.mdx?$/i.test(filePath) && !isFlashQueryFrontmatter
 
@@ -576,6 +578,23 @@ export default function EditorPanel({
     if (action === 'copy-path') await navigator.clipboard.writeText(activeVaultUri.vaultPath)
     if (action === 'copy-reference') await navigator.clipboard.writeText(`{{ref:${activeVaultUri.vaultPath}}}`)
   }, [activeVaultUri])
+
+  useEffect(() => {
+    const handleTitleAction = (event: Event) => {
+      const detail = (event as CustomEvent<FlashQueryEditorTitleActionDetail>).detail
+      if (detail?.panelId !== panelId) return
+      if (detail.action === 'copy-reference') {
+        void copyVaultPathOrReference()
+        return
+      }
+      if (detail.action === 'refresh-from-vault') {
+        void refreshBodyFromVault()
+      }
+    }
+
+    window.addEventListener(FLASHQUERY_EDITOR_TITLE_ACTION_EVENT, handleTitleAction)
+    return () => window.removeEventListener(FLASHQUERY_EDITOR_TITLE_ACTION_EVENT, handleTitleAction)
+  }, [copyVaultPathOrReference, panelId, refreshBodyFromVault])
 
   // ---------------------------------------------------------------------------
   // Mount: create regular editor OR diff editor
@@ -915,7 +934,7 @@ export default function EditorPanel({
       {isMarkdown && !diffMode && (
         <button
           onClick={() => setMarkdownPreview(!markdownPreview)}
-          className={`absolute top-2 ${isFlashQueryBody ? 'right-56' : 'right-5'} z-10 px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+          className={`absolute top-2 right-5 z-10 px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
             markdownPreview
               ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
               : 'bg-neutral-200/80 dark:bg-neutral-700/80 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-600'
@@ -924,39 +943,6 @@ export default function EditorPanel({
         >
           {markdownPreview ? 'Source' : 'Preview'}
         </button>
-      )}
-      {activeVaultUri && !diffMode && (
-        <div className="absolute top-2 right-5 z-10 flex items-center gap-1">
-          {isFlashQueryBody && (
-            <button
-              onClick={() => useAppStore.getState().openFlashQueryFrontmatterEditor(workspaceId, panelId)}
-              className="rounded bg-neutral-200/80 px-2 py-0.5 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-300 dark:bg-neutral-700/80 dark:text-neutral-300 dark:hover:bg-neutral-600"
-              title="Show metadata editor"
-              aria-label="Show metadata editor"
-            >
-              Frontmatter
-            </button>
-          )}
-          <button
-            onClick={() => { void copyVaultPathOrReference() }}
-            className="flex h-[22px] w-[22px] items-center justify-center rounded bg-neutral-200/80 text-neutral-600 transition-colors hover:bg-neutral-300 dark:bg-neutral-700/80 dark:text-neutral-300 dark:hover:bg-neutral-600"
-            title="Clipboard"
-            aria-label="Copy vault path or reference"
-          >
-            <Clipboard size={13} />
-          </button>
-          {isFlashQueryBody && (
-            <button
-              onClick={() => { void refreshBodyFromVault() }}
-              disabled={refreshing}
-              className="rounded bg-neutral-200/80 px-2 py-0.5 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-300 disabled:opacity-60 dark:bg-neutral-700/80 dark:text-neutral-300 dark:hover:bg-neutral-600"
-              title="Refresh from vault"
-              aria-label="Refresh from vault"
-            >
-              {refreshing ? 'Refreshing...' : 'Refresh from vault'}
-            </button>
-          )}
-        </div>
       )}
       {markdownPreview && isMarkdown && (
         <MarkdownPreview content={markdownContent} />

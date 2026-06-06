@@ -152,6 +152,11 @@ import * as monaco from 'monaco-editor'
 import log from '../lib/logger'
 import EditorPanel from './EditorPanel'
 import { VaultBadge } from '../components/VaultBadge'
+import {
+  FLASHQUERY_EDITOR_TITLE_ACTION_EVENT,
+  FlashQueryEditorTitleActions,
+  type FlashQueryEditorTitleAction,
+} from '../components/FlashQueryEditorTitleActions'
 import { useAgentStore } from '../../agent/renderer/agentStore'
 import { useAppStore } from '../stores/appStore'
 import { confirmCloseDirtyPanels } from '../lib/confirmCloseDirty'
@@ -253,6 +258,14 @@ async function renderEditor(filePath: string, diffMode?: 'staged' | 'working') {
   return result
 }
 
+function dispatchTitleAction(action: FlashQueryEditorTitleAction) {
+  window.dispatchEvent(
+    new CustomEvent(FLASHQUERY_EDITOR_TITLE_ACTION_EVENT, {
+      detail: { panelId, action },
+    }),
+  )
+}
+
 function EditorTitleChrome({ panel }: { panel: PanelState }) {
   const workspace = useAppStore.getState().workspaces.find((item) => item.id === workspaceId)
   const connectionUrl = workspace?.flashqueryConnection?.transport === 'http'
@@ -262,6 +275,7 @@ function EditorTitleChrome({ panel }: { panel: PanelState }) {
   return (
     <div>
       <span>{panel.title}</span>
+      <FlashQueryEditorTitleActions panel={panel} workspaceId={workspaceId} />
       {panel.type === 'editor' && (
         <VaultBadge filePath={panel.filePath} connectionUrl={connectionUrl} />
       )}
@@ -517,14 +531,16 @@ describe('EditorPanel FlashQuery save and dirty behavior', () => {
 })
 
 describe('EditorPanel FlashQuery clipboard title action', () => {
-  it('T-U-012 shows Clipboard for FlashQuery body and frontmatter editors only', async () => {
+  it('T-U-012 does not render FlashQuery title actions inside editor content', async () => {
     await renderEditor(vaultUri)
-    expect(screen.getByLabelText('Copy vault path or reference')).toBeTruthy()
+    expect(screen.queryByLabelText('Copy vault path or reference')).toBeNull()
+    expect(screen.queryByLabelText('Refresh from vault')).toBeNull()
+    expect(screen.queryByLabelText('Open frontmatter')).toBeNull()
 
     cleanup()
     monacoMock().reset()
     await renderEditor('flashquery://workspace-1/Docs/Clipboard.md?part=frontmatter')
-    expect(screen.getByLabelText('Copy vault path or reference')).toBeTruthy()
+    expect(screen.queryByLabelText('Copy vault path or reference')).toBeNull()
 
     cleanup()
     monacoMock().reset()
@@ -539,7 +555,7 @@ describe('EditorPanel FlashQuery clipboard title action', () => {
     await renderEditor(encodedUri)
 
     vi.mocked(api.showContextMenu).mockResolvedValueOnce('copy-path')
-    fireEvent.click(screen.getByLabelText('Copy vault path or reference'))
+    act(() => dispatchTitleAction('copy-reference'))
     await waitFor(() => expect(api.showContextMenu).toHaveBeenCalledWith([
       { id: 'copy-path', label: 'Copy vault path' },
       { id: 'copy-reference', label: 'Copy as reference' },
@@ -547,7 +563,7 @@ describe('EditorPanel FlashQuery clipboard title action', () => {
     await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Docs/Space Plan.md'))
 
     vi.mocked(api.showContextMenu).mockResolvedValueOnce('copy-reference')
-    fireEvent.click(screen.getByLabelText('Copy vault path or reference'))
+    act(() => dispatchTitleAction('copy-reference'))
     await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith('{{ref:Docs/Space Plan.md}}'))
 
     expect(navigator.clipboard.writeText).not.toHaveBeenCalledWith(expect.stringContaining('%20'))
@@ -672,10 +688,12 @@ describe('EditorPanel FlashQuery refresh behavior', () => {
     vi.mocked(api.flashqueryGetDocument)
       .mockResolvedValueOnce({ body: 'old body' })
       .mockResolvedValueOnce({ body: 'fresh body' })
+      .mockResolvedValue({ body: 'fresh body' })
     setElectronApi(api)
     await renderEditor(refreshUri)
+    await waitFor(() => expect(monacoMock().latestEditor().getValue()).toBe('old body'))
 
-    fireEvent.click(screen.getByLabelText('Refresh from vault'))
+    act(() => dispatchTitleAction('refresh-from-vault'))
 
     await waitFor(() => expect(monacoMock().latestEditor().getValue()).toBe('fresh body'))
     expect(api.flashqueryGetDocument).toHaveBeenLastCalledWith('workspace-1', 'Docs/RefreshClean.md', { include: ['body'] })
@@ -695,13 +713,13 @@ describe('EditorPanel FlashQuery refresh behavior', () => {
       monacoMock().setLatestValue('local dirty')
     })
 
-    fireEvent.click(screen.getByLabelText('Refresh from vault'))
+    act(() => dispatchTitleAction('refresh-from-vault'))
     expect(await screen.findByRole('dialog', { name: 'Unsaved changes' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(monacoMock().latestEditor().getValue()).toBe('local dirty')
     expect(useAppStore.getState().workspaces[0].panels[panelId].isDirty).toBe(true)
 
-    fireEvent.click(screen.getByLabelText('Refresh from vault'))
+    act(() => dispatchTitleAction('refresh-from-vault'))
     fireEvent.click(await screen.findByRole('button', { name: 'Discard and refresh' }))
 
     await waitFor(() => expect(monacoMock().latestEditor().getValue()).toBe('server body'))
@@ -722,7 +740,7 @@ describe('EditorPanel FlashQuery refresh behavior', () => {
       monacoMock().setLatestValue('body to save')
     })
 
-    fireEvent.click(screen.getByLabelText('Refresh from vault'))
+    act(() => dispatchTitleAction('refresh-from-vault'))
     fireEvent.click(await screen.findByRole('button', { name: 'Save and refresh' }))
 
     await waitFor(() => expect(api.flashqueryWriteDocument).toHaveBeenCalledWith('workspace-1', 'Docs/RefreshSave.md', 'body to save'))
@@ -741,7 +759,7 @@ describe('EditorPanel FlashQuery refresh behavior', () => {
     act(() => {
       monacoMock().setLatestValue('local dirty')
     })
-    fireEvent.click(screen.getByLabelText('Refresh from vault'))
+    act(() => dispatchTitleAction('refresh-from-vault'))
     fireEvent.click(await screen.findByRole('button', { name: 'Discard and refresh' }))
 
     expect((await screen.findByRole('alert')).textContent).toBe('Refresh failed: Document not found in FlashQuery vault.')
@@ -759,7 +777,7 @@ describe('EditorPanel FlashQuery refresh behavior', () => {
     act(() => {
       statusListener?.({ workspaceId, status: 'disconnected', error: 'offline' })
     })
-    fireEvent.click(screen.getByLabelText('Refresh from vault'))
+    act(() => dispatchTitleAction('refresh-from-vault'))
 
     expect((await screen.findByRole('alert')).textContent).toBe('Refresh failed: FlashQuery is disconnected.')
     expect(api.flashqueryGetDocument).toHaveBeenCalledTimes(1)
