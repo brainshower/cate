@@ -218,9 +218,7 @@ export default function AgentPanel({ panelId, workspaceId }: PanelProps) {
       useAgentStore.getState().clearVaultIndex(activeAgentKey)
       return
     }
-    if (flashQueryStatus === 'live') {
-      void useAgentStore.getState().refreshVaultIndex(activeAgentKey, workspaceId)
-    }
+    void useAgentStore.getState().refreshVaultIndex(activeAgentKey, workspaceId)
   }, [activeAgentKey, flashQueryStatus, workspace?.flashqueryConnection, workspaceId])
 
   const refreshModels = useCallback(async (key?: string) => {
