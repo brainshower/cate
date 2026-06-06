@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { closeApp, launchApp } from './fixtures/electron-app'
 import type { ElectronApplication } from 'playwright'
 
-test('T-E-006 preserves mocked FlashQuery Pi diagnostics through renderer tool message data', async () => {
+test('T-E-006 / T-M-003 deterministic companion preserves call_model refs, diagnostics, and tool-loop data', async () => {
   let app: ElectronApplication | null = null
   try {
     const launched = await launchApp()
@@ -37,6 +37,7 @@ test('T-E-006 preserves mocked FlashQuery Pi diagnostics through renderer tool m
         args: {
           prompt: 'Use {{ref:Path/to/Doc.md}}',
           purpose: 'summarize-doc',
+          return_messages: true,
           template_params: { audience: 'developer' },
         },
       })
@@ -183,6 +184,20 @@ test('T-E-006 preserves mocked FlashQuery Pi diagnostics through renderer tool m
         toolName: 'call_model',
       },
     })
+    const callModelMessage = messages[0] as { result?: string }
+    const callModelEnvelope = JSON.parse(callModelMessage.result ?? '{}') as {
+      metadata?: {
+        tokens?: { input?: number; output?: number }
+        latency_ms?: number
+        tool_calls?: unknown[]
+      }
+    }
+    expect(JSON.stringify(messages[0])).toContain('"return_messages"')
+    expect(JSON.stringify(messages[0])).toContain('Path/to/Doc.md')
+    expect(JSON.stringify(messages[0])).toContain('gpt-4.1-mini')
+    expect(callModelEnvelope.metadata?.tokens).toEqual({ input: 30, output: 12 })
+    expect(callModelEnvelope.metadata?.latency_ms).toBe(1234)
+    expect(callModelEnvelope.metadata?.tool_calls).toHaveLength(1)
     expect(JSON.stringify(messages[0])).toContain(longPayload)
     expect(messages[1]).toMatchObject({
       type: 'tool',

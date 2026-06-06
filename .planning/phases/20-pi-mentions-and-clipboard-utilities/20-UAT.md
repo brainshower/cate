@@ -110,17 +110,22 @@ a live server.
 | T-U-019 (updated) | Component | `src/agent/renderer/ChatThread.test.tsx` — macro fixture rewritten to the real `{ content: [{ text: JSON.stringify({ task_id, result, trace }) }] }` shape | **executed, passed** |
 | T-E-006 (migrated) | E2E | `e2e/flashquery-pi-diagnostics.spec.ts` — macro fixture migrated off the fabricated top-level `details.result.trace` to the real envelope shape | **executed, passed** |
 | T-E-006b (new) | E2E | `e2e/flashquery-pi-macro-trace.spec.ts` — drives a `call_macro` through the real envelope (no fabricated trace), asserts `call_macro · 3 steps`, expanded trace rows, and live-progress `partialText` forwarding | **executed, passed** |
+| T-M-002 deterministic companion (new) | E2E | `e2e/flashquery-pi-macro-trace.spec.ts` — preserves a real-shaped `needs_user_input` envelope in renderer tool message data and renders the disconnected `call_macro` error result exactly | **executed, passed** |
 
 > Executed in this session and confirmed green:
 > - `vitest run src/agent/renderer/ChatThread.test.tsx src/agent/renderer/agentStore.test.ts src/agent/renderer/AgentChatInput.atMention.test.tsx` → 23/23 passed.
 > - `npm run build` (required — `dist/` was stale relative to the gap-fix commit, and the Electron E2E runs the built app), then `playwright test e2e/flashquery-pi-macro-trace.spec.ts e2e/flashquery-pi-diagnostics.spec.ts` → 2/2 passed.
 > - Ran on Node v24.7.0; the `>=20 <23` `engines` constraint is advisory (not `engine-strict`), so the runners execute normally. `tsc --noEmit` exit 0.
+> - 2026-06-06 deterministic companion run: `npm run test:e2e -- e2e/flashquery-pi-macro-trace.spec.ts e2e/flashquery-pi-diagnostics.spec.ts` → 3/3 passed; `npm test -- src/agent/extensions/cate-flashquery/lifecycle.test.ts src/agent/renderer/ChatThread.test.tsx src/agent/renderer/agentStore.test.ts && npm run typecheck` → 33/33 Vitest tests passed and `tsc --noEmit` passed.
 
-### Remaining manual check — T-M-002 (live macro), status: blocked
+### Remaining manual check — T-M-002 (live macro), status: partially automated / live blocked
 
-The genuinely-live behaviors cannot be proven deterministically and remain a
-human check (Test Plan §6.1): a real host model deciding to invoke `call_macro`,
-a real server emitting throttled `notifications/progress`, and `needs_user_input`.
+The deterministic companion now proves Cate preserves a real-shaped
+`needs_user_input` envelope and renders the disconnected `call_macro` error
+through the ToolCard. The genuinely-live behaviors still require a human check
+(Test Plan §6.1): a real host model deciding to invoke `call_macro`, a real
+server emitting throttled `notifications/progress`, and a provider/runtime macro
+that can actually request user input.
 
 Required manual steps (against real FlashQuery + a configured native Pi provider):
 
@@ -145,10 +150,10 @@ each trace step. Record observations here and flip to passed when run.
 | --- | --- | --- | --- |
 | REQ-018 | T-U-006, T-U-020, T-E-004 | none | automated evidence passed |
 | REQ-019 | T-U-011, T-U-012, T-E-003, T-M-004 automated native clipboard E2E | none | automated evidence passed |
-| REQ-016 / REQ-017 (Gap 5 / CF-01) | T-U-019, T-E-006, T-E-006b | T-M-002 | structural defect closed + automated regression added; live macro run blocked pending human |
+| REQ-016 / REQ-017 (Gap 5 / CF-01) | T-U-019, T-E-006, T-E-006b, T-M-002 deterministic companion | T-M-002 live/provider remainder | structural defect closed + automated regression added; deterministic companion passed; live macro/provider run blocked pending human |
 
 ## Sign-Off
 
 - REQ-018: passed automated UAT evidence.
 - REQ-019: passed automated UAT evidence, including native clipboard E2E coverage for `T-M-004`.
-- Gap 5 / CF-01 (REQ-016 #8 / REQ-017 #4): structural defect closed (commit `62ee09e`) with real-envelope automated coverage (T-U-019 updated, T-E-006 migrated, T-E-006b added); blocked manual T-M-002 live-macro sign-off pending human run.
+- Gap 5 / CF-01 (REQ-016 #8 / REQ-017 #4): structural defect closed (commit `62ee09e`) with real-envelope automated coverage (T-U-019 updated, T-E-006 migrated, T-E-006b added); deterministic T-M-002 companion coverage added on 2026-06-06; blocked manual T-M-002 live-provider sign-off pending human run.

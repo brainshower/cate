@@ -50,6 +50,6 @@ Visual screenshot capture for Vault Search, expanded Pi ToolCard, Pi `@` mention
 Manual/live blockers remain recorded in `21-UAT.md`:
 
 - `T-M-001`: blocked pending real FlashQuery endpoint and configured native Pi provider.
-- `T-M-002`: blocked pending real host-model `call_macro`, progress-emitting macro, `needs_user_input`, and disconnected macro check.
-- `T-M-003`: blocked pending live host-model `call_model` with document refs and diagnostics.
+- `T-M-002`: partially automated by deterministic E2E for `needs_user_input` data preservation and disconnected macro rendering; live/provider remainder remains blocked pending real host-model `call_macro`, progress-emitting macro, and runtime user-input behavior.
+- `T-M-003`: partially automated by deterministic E2E for document refs, `return_messages`, diagnostics, messages payload, tokens, latency, and server-side tool-loop data; live/provider remainder remains blocked pending live host-model `call_model` with document refs and diagnostics.
 - `T-M-004`: passed by native clipboard E2E.

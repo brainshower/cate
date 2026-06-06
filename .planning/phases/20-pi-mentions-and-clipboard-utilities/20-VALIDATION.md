@@ -5,7 +5,7 @@ status: complete-with-live-macro-blocker
 nyquist_compliant: true
 wave_0_complete: true
 created: 2026-06-04
-updated: 2026-06-05T00:14:45Z
+updated: 2026-06-06T13:29:59Z
 ---
 
 # Phase 20 - Validation Strategy
@@ -23,6 +23,7 @@ updated: 2026-06-05T00:14:45Z
 | **Quick run command** | `npm test -- src/agent/renderer/AgentChatInput.atMention.test.tsx src/agent/renderer/agentStore.test.ts src/renderer/panels/FlashQueryVaultPanel.test.tsx src/renderer/panels/EditorPanel.test.tsx` |
 | **Full suite command** | `npm run typecheck && npm test && npm run test:e2e` |
 | **Native clipboard command** | `npm run test:e2e -- e2e/flashquery-native-clipboard.spec.ts` |
+| **Macro/model companion command** | `npm run test:e2e -- e2e/flashquery-pi-macro-trace.spec.ts e2e/flashquery-pi-diagnostics.spec.ts` |
 | **Estimated runtime** | Focused tests ~60-180 seconds; E2E depends on Electron build freshness |
 
 **Environment caveat:** local research found Node `v24.7.0`, while Cate requires `>=20 <23`. Executors should switch to Node 20 or 22 before relying on npm validation results.
@@ -68,7 +69,7 @@ updated: 2026-06-05T00:14:45Z
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| Live host-model macro progress, completed trace, `needs_user_input`, and disconnected macro behavior | REQ-016 / T-M-002 | Requires a real FlashQuery runtime, configured native Pi provider, host-model tool selection, and progress-emitting macro | Run the live macro scenario from `20-UAT.md`; keep blocked until human/live evidence is recorded. |
+| Live host-model macro progress, completed trace, `needs_user_input`, and disconnected macro behavior | REQ-016 / T-M-002 | Partially automated on 2026-06-06: deterministic E2E now preserves a real-shaped `needs_user_input` envelope and exact disconnected `call_macro` error rendering. The remaining live portion requires a real FlashQuery runtime, configured native Pi provider, host-model tool selection, and progress-emitting macro. | Run the live macro scenario from `20-UAT.md`; keep the live/provider remainder blocked until human/live evidence is recorded. |
 
 ## Validation Audit 2026-06-04
 
@@ -86,6 +87,21 @@ updated: 2026-06-05T00:14:45Z
 
 ---
 
+## Validation Re-Audit 2026-06-06
+
+| Metric | Count |
+|--------|-------|
+| Partially automated blockers advanced | 1 |
+| Live/provider blockers remaining | 1 |
+| E2E files extended | 2 |
+
+| Command | Result |
+|---------|--------|
+| `npm run test:e2e -- e2e/flashquery-pi-macro-trace.spec.ts e2e/flashquery-pi-diagnostics.spec.ts` | passed: 3 Playwright Electron tests |
+| `npm test -- src/agent/extensions/cate-flashquery/lifecycle.test.ts src/agent/renderer/ChatThread.test.tsx src/agent/renderer/agentStore.test.ts && npm run typecheck` | passed: 3 Vitest files, 33 tests; typecheck passed |
+
+---
+
 ## Validation Sign-Off
 
 - [x] All tasks have automated verify or Wave 0 dependencies
@@ -95,4 +111,4 @@ updated: 2026-06-05T00:14:45Z
 - [x] Feedback latency target documented
 - [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** approved for `REQ-019` automated native clipboard coverage on 2026-06-04; live macro `T-M-002` remains blocked pending human/live evidence.
+**Approval:** approved for `REQ-019` automated native clipboard coverage on 2026-06-04; deterministic `T-M-002` companion coverage approved on 2026-06-06; live macro/provider evidence remains blocked pending human/live evidence.

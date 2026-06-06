@@ -226,7 +226,7 @@ Plans:
 6. Milestone UI polish is checked against the Milestone 2 UI Spec where applicable.
 7. Final verification runs targeted suites, `npm run typecheck`, and `npm run preflight` where practical, with skipped portions explicitly recorded.
 
-**Status:** Needs Review - automated verification passed; manual/live checks `T-M-001` through `T-M-003` remain blocked pending human/live evidence or owner acceptance. `T-M-004` native clipboard coverage is automated.
+**Status:** Needs Review - automated verification passed; deterministic companions for `T-M-002`/`T-M-003` and native clipboard `T-M-004` are automated. `T-M-001` and the live/provider remainders of `T-M-002`/`T-M-003` remain blocked pending human/live evidence or owner acceptance.
 
 **Coverage:** 8 phases, 20/20 requirements mapped.
 
@@ -234,7 +234,7 @@ Plans:
 
 ## Current Status
 
-Active milestone: v1.2 FlashQuery Milestone 2. Phase 21 automated verification and preflight are complete. `T-M-004` native clipboard coverage is now automated; the milestone is waiting on owner review of blocked manual/live checks `T-M-001` through `T-M-003` before it can be treated as fully release-ready.
+Active milestone: v1.2 FlashQuery Milestone 2. Phase 21 automated verification and preflight are complete. `T-M-004` native clipboard coverage and deterministic companions for `T-M-002`/`T-M-003` are now automated; the milestone is waiting on owner review of blocked manual/live check `T-M-001` plus the live/provider remainders of `T-M-002`/`T-M-003` before it can be treated as fully release-ready.
 
 ## Notes
 

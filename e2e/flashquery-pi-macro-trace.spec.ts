@@ -126,3 +126,110 @@ test('T-E-006b REQ-017 renders call_macro trace table from the REAL envelope sha
     if (app) await closeApp(app)
   }
 })
+
+test('T-M-002 deterministic companion preserves call_macro needs_user_input and renders disconnected results', async () => {
+  let app: ElectronApplication | null = null
+  try {
+    const launched = await launchApp()
+    app = launched.electronApp
+    const page = launched.mainWindow
+
+    const panelId = await page.evaluate(() => window.__cateE2E!.createAgent(
+      { x: 160, y: 120 },
+      { target: 'dock', zone: 'center' },
+    ))
+    const agentKey = await page.waitForFunction((panelId) => {
+      return window.__cateE2E!.agentPanelIds().find((id) => id.startsWith(`agent-${panelId}-`)) ?? null
+    }, panelId).then((handle) => handle.jsonValue() as Promise<string>)
+
+    const needsInputEnvelope = JSON.stringify({
+      task_id: 'macro-needs-input-1',
+      needs_user_input: {
+        prompt: 'Pick the target document',
+        choices: ['Docs/Plan.md', 'Docs/Archive.md'],
+      },
+      result: { status: 'waiting_for_user' },
+    })
+
+    await page.evaluate(({ panelId, needsInputEnvelope }) => {
+      const api = window.__cateE2E!
+      api.dispatchAgentEvent(panelId, {
+        type: 'tool_execution_start',
+        toolCallId: 'call-macro-needs-input',
+        toolName: 'call_macro',
+        args: { source_ref: 'macros/ask.md', interactive: true },
+      })
+      api.dispatchAgentEvent(panelId, {
+        type: 'tool_execution_end',
+        toolCallId: 'call-macro-needs-input',
+        result: {
+          content: [{ type: 'text', text: needsInputEnvelope }],
+          details: {
+            flashquery: true,
+            toolName: 'call_macro',
+            workspaceId: 'ws-e2e',
+            traceId: 'cate-ws-12345678-conv-needsinput0001',
+            result: { content: [{ type: 'text', text: needsInputEnvelope }] },
+          },
+        },
+      })
+      api.dispatchAgentEvent(panelId, {
+        type: 'tool_execution_start',
+        toolCallId: 'call-macro-disconnected',
+        toolName: 'call_macro',
+        args: { source_ref: 'macros/offline.md' },
+      })
+      api.dispatchAgentEvent(panelId, {
+        type: 'tool_execution_end',
+        toolCallId: 'call-macro-disconnected',
+        isError: true,
+        result: {
+          content: [{ type: 'text', text: 'FlashQuery is not connected.' }],
+          details: {
+            flashquery: true,
+            toolName: 'call_macro',
+            workspaceId: 'ws-e2e',
+            traceId: 'cate-ws-12345678-conv-disconnect001',
+            disconnected: true,
+            error: 'FlashQuery is not connected.',
+          },
+        },
+      })
+    }, { panelId: agentKey, needsInputEnvelope })
+
+    const messages = await page.evaluate((panelId) => window.__cateE2E!.agentMessages(panelId), agentKey)
+    expect(messages).toHaveLength(2)
+    expect(messages[0]).toMatchObject({
+      type: 'tool',
+      name: 'call_macro',
+      status: 'success',
+      result: expect.stringContaining('needs_user_input'),
+      flashquery: {
+        flashquery: true,
+        toolName: 'call_macro',
+      },
+    })
+    expect(JSON.stringify(messages[0])).toContain('Pick the target document')
+    expect(messages[1]).toMatchObject({
+      type: 'tool',
+      name: 'call_macro',
+      status: 'error',
+      error: 'Tool reported an error',
+      result: 'FlashQuery is not connected.',
+      flashquery: {
+        flashquery: true,
+        toolName: 'call_macro',
+        disconnected: true,
+      },
+    })
+
+    const macroCards = page.getByRole('button', { name: /Used\s+call_macro/ })
+    await expect(macroCards).toHaveCount(2)
+
+    await macroCards.nth(1).click()
+    await expect(page.getByText('FlashQuery is not connected.')).toBeVisible()
+    await expect(page.getByText('Tool reported an error')).toBeVisible()
+  } finally {
+    if (app) await closeApp(app)
+  }
+})
