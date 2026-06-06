@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: FlashQuery Milestone 2
-status: needs-review
-stopped_at: Deterministic T-M-002/T-M-003 companion evidence added; Phase 21 still needs owner review for T-M-001 and live/provider remainders
-last_updated: "2026-06-06T13:29:59Z"
+status: ready-for-milestone-closeout
+stopped_at: v1.2 milestone audit passed; ready for complete/archive
+last_updated: "2026-06-06T15:54:40Z"
 last_activity: 2026-06-06
 progress:
   total_phases: 8
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 25
   completed_plans: 25
   percent: 100
@@ -21,26 +21,26 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-03 after v1.2 FlashQuery Milestone 2 planning)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** Phase 21 - cross-surface connection degradation closeout and owner review
+**Current focus:** v1.2 milestone closeout
 
 ## Current Position
 
 Phase: 21 (cross-surface-hardening-and-regression)
 Plan: 4 of 4
-Status: Needs Review - automated verification passed; deterministic T-M-002/T-M-003 companions and T-M-004 native clipboard coverage automated; T-M-001 and live/provider remainders remain blocked
+Status: Complete - v1.2 milestone audit passed with 20/20 requirements satisfied
 Last activity: 2026-06-06
 
 ## Session Continuity
 
-Last session: 2026-06-06T13:29:59Z
-Stopped At: Deterministic T-M-002/T-M-003 companion evidence added; Phase 21 still needs owner review for T-M-001 and live/provider remainders
+Last session: 2026-06-06T15:54:40Z
+Stopped At: v1.2 milestone audit passed; ready for complete/archive
 Resume File: None
 
 ## Next Up
 
-Owner review of Phase 21 release-readiness: either record live/manual evidence for T-M-001 plus the live/provider remainders of T-M-002/T-M-003, accept the blockers as known manual follow-up, or open a follow-up phase/issue.
+Complete/archive v1.2 with `$gsd-complete-milestone v1.2`.
 
-Phase 21 has 4/4 plans complete. Final focused suites, `npm run typecheck`, `npm test`, `npm run test:e2e`, and `npm run preflight` passed on 2026-06-04. `T-M-004` native clipboard coverage passed on 2026-06-04 via `e2e/flashquery-native-clipboard.spec.ts`. Deterministic T-M-002/T-M-003 companion coverage passed on 2026-06-06 via `e2e/flashquery-pi-macro-trace.spec.ts` and `e2e/flashquery-pi-diagnostics.spec.ts`. `21-VERIFICATION.md` records the full REQ-020 matrix and keeps the remaining blocked manual/live checks visible.
+Phase 21 has 4/4 plans complete. Final focused suites, `npm run typecheck`, `npm test`, `npm run test:e2e`, and `npm run preflight` passed on 2026-06-04. `T-M-004` native clipboard coverage passed on 2026-06-04 via `e2e/flashquery-native-clipboard.spec.ts`. Deterministic T-M-002/T-M-003 companion coverage passed on 2026-06-06 via `e2e/flashquery-pi-macro-trace.spec.ts` and `e2e/flashquery-pi-diagnostics.spec.ts`; T-M-001 is covered by accepted extension lifecycle/index/E2E substitute evidence. Phase 15, 16, and 20 verification artifacts were generated on 2026-06-06 and the v1.2 milestone audit now passes.
 
 ## Decisions
 
@@ -67,7 +67,9 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table (updated
 | 2026-06-03 | v1.2 continues phase numbering from v1.1, starting at Phase 14. | Preserves the project roadmap's sequential phase history across shipped milestones. |
 | 2026-06-04 | Phase 21 is left in Needs Review after automated verification passed. | At closeout, live/manual checks T-M-001 through T-M-004 required real FlashQuery/Pi/provider/native clipboard evidence or owner acceptance before release-readiness could be complete. |
 | 2026-06-04 | T-M-004 native clipboard verification is automated. | `e2e/flashquery-native-clipboard.spec.ts` drives vault tree, search row, and editor title copy actions and reads Electron's native clipboard, removing the native clipboard item from the manual blocker list. |
-| 2026-06-06 | Deterministic companions for T-M-002 and T-M-003 are automated. | `e2e/flashquery-pi-macro-trace.spec.ts` now covers `call_macro` `needs_user_input` preservation plus disconnected rendering, and `e2e/flashquery-pi-diagnostics.spec.ts` now covers `call_model` refs, `return_messages`, provider/model diagnostics, messages payload, tokens, latency, and server-side tool-loop data. Live provider/runtime checks remain blocked. |
+| 2026-06-06 | Deterministic companions for T-M-002 and T-M-003 are automated. | `e2e/flashquery-pi-macro-trace.spec.ts` covers `call_macro` `needs_user_input` preservation plus disconnected rendering, and `e2e/flashquery-pi-diagnostics.spec.ts` covers `call_model` refs, `return_messages`, provider/model diagnostics, messages payload, tokens, latency, and server-side tool-loop data. Superseded by owner acceptance of deterministic substitutes below. |
+| 2026-06-06 | Deterministic substitutes for T-M-001, T-M-002, and T-M-003 are accepted for milestone closeout. | Owner accepted simulated evidence in place of live FlashQuery/Pi/provider runs; live runs remain optional follow-up evidence. |
+| 2026-06-06 | Phase 15, 16, and 20 verification artifacts close the remaining v1.2 audit documentation gaps. | The audit now has 8/8 phase verifications, 8/8 validations, and 20/20 satisfied requirements. |
 
 - [Phase 17]: Plan 17.1 writes FlashQuery Pi handoff to workspace-scoped .cate/pi-agent/flashquery-handoff.json. — Bearer tokens are sourced only from main-process getWorkspaceToken(workspaceId), preserving the renderer and Pi auth.json token boundary.
 - [Phase 17]: Plan 17.2 uses MCP listTools metadata as the FlashQuery registry source for hostEligible/current Pi tool registration.
@@ -128,5 +130,4 @@ Items acknowledged and deferred at milestone close on 2026-05-30:
 
 ## Operator Next Steps
 
-- Review `.planning/phases/21-cross-surface-hardening-and-regression/21-VERIFICATION.md` and decide whether to accept blocked manual/live check T-M-001 plus the live/provider remainders for T-M-002/T-M-003 as follow-up.
-- Decide whether to run true live FlashQuery/Pi/provider evidence for the remaining macro/model/provider checks.
+- Complete/archive v1.2 with `$gsd-complete-milestone v1.2`.

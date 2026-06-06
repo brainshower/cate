@@ -1,6 +1,6 @@
 ---
 phase: 21-cross-surface-hardening-and-regression
-status: blocked
+status: accepted-simulated
 created: 2026-06-04
 requirements: [REQ-020]
 tests: [T-E-001, T-E-002, T-E-003, T-E-004, T-E-005, T-E-006, T-E-006b, T-E-007, T-M-001, T-M-002, T-M-003, T-M-004]
@@ -42,9 +42,9 @@ Build evidence:
 
 | ID | Requirement | Status | Evidence or Blocker |
 | --- | --- | --- | --- |
-| T-M-001 | REQ-013, REQ-014, REQ-020 | blocked | Requires real FlashQuery HTTP MCP endpoint plus configured native Pi provider. Current automated substitutes passed: `T-U-015`, `T-E-005`, and Phase 21 focused Pi extension E2E. Still requires human confirmation that native and brokered eligible tools register, stale tools disappear or reject after workspace switch, and FlashQuery is absent from ProvidersView. |
-| T-M-002 | REQ-016 | partially automated / live blocked | Deterministic companion passed on 2026-06-06: `e2e/flashquery-pi-macro-trace.spec.ts` preserves a real-shaped `needs_user_input` envelope in tool message data and renders the disconnected `call_macro` result exactly. Still requires real host-model `call_macro`, progress-emitting macro, live progress observation, final trace confirmation, and provider/runtime user-input behavior. |
-| T-M-003 | REQ-015, REQ-017 | partially automated / live blocked | Deterministic companion passed on 2026-06-06: `e2e/flashquery-pi-diagnostics.spec.ts` preserves refs, `return_messages`, provider/model diagnostics, messages payload, tokens, latency, and server-side tool-loop data. Still requires configured Pi provider, live FlashQuery runtime, real host-model `call_model` selection, and live provider diagnostics. |
+| T-M-001 | REQ-013, REQ-014, REQ-020 | accepted by deterministic substitute | Owner accepted simulated substitute evidence on 2026-06-06. Substitute coverage: `T-U-015` lifecycle tests prove workspace rebind, stale-tool rejection, old in-flight completion, registry/model/purpose refresh, and no provider unregister dependency; `src/agent/extensions/cate-flashquery/index.test.ts` proves eligible native and brokered tools register, ineligible tools are skipped, FlashQuery is not registered as a provider, and ProvidersView has no FlashQuery provider row; `e2e/flashquery-pi-extension.spec.ts` proves the bundled extension installs and fetches fixture registry tools at Agent startup. Live FlashQuery/Pi provider evidence remains optional follow-up. |
+| T-M-002 | REQ-016 | accepted by deterministic substitute | Owner accepted simulated substitute evidence on 2026-06-06. `e2e/flashquery-pi-macro-trace.spec.ts` drives real-shaped `call_macro` response envelopes, live-progress-style `partialText` forwarding, structured trace rendering, `needs_user_input` preservation, and exact disconnected-result rendering. Live provider/runtime macro evidence remains optional follow-up. |
+| T-M-003 | REQ-015, REQ-017 | accepted by deterministic substitute | Owner accepted simulated substitute evidence on 2026-06-06. `e2e/flashquery-pi-diagnostics.spec.ts` preserves refs, `return_messages`, provider/model diagnostics, messages payload, tokens, latency, server-side tool-loop data, missing-ref errors, and ToolCard rendering through normal Pi tool messages. Live provider/runtime `call_model` evidence remains optional follow-up. |
 | T-M-004 | REQ-019 | passed by automated native clipboard E2E | `npm run test:e2e -- e2e/flashquery-native-clipboard.spec.ts` passed on 2026-06-04. The test invokes vault tree, search row, and FlashQuery editor title copy actions and reads Electron's native clipboard, verifying exact `Docs/Plan.md` and `{{ref:Docs/Plan.md}}` values with no URI, encoding, anchor, block-ref, or markdown-link variants. |
 
 ## Phase 21 Cross-Surface Matrix
@@ -56,8 +56,8 @@ Build evidence:
 | Vault Search | T-E-003, T-U-021 search assertions | passed |
 | Pi `@` cache | T-E-004, T-U-021 agent store/input assertions | passed |
 | Clipboard reference actions | T-E-003 plus component assertions; T-M-004 native clipboard E2E | automated passed |
-| Pi extension tools | T-E-005, T-U-015 lifecycle assertions | automated passed; manual T-M-001 blocked |
-| ToolCard diagnostics | T-E-006 and T-E-006b plus deterministic T-M-002/T-M-003 companions | automated passed; live provider/manual remainders for T-M-002/T-M-003 blocked |
+| Pi extension tools | T-E-005, T-U-015 lifecycle assertions, accepted T-M-001 deterministic substitute | passed by accepted simulated evidence |
+| ToolCard diagnostics | T-E-006 and T-E-006b plus accepted T-M-002/T-M-003 deterministic substitutes | passed by accepted simulated evidence |
 | Broad disconnect/reconnect | T-E-007 distributed across editor, search, mention-cache, and status-chip specs | passed |
 
 ## Visual Evidence
@@ -67,7 +67,7 @@ Visual evidence notes are recorded in `.planning/phases/21-cross-surface-hardeni
 - `npm run test:e2e -- e2e/flashquery-visual-evidence.spec.ts` passed.
 - Captured full-page FlashQuery surfaces plus live/connecting/disconnected status-chip screenshots in dark and light themes.
 - The Milestone 2 UI Spec was reviewed for editor refresh/frontmatter, Vault Search, Pi ToolCard, Pi `@` mention, and clipboard surfaces.
-- Screenshot-specific coverage for Vault Search, expanded ToolCard, Pi `@` mention, and clipboard-menu states remains limited by the existing visual evidence flow; those surfaces are covered behaviorally by focused unit/component/E2E evidence and manual blockers where required.
+- Screenshot-specific coverage for Vault Search, expanded ToolCard, Pi `@` mention, and clipboard-menu states remains limited by the existing visual evidence flow; those surfaces are covered behaviorally by focused unit/component/E2E evidence and accepted simulated/manual substitute evidence where required.
 
 ## Final Verification
 
@@ -76,8 +76,8 @@ Final closeout evidence is recorded in `.planning/phases/21-cross-surface-harden
 - Focused unit/component suites passed.
 - Focused E2E suites for `T-E-001` through `T-E-007` plus `T-E-006b` passed.
 - `npm run typecheck`, `npm test`, `npm run test:e2e`, and `npm run preflight` passed.
-- Phase status remains `needs-review` because `T-M-001` and the live/provider remainders of `T-M-002` and `T-M-003` are still blocked pending live/manual evidence or owner acceptance. `T-M-002` and `T-M-003` deterministic companions are automated, and `T-M-004` is covered by automated native clipboard E2E.
+- Phase status is accepted by simulated evidence: owner acceptance on 2026-06-06 makes `T-M-001`, `T-M-002`, and `T-M-003` deterministic substitutes sufficient for milestone closeout. `T-M-004` is covered by automated native clipboard E2E.
 
 ## Sign-Off
 
-Automated Phase 21 E2E evidence is passed for `T-E-001` through `T-E-007`, `T-E-006b`, deterministic companions for `T-M-002`/`T-M-003`, and `T-M-004`. Manual/live check `T-M-001` and the live/provider remainders for `T-M-002`/`T-M-003` remain blocked with exact prerequisites and must not be marked fully passed without human/live evidence.
+Automated Phase 21 E2E evidence is passed for `T-E-001` through `T-E-007`, `T-E-006b`, accepted deterministic substitutes for `T-M-001`/`T-M-002`/`T-M-003`, and `T-M-004`. Live FlashQuery/Pi/provider runs remain optional follow-up evidence.

@@ -84,7 +84,7 @@ describe('cate-flashquery registry normalization', () => {
     ])
   })
 
-  it('T-U-014 rejects enriched records unless hostEligible is true and status is current', () => {
+  it('T-U-014 rejects enriched records unless hostEligible is true and status is a current FlashQuery status', () => {
     const records: FlashQueryRegistryRecord[] = [
       eligible({ name: 'final_tool', status: 'final' }),
       eligible({ name: 'transitional_tool', status: 'transitional' }),

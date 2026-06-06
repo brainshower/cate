@@ -1,6 +1,6 @@
 ---
 phase: 21-cross-surface-hardening-and-regression
-status: passed-with-blockers
+status: passed
 created: 2026-06-04
 ---
 
@@ -43,13 +43,13 @@ All generated PNG files are non-empty and have expected dimensions: full-page ca
 - Pi `@` mention popover is behaviorally covered by `T-E-004` and `T-U-021`; this visual evidence flow does not currently capture the popover.
 - Clipboard menus are covered through component/E2E menu and clipboard assertions; native clipboard verification now passes through `e2e/flashquery-native-clipboard.spec.ts` as `T-M-004`.
 
-## Blockers
+## Limitations
 
 Visual screenshot capture for Vault Search, expanded Pi ToolCard, Pi `@` mention popover, and clipboard-menu screenshots is not yet automated by `e2e/flashquery-visual-evidence.spec.ts`. The underlying behavior for those surfaces passed focused E2E/component coverage; screenshot-specific evidence remains a visual evidence limitation, not a known product defect.
 
-Manual/live blockers remain recorded in `21-UAT.md`:
+Manual/live follow-up status is recorded in `21-UAT.md`:
 
-- `T-M-001`: blocked pending real FlashQuery endpoint and configured native Pi provider.
-- `T-M-002`: partially automated by deterministic E2E for `needs_user_input` data preservation and disconnected macro rendering; live/provider remainder remains blocked pending real host-model `call_macro`, progress-emitting macro, and runtime user-input behavior.
-- `T-M-003`: partially automated by deterministic E2E for document refs, `return_messages`, diagnostics, messages payload, tokens, latency, and server-side tool-loop data; live/provider remainder remains blocked pending live host-model `call_model` with document refs and diagnostics.
+- `T-M-001`: accepted deterministic substitute evidence for milestone closeout; optional live follow-up may use a real FlashQuery endpoint and configured native Pi provider.
+- `T-M-002`: accepted deterministic substitute evidence for milestone closeout; optional live follow-up may use a real host-model `call_macro`, progress-emitting macro, and runtime user-input behavior.
+- `T-M-003`: accepted deterministic substitute evidence for milestone closeout; optional live follow-up may use live host-model `call_model` with document refs and diagnostics.
 - `T-M-004`: passed by native clipboard E2E.

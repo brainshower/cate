@@ -11,7 +11,6 @@
 // =============================================================================
 
 import { app, BrowserWindow, shell, ipcMain, dialog } from 'electron'
-import { autoUpdater } from 'electron-updater'
 import log from './logger'
 import { flushAllLoggers } from './ipc/terminal'
 import {
@@ -33,8 +32,19 @@ const GITHUB_OWNER = '0-AI-UG'
 const GITHUB_REPO = 'cate'
 const API_LATEST_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`
 
-autoUpdater.autoDownload = false
-autoUpdater.autoInstallOnAppQuit = false
+type NativeAutoUpdater = typeof import('electron-updater')['autoUpdater']
+let autoUpdaterPromise: Promise<NativeAutoUpdater> | null = null
+
+async function loadAutoUpdater(): Promise<NativeAutoUpdater> {
+  if (!autoUpdaterPromise) {
+    autoUpdaterPromise = import('electron-updater').then(({ autoUpdater }) => {
+      autoUpdater.autoDownload = false
+      autoUpdater.autoInstallOnAppQuit = false
+      return autoUpdater
+    })
+  }
+  return autoUpdaterPromise
+}
 
 /** True after the user clicked "Update & Restart". The will-quit handler in
  *  src/main/index.ts reads this to skip its `process.reallyExit(0)` fallback —
@@ -203,7 +213,7 @@ export function initAutoUpdater(): void {
     const releaseUrl = currentStatus.state === 'available' ? currentStatus.releaseUrl : latestReleaseUrl
     void sendEvent('update_download_clicked', { version: version ?? null })
     broadcastStatus({ state: 'downloading', version: version ?? '' })
-    autoUpdater.downloadUpdate().catch((err) => {
+    loadAutoUpdater().then((autoUpdater) => autoUpdater.downloadUpdate().catch((err) => {
       log.warn('[auto-updater] downloadUpdate failed, retrying with fresh check:', err)
       // The native updater may not have update info cached (e.g. initial check
       // failed and the update was found via the GitHub API fallback). Re-run the
@@ -222,6 +232,9 @@ export function initAutoUpdater(): void {
         .finally(() => {
           autoUpdater.autoDownload = false
         })
+    })).catch((err) => {
+      log.error('[auto-updater] downloadUpdate failed:', err)
+      broadcastStatus({ state: 'error', message: err?.message || 'Download failed' })
     })
   })
 
@@ -235,6 +248,7 @@ export function initAutoUpdater(): void {
     // (isSilent=false, isForceRunAfter=true) — force relaunch after install
     // on every platform. The default `isForceRunAfter=false` makes Win/Linux
     // exit without coming back up after the install completes.
+    const autoUpdater = await loadAutoUpdater()
     autoUpdater.quitAndInstall(false, true)
   })
 
@@ -254,6 +268,7 @@ export function initAutoUpdater(): void {
 
   log.info('Auto-updater initialized')
 
+  void loadAutoUpdater().then((autoUpdater) => {
   autoUpdater.on('update-available', (info) => {
     log.info('Update available: v%s', info.version)
     if (currentStatus.state === 'downloading') return
@@ -329,12 +344,24 @@ export function initAutoUpdater(): void {
     },
     15 * 60 * 1000,
   )
+  }).catch((err) => {
+    log.warn('[auto-updater] Native updater unavailable, using fallback:', err)
+    fallbackCheckForUpdate(false)
+  })
 }
 
 export function checkForUpdatesManually(): void {
   isManualCheck = true
-  autoUpdater.checkForUpdates().catch((err) => {
+  if (!app.isPackaged) {
+    fallbackCheckForUpdate(true)
+    return
+  }
+  loadAutoUpdater().then((autoUpdater) => autoUpdater.checkForUpdates().catch((err) => {
     log.warn('[auto-updater] Manual check threw, trying fallback:', err)
+    isManualCheck = false
+    fallbackCheckForUpdate(true)
+  })).catch((err) => {
+    log.warn('[auto-updater] Manual native updater unavailable, trying fallback:', err)
     isManualCheck = false
     fallbackCheckForUpdate(true)
   })

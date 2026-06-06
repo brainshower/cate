@@ -1,6 +1,6 @@
 ---
 phase: 20-pi-mentions-and-clipboard-utilities
-status: blocked
+status: passed
 created: 2026-06-04
 requirements: [REQ-018, REQ-019]
 tests: [T-U-006, T-U-011, T-U-012, T-U-020, T-E-003, T-E-004, T-M-004]
@@ -118,7 +118,7 @@ a live server.
 > - Ran on Node v24.7.0; the `>=20 <23` `engines` constraint is advisory (not `engine-strict`), so the runners execute normally. `tsc --noEmit` exit 0.
 > - 2026-06-06 deterministic companion run: `npm run test:e2e -- e2e/flashquery-pi-macro-trace.spec.ts e2e/flashquery-pi-diagnostics.spec.ts` → 3/3 passed; `npm test -- src/agent/extensions/cate-flashquery/lifecycle.test.ts src/agent/renderer/ChatThread.test.tsx src/agent/renderer/agentStore.test.ts && npm run typecheck` → 33/33 Vitest tests passed and `tsc --noEmit` passed.
 
-### Remaining manual check — T-M-002 (live macro), status: partially automated / live blocked
+### Optional live follow-up — T-M-002
 
 The deterministic companion now proves Cate preserves a real-shaped
 `needs_user_input` envelope and renders the disconnected `call_macro` error
@@ -126,6 +126,8 @@ through the ToolCard. The genuinely-live behaviors still require a human check
 (Test Plan §6.1): a real host model deciding to invoke `call_macro`, a real
 server emitting throttled `notifications/progress`, and a provider/runtime macro
 that can actually request user input.
+
+Owner acceptance on 2026-06-06 makes the deterministic substitute evidence sufficient for milestone closeout. The live run below is optional follow-up evidence.
 
 Required manual steps (against real FlashQuery + a configured native Pi provider):
 
@@ -142,7 +144,7 @@ Required manual steps (against real FlashQuery + a configured native Pi provider
    tool-result message (no pause/resume protocol in Milestone 2).
 
 Expected: live progress shows a single rolling message; the completed table lists
-each trace step. Record observations here and flip to passed when run.
+each trace step. Record observations here if the optional live run is performed.
 
 ## Traceability Summary
 
@@ -150,10 +152,10 @@ each trace step. Record observations here and flip to passed when run.
 | --- | --- | --- | --- |
 | REQ-018 | T-U-006, T-U-020, T-E-004 | none | automated evidence passed |
 | REQ-019 | T-U-011, T-U-012, T-E-003, T-M-004 automated native clipboard E2E | none | automated evidence passed |
-| REQ-016 / REQ-017 (Gap 5 / CF-01) | T-U-019, T-E-006, T-E-006b, T-M-002 deterministic companion | T-M-002 live/provider remainder | structural defect closed + automated regression added; deterministic companion passed; live macro/provider run blocked pending human |
+| REQ-016 / REQ-017 (Gap 5 / CF-01) | T-U-019, T-E-006, T-E-006b, T-M-002 deterministic companion | optional live follow-up | structural defect closed + automated regression added; deterministic companion accepted for milestone closeout |
 
 ## Sign-Off
 
 - REQ-018: passed automated UAT evidence.
 - REQ-019: passed automated UAT evidence, including native clipboard E2E coverage for `T-M-004`.
-- Gap 5 / CF-01 (REQ-016 #8 / REQ-017 #4): structural defect closed (commit `62ee09e`) with real-envelope automated coverage (T-U-019 updated, T-E-006 migrated, T-E-006b added); deterministic T-M-002 companion coverage added on 2026-06-06; blocked manual T-M-002 live-provider sign-off pending human run.
+- Gap 5 / CF-01 (REQ-016 #8 / REQ-017 #4): structural defect closed (commit `62ee09e`) with real-envelope automated coverage (T-U-019 updated, T-E-006 migrated, T-E-006b added); deterministic T-M-002 companion coverage accepted on 2026-06-06; live-provider sign-off remains optional follow-up.

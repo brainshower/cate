@@ -10,7 +10,6 @@
 // =============================================================================
 
 import { app } from 'electron'
-import * as Sentry from '@sentry/electron/main'
 import log from './logger'
 import { getSettingSync } from './store'
 import { getCommonContext } from './appContext'
@@ -22,6 +21,12 @@ const SENTRY_DSN =
   (typeof __SENTRY_DSN__ === 'string' ? __SENTRY_DSN__ : '')
 
 let initialized = false
+let sentryModulePromise: Promise<typeof import('@sentry/electron/main')> | null = null
+
+function loadSentry() {
+  sentryModulePromise ??= import('@sentry/electron/main')
+  return sentryModulePromise
+}
 
 /** Build the Sentry initialScope from the shared appContext. Pulled out so
  *  the two channels (Sentry + analytics) read from the same source. */
@@ -42,13 +47,14 @@ function buildSentryScope() {
   }
 }
 
-function actuallyInit(): void {
+async function actuallyInit(): Promise<void> {
   if (initialized) return
   if (!SENTRY_DSN) {
     log.info('[sentry] DSN not configured; skipping init')
     return
   }
 
+  const Sentry = await loadSentry()
   Sentry.init({
     dsn: SENTRY_DSN,
     release: `cate@${app.getVersion()}`,
@@ -83,7 +89,9 @@ export function initSentry(): void {
     log.info('[sentry] disabled by user setting')
     return
   }
-  actuallyInit()
+  void actuallyInit().catch((err) => {
+    log.warn('[sentry] init failed: %s', err instanceof Error ? err.message : String(err))
+  })
 }
 
 /**
@@ -93,17 +101,19 @@ export function initSentry(): void {
  */
 export function setCrashReportingEnabled(enabled: boolean): void {
   if (enabled) {
-    actuallyInit()
+    void actuallyInit().catch((err) => {
+      log.warn('[sentry] init failed: %s', err instanceof Error ? err.message : String(err))
+    })
     return
   }
   if (!initialized) return
-  try {
+  void loadSentry().then((Sentry) => {
     // close() returns a promise that resolves once buffered events flush.
     // We don't await — best-effort, the user opted out.
     void Sentry.close(2000)
-  } catch (err) {
+  }).catch((err) => {
     log.warn('[sentry] close failed: %s', err instanceof Error ? err.message : String(err))
-  }
+  })
   initialized = false
   log.info('[sentry] disabled at runtime')
 }
@@ -112,11 +122,11 @@ export function setCrashReportingEnabled(enabled: boolean): void {
  *  immediately if Sentry isn't initialized, so the crash path never blocks. */
 export function captureMainException(err: unknown): void {
   if (!initialized) return
-  try {
+  void loadSentry().then((Sentry) => {
     Sentry.captureException(err)
-  } catch (sentryErr) {
+  }).catch((sentryErr) => {
     log.warn('[sentry] captureException failed: %s', sentryErr instanceof Error ? sentryErr.message : String(sentryErr))
-  }
+  })
 }
 
 /** Flush buffered Sentry events before exiting. Returns a promise that
@@ -124,6 +134,7 @@ export function captureMainException(err: unknown): void {
 export async function flushSentry(): Promise<void> {
   if (!initialized) return
   try {
+    const Sentry = await loadSentry()
     await Sentry.flush(2000)
   } catch {
     /* best-effort */

@@ -101,7 +101,7 @@ Canonical source docs:
 6. In-flight and disconnected search states disable duplicate dispatch and avoid presenting stale results as current.
 7. Targeted coverage includes T-U-005, T-U-010, T-U-011, T-E-003, and T-E-007.
 
-**Status:** In Progress
+**Status:** Complete
 
 ### Phase 17: FlashQuery Pi Extension Bootstrap
 
@@ -114,7 +114,7 @@ Canonical source docs:
 1. `src/agent/extensions/cate-flashquery/` and `installFlashQueryExtension.ts` follow existing bundled extension patterns.
 2. `AgentManager.create()` installs the FlashQuery extension without disrupting current extension installs.
 3. Extension initialization receives Cate-provided workspace-scoped FlashQuery credentials without writing to Pi global `auth.json`.
-4. Tool registration includes only `hostEligible: true` and `status: current` tools, including FlashQuery-native and brokered MCP tools.
+4. Tool registration includes only eligible current tools, including plain host-filtered `tools/list` records and enriched `hostEligible: true` records with `final`, `transitional`, or legacy `current` status, including FlashQuery-native and brokered MCP tools.
 5. Workspace switch reconnects the FlashQuery MCP client, refreshes registry/model/purpose metadata, unregisters stale tools, and leaves in-flight old-workspace calls to complete.
 6. FlashQuery is absent from ProvidersView and is not registered as a Pi provider.
 7. Targeted coverage includes T-U-013, T-U-014, T-U-015, T-E-005, and T-M-001.
@@ -158,11 +158,11 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 19-01-PLAN.md — Add component-level rich FlashQuery ToolCard rendering and T-U-019 coverage.
+- [x] 19-01-PLAN.md — Add component-level rich FlashQuery ToolCard rendering and T-U-019 coverage.
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 19-02-PLAN.md — Extend mocked E2E ToolCard evidence and record T-M-003 manual evidence status.
+- [x] 19-02-PLAN.md — Extend mocked E2E ToolCard evidence and record T-M-003 accepted simulated evidence status.
 
 **Success criteria:**
 
@@ -174,7 +174,7 @@ Plans:
 6. Missing or partial diagnostics degrade gracefully without layout breakage.
 7. Targeted coverage includes T-U-019, T-E-006, and T-M-003.
 
-**Status:** Pending
+**Status:** Complete - deterministic T-M-003 substitute accepted for milestone closeout.
 
 ### Phase 20: Pi `@` Mentions and Clipboard Utilities
 
@@ -226,7 +226,7 @@ Plans:
 6. Milestone UI polish is checked against the Milestone 2 UI Spec where applicable.
 7. Final verification runs targeted suites, `npm run typecheck`, and `npm run preflight` where practical, with skipped portions explicitly recorded.
 
-**Status:** Needs Review - automated verification passed; deterministic companions for `T-M-002`/`T-M-003` and native clipboard `T-M-004` are automated. `T-M-001` and the live/provider remainders of `T-M-002`/`T-M-003` remain blocked pending human/live evidence or owner acceptance.
+**Status:** Complete - automated verification passed; deterministic substitutes for `T-M-001`, `T-M-002`, and `T-M-003` are owner-accepted for milestone closeout, and native clipboard `T-M-004` is automated.
 
 **Coverage:** 8 phases, 20/20 requirements mapped.
 
@@ -234,7 +234,7 @@ Plans:
 
 ## Current Status
 
-Active milestone: v1.2 FlashQuery Milestone 2. Phase 21 automated verification and preflight are complete. `T-M-004` native clipboard coverage and deterministic companions for `T-M-002`/`T-M-003` are now automated; the milestone is waiting on owner review of blocked manual/live check `T-M-001` plus the live/provider remainders of `T-M-002`/`T-M-003` before it can be treated as fully release-ready.
+Active milestone: v1.2 FlashQuery Milestone 2. Milestone audit passed after Phase 15, 16, and 20 verification artifacts were generated. `T-M-004` native clipboard coverage and deterministic substitutes for `T-M-001`, `T-M-002`, and `T-M-003` are accepted for milestone closeout. Next step: complete/archive v1.2.
 
 ## Notes
 

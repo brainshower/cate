@@ -48,7 +48,7 @@ requirements: [REQ-020]
 | 21-02-02 | 02 | 2 | REQ-020 / T-E-001 / T-E-002 / T-E-003 / T-E-004 / T-E-007 | T-21-01-I / T-21-03-T | Real Electron paths prove refresh, frontmatter, search, mention cache, disconnect, reconnect, stale-cache, and copy-reference behavior. | e2e | `npm run test:e2e -- e2e/flashquery-editor-refresh-frontmatter.spec.ts e2e/flashquery-vault-search.spec.ts e2e/flashquery-pi-mentions.spec.ts e2e/flashquery-disconnect.spec.ts` | yes | green |
 | 21-02-03 | 02 | 2 | REQ-020 / T-E-005 / T-E-006 / T-E-006b / deterministic T-M-002 / deterministic T-M-003 companions | T-21-02-S / T-21-04-I | Pi extension install, ToolCard diagnostics, real call_macro envelope traces, `needs_user_input` preservation, disconnected macro rendering, and `call_model` refs/diagnostics data render through app-level paths without new chat message types. | e2e | `npm run test:e2e -- e2e/flashquery-pi-extension.spec.ts e2e/flashquery-pi-diagnostics.spec.ts e2e/flashquery-pi-macro-trace.spec.ts` | yes | green |
 | 21-03-01 | 03 | 3 | REQ-020 / UI polish | T-21-03-T | Visual evidence captures FlashQuery surfaces and status-chip states while documenting screenshot limitations. | e2e visual | `npm run test:e2e -- e2e/flashquery-visual-evidence.spec.ts` | yes | green |
-| 21-03-02 | 03 | 3 | REQ-020 / T-M-001 / T-M-002 / T-M-003 / T-M-004 | T-21-10-R | Manual/live checks are either passed with concrete evidence or blocked with exact prerequisites; native clipboard T-M-004 plus deterministic companions for T-M-002/T-M-003 are automated. | manual/UAT + E2E | `npm run test:e2e -- e2e/flashquery-native-clipboard.spec.ts && npm run test:e2e -- e2e/flashquery-pi-macro-trace.spec.ts e2e/flashquery-pi-diagnostics.spec.ts && test -f .planning/phases/21-cross-surface-hardening-and-regression/21-UAT.md && rg -n "T-M-001|T-M-002|T-M-003|T-M-004|blocked|passed|partially automated" .planning/phases/21-cross-surface-hardening-and-regression/21-UAT.md` | yes | partial: T-M-002/T-M-003 deterministic companions green; T-M-004 green; T-M-001 and live/provider remainders blocked |
+| 21-03-02 | 03 | 3 | REQ-020 / T-M-001 / T-M-002 / T-M-003 / T-M-004 | T-21-10-R | Manual/live checks are covered by owner-accepted deterministic substitutes where live provider/runtime prerequisites were unavailable; native clipboard T-M-004 is automated. | UAT + E2E | `npm run test:e2e -- e2e/flashquery-native-clipboard.spec.ts && npm run test:e2e -- e2e/flashquery-pi-macro-trace.spec.ts e2e/flashquery-pi-diagnostics.spec.ts && test -f .planning/phases/21-cross-surface-hardening-and-regression/21-UAT.md && rg -n "T-M-001|T-M-002|T-M-003|T-M-004|accepted|passed" .planning/phases/21-cross-surface-hardening-and-regression/21-UAT.md` | yes | green: T-M-001/T-M-002/T-M-003 accepted deterministic substitutes; T-M-004 native clipboard E2E green |
 | 21-04-01 | 04 | 4 | REQ-020 / final verification | T-21-03-T | Final typecheck, unit, E2E, and preflight evidence is recorded with skipped/manual blockers explicit. | closeout | `npm run typecheck && npm test && npm run test:e2e && npm run preflight` | yes | green |
 
 *Status: pending · green · red · flaky · blocked/manual*
@@ -71,12 +71,12 @@ Existing infrastructure covers all automated Phase 21 requirements.
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| Live FlashQuery/Pi tool registration and workspace-switch stale tool behavior | REQ-013, REQ-014, REQ-020 / T-M-001 | Requires real FlashQuery HTTP MCP endpoint and configured native Pi provider credentials. | Start Cate with real FlashQuery and a native Pi provider; verify native and brokered eligible tools register, stale tools disappear or reject after workspace switch, and FlashQuery is absent from ProvidersView. |
-| Live host-model `call_macro` progress and interaction behavior | REQ-016, REQ-020 / T-M-002 | Partially automated on 2026-06-06: deterministic E2E preserves `needs_user_input` payload data and exact disconnected `call_macro` rendering. The remaining live portion requires a real host-model run, progress-emitting macro, provider/runtime user input, and live progress observation. | Invoke `call_macro` through the host model; verify spinner/latest progress, final trace, live `needs_user_input`, and disconnected behavior. |
-| Live host-model `call_model` references and diagnostics | REQ-015, REQ-017, REQ-020 / T-M-003 | Partially automated on 2026-06-06: deterministic E2E preserves refs, `return_messages`, provider/model diagnostics, messages payload, tokens, latency, and server-side tool-loop data. The remaining live portion requires configured Pi provider, live FlashQuery runtime, document-reference fixture, and real host-model tool choice. | Invoke `call_model` with `{{ref:<fullPath>}}`; verify purpose/model resolution, injected refs, messages payload, cost/tokens/latency, and server-side FlashQuery tool-loop diagnostics. |
+| Live FlashQuery/Pi tool registration and workspace-switch stale tool behavior | REQ-013, REQ-014, REQ-020 / T-M-001 | Owner accepted deterministic substitute evidence on 2026-06-06. | Optional live follow-up: start Cate with real FlashQuery and a native Pi provider; verify native and brokered eligible tools register, stale tools disappear or reject after workspace switch, and FlashQuery is absent from ProvidersView. |
+| Live host-model `call_macro` progress and interaction behavior | REQ-016, REQ-020 / T-M-002 | Owner accepted deterministic substitute evidence on 2026-06-06. | Optional live follow-up: invoke `call_macro` through the host model; verify spinner/latest progress, final trace, live `needs_user_input`, and disconnected behavior. |
+| Live host-model `call_model` references and diagnostics | REQ-015, REQ-017, REQ-020 / T-M-003 | Owner accepted deterministic substitute evidence on 2026-06-06. | Optional live follow-up: invoke `call_model` with `{{ref:<fullPath>}}`; verify purpose/model resolution, injected refs, messages payload, cost/tokens/latency, and server-side FlashQuery tool-loop diagnostics. |
 | Native macOS pasted clipboard values | REQ-019, REQ-020 / T-M-004 | Automated by `e2e/flashquery-native-clipboard.spec.ts`; no longer manual-only for Phase 21. | The E2E invokes vault tree, search row, and editor title copy actions and reads Electron's native clipboard for exact `Docs/Plan.md` and `{{ref:Docs/Plan.md}}` values with no URI, encoding, anchor, block-ref, or Markdown-link variants. |
 
-Manual/live checks above are blocked in `21-UAT.md` and `21-VERIFICATION.md` with exact prerequisites except `T-M-004`, which is automated, and the deterministic companion portions of `T-M-002`/`T-M-003`, which are automated. The remaining blockers do not represent missing automated Nyquist coverage, but they do block release-readiness until resolved or accepted by the owner.
+Manual/live checks above are accepted by deterministic substitute evidence in `21-UAT.md` and `21-VERIFICATION.md`. Live FlashQuery/Pi/provider runs remain optional follow-up evidence.
 
 ---
 
@@ -114,7 +114,7 @@ Previously recorded final closeout evidence in `21-VERIFICATION.md` also include
 | `npm test -- src/renderer/panels/EditorPanel.test.tsx src/renderer/panels/FlashQueryVaultSearchPanel.test.tsx src/renderer/panels/FlashQueryVaultPanel.test.tsx` | passed: 3 files, 72 tests |
 | `npm run typecheck` | passed |
 
-No Nyquist gap-filler was spawned because the existing automated requirement map remained covered and green. `T-M-001` through `T-M-003` remain explicit manual/live blockers, not missing automated coverage. `T-M-004` is now covered by native clipboard E2E.
+No Nyquist gap-filler was spawned because the existing automated requirement map remained covered and green. `T-M-001` through `T-M-003` were later accepted by deterministic substitutes, and `T-M-004` is covered by native clipboard E2E.
 
 ## Validation Re-Audit 2026-06-06
 
@@ -129,7 +129,7 @@ No Nyquist gap-filler was spawned because the existing automated requirement map
 | `npm run test:e2e -- e2e/flashquery-pi-macro-trace.spec.ts e2e/flashquery-pi-diagnostics.spec.ts` | passed: 3 Playwright Electron tests |
 | `npm test -- src/agent/extensions/cate-flashquery/lifecycle.test.ts src/agent/renderer/ChatThread.test.tsx src/agent/renderer/agentStore.test.ts && npm run typecheck` | passed: 3 Vitest files, 33 tests; typecheck passed |
 
-Deterministic companions now cover the automatable portions of `T-M-002` and `T-M-003`: `call_macro` `needs_user_input`/disconnect data preservation and `call_model` refs/diagnostics/tool-loop data preservation. `T-M-001` and the live provider/runtime portions of `T-M-002`/`T-M-003` remain blocked pending human/live evidence or owner acceptance.
+Deterministic companions cover `T-M-002` and `T-M-003`: `call_macro` `needs_user_input`/disconnect data preservation and `call_model` refs/diagnostics/tool-loop data preservation. Owner accepted deterministic substitutes for `T-M-001`, `T-M-002`, and `T-M-003` on 2026-06-06.
 
 ---
 
@@ -142,4 +142,4 @@ Deterministic companions now cover the automatable portions of `T-M-002` and `T-
 - [x] Focused feedback latency target documented and met for local validation commands.
 - [x] `nyquist_compliant: true` set in frontmatter.
 
-**Approval:** approved for automated Nyquist coverage on 2026-06-04; deterministic `T-M-002`/`T-M-003` companion coverage approved on 2026-06-06; release-readiness remains blocked pending owner decision or manual/live evidence for `T-M-001` plus the live/provider remainders of `T-M-002`/`T-M-003`.
+**Approval:** approved for automated Nyquist coverage on 2026-06-04; deterministic `T-M-001`/`T-M-002`/`T-M-003` substitute coverage accepted for release-readiness on 2026-06-06.

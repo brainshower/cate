@@ -1,20 +1,20 @@
 ---
 phase: 19-pi-toolcard-observability-rendering
 verified: 2026-06-04T17:41:49Z
-status: human_needed
+status: passed
 score: 10/10 must-haves verified
 overrides_applied: 0
 human_verification:
-  - test: "T-M-003 live call_model observability"
-    expected: "With a configured native Pi provider, live FlashQuery runtime, and document-reference fixture, a real call_model ToolCard shows purpose/model resolution, injected refs, messages payload, cost/tokens/latency when present, and server-side FlashQuery tool loop only inside the expanded ToolCard."
-    why_human: "Live provider credentials, live FlashQuery runtime, and document-reference fixtures are external prerequisites and were not available to this verifier."
+  - test: "T-M-003 call_model observability"
+    status: "accepted deterministic substitute"
+    evidence: "Owner accepted e2e/flashquery-pi-diagnostics.spec.ts on 2026-06-06 as sufficient simulated evidence for milestone closeout."
 ---
 
 # Phase 19: Pi ToolCard Observability Rendering Verification Report
 
 **Phase Goal:** Render FlashQuery tool diagnostics through existing Pi ToolCards, with richer details for `call_model` and `call_macro`.
 **Verified:** 2026-06-04T17:41:49Z
-**Status:** human_needed
+**Status:** passed
 **Re-verification:** No - initial verification
 
 ## Goal Achievement
@@ -29,10 +29,10 @@ human_verification:
 | 4 | `call_macro` expanded view renders completed trace arrays as structured step tables. | VERIFIED | `flashQueryCallMacroSections()` renders a table from trace rows at `src/agent/renderer/ChatThread.tsx:1051-1080`; component assertions at `src/agent/renderer/ChatThread.test.tsx:233-274`; E2E assertions at `e2e/flashquery-pi-diagnostics.spec.ts:244-248`. |
 | 5 | Other FlashQuery tools continue to use standard ToolCard rendering. | VERIFIED | Rich branch is limited to `call_model` and `call_macro` at `src/agent/renderer/ChatThread.tsx:841-848`; component test covers `get_document` generic fallback at `src/agent/renderer/ChatThread.test.tsx:276-297`; E2E covers generic `get_document` at `e2e/flashquery-pi-diagnostics.spec.ts:145-162` and `250-254`. |
 | 6 | Missing, partial, malformed, or running diagnostics degrade gracefully without undefined/NaN, fabricated progress, or credential-bearing fields. | VERIFIED | Running special tools fall back to generic `ToolCard` at `src/agent/renderer/ChatThread.tsx:845-848`; numeric guards and display sanitization are at `src/agent/renderer/ChatThread.tsx:1202-1295`; component tests assert no `undefined`, `NaN`, secret keys, fake progress, or synthetic elapsed counts at `src/agent/renderer/ChatThread.test.tsx:147-231` and `269-273`; E2E asserts secret sentinel remains hidden at `e2e/flashquery-pi-diagnostics.spec.ts:214-238`. |
-| 7 | Targeted coverage includes T-U-019, T-E-006, and T-M-003. | VERIFIED | `T-U-019` component tests exist and pass; `T-E-006` Electron E2E exists and passes; `19-UAT.md` maps `REQ-017` to `T-U-019`, `T-E-006`, and blocked `T-M-003` at `.planning/phases/19-pi-toolcard-observability-rendering/19-UAT.md:7-13`. |
+| 7 | Targeted coverage includes T-U-019, T-E-006, and T-M-003. | VERIFIED | `T-U-019` component tests exist and pass; `T-E-006` Electron E2E exists and passes; `19-UAT.md` maps `REQ-017` to `T-U-019`, `T-E-006`, and accepted deterministic substitute evidence for `T-M-003`. |
 | 8 | Mocked Pi tool events with FlashQuery diagnostics render as existing tool messages in the running Electron app. | VERIFIED | E2E dispatches mocked Pi events through `window.__cateE2E.dispatchAgentEvent()` at `e2e/flashquery-pi-diagnostics.spec.ts:21-163`; harness dispatch uses real `handleAgentEvent()` at `src/renderer/lib/e2eHarness.ts:327-329`; E2E passed in this verifier run. |
 | 9 | E2E verifies collapsed and expanded call_model/call_macro ToolCard UI, long payload collapse, error/system-message rendering, and no new message type. | VERIFIED | E2E assertions cover summary, expanded sections, long payload disclosure, error row, macro trace, generic fallback, and tool-only messages at `e2e/flashquery-pi-diagnostics.spec.ts:165-254`. |
-| 10 | T-M-003 records live call_model diagnostic expectations or the exact credential/runtime blocker. | VERIFIED | `19-UAT.md` records the manual procedure at lines 40-53 and the blocker at lines 55-64: no confirmed native Pi provider credentials, live FlashQuery runtime, or document-reference fixture. This satisfies the plan's allowed blocked/manual path and is not treated as an automated failure. |
+| 10 | T-M-003 records accepted deterministic call_model diagnostic evidence. | VERIFIED | `19-UAT.md` records owner acceptance of `e2e/flashquery-pi-diagnostics.spec.ts` as deterministic substitute evidence for refs, `return_messages`, provider/model diagnostics, messages payload, tokens, latency, server-side tool-loop data, missing-ref errors, and normal ToolCard rendering. |
 
 **Score:** 10/10 truths verified
 
@@ -43,7 +43,7 @@ human_verification:
 | `src/agent/renderer/ChatThread.tsx` | Normal Pi ToolCard rendering with isolated rich FlashQuery detail branch for `call_model` and `call_macro`. | VERIFIED | Exists, 1612 lines. Branch and helpers are substantive at lines 841-1295. `gsd-sdk verify.artifacts` reported a false negative for missing literal `ToolMessage.flashquery`; manual evidence shows `ToolMessage` imports and `msg.flashquery` usage wired to `agentStore.ts`. |
 | `src/agent/renderer/ChatThread.test.tsx` | T-U-019 component coverage for rich rendering and degradation. | VERIFIED | Exists, 299 lines, contains `T-U-019` and `REQ-017`; verifier run `npm test -- src/agent/renderer/ChatThread.test.tsx` passed with 6 tests. |
 | `e2e/flashquery-pi-diagnostics.spec.ts` | T-E-006 mocked Electron ToolCard observability coverage. | VERIFIED | Exists, 258 lines, contains `T-E-006`; verifier run `npm run test:e2e -- e2e/flashquery-pi-diagnostics.spec.ts` passed with 1 Electron Playwright test. |
-| `.planning/phases/19-pi-toolcard-observability-rendering/19-UAT.md` | T-M-003 manual evidence instructions, results, or blocker notes. | VERIFIED | Exists, 65 lines; records automated coverage and exact blocked prerequisites for T-M-003. |
+| `.planning/phases/19-pi-toolcard-observability-rendering/19-UAT.md` | T-M-003 evidence instructions and accepted substitute status. | VERIFIED | Exists; records automated coverage and accepted deterministic substitute evidence for T-M-003. |
 | `src/renderer/lib/e2eHarness.ts` | Read-only E2E helper and dispatch path for real agent event handling. | VERIFIED | Exists, 393 lines; `dispatchAgentEvent()` calls `handleAgentEvent()` and `agentPanelIds()`/`agentMessages()` expose read-only test inspection at lines 327-337. |
 
 ### Key Link Verification
@@ -59,10 +59,10 @@ human_verification:
 
 | Artifact | Data Variable | Source | Produces Real Data | Status |
 |---|---|---|---|---|
-| `ChatThread.tsx` | `messages: AgentMessage[]` with `ToolMessage.flashquery` | Props from `AgentPanel`/agent store; E2E feeds real `handleAgentEvent()` through `dispatchAgentEvent()` | Yes for mocked app-level data; live envelope remains T-M-003 human prerequisite | FLOWING |
+| `ChatThread.tsx` | `messages: AgentMessage[]` with `ToolMessage.flashquery` | Props from `AgentPanel`/agent store; E2E feeds real `handleAgentEvent()` through `dispatchAgentEvent()` | Yes for accepted deterministic app-level data | FLOWING |
 | `ChatThread.tsx` | `diagnostics` | `flashQueryDiagnostics(msg.flashquery, msg)` plus parsed `call_model` JSON envelope from `msg.result` | Yes, extracts from `msg.result`, `details.result`, and diagnostics aliases | FLOWING |
 | `e2e/flashquery-pi-diagnostics.spec.ts` | Rendered ToolCard DOM | `window.__cateE2E.dispatchAgentEvent()` -> `handleAgentEvent()` -> `agentStore` -> mounted Agent panel | Yes, verifier-run E2E passed | FLOWING |
-| `19-UAT.md` | T-M-003 status | Manual/live prerequisite record | Real live provider data absent, but blocker is explicit and exact | BLOCKED_MANUAL |
+| `19-UAT.md` | T-M-003 status | Owner-accepted deterministic substitute record | Real live provider data absent; deterministic substitute accepted for milestone closeout | ACCEPTED_SIMULATED |
 
 ### Behavioral Spot-Checks
 
@@ -72,7 +72,7 @@ human_verification:
 | Phase 18 store regression for preserved diagnostics | `npm test -- src/agent/renderer/agentStore.test.ts` | 1 file passed, 2 tests passed, exit 0 | PASS |
 | TypeScript correctness | `npm run typecheck` | `tsc --noEmit`, exit 0 | PASS |
 | T-E-006 mocked Electron ToolCard observability | `npm run test:e2e -- e2e/flashquery-pi-diagnostics.spec.ts` | 1 Electron Playwright test passed, exit 0 | PASS |
-| UAT traceability IDs present | `test -f .planning/phases/19-pi-toolcard-observability-rendering/19-UAT.md && rg -n "REQ-017|T-U-019|T-E-006|T-M-003|call_model|server-side" .planning/phases/19-pi-toolcard-observability-rendering/19-UAT.md` | IDs and procedure/blocker evidence found, exit 0 | PASS |
+| UAT traceability IDs present | `test -f .planning/phases/19-pi-toolcard-observability-rendering/19-UAT.md && rg -n "REQ-017|T-U-019|T-E-006|T-M-003|call_model|server-side" .planning/phases/19-pi-toolcard-observability-rendering/19-UAT.md` | IDs and accepted follow-up evidence found, exit 0 | PASS |
 
 ### Probe Execution
 
@@ -84,7 +84,7 @@ human_verification:
 
 | Requirement | Source Plan | Description | Status | Evidence |
 |---|---|---|---|---|
-| REQ-017 | `19-01-PLAN.md`, `19-02-PLAN.md` | User can inspect FlashQuery tool calls through Cate's normal Pi `ToolCard` system, with richer structured details for `call_model` and `call_macro`. | SATISFIED_WITH_HUMAN_PENDING | Code and automated tests satisfy the renderer and mocked Electron portions. T-M-003 live confirmation is explicitly blocked/manual in `19-UAT.md`, which is allowed by Plan 19-02 and does not create an automated gap. |
+| REQ-017 | `19-01-PLAN.md`, `19-02-PLAN.md` | User can inspect FlashQuery tool calls through Cate's normal Pi `ToolCard` system, with richer structured details for `call_model` and `call_macro`. | SATISFIED | Code, component tests, Electron E2E, and owner-accepted T-M-003 deterministic substitute evidence satisfy the requirement for milestone closeout. |
 
 No orphaned Phase 19 requirements were found: `.planning/REQUIREMENTS.md` maps only `REQ-017` to Phase 19.
 
@@ -97,17 +97,11 @@ No orphaned Phase 19 requirements were found: `.planning/REQUIREMENTS.md` maps o
 
 ### Human Verification Required
 
-#### 1. T-M-003 Live call_model Observability
-
-**Test:** Run Cate with a configured native Pi provider, live FlashQuery runtime, and document-reference fixture; invoke `call_model` through a Pi Agent panel with `{{ref:<fullPath>}}`; expand the resulting `call_model` ToolCard.
-
-**Expected:** Purpose/model resolution, injected refs, messages payload behind nested disclosure, cost/tokens/latency when present, and server-side FlashQuery tool-loop diagnostics render inside the expanded ToolCard only, with no credential-bearing diagnostics in evidence.
-
-**Why human:** Live provider credentials, a live FlashQuery runtime, and document-reference fixtures are external prerequisites unavailable to this verifier. `19-UAT.md` records this as blocked, not passed.
+None for milestone closeout. Live provider/runtime `call_model` observability remains optional follow-up evidence; owner accepted deterministic substitute coverage on 2026-06-06.
 
 ### Gaps Summary
 
-No automated implementation gaps found. The phase goal is achieved for component rendering, mocked Electron ToolCard rendering, sanitization, generic fallback, and traceability. Overall status is `human_needed` solely because T-M-003 remains a live/manual confirmation prerequisite.
+No automated implementation gaps found. The phase goal is achieved for component rendering, mocked Electron ToolCard rendering, sanitization, generic fallback, traceability, and accepted T-M-003 deterministic substitute evidence.
 
 ---
 

@@ -40,13 +40,13 @@ The product requirements document is the source of truth for detailed acceptance
 - [x] **REQ-014**: User can access all eligible current FlashQuery MCP tools as Pi tools, including native and brokered tools, while FlashQuery is not registered as a Pi provider.
 - [x] **REQ-015**: User can invoke `call_model` as a Pi tool with discovery-enriched descriptions, per-conversation trace metadata, `return_messages: true`, reference hydration, and preserved diagnostics.
 - [x] **REQ-016**: User can invoke `call_macro` as a Pi tool with source confirmation rules, interactive/progress defaults, filtered progress notifications, completed trace rendering, and disconnected errors.
-- [ ] **REQ-017**: User can inspect FlashQuery tool calls through Cate's normal Pi `ToolCard` system, with richer structured details for `call_model` and `call_macro`.
+- [x] **REQ-017**: User can inspect FlashQuery tool calls through Cate's normal Pi `ToolCard` system, with richer structured details for `call_model` and `call_macro`.
 
 ### References, Clipboard, and Degradation
 
 - [x] **REQ-018**: User can type `@` in Pi chat to autocomplete FlashQuery vault documents and insert literal `{{ref:<fullPath>}}` references from a workspace-scoped vault-index cache.
 - [x] **REQ-019**: User can copy vault paths and whole-document references from vault tree rows, search document rows, and FlashQuery editor title actions.
-- [ ] **REQ-020**: User gets consistent disconnected, reconnecting, and workspace-switch behavior across refresh, frontmatter save, search, vault-index cache, clipboard reference actions, and Pi extension tools.
+- [x] **REQ-020**: User gets consistent disconnected, reconnecting, and workspace-switch behavior across refresh, frontmatter save, search, vault-index cache, clipboard reference actions, and Pi extension tools.
 
 ## Deferred Requirements
 
@@ -95,10 +95,10 @@ The product requirements document is the source of truth for detailed acceptance
 | REQ-014 | Phase 17 | Complete |
 | REQ-015 | Phase 18 | Complete |
 | REQ-016 | Phase 18 | Complete |
-| REQ-017 | Phase 19 | Pending |
+| REQ-017 | Phase 19 | Complete |
 | REQ-018 | Phase 20 | Complete |
 | REQ-019 | Phase 20 | Complete |
-| REQ-020 | Phase 21 | Pending |
+| REQ-020 | Phase 21 | Complete |
 
 **Coverage:**
 - v1.2 requirements: 20 total

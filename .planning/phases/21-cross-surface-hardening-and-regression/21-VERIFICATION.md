@@ -1,11 +1,11 @@
 ---
 phase: 21-cross-surface-hardening-and-regression
-status: needs-review
+status: passed
 created: 2026-06-04
 verified_at: 2026-06-06T13:29:59Z
 requirements: [REQ-020]
 automated_status: passed
-manual_status: blocked
+manual_status: accepted_simulated
 ---
 
 # Phase 21 Verification: Cross-Surface Hardening and Regression
@@ -20,9 +20,9 @@ manual_status: blocked
 
 ## Final Status
 
-Automated Phase 21 verification passed. `T-M-004` native clipboard evidence is automated by `e2e/flashquery-native-clipboard.spec.ts`, and deterministic companion coverage for `T-M-002` and `T-M-003` is now automated in the Pi macro/model E2E specs. The phase remains `needs-review` because `T-M-001` and the live/provider remainders of `T-M-002` and `T-M-003` are blocked pending a real FlashQuery/Pi/provider environment and human/live evidence.
+Automated Phase 21 verification passed. `T-M-004` native clipboard evidence is automated by `e2e/flashquery-native-clipboard.spec.ts`, and deterministic substitute coverage for `T-M-001`, `T-M-002`, and `T-M-003` is accepted for milestone closeout. Owner acceptance on 2026-06-06 treats the simulated FlashQuery/Pi/provider evidence as sufficient; true live-provider runs remain optional follow-up evidence.
 
-The milestone must not be marked shipped from this file alone. The next release-readiness decision is whether to accept the manual blockers as known follow-up, resolve them in the live environment, or open a follow-up phase.
+The milestone may use this file as Phase 21 release-readiness evidence, with the caveat that live FlashQuery/Pi/provider evidence was not run and is intentionally represented by deterministic substitutes.
 
 ## Final Command Evidence
 
@@ -51,9 +51,9 @@ The milestone must not be marked shipped from this file alone. The next release-
 | Search fails visibly when disconnected | `FlashQueryVaultSearchPanel.test.tsx`; `e2e/flashquery-vault-search.spec.ts`; `T-E-003`; `T-E-007`; `21-UAT.md` | automated passed |
 | `@` cache loading clears stale data and fails visibly | `agentStore.test.ts`; `AgentChatInput.atMention.test.tsx`; `e2e/flashquery-pi-mentions.spec.ts`; `T-E-004`; `21-UAT.md` | automated passed |
 | Clipboard reference actions preserve literal path/reference behavior | `FlashQueryVaultPanel.test.tsx`; `FlashQueryVaultSearchPanel.test.tsx`; `e2e/flashquery-vault-search.spec.ts`; `e2e/flashquery-native-clipboard.spec.ts`; `T-E-003`; `21-UAT.md` `T-M-004` | automated passed |
-| Pi extension tools degrade visibly across disconnect/workspace changes | `lifecycle.test.ts`; `index.test.ts`; `e2e/flashquery-pi-extension.spec.ts`; `T-E-005`; `21-UAT.md` `T-M-001` | automated passed; live manual blocked |
-| `call_macro` real-envelope trace, `needs_user_input`, and disconnected-result regression | `e2e/flashquery-pi-macro-trace.spec.ts`; `T-E-006b`; deterministic `T-M-002` companion; `21-UAT.md` | automated passed; live provider/manual remainder blocked |
-| ToolCard diagnostics and `call_model` diagnostic preservation | `ChatThread.test.tsx`; `e2e/flashquery-pi-diagnostics.spec.ts`; `T-E-006`; deterministic `T-M-003` companion; `21-UAT.md` | automated passed; live provider/manual remainder blocked |
+| Pi extension tools degrade visibly across disconnect/workspace changes | `lifecycle.test.ts`; `index.test.ts`; `e2e/flashquery-pi-extension.spec.ts`; `T-E-005`; `21-UAT.md` `T-M-001` | passed by accepted deterministic substitute |
+| `call_macro` real-envelope trace, `needs_user_input`, and disconnected-result regression | `e2e/flashquery-pi-macro-trace.spec.ts`; `T-E-006b`; deterministic `T-M-002` companion; `21-UAT.md` | passed by accepted deterministic substitute |
+| ToolCard diagnostics and `call_model` diagnostic preservation | `ChatThread.test.tsx`; `e2e/flashquery-pi-diagnostics.spec.ts`; `T-E-006`; deterministic `T-M-003` companion; `21-UAT.md` | passed by accepted deterministic substitute |
 | Reconnect refreshes connection-scoped caches and re-enables affected controls | `agentStore.test.ts`; `FlashQueryVaultSearchPanel.test.tsx`; `e2e/flashquery-editor-refresh-frontmatter.spec.ts`; `e2e/flashquery-disconnect.spec.ts`; `T-E-007`; `21-UAT.md` | automated passed |
 | Workspace switch clears stale workspace data before loading replacement data | `agentStore.test.ts`; extension lifecycle coverage; `21-01-SUMMARY.md` | automated passed |
 | Superseded in-flight cache responses do not repopulate stale data | `agentStore.test.ts`; `FlashQueryVaultSearchPanel.test.tsx`; `21-01-SUMMARY.md` | automated passed |
@@ -62,13 +62,13 @@ The milestone must not be marked shipped from this file alone. The next release-
 | Milestone UI polish checked against Milestone 2 UI Spec | `e2e/flashquery-visual-evidence.spec.ts`; Phase 21 visual screenshots; `evidence/visual/NOTES.md`; `21-UAT.md` | automated visual evidence passed; some state-specific visual manual evidence remains limited |
 | `npm run typecheck` | Final command evidence above | passed |
 | `npm run preflight` | Final command evidence above | passed |
-| Manual live FlashQuery/Pi checks | `21-UAT.md` row `T-M-001` plus live/provider remainders for `T-M-002` and `T-M-003` | blocked pending human/live environment |
+| Manual live FlashQuery/Pi checks | `21-UAT.md` rows `T-M-001`, `T-M-002`, and `T-M-003` | accepted deterministic substitutes; live runs optional follow-up |
 
 ## Roadmap Success Criteria
 
 | Criterion | Status | Evidence |
 | --- | --- | --- |
-| Disconnected refresh, frontmatter save, search, `@` cache loading, clipboard reference actions, and Pi extension tools fail visibly rather than silently | automated passed; manual blockers for live Pi remain | Component tests, E2E tests, `21-UAT.md` |
+| Disconnected refresh, frontmatter save, search, `@` cache loading, clipboard reference actions, and Pi extension tools fail visibly rather than silently | passed by automated and accepted simulated evidence | Component tests, E2E tests, `21-UAT.md` |
 | Reconnect refreshes connection-scoped caches and re-enables affected controls | passed | `T-E-007`, search/mention component coverage |
 | Workspace switch clears stale workspace data before loading new workspace data and discards superseded in-flight cache responses | passed | Agent store and lifecycle tests |
 | FlashQuery errors surface as inline UI errors or Pi tool/system messages appropriate to the surface | passed | Editor/search/cache tests, Pi diagnostics and macro trace E2E |
@@ -76,15 +76,15 @@ The milestone must not be marked shipped from this file alone. The next release-
 | Milestone UI polish is checked against the Milestone 2 UI Spec where applicable | passed with visual limitations recorded | Visual evidence spec and `evidence/visual/NOTES.md` |
 | Final verification runs targeted suites, `npm run typecheck`, and `npm run preflight` where practical, with skipped portions explicitly recorded | passed | Final command evidence above |
 
-## Blocked Manual Checks
+## Accepted Simulated Manual Checks
 
-| ID | Status | Blocker |
+| ID | Status | Evidence |
 | --- | --- | --- |
-| `T-M-001` | blocked | Requires real FlashQuery HTTP MCP endpoint plus configured native Pi provider. |
-| `T-M-002` | partially automated / live blocked | Deterministic E2E preserves `needs_user_input` payload data and disconnected `call_macro` rendering; remaining live provider check requires real host-model `call_macro`, progress-emitting macro, and runtime user-input behavior. |
-| `T-M-003` | partially automated / live blocked | Deterministic E2E preserves refs, `return_messages`, provider/model diagnostics, messages payload, tokens, latency, and server-side tool-loop data; remaining live provider check requires real host-model `call_model` against a configured Pi provider and FlashQuery runtime. |
+| `T-M-001` | accepted by deterministic substitute | `lifecycle.test.ts`, `index.test.ts`, and `e2e/flashquery-pi-extension.spec.ts` cover registry, eligible/brokered tool registration, workspace rebind/stale-tool behavior, startup registry fetch, and no FlashQuery provider registration. |
+| `T-M-002` | accepted by deterministic substitute | `e2e/flashquery-pi-macro-trace.spec.ts` covers real-shaped macro envelopes, live-progress-style forwarding, `needs_user_input`, trace rendering, and disconnected result rendering. |
+| `T-M-003` | accepted by deterministic substitute | `e2e/flashquery-pi-diagnostics.spec.ts` covers refs, `return_messages`, provider/model diagnostics, messages payload, tokens, latency, server-side tool-loop data, and ToolCard rendering. |
 | `T-M-004` | passed | `e2e/flashquery-native-clipboard.spec.ts` verifies vault tree, search row, and editor title copy actions against Electron's native clipboard. |
 
 ## Release-Readiness Decision
 
-No human release-readiness approval has been recorded yet. Current recommendation: keep Phase 21 in `Needs Review` until the owner either accepts the remaining manual/live blockers as known follow-up or records live/manual evidence for `T-M-001` plus the live/provider remainders of `T-M-002` and `T-M-003`.
+Owner acceptance of deterministic substitutes was recorded on 2026-06-06. Phase 21 release-readiness is accepted for milestone closeout without additional live FlashQuery/Pi/provider runs.

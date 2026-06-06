@@ -10,12 +10,12 @@ provides:
   - T-E-004 Electron coverage for Pi `@` mention insertion and cache lifecycle
   - Extended T-E-003 Electron coverage for search row copy path/reference preservation
   - Phase 20 UAT traceability for REQ-018 and REQ-019
-  - Truthful blocked T-M-004 native macOS clipboard checkpoint
+  - Historical T-M-004 native macOS clipboard checkpoint, later closed by automated native clipboard E2E
   - "Addendum 2026-06-04: T-M-004 native clipboard coverage automated by e2e/flashquery-native-clipboard.spec.ts"
 affects: [phase-20-closeout]
 tech-stack:
   added: []
-  patterns: [electron fixture rebinding, e2e agent harness cache accessors, UAT blocked-evidence recording]
+patterns: [electron fixture rebinding, e2e agent harness cache accessors, UAT evidence recording]
 key-files:
   created:
     - e2e/flashquery-pi-mentions.spec.ts
@@ -28,7 +28,7 @@ key-files:
     - src/renderer/panels/registry.test.ts
 key-decisions:
   - "Docket Agent composers now portal mention dropdowns into their own composer wrapper; canvas composers keep the node portal target."
-  - "T-M-004 is blocked, not passed, because no human macOS pasted clipboard values were captured in this session."
+  - "T-M-004 was initially recorded as blocked because no human macOS pasted clipboard values were captured in the original session."
   - "Addendum 2026-06-04: T-M-004 is now covered by an Electron native clipboard E2E that reads the main-process clipboard."
 patterns-established:
   - "E2E can refresh/read/clear agent vault-index state through the existing harness while still driving the real textarea and mention popup."
@@ -56,7 +56,7 @@ completed: 2026-06-04
 - Added E2E harness helpers for agent vault-index refresh/read/clear assertions.
 - Extended T-E-003 search E2E coverage to assert `Copy vault path`, `Copy as reference`, and memory-row no-menu preservation.
 - Wrote `20-UAT.md` mapping REQ-018 and REQ-019 to all targeted Phase 20 test IDs.
-- Recorded T-M-004 as blocked with exact native macOS manual steps and expected pasted values, rather than claiming unverified pass evidence.
+- Recorded T-M-004 with exact native macOS manual steps and expected pasted values; this was later superseded by automated native clipboard E2E evidence.
 - Updated older happy-path and registry tests to align with the new clipboard menu items and avoid importing live panel side effects in a registry wiring test.
 
 ## Task Commits
@@ -74,7 +74,7 @@ completed: 2026-06-04
 - `e2e/flashquery-vault-search.spec.ts` - Search row copy-path/reference and memory-row preservation assertions.
 - `e2e/flashquery-happy-path.spec.ts` - Vault tree menu expectation updated for REQ-019 clipboard items.
 - `src/renderer/panels/registry.test.ts` - Registry lazy-load test mocks panel modules to avoid live panel side effects.
-- `.planning/phases/20-pi-mentions-and-clipboard-utilities/20-UAT.md` - UAT traceability and T-M-004 blocked evidence.
+- `.planning/phases/20-pi-mentions-and-clipboard-utilities/20-UAT.md` - UAT traceability and T-M-004 evidence.
 
 ## Deviations from Plan
 
@@ -97,7 +97,7 @@ completed: 2026-06-04
 - `test -f .planning/phases/20-pi-mentions-and-clipboard-utilities/20-UAT.md && rg -n "REQ-018|REQ-019|T-U-006|T-U-011|T-U-012|T-U-020|T-E-003|T-E-004|T-M-004|section-anchor|markdown-link" .planning/phases/20-pi-mentions-and-clipboard-utilities/20-UAT.md`
 - `test -f .planning/phases/20-pi-mentions-and-clipboard-utilities/20-UAT.md && rg -n "T-M-004|vault tree|search row|editor title|Copy vault path|Copy as reference|blocked|passed" .planning/phases/20-pi-mentions-and-clipboard-utilities/20-UAT.md`
 
-All automated build, typecheck, unit, focused E2E, full unit, and full E2E commands passed. T-M-004 remains blocked pending human native macOS clipboard verification.
+All automated build, typecheck, unit, focused E2E, full unit, and full E2E commands passed. T-M-004 was later closed by automated native clipboard evidence, recorded below.
 
 ### Addendum 2026-06-04
 
@@ -109,7 +109,7 @@ T-M-004 is now closed by automated native clipboard evidence in `20-UAT.md`.
 
 ## Next Phase Readiness
 
-Phase 20 implementation and automated validation are complete. The former T-M-004 native clipboard blocker is closed by automated evidence; live macro T-M-002 remains tracked separately in UAT as a carried-forward live/manual blocker.
+Phase 20 implementation and automated validation are complete. The former T-M-004 native clipboard item is closed by automated evidence; live macro T-M-002 remains optional follow-up under the accepted deterministic substitute decision.
 
 ---
 *Phase: 20-pi-mentions-and-clipboard-utilities*
