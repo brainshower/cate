@@ -113,6 +113,44 @@ describe('agentStore FlashQuery diagnostics preservation', () => {
   })
 })
 
+describe('agentStore assistant error turns', () => {
+  let dispatchAgentEvent: (envelope: AgentEventEnvelope) => void
+
+  beforeEach(() => {
+    vi.resetModules()
+    dispatchAgentEvent = () => {}
+    window.electronAPI = {
+      onAgentEvent: vi.fn((callback: (envelope: AgentEventEnvelope) => void) => {
+        dispatchAgentEvent = callback
+        return vi.fn()
+      }),
+      onAgentToolRequest: vi.fn(() => vi.fn()),
+      flashqueryListVaultIndex: vi.fn(() => Promise.resolve([])),
+    } as never
+  })
+
+  it('surfaces provider error-only assistant turns as visible system messages', async () => {
+    const { useAgentStore } = await import('./agentStore')
+    const panelId = 'panel-provider-error'
+    const errorMessage =
+      '400 {"type":"error","error":{"type":"invalid_request_error","message":"You are out of extra usage."}}'
+
+    dispatchAgentEvent({
+      panelId,
+      event: { type: 'message_start', message: { role: 'assistant', stopReason: 'error', errorMessage } },
+    })
+    dispatchAgentEvent({
+      panelId,
+      event: { type: 'message_end', message: { role: 'assistant', stopReason: 'error', errorMessage } },
+    })
+
+    expect(useAgentStore.getState().panels[panelId].messages).toEqual([
+      expect.objectContaining({ type: 'assistant', text: '', streaming: false, stopReason: 'error' }),
+      expect.objectContaining({ type: 'system', text: errorMessage, kind: 'error' }),
+    ])
+  })
+})
+
 describe('agentStore vault-index cache lifecycle', () => {
   let dispatchAgentEvent: (envelope: AgentEventEnvelope) => void
 

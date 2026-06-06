@@ -976,6 +976,10 @@ export function handleAgentEvent(panelId: string, event: { type: string; [key: s
             ? stopReasonRaw
             : undefined
         useAgentStore.getState().endAssistant(panelId, { usage, stopReason })
+        const errorMessage = asString(msg.errorMessage)
+        if (stopReason === 'error' && errorMessage) {
+          useAgentStore.getState().appendSystem(panelId, errorMessage, 'error')
+        }
         return
       }
       case 'tool_execution_start': {
