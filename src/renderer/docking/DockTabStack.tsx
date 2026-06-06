@@ -15,6 +15,7 @@ import type { SplitMenuItem } from './DockTabContextMenu'
 import { useDockTabActions, useAcceptsPanelType } from './useDockTabActions'
 import { useDockTabDrag } from './useDockTabDrag'
 import { PANEL_DEFINITIONS } from '../../shared/panels'
+import { FlashQueryEditorTitleActions } from '../components/FlashQueryEditorTitleActions'
 
 // Human-readable labels for each panel type, used in tooltips and the split menu.
 const PANEL_TYPE_LABELS: Record<PanelType, string> = Object.fromEntries(
@@ -266,6 +267,21 @@ export default function DockTabStack({ stack, zone: zoneProp, renderPanel, getPa
           selfTabDrag={selfTabDrag}
           onTabBarMouseDown={onTabBarMouseDown}
         />
+
+        {activePanel?.type === 'editor' && (
+          <div
+            className={`flex items-center self-center ${compact ? 'px-0.5 gap-0.5' : 'px-1 gap-1'}`}
+            data-testid="editor-title-action-row"
+            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <FlashQueryEditorTitleActions
+              panel={activePanel}
+              workspaceId={effectiveWorkspaceId}
+              compact={compact}
+            />
+          </div>
+        )}
 
         {/* "+" tab — adds a new tab of the active panel's type into this stack. */}
         {activePanel && (

@@ -14,7 +14,6 @@ import { PANEL_REGISTRY, getPanelDef } from '../panels/registry'
 import { useAppStore } from '../stores/appStore'
 import { useAgentInfoByPanel } from '../hooks/useAgentPanelInfo'
 import { VaultBadge } from '../components/VaultBadge'
-import { FlashQueryEditorTitleActions } from '../components/FlashQueryEditorTitleActions'
 import { worktreeTitleStyle } from '../lib/worktreeTitleStyle'
 import { isMiddleClick } from '../lib/mouse'
 
@@ -276,9 +275,6 @@ export function DockTabBar(props: DockTabBarProps) {
                 className={`truncate flex-1 min-w-0 ${agentInfoByPanel[panelId]?.state === 'running' ? 'cate-notif-pulse' : ''}`}
                 style={worktreeTitleStyle(worktreeColorByPanel[panelId], agentInfoByPanel[panelId]?.state === 'running')}
               >{getPanelTitle(panelId)}</span>
-            )}
-            {isActive && panel?.type === 'editor' && (
-              <FlashQueryEditorTitleActions panel={panel} workspaceId={workspaceId} compact={compact} />
             )}
             {panel?.type === 'editor' && (
               <VaultBadge filePath={panel.filePath} connectionUrl={connectionUrl} />
