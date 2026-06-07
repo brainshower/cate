@@ -103,10 +103,19 @@ const CanvasNodeWrapper = React.memo(({ nodeId, canvasPanelId, workspaceId, rend
       locations: collectLocationsFromLayout(dockLayout, 'center'),
     }
     const store = createDockStore(initial)
-    registerNodeDockStore(canvasPanelId, nodeId, store)
     return store
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storeKey]) // intentionally omit node.dockLayout — seed only on first creation
+
+  // Register in the effect setup that owns cleanup. React dev StrictMode runs
+  // effect cleanup/setup twice on mount; registering only during render/useMemo
+  // lets that cleanup remove the live visible node from the registry.
+  useEffect(() => {
+    registerNodeDockStore(canvasPanelId, nodeId, dockStoreApi)
+    return () => {
+      unregisterNodeDockStore(canvasPanelId, nodeId)
+    }
+  }, [canvasPanelId, nodeId, dockStoreApi])
 
   // ------------------------------------------------------------------
   // Persist center layout back to canvasStore; auto-remove on null
@@ -125,16 +134,6 @@ const CanvasNodeWrapper = React.memo(({ nodeId, canvasPanelId, workspaceId, rend
     })
     return unsubscribe
   }, [dockStoreApi, canvasStoreApi, nodeId])
-
-  // ------------------------------------------------------------------
-  // Cleanup: drop from module map when this node unmounts
-  // ------------------------------------------------------------------
-  useEffect(() => {
-    return () => {
-      unregisterNodeDockStore(canvasPanelId, nodeId)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storeKey])
 
   // ------------------------------------------------------------------
   // Sweep orphan panel IDs from this mini-dock's layout — IDs that don't
