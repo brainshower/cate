@@ -991,6 +991,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
       panel.type === 'editor' && panel.filePath === frontmatterUri
     )
     if (existing) {
+      const sourceCanvasTarget = findCanvasNodeForPanel(workspaceId, sourcePanelId)
+      if (sourceCanvasTarget) {
+        const existingDockLocation = useDockStore.getState().panelLocations[existing.id]
+        if (existingDockLocation?.type === 'dock') {
+          useDockStore.getState().undockPanel(existing.id)
+        }
+        placePanelInCanvasNode(workspaceId, sourcePanelId, existing.id)
+        return existing.id
+      }
+
       if (!focusExistingPanel(workspaceId, existing.id)) {
         const sourceLocation = useDockStore.getState().panelLocations[sourcePanelId]
         if (placePanelInCanvasNode(workspaceId, sourcePanelId, existing.id)) {

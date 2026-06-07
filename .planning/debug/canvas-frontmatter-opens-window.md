@@ -2,7 +2,7 @@
 status: resolved
 trigger: "When I use the button to open the frontmatter in the Canvas, it opens a separate window, instead of a separate tab. I anticipated a new tab would open with frontmatter in the same place where the document's body content is opened."
 created: "2026-06-06T17:41:21Z"
-updated: "2026-06-07T13:12:30Z"
+updated: "2026-06-07T13:30:30Z"
 ---
 
 # Debug Session: Canvas Frontmatter Opens Window
@@ -40,6 +40,11 @@ updated: "2026-06-07T13:12:30Z"
 - timestamp: "2026-06-07T13:10:55Z"; observation: "Narrowed inactive-node CSS to data-node-chrome-button, data-node-chrome-controls, and data-tab-close-button so FlashQuery title action buttons remain interactive."
 - timestamp: "2026-06-07T13:11:10Z"; observation: "Focused regression suite passed: CanvasNode CSS contract, DockTabBar title actions/tooltips, appStore canvas frontmatter routing, and canvasStore panel lookup."
 - timestamp: "2026-06-07T13:11:30Z"; observation: "npm run typecheck passed."
+- timestamp: "2026-06-07T13:29:20Z"; observation: "User confirmed the cold rebuilt dev app still did not show frontmatter in the canvas. Added a regression for the repeated-session case where the frontmatter editor already exists in the main dock from an earlier attempt while the source body editor is in a live canvas node."
+- timestamp: "2026-06-07T13:29:40Z"; observation: "The new regression failed before the fix: openFlashQueryFrontmatterEditor returned the existing frontmatter panel id, but the live canvas-node layout stayed on the body editor because focusExistingPanel succeeded against the existing panel's global dock location."
+- timestamp: "2026-06-07T13:29:55Z"; observation: "Changed existing-frontmatter handling to prefer the source canvas node, undock the reused frontmatter panel from the global dock when needed, and insert it into the live canvas-node tab strip."
+- timestamp: "2026-06-07T13:30:10Z"; observation: "Focused regression suite passed: CanvasNode, DockTabBar, appStore, and canvasStore."
+- timestamp: "2026-06-07T13:30:20Z"; observation: "npm run typecheck passed."
 
 ## Eliminated
 
@@ -63,3 +68,10 @@ updated: "2026-06-07T13:12:30Z"
 - fix: "Replaced the broad .dock-tab-bar button inactive selector with explicit data attributes for node chrome controls, split/add buttons, and per-tab close controls. FlashQuery title action buttons are no longer disabled by inactive-node chrome hiding."
 - verification: "npx vitest run src/renderer/canvas/CanvasNode.test.ts src/renderer/docking/DockTabBar.test.tsx src/renderer/stores/appStore.test.ts src/renderer/stores/canvasStore.test.ts --pool=forks --maxWorkers=1 --reporter verbose --testTimeout=10000; npm run typecheck"
 - files_changed: "src/renderer/canvas/CanvasNode.tsx; src/renderer/canvas/CanvasNode.test.ts; src/renderer/docking/DockTabBar.tsx; src/renderer/docking/DockTabStack.tsx; .planning/debug/canvas-frontmatter-opens-window.md"
+
+## Follow-up Resolution 2026-06-07 Existing Panel
+
+- root_cause: "Repeated attempts could leave the frontmatter editor already open in the main dock. From a canvas-hosted body editor, openFlashQueryFrontmatterEditor found that existing panel and focusExistingPanel returned true for its global dock location, so the code never inserted the existing frontmatter panel into the source canvas node."
+- fix: "When a frontmatter panel already exists and the source body editor is in a canvas node, reuse that existing panel by undocking it from the global dock if necessary and inserting it into the source canvas-node private tab strip."
+- verification: "npx vitest run src/renderer/canvas/CanvasNode.test.ts src/renderer/docking/DockTabBar.test.tsx src/renderer/stores/appStore.test.ts src/renderer/stores/canvasStore.test.ts --pool=forks --maxWorkers=1 --reporter verbose --testTimeout=10000; npm run typecheck"
+- files_changed: "src/renderer/stores/appStore.ts; src/renderer/stores/appStore.test.ts; .planning/debug/canvas-frontmatter-opens-window.md"
