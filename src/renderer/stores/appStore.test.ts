@@ -428,6 +428,80 @@ describe('appStore.openFlashQueryFrontmatterEditor', () => {
     }
   })
 
+  it('T-U-007 prefers the visible canvas node over a stale global dock location', () => {
+    const addNodeAndFocus = vi.fn()
+    const setNodeDockLayout = vi.fn()
+    const focusNode = vi.fn()
+    const sourcePanelId = useAppStore.getState().createEditor(
+      workspaceId,
+      'flashquery://workspace-1/Docs/Plan.md',
+      undefined,
+      { target: 'dock', zone: 'center' },
+    )
+    const initialLayout = {
+      type: 'tabs' as const,
+      id: 'stack-1',
+      panelIds: [sourcePanelId],
+      activeIndex: 0,
+    }
+    const liveDockStore = createDockStore({
+      zones: {
+        left: { position: 'left', visible: false, size: 260, layout: null },
+        right: { position: 'right', visible: false, size: 260, layout: null },
+        bottom: { position: 'bottom', visible: false, size: 240, layout: null },
+        center: { position: 'center', visible: true, size: 0, layout: initialLayout },
+      },
+      locations: {
+        [sourcePanelId]: { type: 'dock', zone: 'center', stackId: 'stack-1' },
+      },
+    })
+    registerNodeDockStore('canvas-1', 'node-1', liveDockStore)
+    setCanvasOperations(makeCanvasOpsWithNode(
+      sourcePanelId,
+      { x: 100, y: 120 },
+      { width: 640, height: 420 },
+      {
+        addNodeAndFocus,
+        storeApi: {
+          getState: () => ({
+            nodeForPanel: (candidate: string) => candidate === sourcePanelId ? 'node-1' : null,
+            nodes: {
+              'node-1': {
+                id: 'node-1',
+                panelId: sourcePanelId,
+                origin: { x: 100, y: 120 },
+                size: { width: 640, height: 420 },
+                zOrder: 1,
+                creationIndex: 1,
+                dockLayout: initialLayout,
+              },
+            },
+            setNodeDockLayout,
+            focusNode,
+          }),
+        } as unknown as CanvasOperations['storeApi'],
+      },
+    ))
+
+    try {
+      const frontmatterPanelId = useAppStore.getState().openFlashQueryFrontmatterEditor(workspaceId, sourcePanelId)
+
+      expect(liveDockStore.getState().zones.center.layout).toMatchObject({
+        type: 'tabs',
+        id: 'stack-1',
+        panelIds: [sourcePanelId, frontmatterPanelId],
+        activeIndex: 1,
+      })
+      expect(setNodeDockLayout).toHaveBeenCalledWith('node-1', liveDockStore.getState().zones.center.layout)
+      const globalStack = useDockStore.getState().zones.center.layout
+      expect(globalStack?.type === 'tabs' ? globalStack.panelIds : []).toEqual([sourcePanelId])
+      expect(addNodeAndFocus).not.toHaveBeenCalled()
+      expect(focusNode).toHaveBeenCalledWith('node-1')
+    } finally {
+      unregisterNodeDockStore('canvas-1', 'node-1')
+    }
+  })
+
   it('T-U-007 opens frontmatter by vault path through an existing body panel when available', () => {
     const addNodeAndFocus = vi.fn()
     const setNodeDockLayout = vi.fn()

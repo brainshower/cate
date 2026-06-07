@@ -993,7 +993,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (existing) {
       if (!focusExistingPanel(workspaceId, existing.id)) {
         const sourceLocation = useDockStore.getState().panelLocations[sourcePanelId]
-        if (sourceLocation?.type === 'dock') {
+        if (placePanelInCanvasNode(workspaceId, sourcePanelId, existing.id)) {
+          // Prefer the visible canvas-node tab strip when the source panel is
+          // mounted there, even if the global dock store still has stale panel
+          // location metadata from an earlier docked placement.
+        } else if (sourceLocation?.type === 'dock') {
           const snapshot = useDockStore.getState().getSnapshot()
           const sourceStack = findStackContainingPanel(snapshot.zones[sourceLocation.zone].layout, sourcePanelId)
           const sourceIndex = sourceStack?.panelIds.indexOf(sourcePanelId) ?? -1
@@ -1005,10 +1009,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
                   type: 'tab',
                   stackId: sourceStack.id,
                   index: sourceIndex >= 0 ? sourceIndex + 1 : undefined,
-                }
+              }
               : undefined,
           )
-        } else if (!placePanelInCanvasNode(workspaceId, sourcePanelId, existing.id)) {
+        } else {
           const placement = { target: 'canvas' as const, position: activeCanvasNodeOffset(workspaceId, sourcePanelId) }
           placePanel(existing.id, 'editor', placement, placement.position, workspaceId === get().selectedWorkspaceId)
         }
@@ -1045,7 +1049,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }))
 
     try {
-      if (sourceLocation?.type === 'dock') {
+      if (placePanelInCanvasNode(workspaceId, sourcePanelId, panelId)) {
+        // Inserted into the source canvas node's private tab strip.
+      } else if (sourceLocation?.type === 'dock') {
         const snapshot = useDockStore.getState().getSnapshot()
         const sourceStack = findStackContainingPanel(snapshot.zones[sourceLocation.zone].layout, sourcePanelId)
         const sourceIndex = sourceStack?.panelIds.indexOf(sourcePanelId) ?? -1
@@ -1053,8 +1059,6 @@ export const useAppStore = create<AppStore>((set, get) => ({
           ...(dockTarget as Extract<DockDropTarget, { type: 'tab' }>),
           index: sourceIndex >= 0 ? sourceIndex + 1 : undefined,
         })
-      } else if (placePanelInCanvasNode(workspaceId, sourcePanelId, panelId)) {
-        // Inserted into the source canvas node's private tab strip.
       } else {
         placePanel(panelId, 'editor', placement, placement?.target === 'canvas' ? placement.position : undefined, workspaceId === get().selectedWorkspaceId)
       }
