@@ -2,7 +2,7 @@
 status: resolved
 trigger: "When I use the button to open the frontmatter in the Canvas, it opens a separate window, instead of a separate tab. I anticipated a new tab would open with frontmatter in the same place where the document's body content is opened."
 created: "2026-06-06T17:41:21Z"
-updated: "2026-06-06T22:41:30Z"
+updated: "2026-06-07T13:12:30Z"
 ---
 
 # Debug Session: Canvas Frontmatter Opens Window
@@ -35,6 +35,11 @@ updated: "2026-06-06T22:41:30Z"
 - timestamp: "2026-06-06T22:40:22Z"; observation: "Added a regression where a source editor is visibly mounted in a live canvas-node tab store while stale global useDockStore.panelLocations still marks it docked. Before the fix, the live canvas-node layout remained unchanged and the test failed."
 - timestamp: "2026-06-06T22:40:52Z"; observation: "Changed openFlashQueryFrontmatterEditor to try placePanelInCanvasNode before trusting global dock metadata for both new and existing frontmatter panels. Focused regression suite passed: appStore, canvasStore, and DockTabBar."
 - timestamp: "2026-06-06T22:41:10Z"; observation: "npm run typecheck passed."
+- timestamp: "2026-06-07T13:10:10Z"; observation: "User reported the same canvas-only frontmatter no-op persisted, and the same button's tooltip no longer appeared. This links the failure to hover/click delivery before appStore routing."
+- timestamp: "2026-06-07T13:10:30Z"; observation: "CanvasNode inactive chrome CSS disabled every button inside .dock-tab-bar via pointer-events: none. FlashQueryEditorTitleActions is rendered inside DockTabStack's .dock-tab-bar, so inactive canvas nodes blocked both tooltip hover and frontmatter clicks."
+- timestamp: "2026-06-07T13:10:55Z"; observation: "Narrowed inactive-node CSS to data-node-chrome-button, data-node-chrome-controls, and data-tab-close-button so FlashQuery title action buttons remain interactive."
+- timestamp: "2026-06-07T13:11:10Z"; observation: "Focused regression suite passed: CanvasNode CSS contract, DockTabBar title actions/tooltips, appStore canvas frontmatter routing, and canvasStore panel lookup."
+- timestamp: "2026-06-07T13:11:30Z"; observation: "npm run typecheck passed."
 
 ## Eliminated
 
@@ -51,3 +56,10 @@ updated: "2026-06-06T22:41:30Z"
 - fix: "Changed new and existing frontmatter placement to prefer placePanelInCanvasNode(workspaceId, sourcePanelId, panelId) before using useDockStore.panelLocations[sourcePanelId]. Added a regression test for stale global dock location versus visible canvas-node ownership."
 - verification: "npx vitest run src/renderer/stores/appStore.test.ts src/renderer/stores/canvasStore.test.ts src/renderer/docking/DockTabBar.test.tsx --pool=forks --maxWorkers=1 --reporter verbose --testTimeout=10000; npm run typecheck"
 - files_changed: "src/renderer/stores/appStore.ts; src/renderer/stores/appStore.test.ts; .planning/debug/canvas-frontmatter-opens-window.md"
+
+## Follow-up Resolution 2026-06-07
+
+- root_cause: "The remaining canvas-only no-op was not store routing. CanvasNode's inactive-node CSS applied pointer-events: none to every button in .dock-tab-bar. Because FlashQueryEditorTitleActions now renders in that tab bar, an unfocused canvas node blocked both tooltip hover and the Open frontmatter click."
+- fix: "Replaced the broad .dock-tab-bar button inactive selector with explicit data attributes for node chrome controls, split/add buttons, and per-tab close controls. FlashQuery title action buttons are no longer disabled by inactive-node chrome hiding."
+- verification: "npx vitest run src/renderer/canvas/CanvasNode.test.ts src/renderer/docking/DockTabBar.test.tsx src/renderer/stores/appStore.test.ts src/renderer/stores/canvasStore.test.ts --pool=forks --maxWorkers=1 --reporter verbose --testTimeout=10000; npm run typecheck"
+- files_changed: "src/renderer/canvas/CanvasNode.tsx; src/renderer/canvas/CanvasNode.test.ts; src/renderer/docking/DockTabBar.tsx; src/renderer/docking/DockTabStack.tsx; .planning/debug/canvas-frontmatter-opens-window.md"

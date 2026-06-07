@@ -288,6 +288,7 @@ export function DockTabBar(props: DockTabBarProps) {
             )}
             {onClosePanel && (
               <span
+                data-tab-close-button
                 className={`shrink-0 p-0.5 rounded-sm hover:bg-hover cursor-pointer ${
                   isActive ? 'opacity-80' : 'opacity-0 group-hover:opacity-70'
                 }`}

@@ -78,8 +78,9 @@ const PULSE_KEYFRAMES = `
 [data-node-id] .dock-tab-bar { border-bottom-color: var(--surface-3) !important; }
 /* Hide tab-bar action icons (add/split/lock/maximize/close and per-tab X)
    when the node isn't focused — they'd just be visual noise from afar. */
-[data-node-id][data-node-active="false"] .dock-tab-bar button,
-[data-node-id][data-node-active="false"] .dock-tab-bar .group > span:last-child {
+[data-node-id][data-node-active="false"] .dock-tab-bar [data-node-chrome-button],
+[data-node-id][data-node-active="false"] .dock-tab-bar [data-node-chrome-controls],
+[data-node-id][data-node-active="false"] .dock-tab-bar [data-tab-close-button] {
   opacity: 0 !important;
   pointer-events: none !important;
 }

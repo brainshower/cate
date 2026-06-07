@@ -286,6 +286,7 @@ export default function DockTabStack({ stack, zone: zoneProp, renderPanel, getPa
         {/* "+" tab — adds a new tab of the active panel's type into this stack. */}
         {activePanel && (
           <button
+            data-node-chrome-button
             className={`flex items-center justify-center self-center rounded text-secondary hover:text-primary hover:bg-hover cursor-pointer ${compact ? 'mx-0.5 my-0.5 w-[18px] h-[18px]' : 'mx-1 my-1 w-[22px] h-[22px]'}`}
             title={`New ${PANEL_TYPE_LABELS[activePanel.type] ?? 'Tab'}`}
             onClick={() => actions.addTabOfType(activePanel.type)}
@@ -298,6 +299,7 @@ export default function DockTabStack({ stack, zone: zoneProp, renderPanel, getPa
         {activePanelId && (
           <div className={`relative flex items-center self-center ${compact ? 'px-0.5' : 'px-1'}`}>
             <button
+              data-node-chrome-button
               ref={splitButtonRef}
               className={`flex items-center justify-center rounded text-secondary hover:text-primary hover:bg-hover cursor-pointer ${compact ? 'w-[18px] h-[18px]' : 'w-[22px] h-[22px]'}`}
               title="Split (hold to choose type)"
@@ -321,6 +323,7 @@ export default function DockTabStack({ stack, zone: zoneProp, renderPanel, getPa
         {/* Host-injected trailing controls (e.g. canvas-node lock/maximize/close) */}
         {trailingControls && (
           <div
+            data-node-chrome-controls
             className="flex items-center self-center pr-1 gap-0.5"
             onMouseDown={(e) => e.stopPropagation()}
           >
