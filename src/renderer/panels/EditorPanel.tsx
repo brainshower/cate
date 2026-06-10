@@ -625,6 +625,7 @@ export default function EditorPanel({
         renderSideBySide: true,
         useInlineViewWhenSpaceIsLimited: false,
         scrollBeyondLastLine: false,
+        fixedOverflowWidgets: true,
         minimap: { enabled: false },
         padding: { top: 8, bottom: 8 },
       })
@@ -696,6 +697,7 @@ export default function EditorPanel({
       minimap: { enabled: false },
       automaticLayout: false,
       scrollBeyondLastLine: false,
+      fixedOverflowWidgets: true,
       scrollbar: { useShadows: false },
       overviewRulerBorder: false,
       padding: { top: 8, bottom: 8 },

@@ -807,6 +807,18 @@ describe('EditorPanel FlashQuery refresh behavior', () => {
 })
 
 describe('EditorPanel FlashQuery diff guardrails', () => {
+  it('uses fixed Monaco overflow widgets so canvas transforms do not offset editor context menus', async () => {
+    const api = makeElectronApi()
+    setElectronApi(api)
+
+    await renderEditor(vaultUri)
+
+    expect(monaco.editor.create).toHaveBeenCalledWith(
+      expect.any(HTMLElement),
+      expect.objectContaining({ fixedOverflowWidgets: true }),
+    )
+  })
+
   it('T-I-088 and T-I-090 render vault diff requests as standard editors without local diff IPC', async () => {
     const api = makeElectronApi()
     setElectronApi(api)
@@ -834,6 +846,10 @@ describe('EditorPanel FlashQuery diff guardrails', () => {
     render(<EditorPanel panelId={panelId} workspaceId={workspaceId} filePath={localPath} />)
 
     await waitFor(() => expect(monaco.editor.createDiffEditor).toHaveBeenCalled())
+    expect(monaco.editor.createDiffEditor).toHaveBeenCalledWith(
+      expect.any(HTMLElement),
+      expect.objectContaining({ fixedOverflowWidgets: true }),
+    )
     await waitFor(() => expect(api.gitDiffStaged).toHaveBeenCalledWith('/repo', 'Docs/Plan.md'))
     expect(api.flashqueryGetDocument).not.toHaveBeenCalled()
   })
