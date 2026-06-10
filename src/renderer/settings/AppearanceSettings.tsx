@@ -159,6 +159,12 @@ export function AppearanceSettings() {
         <h4 className="text-[13px] font-semibold text-primary">Create your own theme</h4>
       </button>
 
+      <SettingRow label="App font size" description="Scales rem-based UI text across Cate.">
+        <NumberInput value={store.appFontSize} onChange={(v) => store.setSetting('appFontSize', v)} min={12} max={24} step={1} />
+      </SettingRow>
+
+      <SubsectionHeading>Editor</SubsectionHeading>
+
       <SettingRow label="Editor font size">
         <NumberInput value={store.editorFontSize} onChange={(v) => store.setSetting('editorFontSize', v)} min={8} max={32} step={1} />
       </SettingRow>
@@ -167,10 +173,20 @@ export function AppearanceSettings() {
         <NumberInput value={store.previewFontSize} onChange={(v) => store.setSetting('previewFontSize', v)} min={8} max={40} step={1} />
       </SettingRow>
 
-      <SettingRow label="App font size" description="Scales rem-based UI text across Cate.">
-        <NumberInput value={store.appFontSize} onChange={(v) => store.setSetting('appFontSize', v)} min={12} max={24} step={1} />
+      <SubsectionHeading>Pi</SubsectionHeading>
+
+      <SettingRow label="Chat font size" description="Pi chat messages and composer text.">
+        <NumberInput value={store.piFontSize} onChange={(v) => store.setSetting('piFontSize', v)} min={10} max={28} step={0.5} />
       </SettingRow>
     </div>
+  )
+}
+
+function SubsectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h4 className="text-xs font-medium text-muted uppercase tracking-wider mt-5 mb-1">
+      {children}
+    </h4>
   )
 }
 

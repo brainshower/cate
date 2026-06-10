@@ -19,6 +19,7 @@ import {
   ImageChips,
   ThinkingLevelPicker,
 } from './AgentPanelChrome'
+import { useSettingsStore } from '../../renderer/stores/settingsStore'
 import type {
   AgentImageAttachment,
   AgentSlashCommand,
@@ -112,6 +113,7 @@ export function ChatInput({
   const [cursorPos, setCursorPos] = useState(draft.length)
   const [dismissedMentionStart, setDismissedMentionStart] = useState<number | null>(null)
   const [mentionPortalTarget, setMentionPortalTarget] = useState<HTMLElement | null>(null)
+  const piFontSize = useSettingsStore((s) => s.piFontSize)
 
   useEffect(() => {
     const ta = textareaRef.current
@@ -342,8 +344,8 @@ export function ChatInput({
                   : 'Message the agent…  (type / for skills, paste/drop images)')
           }
           rows={1}
-          className="w-full bg-transparent px-3 py-2 text-[13px] text-primary outline-none resize-none placeholder:text-muted disabled:opacity-50"
-          style={{ maxHeight: 160 }}
+          className="w-full bg-transparent px-3 py-2 text-primary outline-none resize-none placeholder:text-muted disabled:opacity-50"
+          style={{ maxHeight: 160, fontSize: `${piFontSize}px` }}
         />
         <div className="flex items-center gap-0.5 px-1.5 pb-1.5">
           <ImageAttachButton onPick={onAddImage} />

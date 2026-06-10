@@ -40,6 +40,7 @@ const SETTINGS_SCHEMA: Record<keyof AppSettings, string> = {
   appFontSize: 'number',
   editorFontSize: 'number',
   previewFontSize: 'number',
+  piFontSize: 'number',
   showMinimap: 'boolean',
   defaultPanelWidth: 'number',
   defaultPanelHeight: 'number',

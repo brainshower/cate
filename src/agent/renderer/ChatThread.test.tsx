@@ -4,6 +4,8 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { openTerminalUrl } from '../../renderer/lib/terminalUrlOpen'
 import { setCanvasOperations, useAppStore, type CanvasOperations } from '../../renderer/stores/appStore'
+import { useSettingsStore } from '../../renderer/stores/settingsStore'
+import { DEFAULT_SETTINGS } from '../../shared/types'
 import { ChatThread } from './ChatThread'
 import type { AgentMessage, ToolMessage } from './agentStore'
 
@@ -178,6 +180,7 @@ function completedCallModel(overrides: Partial<ToolMessage> = {}): ToolMessage {
 
 beforeEach(() => {
   Element.prototype.scrollTo = vi.fn()
+  useSettingsStore.setState({ ...DEFAULT_SETTINGS, _loaded: true, piFontSize: 18 })
   seedWorkspace()
 })
 
@@ -187,6 +190,12 @@ afterEach(() => {
 })
 
 describe('ChatThread FlashQuery ToolCard rendering', () => {
+  it('applies the Pi chat font size setting to assistant messages', () => {
+    renderThread([{ type: 'assistant', id: 'assistant-1', text: 'Readable Pi text', streaming: false }])
+
+    expect(screen.getByTestId('assistant-message').style.fontSize).toBe('18px')
+  })
+
   it('T-U-019 REQ-017 renders completed call_model collapsed summary from diagnostics', () => {
     renderThread([completedCallModel()])
 

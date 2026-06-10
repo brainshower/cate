@@ -13,6 +13,7 @@ import ReactMarkdown, { defaultUrlTransform } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { openTerminalUrl } from '../../renderer/lib/terminalUrlOpen'
 import { useAppStore } from '../../renderer/stores/appStore'
+import { useSettingsStore } from '../../renderer/stores/settingsStore'
 import { parseVaultUri } from '../../shared/flashqueryUri'
 import {
   Wrench,
@@ -61,6 +62,7 @@ interface ChatThreadProps {
 export function ChatThread({ messages, pendingApprovals, onApproval, running, forkMap, onFork, onEditResend, onImplementPlan, onRefinePlan, onClearAndImplement, retry, onAbortRetry, workspaceId }: ChatThreadProps) {
   useRenderCount('ChatThread')
   const scrollRef = useRef<HTMLDivElement>(null)
+  const piFontSize = useSettingsStore((s) => s.piFontSize)
 
   const last = messages[messages.length - 1]
 
@@ -155,6 +157,7 @@ export function ChatThread({ messages, pendingApprovals, onApproval, running, fo
             isCurrentTurn={isCurrentTurn}
             agentRunning={running}
             workspaceId={workspaceId}
+            piFontSize={piFontSize}
           />
         )
       })}
@@ -226,6 +229,7 @@ function MessageRow({
   isCurrentTurn,
   agentRunning,
   workspaceId,
+  piFontSize,
 }: {
   msg: AgentMessage
   shimmer?: boolean
@@ -240,12 +244,16 @@ function MessageRow({
   isCurrentTurn?: boolean
   agentRunning?: boolean
   workspaceId?: string
+  piFontSize: number
 }) {
   useRenderCount('MessageRow')
   if (msg.type === 'user') {
     return (
       <div className="flex flex-col items-end gap-1">
-        <div className="max-w-[85%] px-3.5 py-2 rounded-2xl rounded-br-md bg-white/[0.08] text-primary text-[13px] whitespace-pre-wrap break-words">
+        <div
+          className="max-w-[85%] px-3.5 py-2 rounded-2xl rounded-br-md bg-white/[0.08] text-primary whitespace-pre-wrap break-words"
+          style={{ fontSize: `${piFontSize}px` }}
+        >
           {msg.text}
         </div>
         <div className="flex items-center gap-0.5 text-muted">
@@ -265,7 +273,11 @@ function MessageRow({
   }
   if (msg.type === 'assistant') {
     return (
-      <div className={`text-[13.5px] text-primary leading-relaxed space-y-1.5 cate-fade-in ${shimmer ? 'cate-notif-pulse' : ''}`}>
+      <div
+        data-testid="assistant-message"
+        className={`text-primary leading-relaxed space-y-1.5 cate-fade-in ${shimmer ? 'cate-notif-pulse' : ''}`}
+        style={{ fontSize: `${piFontSize}px` }}
+      >
         {msg.thinking && <ThinkingBlock text={msg.thinking} streaming={msg.streaming && !msg.text} />}
         <div>
           <Markdown text={msg.text} workspaceId={workspaceId} />
@@ -360,9 +372,9 @@ function Markdown({ text, workspaceId }: { text: string; workspaceId?: string })
         urlTransform={transformMarkdownUrl}
         components={{
           p: ({ children }) => <p className="leading-relaxed">{children}</p>,
-          h1: ({ children }) => <h1 className="text-[15px] font-semibold text-primary mt-3 mb-1">{children}</h1>,
-          h2: ({ children }) => <h2 className="text-[14px] font-semibold text-primary mt-3 mb-1">{children}</h2>,
-          h3: ({ children }) => <h3 className="text-[13.5px] font-semibold text-primary mt-2 mb-1">{children}</h3>,
+          h1: ({ children }) => <h1 className="font-semibold text-primary mt-3 mb-1" style={{ fontSize: '1.12em' }}>{children}</h1>,
+          h2: ({ children }) => <h2 className="font-semibold text-primary mt-3 mb-1" style={{ fontSize: '1.04em' }}>{children}</h2>,
+          h3: ({ children }) => <h3 className="font-semibold text-primary mt-2 mb-1" style={{ fontSize: '1em' }}>{children}</h3>,
           ul: ({ children }) => <ul className="list-disc pl-5 space-y-0.5">{children}</ul>,
           ol: ({ children }) => <ol className="list-decimal pl-5 space-y-0.5">{children}</ol>,
           li: ({ children }) => <li className="leading-relaxed">{children}</li>,
@@ -384,25 +396,25 @@ function Markdown({ text, workspaceId }: { text: string; workspaceId?: string })
             const isBlock = /language-/.test(className ?? '')
             if (isBlock) {
               return (
-                <code className={`${className ?? ''} font-mono text-[11.5px] leading-snug`} {...props}>
+                <code className={`${className ?? ''} font-mono leading-snug`} style={{ fontSize: '0.85em' }} {...props}>
                   {children}
                 </code>
               )
             }
             return (
-              <code className="font-mono text-[11.5px] px-1 py-[1px] rounded bg-black/30 text-agent-light" {...props}>
+              <code className="font-mono px-1 py-[1px] rounded bg-black/30 text-agent-light" style={{ fontSize: '0.85em' }} {...props}>
                 {children}
               </code>
             )
           },
           pre: ({ children }) => (
-            <pre className="rounded-md bg-black/40 border border-white/10 px-3 py-2 overflow-x-auto text-[11.5px] leading-snug">
+            <pre className="rounded-md bg-black/40 border border-white/10 px-3 py-2 overflow-x-auto leading-snug" style={{ fontSize: '0.85em' }}>
               {children}
             </pre>
           ),
           table: ({ children }) => (
             <div className="overflow-x-auto">
-              <table className="min-w-full text-[12px] border border-white/10 rounded-md">{children}</table>
+              <table className="min-w-full border border-white/10 rounded-md" style={{ fontSize: '0.89em' }}>{children}</table>
             </div>
           ),
           th: ({ children }) => (

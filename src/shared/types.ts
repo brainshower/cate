@@ -951,6 +951,8 @@ export interface AppSettings {
   appFontSize: number
   editorFontSize: number
   previewFontSize: number
+  /** Base font size for Pi agent chat messages and composer text, in px. */
+  piFontSize: number
 
   // Canvas
   showMinimap: boolean
@@ -1028,6 +1030,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   appFontSize: 16,
   editorFontSize: 12,
   previewFontSize: 14,
+  piFontSize: 13.5,
 
   // Canvas
   showMinimap: true,
