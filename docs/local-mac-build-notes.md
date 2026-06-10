@@ -37,13 +37,13 @@ Cate declares:
 }
 ```
 
-The repo `.nvmrc` is `20`. Use Node 20 or 22 for the least surprising install and native-module behavior. Node 24 can install and build in this environment, but it prints an `EBADENGINE` warning and is outside the supported range.
+The repo `.nvmrc` is `20`. Use Node 20 or 22 for the least surprising install and native-module behavior. Newer Node versions can install and build in this environment, but they print an `EBADENGINE` warning and are outside the supported range.
 
 Observed local versions during this setup:
 
 ```text
-node v24.7.0
-npm 11.5.1
+node v26.0.0
+npm 11.12.1
 ```
 
 ## Fresh Checkout Verification
@@ -82,7 +82,9 @@ npm run package:mac
 In this local Command Line Tools setup, native rebuild of `node-pty` failed until the C++ standard-library include path was provided explicitly. The working command was:
 
 ```bash
-CPLUS_INCLUDE_PATH=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1 npm run package:mac
+SDKROOT="$(xcrun --sdk macosx --show-sdk-path)" \
+CPLUS_INCLUDE_PATH="$(xcrun --sdk macosx --show-sdk-path)/usr/include/c++/v1" \
+npm run package:mac
 ```
 
 The initial failure looked like:
@@ -104,14 +106,14 @@ find /Library/Developer/CommandLineTools -path '*c++*' -name functional
 Successful `package:mac` output lands in `release/`. A local test run generated:
 
 ```text
-release/Cate-1.0.2.dmg
-release/Cate-1.0.2.dmg.blockmap
-release/Cate-1.0.2-mac.zip
-release/Cate-1.0.2-mac.zip.blockmap
-release/Cate-1.0.2-arm64.dmg
-release/Cate-1.0.2-arm64.dmg.blockmap
-release/Cate-1.0.2-arm64-mac.zip
-release/Cate-1.0.2-arm64-mac.zip.blockmap
+release/Cate-1.1.0.dmg
+release/Cate-1.1.0.dmg.blockmap
+release/Cate-1.1.0-mac.zip
+release/Cate-1.1.0-mac.zip.blockmap
+release/Cate-1.1.0-arm64.dmg
+release/Cate-1.1.0-arm64.dmg.blockmap
+release/Cate-1.1.0-arm64-mac.zip
+release/Cate-1.1.0-arm64-mac.zip.blockmap
 release/latest-mac.yml
 release/mac/Cate.app
 release/mac-arm64/Cate.app
@@ -140,6 +142,50 @@ The arm64 app verified successfully. The x64 app did not verify because it was n
 ```text
 release/mac/Cate.app: code object is not signed at all
 In architecture: x86_64
+```
+
+### Local ad-hoc signing pitfall
+
+On macOS 26.3.1, the arm64 `1.1.0` app initially quit immediately when opened from Finder. Launching the executable directly showed a dyld error before Cate code started:
+
+```text
+Library not loaded: @rpath/Electron Framework.framework/Electron Framework
+Reason: ... Electron Framework ... not valid for use in process: mapping process and mapped file (non-platform) have different Team IDs
+```
+
+The app executable had been ad-hoc signed with hardened runtime still enabled:
+
+```text
+flags=0x10002(adhoc,runtime)
+```
+
+For local-only test builds without a Developer ID certificate, re-sign the unpacked app without hardened runtime:
+
+```bash
+codesign --force --deep --sign - release/mac-arm64/Cate.app
+codesign --verify --deep --strict release/mac-arm64/Cate.app
+codesign -dv --verbose=4 release/mac-arm64/Cate.app/Contents/MacOS/Cate 2>&1 | rg 'flags|Signature|TeamIdentifier|Runtime'
+```
+
+The expected local signature shape is:
+
+```text
+flags=0x2(adhoc)
+Signature=adhoc
+TeamIdentifier=not set
+```
+
+If distributing a local ZIP or DMG after this fix, create it from the re-signed app bundle rather than using the original `electron-builder` archive:
+
+```bash
+ditto -c -k --sequesterRsrc --keepParent release/mac-arm64/Cate.app release/Cate-1.1.0-arm64-local.zip
+hdiutil create -volname Cate -srcfolder release/mac-arm64/Cate.app -ov -format UDZO release/Cate-1.1.0-arm64-local.dmg
+```
+
+When launching the app executable from an agent or shell environment, make sure `ELECTRON_RUN_AS_NODE` is not set, otherwise Electron starts as a Node REPL instead of launching Cate:
+
+```bash
+env -u ELECTRON_RUN_AS_NODE ./release/mac-arm64/Cate.app/Contents/MacOS/Cate
 ```
 
 For local testing, unsigned or ad-hoc signed builds may need Gatekeeper quarantine removed:
