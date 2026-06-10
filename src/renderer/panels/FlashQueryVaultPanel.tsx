@@ -145,6 +145,10 @@ interface RenameDraft {
   vaultPath: string
 }
 
+interface LoadRootOptions {
+  force?: boolean
+}
+
 function flattenVisibleRows(
   entries: FlashQueryVaultEntry[],
   expandedPaths: Set<string>,
@@ -321,8 +325,8 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
     void window.electronAPI.flashqueryRetry(workspaceId)
   }, [workspaceId])
 
-  const loadRoot = useCallback(async () => {
-    if (rootLoadingRef.current) return
+  const loadRoot = useCallback(async (options: LoadRootOptions = {}) => {
+    if (rootLoadingRef.current && !options.force) return
     rootLoadingRef.current = true
     const requestId = ++listRequestRef.current
     setRootLoading(true)
@@ -454,7 +458,7 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
   }, [openDocumentLegacy])
 
   const refreshAfterVaultMutation = useCallback(async (parentPath: string) => {
-    await loadRoot()
+    await loadRoot({ force: true })
     if (parentPath) {
       setExpandedPaths((prev) => new Set(prev).add(parentPath))
       await reloadFolder(parentPath)
@@ -736,7 +740,7 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
           type="button"
           aria-label="Refresh vault"
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-muted transition-colors hover:bg-hover hover:text-primary"
-          onClick={loadRoot}
+          onClick={() => void loadRoot()}
           disabled={rootLoading}
         >
           <ArrowsClockwise

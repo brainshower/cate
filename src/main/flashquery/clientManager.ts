@@ -260,6 +260,10 @@ export class FlashQueryClientManager {
       if (this.isErrorEnvelope(resultPayload)) {
         return { success: false, error: this.errorEnvelopeMessage(resultPayload) }
       }
+      const directoryError = this.directoryResultsErrorMessage(resultPayload)
+      if (directoryError) {
+        return { success: false, error: directoryError }
+      }
       return { success: true, modified: '' }
     } catch (error) {
       const state = this.workspaceStates.get(workspaceId)
@@ -803,5 +807,22 @@ export class FlashQueryClientManager {
       : typeof payload.error === 'string'
         ? payload.error
         : 'FlashQuery tool call failed'
+  }
+
+  private directoryResultsErrorMessage(payload: Record<string, unknown>): string | null {
+    const results = this.arrayFrom(payload.results)
+    const failures = results.filter((entry): entry is Record<string, unknown> =>
+      this.isPlainObject(entry) && typeof entry.error === 'string')
+    if (failures.length === 0) return null
+
+    return failures.map((failure) => {
+      const identifier = typeof failure.identifier === 'string' ? failure.identifier : ''
+      const message = typeof failure.message === 'string'
+        ? failure.message
+        : typeof failure.error === 'string'
+          ? failure.error
+          : 'Directory operation failed'
+      return identifier ? `${identifier}: ${message}` : message
+    }).join('; ')
   }
 }

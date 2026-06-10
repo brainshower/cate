@@ -592,6 +592,64 @@ describe('FlashQueryVaultPanel row and folder behavior', () => {
     ))
   })
 
+  it('deletes a root-level folder and immediately refreshes the root vault listing', async () => {
+    const api = makeSequencedElectronApi([
+      [{ name: 'Ideas', type: 'folder', vaultPath: 'Ideas' }],
+      [],
+    ])
+    setElectronApi(api)
+    renderPanel()
+    emitStatus({ workspaceId, status: 'live' })
+    await waitFor(() => expect(screen.getByRole('treeitem', { name: /Ideas/ })).toBeTruthy())
+
+    vi.mocked(api.showContextMenu).mockResolvedValueOnce('delete')
+    vi.spyOn(window, 'confirm').mockReturnValueOnce(true)
+
+    fireEvent.contextMenu(screen.getByRole('treeitem', { name: /Ideas/ }))
+
+    await waitFor(() => expect(api.flashqueryManageDirectory).toHaveBeenCalledWith(
+      workspaceId,
+      'remove',
+      ['Ideas'],
+    ))
+    await waitFor(() => expect(api.flashqueryListVault).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(screen.queryByRole('treeitem', { name: /Ideas/ })).toBeNull())
+    expect(screen.getByText('This vault has no documents yet.')).toBeTruthy()
+  })
+
+  it('forces the post-mutation root refresh even when a manual root refresh is already in flight', async () => {
+    const pendingRefresh = deferredEntries()
+    const api = makeSequencedElectronApi([
+      [{ name: 'Ideas', type: 'folder', vaultPath: 'Ideas' }],
+      pendingRefresh.promise,
+      [],
+    ])
+    setElectronApi(api)
+    renderPanel()
+    emitStatus({ workspaceId, status: 'live' })
+    await waitFor(() => expect(screen.getByRole('treeitem', { name: /Ideas/ })).toBeTruthy())
+
+    fireEvent.click(screen.getByLabelText('Refresh vault'))
+    await waitFor(() => expect(api.flashqueryListVault).toHaveBeenCalledTimes(2))
+
+    vi.mocked(api.showContextMenu).mockResolvedValueOnce('delete')
+    vi.spyOn(window, 'confirm').mockReturnValueOnce(true)
+    fireEvent.contextMenu(screen.getByRole('treeitem', { name: /Ideas/ }))
+
+    await waitFor(() => expect(api.flashqueryManageDirectory).toHaveBeenCalledWith(
+      workspaceId,
+      'remove',
+      ['Ideas'],
+    ))
+    await waitFor(() => expect(api.flashqueryListVault).toHaveBeenCalledTimes(3))
+    await waitFor(() => expect(screen.queryByRole('treeitem', { name: /Ideas/ })).toBeNull())
+
+    await act(async () => {
+      pendingRefresh.resolve([{ name: 'Ideas', type: 'folder', vaultPath: 'Ideas' }])
+    })
+    expect(screen.queryByRole('treeitem', { name: /Ideas/ })).toBeNull()
+  })
+
   it('supports visible-row multi-select with modifier and shift clicks', async () => {
     await renderLiveTree([
       { name: 'A.md', type: 'document', vaultPath: 'A.md' },

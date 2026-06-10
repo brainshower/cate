@@ -1096,6 +1096,26 @@ describe('FlashQueryClientManager', () => {
     })
   })
 
+  it('returns a failure when manage_directory reports per-path conflicts in ordered results', async () => {
+    const callTool = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({
+        results: [{
+          error: 'conflict',
+          message: 'Directory is not empty',
+          identifier: 'Ideas',
+          details: { reason: 'directory_not_empty', count: 1 },
+        }],
+      }) }],
+    })
+    workspaceMock.workspaces = [workspaceInfo()]
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
+    await expect(manager.manageDirectory('workspace-1', 'remove', ['Ideas'])).resolves.toEqual({
+      success: false,
+      error: 'Ideas: Directory is not empty',
+    })
+  })
+
   it('T-U-004 rejects invalid tags and empty object writes before calling MCP', async () => {
     const callTool = vi.fn()
     workspaceMock.workspaces = [workspaceInfo()]
