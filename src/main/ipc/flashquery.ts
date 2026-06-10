@@ -2,10 +2,14 @@ import { ipcMain } from 'electron'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import {
+  FLASHQUERY_CREATE_DOCUMENT,
   FLASHQUERY_GET_DOCUMENT,
   FLASHQUERY_LIST_VAULT_INDEX,
   FLASHQUERY_LIST_VAULT,
+  FLASHQUERY_MANAGE_DIRECTORY,
+  FLASHQUERY_MOVE_DOCUMENT,
   FLASHQUERY_PROBE,
+  FLASHQUERY_REMOVE_DOCUMENT,
   FLASHQUERY_RETRY,
   FLASHQUERY_SEARCH,
   FLASHQUERY_STATUS,
@@ -14,6 +18,7 @@ import {
 } from '../../shared/ipc-channels'
 import type {
   FlashQueryConnection,
+  FlashQueryDirectoryAction,
   FlashQueryGetDocumentOptions,
   FlashQueryProbeResult,
   FlashQuerySearchParams,
@@ -257,6 +262,20 @@ function requireString(value: unknown, field: string): string {
   return value
 }
 
+function requireStringArray(value: unknown, field: string): string[] {
+  if (!Array.isArray(value) || value.some((item) => typeof item !== 'string' || item.trim().length === 0)) {
+    throw new Error(`${field} must be an array of non-empty strings`)
+  }
+  return value
+}
+
+function validateDirectoryAction(value: unknown): FlashQueryDirectoryAction {
+  if (value !== 'create' && value !== 'remove' && value !== 'rename' && value !== 'move') {
+    throw new Error('directory action must be create, remove, rename, or move')
+  }
+  return value
+}
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 }
@@ -365,6 +384,80 @@ async function writeDocument(workspaceId: string, vaultPath: string, payload: un
   }
 }
 
+async function createDocument(workspaceId: string, vaultPath: string, title: string): Promise<FlashQueryWriteResult> {
+  try {
+    return await flashQueryClientManager.createDocument(
+      requireNonEmptyString(workspaceId, 'workspaceId'),
+      requireNonEmptyString(vaultPath, 'vaultPath'),
+      requireNonEmptyString(title, 'title'),
+    )
+  } catch (error) {
+    return {
+      success: false as const,
+      error: error instanceof Error ? error.message : String(error),
+    }
+  }
+}
+
+async function manageDirectory(
+  workspaceId: string,
+  action: unknown,
+  paths: unknown,
+  destinations?: unknown,
+): Promise<FlashQueryWriteResult> {
+  try {
+    const nextAction = validateDirectoryAction(action)
+    const nextPaths = requireStringArray(paths, 'paths')
+    const nextDestinations = destinations === undefined ? undefined : requireStringArray(destinations, 'destinations')
+    if ((nextAction === 'rename' || nextAction === 'move') && (!nextDestinations || nextDestinations.length !== nextPaths.length)) {
+      throw new Error('destinations must match paths for rename and move directory actions')
+    }
+    return await flashQueryClientManager.manageDirectory(
+      requireNonEmptyString(workspaceId, 'workspaceId'),
+      nextAction,
+      nextPaths,
+      nextDestinations,
+    )
+  } catch (error) {
+    return {
+      success: false as const,
+      error: error instanceof Error ? error.message : String(error),
+    }
+  }
+}
+
+async function moveDocument(workspaceId: string, identifier: string, destination: string): Promise<FlashQueryWriteResult> {
+  try {
+    return await flashQueryClientManager.moveDocument(
+      requireNonEmptyString(workspaceId, 'workspaceId'),
+      requireNonEmptyString(identifier, 'identifier'),
+      requireNonEmptyString(destination, 'destination'),
+    )
+  } catch (error) {
+    return {
+      success: false as const,
+      error: error instanceof Error ? error.message : String(error),
+    }
+  }
+}
+
+async function removeDocument(workspaceId: string, identifiers: unknown): Promise<FlashQueryWriteResult> {
+  try {
+    const nextIdentifiers = typeof identifiers === 'string'
+      ? requireNonEmptyString(identifiers, 'identifiers')
+      : requireStringArray(identifiers, 'identifiers')
+    return await flashQueryClientManager.removeDocument(
+      requireNonEmptyString(workspaceId, 'workspaceId'),
+      nextIdentifiers,
+    )
+  } catch (error) {
+    return {
+      success: false as const,
+      error: error instanceof Error ? error.message : String(error),
+    }
+  }
+}
+
 async function search(workspaceId: string, params: unknown): Promise<FlashQuerySearchResponse> {
   try {
     return await flashQueryClientManager.search(
@@ -412,6 +505,18 @@ export function registerHandlers(): void {
   })
   ipcMain.handle(FLASHQUERY_WRITE_DOCUMENT, async (_event, workspaceId: string, vaultPath: string, payload: unknown) => {
     return writeDocument(workspaceId, vaultPath, payload)
+  })
+  ipcMain.handle(FLASHQUERY_CREATE_DOCUMENT, async (_event, workspaceId: string, vaultPath: string, title: string) => {
+    return createDocument(workspaceId, vaultPath, title)
+  })
+  ipcMain.handle(FLASHQUERY_MANAGE_DIRECTORY, async (_event, workspaceId: string, action: unknown, paths: unknown, destinations?: unknown) => {
+    return manageDirectory(workspaceId, action, paths, destinations)
+  })
+  ipcMain.handle(FLASHQUERY_MOVE_DOCUMENT, async (_event, workspaceId: string, identifier: string, destination: string) => {
+    return moveDocument(workspaceId, identifier, destination)
+  })
+  ipcMain.handle(FLASHQUERY_REMOVE_DOCUMENT, async (_event, workspaceId: string, identifiers: unknown) => {
+    return removeDocument(workspaceId, identifiers)
   })
   ipcMain.handle(FLASHQUERY_SEARCH, async (_event, workspaceId: string, params: unknown) => {
     return search(workspaceId, params)

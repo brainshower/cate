@@ -191,10 +191,14 @@ import {
   AUTH_OAUTH_EVENT,
   AUTH_SAVE_API_KEY,
   AUTH_DELETE,
+  FLASHQUERY_CREATE_DOCUMENT,
   FLASHQUERY_GET_DOCUMENT,
   FLASHQUERY_LIST_VAULT_INDEX,
   FLASHQUERY_LIST_VAULT,
+  FLASHQUERY_MANAGE_DIRECTORY,
+  FLASHQUERY_MOVE_DOCUMENT,
   FLASHQUERY_PROBE,
+  FLASHQUERY_REMOVE_DOCUMENT,
   FLASHQUERY_RETRY,
   FLASHQUERY_SEARCH,
   FLASHQUERY_SET_CONNECTION,
@@ -1030,6 +1034,22 @@ const electronAPI = {
 
   flashqueryWriteDocument(workspaceId: string, vaultPath: string, payload: unknown): Promise<unknown> {
     return ipcRenderer.invoke(FLASHQUERY_WRITE_DOCUMENT, workspaceId, vaultPath, payload)
+  },
+
+  flashqueryCreateDocument(workspaceId: string, vaultPath: string, title: string): Promise<unknown> {
+    return ipcRenderer.invoke(FLASHQUERY_CREATE_DOCUMENT, workspaceId, vaultPath, title)
+  },
+
+  flashqueryManageDirectory(workspaceId: string, action: unknown, paths: unknown, destinations?: unknown): Promise<unknown> {
+    return ipcRenderer.invoke(FLASHQUERY_MANAGE_DIRECTORY, workspaceId, action, paths, destinations)
+  },
+
+  flashqueryMoveDocument(workspaceId: string, identifier: string, destination: string): Promise<unknown> {
+    return ipcRenderer.invoke(FLASHQUERY_MOVE_DOCUMENT, workspaceId, identifier, destination)
+  },
+
+  flashqueryRemoveDocument(workspaceId: string, identifiers: unknown): Promise<unknown> {
+    return ipcRenderer.invoke(FLASHQUERY_REMOVE_DOCUMENT, workspaceId, identifiers)
   },
 
   flashquerySearch(workspaceId: string, params: unknown): Promise<unknown> {

@@ -1,9 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  FLASHQUERY_CREATE_DOCUMENT,
   FLASHQUERY_GET_DOCUMENT,
   FLASHQUERY_LIST_VAULT_INDEX,
   FLASHQUERY_LIST_VAULT,
+  FLASHQUERY_MANAGE_DIRECTORY,
+  FLASHQUERY_MOVE_DOCUMENT,
   FLASHQUERY_PROBE,
+  FLASHQUERY_REMOVE_DOCUMENT,
   FLASHQUERY_RETRY,
   FLASHQUERY_SEARCH,
   FLASHQUERY_SET_CONNECTION,
@@ -36,6 +40,10 @@ const mocks = vi.hoisted(() => ({
     listVault: ReturnType<typeof vi.fn>
     getDocument: ReturnType<typeof vi.fn>
     listVaultIndex: ReturnType<typeof vi.fn>
+    createDocument: ReturnType<typeof vi.fn>
+    manageDirectory: ReturnType<typeof vi.fn>
+    moveDocument: ReturnType<typeof vi.fn>
+    removeDocument: ReturnType<typeof vi.fn>
     retry: ReturnType<typeof vi.fn>
     search: ReturnType<typeof vi.fn>
     writeDocument: ReturnType<typeof vi.fn>
@@ -79,6 +87,10 @@ vi.mock('../flashquery/clientManager', () => {
     listVault = vi.fn()
     getDocument = vi.fn()
     listVaultIndex = vi.fn()
+    createDocument = vi.fn()
+    manageDirectory = vi.fn()
+    moveDocument = vi.fn()
+    removeDocument = vi.fn()
     retry = vi.fn()
     search = vi.fn()
     writeDocument = vi.fn()
@@ -146,18 +158,26 @@ describe('FlashQuery IPC handlers', () => {
 
     registerHandlers()
 
-    expect(mocks.handle).toHaveBeenCalledTimes(8)
+    expect(mocks.handle).toHaveBeenCalledTimes(12)
     expect(mocks.handle.mock.calls.map(([channel]) => channel)).toEqual([
       FLASHQUERY_SET_CONNECTION,
       FLASHQUERY_PROBE,
       FLASHQUERY_LIST_VAULT,
       FLASHQUERY_GET_DOCUMENT,
       FLASHQUERY_WRITE_DOCUMENT,
+      FLASHQUERY_CREATE_DOCUMENT,
+      FLASHQUERY_MANAGE_DIRECTORY,
+      FLASHQUERY_MOVE_DOCUMENT,
+      FLASHQUERY_REMOVE_DOCUMENT,
       FLASHQUERY_SEARCH,
       FLASHQUERY_LIST_VAULT_INDEX,
       FLASHQUERY_RETRY,
     ])
     expect(mocks.handle.mock.calls.map(([, handler]) => handler)).toEqual([
+      expect.any(Function),
+      expect.any(Function),
+      expect.any(Function),
+      expect.any(Function),
       expect.any(Function),
       expect.any(Function),
       expect.any(Function),
@@ -176,7 +196,7 @@ describe('FlashQuery IPC handlers', () => {
     registerHandlers()
     registerHandlers()
 
-    expect(mocks.handle).toHaveBeenCalledTimes(8)
+    expect(mocks.handle).toHaveBeenCalledTimes(12)
   })
 
   it('declares the exact Phase 3 FlashQuery channel strings', () => {
@@ -185,6 +205,10 @@ describe('FlashQuery IPC handlers', () => {
     expect(FLASHQUERY_LIST_VAULT).toBe('flashquery:listVault')
     expect(FLASHQUERY_GET_DOCUMENT).toBe('flashquery:getDocument')
     expect(FLASHQUERY_WRITE_DOCUMENT).toBe('flashquery:writeDocument')
+    expect(FLASHQUERY_CREATE_DOCUMENT).toBe('flashquery:createDocument')
+    expect(FLASHQUERY_MANAGE_DIRECTORY).toBe('flashquery:manageDirectory')
+    expect(FLASHQUERY_MOVE_DOCUMENT).toBe('flashquery:moveDocument')
+    expect(FLASHQUERY_REMOVE_DOCUMENT).toBe('flashquery:removeDocument')
     expect(FLASHQUERY_SEARCH).toBe('flashquery:search')
     expect(FLASHQUERY_LIST_VAULT_INDEX).toBe('flashquery:list-vault-index')
     expect(FLASHQUERY_RETRY).toBe('flashquery:retry')
@@ -593,6 +617,32 @@ describe('FlashQuery IPC handlers', () => {
       tags: ['project'],
     })
     expect(mocks.managerInstances[0].writeDocument).toHaveBeenCalledTimes(1)
+  })
+
+  it('maps FlashQuery vault mutation IPC channels to client manager methods', async () => {
+    const createHandler = await registeredHandler<(_event: unknown, workspaceId: string, vaultPath: string, title: string) => Promise<unknown>>(FLASHQUERY_CREATE_DOCUMENT)
+    mocks.managerInstances[0].createDocument.mockResolvedValueOnce({ success: true, modified: '' })
+
+    await expect(createHandler({}, 'workspace-1', 'Draft.md', 'Draft')).resolves.toEqual({ success: true, modified: '' })
+    expect(mocks.managerInstances[0].createDocument).toHaveBeenCalledWith('workspace-1', 'Draft.md', 'Draft')
+
+    const directoryHandler = await registeredHandler<(_event: unknown, workspaceId: string, action: string, paths: string[], destinations?: string[]) => Promise<unknown>>(FLASHQUERY_MANAGE_DIRECTORY)
+    mocks.managerInstances[0].manageDirectory.mockResolvedValueOnce({ success: true, modified: '' })
+
+    await expect(directoryHandler({}, 'workspace-1', 'rename', ['Notes'], ['Archive/Notes'])).resolves.toEqual({ success: true, modified: '' })
+    expect(mocks.managerInstances[0].manageDirectory).toHaveBeenCalledWith('workspace-1', 'rename', ['Notes'], ['Archive/Notes'])
+
+    const moveHandler = await registeredHandler<(_event: unknown, workspaceId: string, identifier: string, destination: string) => Promise<unknown>>(FLASHQUERY_MOVE_DOCUMENT)
+    mocks.managerInstances[0].moveDocument.mockResolvedValueOnce({ success: true, modified: '' })
+
+    await expect(moveHandler({}, 'workspace-1', 'Docs/A.md', 'Docs/B.md')).resolves.toEqual({ success: true, modified: '' })
+    expect(mocks.managerInstances[0].moveDocument).toHaveBeenCalledWith('workspace-1', 'Docs/A.md', 'Docs/B.md')
+
+    const removeHandler = await registeredHandler<(_event: unknown, workspaceId: string, identifiers: string) => Promise<unknown>>(FLASHQUERY_REMOVE_DOCUMENT)
+    mocks.managerInstances[0].removeDocument.mockResolvedValueOnce({ success: true, modified: '' })
+
+    await expect(removeHandler({}, 'workspace-1', 'Docs/B.md')).resolves.toEqual({ success: true, modified: '' })
+    expect(mocks.managerInstances[0].removeDocument).toHaveBeenCalledWith('workspace-1', 'Docs/B.md')
   })
 
   it('T-U-005 validates search params and returns safe errors before manager dispatch', async () => {

@@ -63,6 +63,30 @@ function collectAvailablePaths(
   return { paths, folderPaths }
 }
 
+function joinVaultPath(parentPath: string, name: string): string {
+  const trimmedParent = parentPath.replace(/^\/+|\/+$/g, '')
+  const trimmedName = name.replace(/^\/+|\/+$/g, '')
+  return trimmedParent ? `${trimmedParent}/${trimmedName}` : trimmedName
+}
+
+function parentVaultPath(vaultPath: string): string {
+  const parts = vaultPath.split('/').filter(Boolean)
+  parts.pop()
+  return parts.join('/')
+}
+
+function basename(vaultPath: string): string {
+  return vaultPath.split('/').filter(Boolean).at(-1) ?? vaultPath
+}
+
+function ensureMarkdownFilename(name: string): string {
+  return /\.md$/i.test(name) ? name : `${name}.md`
+}
+
+function titleFromDocumentName(name: string): string {
+  return name.replace(/\.md$/i, '')
+}
+
 function SkeletonTree() {
   return (
     <div data-testid="vault-skeleton-tree" className="flex flex-col gap-2 px-3 py-2">
@@ -98,6 +122,7 @@ interface VaultTreeProps {
   onRowClick: (entry: FlashQueryVaultEntry, event: React.MouseEvent) => void
   onRowDoubleClick: (entry: FlashQueryVaultEntry, event: React.MouseEvent) => void
   onRowContextMenu: (entry: FlashQueryVaultEntry, event: React.MouseEvent) => void
+  onBackgroundContextMenu: (event: React.MouseEvent) => void
 }
 
 interface VisibleVaultRow {
@@ -130,6 +155,7 @@ function VaultTree({
   onRowClick,
   onRowDoubleClick,
   onRowContextMenu,
+  onBackgroundContextMenu,
 }: VaultTreeProps) {
   const visibleRows = useMemo(
     () => flattenVisibleRows(entries, expandedPaths, childrenByPath),
@@ -137,7 +163,12 @@ function VaultTree({
   )
 
   return (
-    <div className="flex-1 overflow-auto px-1 py-1 text-xs" role="tree" aria-label="FlashQuery vault">
+    <div
+      className="flex-1 overflow-auto px-1 py-1 text-xs"
+      role="tree"
+      aria-label="FlashQuery vault"
+      onContextMenu={onBackgroundContextMenu}
+    >
       {visibleRows.map(({ entry, depth }) => {
         const isFolder = entry.type === 'folder'
         const isExpanded = expandedPaths.has(entry.vaultPath)
@@ -267,6 +298,22 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
     }
   }, [loadedFolderPaths, workspaceId])
 
+  const reloadFolder = useCallback(async (vaultPath: string) => {
+    const requestId = (folderRequestRef.current[vaultPath] ?? 0) + 1
+    folderRequestRef.current[vaultPath] = requestId
+    setLoadingPaths((prev) => new Set(prev).add(vaultPath))
+    try {
+      const entries = await window.electronAPI.flashqueryListVault(workspaceId, vaultPath)
+      if (folderRequestRef.current[vaultPath] !== requestId) return
+      setChildrenByPath((prev) => ({ ...prev, [vaultPath]: entries }))
+      setLoadedFolderPaths((prev) => new Set(prev).add(vaultPath))
+    } finally {
+      if (folderRequestRef.current[vaultPath] === requestId) {
+        setLoadingPaths((prev) => withoutPath(prev, vaultPath))
+      }
+    }
+  }, [workspaceId])
+
   const selectPath = useCallback((vaultPath: string, meta: { shift?: boolean; cmd?: boolean }) => {
     setSelectedPaths((prev) => {
       if (meta.cmd) {
@@ -328,24 +375,124 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
     openDocumentLegacy(entry, 'dock')
   }, [openDocumentLegacy])
 
+  const refreshAfterVaultMutation = useCallback(async (parentPath: string) => {
+    await loadRoot()
+    if (parentPath) {
+      setExpandedPaths((prev) => new Set(prev).add(parentPath))
+      await reloadFolder(parentPath)
+    }
+  }, [loadRoot, reloadFolder])
+
+  const showMutationError = useCallback((operation: string, error: string) => {
+    window.alert?.(`${operation} failed: ${error}`)
+  }, [])
+
+  const createDocument = useCallback(async (parentPath: string) => {
+    const rawName = window.prompt('New file name')
+    const trimmed = rawName?.trim()
+    if (!trimmed) return
+    const filename = ensureMarkdownFilename(trimmed)
+    const vaultPath = joinVaultPath(parentPath, filename)
+    const result = await window.electronAPI.flashqueryCreateDocument(
+      workspaceId,
+      vaultPath,
+      titleFromDocumentName(filename),
+    )
+    if (!result.success) {
+      showMutationError('Create file', result.error)
+      return
+    }
+    await refreshAfterVaultMutation(parentPath)
+  }, [refreshAfterVaultMutation, showMutationError, workspaceId])
+
+  const createFolder = useCallback(async (parentPath: string) => {
+    const rawName = window.prompt('New folder name')
+    const trimmed = rawName?.trim()
+    if (!trimmed) return
+    const vaultPath = joinVaultPath(parentPath, trimmed)
+    const result = await window.electronAPI.flashqueryManageDirectory(workspaceId, 'create', [vaultPath])
+    if (!result.success) {
+      showMutationError('Create folder', result.error)
+      return
+    }
+    await refreshAfterVaultMutation(parentPath)
+  }, [refreshAfterVaultMutation, showMutationError, workspaceId])
+
+  const renameEntry = useCallback(async (entry: FlashQueryVaultEntry) => {
+    const rawName = window.prompt('Rename', basename(entry.vaultPath))
+    const trimmed = rawName?.trim()
+    if (!trimmed || trimmed === basename(entry.vaultPath)) return
+
+    const parentPath = parentVaultPath(entry.vaultPath)
+    const destination = joinVaultPath(parentPath, entry.type === 'document' ? ensureMarkdownFilename(trimmed) : trimmed)
+    const result = entry.type === 'document'
+      ? await window.electronAPI.flashqueryMoveDocument(workspaceId, entry.vaultPath, destination)
+      : await window.electronAPI.flashqueryManageDirectory(workspaceId, 'rename', [entry.vaultPath], [destination])
+    if (!result.success) {
+      showMutationError('Rename', result.error)
+      return
+    }
+    await refreshAfterVaultMutation(parentPath)
+  }, [refreshAfterVaultMutation, showMutationError, workspaceId])
+
+  const deleteEntry = useCallback(async (entry: FlashQueryVaultEntry) => {
+    const confirmed = window.confirm(`Delete "${entry.name}"?${entry.type === 'folder' ? ' FlashQuery will only remove empty folders.' : ''}`)
+    if (!confirmed) return
+    const parentPath = parentVaultPath(entry.vaultPath)
+    const result = entry.type === 'document'
+      ? await window.electronAPI.flashqueryRemoveDocument(workspaceId, entry.vaultPath)
+      : await window.electronAPI.flashqueryManageDirectory(workspaceId, 'remove', [entry.vaultPath])
+    if (!result.success) {
+      showMutationError('Delete', result.error)
+      return
+    }
+    await refreshAfterVaultMutation(parentPath)
+  }, [refreshAfterVaultMutation, showMutationError, workspaceId])
+
+  const handleBackgroundContextMenu = useCallback(async (event: React.MouseEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
+    const action = await window.electronAPI.showContextMenu([
+      { id: 'new-file', label: 'New file...' },
+      { id: 'new-folder', label: 'New folder...' },
+    ])
+    if (action === 'new-file') await createDocument('')
+    if (action === 'new-folder') await createFolder('')
+  }, [createDocument, createFolder])
+
   const handleRowContextMenu = useCallback(async (entry: FlashQueryVaultEntry, event: React.MouseEvent) => {
     event.preventDefault()
     event.stopPropagation()
-    if (entry.type !== 'document') return
     selectPath(entry.vaultPath, { cmd: false, shift: false })
-    const action = await window.electronAPI.showContextMenu([
-      { id: 'open', label: 'Open' },
-      { id: 'open-frontmatter', label: 'Open frontmatter' },
-      { id: 'open-on-canvas', label: 'Open on Canvas' },
-      { id: 'copy-path', label: 'Copy vault path' },
-      { id: 'copy-reference', label: 'Copy as reference' },
-    ])
+    const action = await window.electronAPI.showContextMenu(entry.type === 'document'
+      ? [
+          { id: 'open', label: 'Open' },
+          { id: 'open-frontmatter', label: 'Open frontmatter' },
+          { id: 'open-on-canvas', label: 'Open on Canvas' },
+          { type: 'separator' },
+          { id: 'copy-path', label: 'Copy vault path' },
+          { id: 'copy-reference', label: 'Copy as reference' },
+          { type: 'separator' },
+          { id: 'rename', label: 'Rename' },
+          { id: 'delete', label: 'Delete' },
+        ]
+      : [
+          { id: 'new-file', label: 'New file...' },
+          { id: 'new-folder', label: 'New folder...' },
+          { type: 'separator' },
+          { id: 'rename', label: 'Rename' },
+          { id: 'delete', label: 'Delete' },
+        ])
     if (action === 'open') openDocumentLegacy(entry, 'dock')
     if (action === 'open-frontmatter') useAppStore.getState().openFlashQueryFrontmatterForPath(workspaceId, entry.vaultPath)
     if (action === 'open-on-canvas') openDocumentLegacy(entry, 'canvas')
     if (action === 'copy-path') await navigator.clipboard.writeText(entry.vaultPath)
     if (action === 'copy-reference') await navigator.clipboard.writeText(`{{ref:${entry.vaultPath}}}`)
-  }, [openDocumentLegacy, selectPath, workspaceId])
+    if (action === 'new-file') await createDocument(entry.vaultPath)
+    if (action === 'new-folder') await createFolder(entry.vaultPath)
+    if (action === 'rename') await renameEntry(entry)
+    if (action === 'delete') await deleteEntry(entry)
+  }, [createDocument, createFolder, deleteEntry, openDocumentLegacy, renameEntry, selectPath, workspaceId])
 
   useEffect(() => {
     if (!connection) {
@@ -459,6 +606,7 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
           onRowClick={handleRowClick}
           onRowDoubleClick={handleRowDoubleClick}
           onRowContextMenu={handleRowContextMenu}
+          onBackgroundContextMenu={handleBackgroundContextMenu}
         />
       )
     }
@@ -496,7 +644,10 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
           />
         </button>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div
+        className="flex min-h-0 flex-1 flex-col"
+        onContextMenu={status?.kind === 'live' ? handleBackgroundContextMenu : undefined}
+      >
         {body}
       </div>
     </div>

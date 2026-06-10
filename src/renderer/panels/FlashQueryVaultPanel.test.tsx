@@ -21,7 +21,15 @@ import { Vault } from '@phosphor-icons/react'
 
 type ElectronApiMock = Pick<
   Window['electronAPI'],
-  'flashqueryListVault' | 'flashqueryListVaultIndex' | 'flashqueryRetry' | 'onFlashQueryStatus' | 'showContextMenu'
+  | 'flashqueryListVault'
+  | 'flashqueryListVaultIndex'
+  | 'flashqueryRetry'
+  | 'flashqueryCreateDocument'
+  | 'flashqueryManageDirectory'
+  | 'flashqueryMoveDocument'
+  | 'flashqueryRemoveDocument'
+  | 'onFlashQueryStatus'
+  | 'showContextMenu'
 >
 
 const workspaceId = 'workspace-1'
@@ -38,6 +46,10 @@ const makeElectronApi = (
   )),
   flashqueryListVaultIndex: vi.fn(() => Promise.resolve([])),
   flashqueryRetry: vi.fn().mockResolvedValue(undefined),
+  flashqueryCreateDocument: vi.fn().mockResolvedValue({ success: true, modified: '' }),
+  flashqueryManageDirectory: vi.fn().mockResolvedValue({ success: true, modified: '' }),
+  flashqueryMoveDocument: vi.fn().mockResolvedValue({ success: true, modified: '' }),
+  flashqueryRemoveDocument: vi.fn().mockResolvedValue({ success: true, modified: '' }),
   onFlashQueryStatus: vi.fn((callback) => {
     statusListener = callback
     return () => {
@@ -61,6 +73,10 @@ const makeSequencedElectronApi = (
     }),
     flashqueryListVaultIndex: vi.fn(() => Promise.resolve([])),
     flashqueryRetry: vi.fn().mockResolvedValue(undefined),
+    flashqueryCreateDocument: vi.fn().mockResolvedValue({ success: true, modified: '' }),
+    flashqueryManageDirectory: vi.fn().mockResolvedValue({ success: true, modified: '' }),
+    flashqueryMoveDocument: vi.fn().mockResolvedValue({ success: true, modified: '' }),
+    flashqueryRemoveDocument: vi.fn().mockResolvedValue({ success: true, modified: '' }),
     onFlashQueryStatus: vi.fn((callback) => {
       statusListener = callback
       return () => {
@@ -220,6 +236,8 @@ describe('FlashQueryVaultPanel State', () => {
   })
 
   it('renders an empty-vault state without a create action', async () => {
+    const api = makeElectronApi()
+    setElectronApi(api)
     renderPanel()
     emitStatus({ workspaceId, status: 'live' })
 
@@ -227,6 +245,12 @@ describe('FlashQueryVaultPanel State', () => {
     expect(screen.getByTestId('vault-state-empty-icon')).toBeTruthy()
     expect(screen.getByText('Create a document in FlashQuery to see it here.')).toBeTruthy()
     expect(screen.queryByRole('button', { name: /create/i })).toBeNull()
+
+    vi.mocked(api.showContextMenu).mockResolvedValueOnce('new-folder')
+    vi.spyOn(window, 'prompt').mockReturnValueOnce('Ideas')
+    fireEvent.contextMenu(screen.getByText('This vault has no documents yet.'))
+
+    await waitFor(() => expect(api.flashqueryManageDirectory).toHaveBeenCalledWith(workspaceId, 'create', ['Ideas']))
   })
 
   it('renders document filenames rather than frontmatter titles in the vault tree', async () => {
@@ -316,6 +340,10 @@ describe('FlashQueryVaultPanel row and folder behavior', () => {
       }),
       flashqueryListVaultIndex: vi.fn(() => Promise.resolve([])),
       flashqueryRetry: vi.fn().mockResolvedValue(undefined),
+      flashqueryCreateDocument: vi.fn().mockResolvedValue({ success: true, modified: '' }),
+      flashqueryManageDirectory: vi.fn().mockResolvedValue({ success: true, modified: '' }),
+      flashqueryMoveDocument: vi.fn().mockResolvedValue({ success: true, modified: '' }),
+      flashqueryRemoveDocument: vi.fn().mockResolvedValue({ success: true, modified: '' }),
       onFlashQueryStatus: vi.fn((callback) => {
         statusListener = callback
         return () => {
@@ -401,8 +429,12 @@ describe('FlashQueryVaultPanel row and folder behavior', () => {
       { id: 'open', label: 'Open' },
       { id: 'open-frontmatter', label: 'Open frontmatter' },
       { id: 'open-on-canvas', label: 'Open on Canvas' },
+      { type: 'separator' },
       { id: 'copy-path', label: 'Copy vault path' },
       { id: 'copy-reference', label: 'Copy as reference' },
+      { type: 'separator' },
+      { id: 'rename', label: 'Rename' },
+      { id: 'delete', label: 'Delete' },
     ])
     expect(createEditorSpy).toHaveBeenCalledWith(
       workspaceId,
@@ -463,14 +495,75 @@ describe('FlashQueryVaultPanel row and folder behavior', () => {
     ))
   })
 
-  it('does not show a context menu for folder rows', async () => {
+  it('creates a folder under a folder row through FlashQuery MCP directory management', async () => {
     const api = await renderLiveTree([
       { name: 'Notes', type: 'folder', vaultPath: 'Notes' },
     ])
+    vi.mocked(api.showContextMenu).mockResolvedValueOnce('new-folder')
+    vi.spyOn(window, 'prompt').mockReturnValueOnce('Ideas')
 
     fireEvent.contextMenu(screen.getByRole('treeitem', { name: /Notes/ }))
 
-    expect(api.showContextMenu).not.toHaveBeenCalled()
+    await waitFor(() => expect(api.flashqueryManageDirectory).toHaveBeenCalledWith(
+      workspaceId,
+      'create',
+      ['Notes/Ideas'],
+    ))
+  })
+
+  it('creates a root document from empty vault space through FlashQuery MCP write_document create mode', async () => {
+    const api = await renderLiveTree([
+      { name: 'Notes', type: 'folder', vaultPath: 'Notes' },
+    ])
+    vi.mocked(api.showContextMenu).mockResolvedValueOnce('new-file')
+    vi.spyOn(window, 'prompt').mockReturnValueOnce('Draft')
+
+    fireEvent.contextMenu(screen.getByRole('tree', { name: 'FlashQuery vault' }))
+
+    await waitFor(() => expect(api.flashqueryCreateDocument).toHaveBeenCalledWith(
+      workspaceId,
+      'Draft.md',
+      'Draft',
+    ))
+  })
+
+  it('renames documents and deletes folders through FlashQuery MCP tools', async () => {
+    const api = await renderLiveTree([
+      { name: 'Notes', type: 'folder', vaultPath: 'Notes' },
+      { name: 'Project.md', type: 'document', vaultPath: 'Docs/Project.md' },
+    ])
+    vi.mocked(api.showContextMenu).mockResolvedValueOnce('rename').mockResolvedValueOnce('delete')
+    vi.spyOn(window, 'prompt').mockReturnValueOnce('Renamed.md')
+    vi.spyOn(window, 'confirm').mockReturnValueOnce(true)
+
+    fireEvent.contextMenu(screen.getByRole('treeitem', { name: /Project.md/ }))
+    await waitFor(() => expect(api.flashqueryMoveDocument).toHaveBeenCalledWith(
+      workspaceId,
+      'Docs/Project.md',
+      'Docs/Renamed.md',
+    ))
+
+    fireEvent.contextMenu(screen.getByRole('treeitem', { name: /Notes/ }))
+    await waitFor(() => expect(api.flashqueryManageDirectory).toHaveBeenCalledWith(
+      workspaceId,
+      'remove',
+      ['Notes'],
+    ))
+  })
+
+  it('deletes documents through FlashQuery MCP remove_document', async () => {
+    const api = await renderLiveTree([
+      { name: 'Project.md', type: 'document', vaultPath: 'Docs/Project.md' },
+    ])
+    vi.mocked(api.showContextMenu).mockResolvedValueOnce('delete')
+    vi.spyOn(window, 'confirm').mockReturnValueOnce(true)
+
+    fireEvent.contextMenu(screen.getByRole('treeitem', { name: /Project.md/ }))
+
+    await waitFor(() => expect(api.flashqueryRemoveDocument).toHaveBeenCalledWith(
+      workspaceId,
+      'Docs/Project.md',
+    ))
   })
 
   it('supports visible-row multi-select with modifier and shift clicks', async () => {

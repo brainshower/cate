@@ -593,6 +593,8 @@ export type ShortcutAction =
  *  binding. */
 export type MenuActionId = ShortcutAction | 'openFolder' | 'reloadWorkspace'
 
+export type FlashQueryDirectoryAction = 'create' | 'remove' | 'rename' | 'move'
+
 export const SHORTCUT_ACTIONS: ShortcutAction[] = [
   'newTerminal',
   'newBrowser',

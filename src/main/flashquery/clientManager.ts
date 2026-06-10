@@ -2,6 +2,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import type {
   FlashQueryConnection,
+  FlashQueryDirectoryAction,
   FlashQueryDocumentBody,
   FlashQueryDocumentPart,
   FlashQueryDocumentSearchResult,
@@ -214,6 +215,86 @@ export class FlashQueryClientManager {
         success: true,
         modified: typeof resultPayload.modified === 'string' ? resultPayload.modified : '',
       }
+    } catch (error) {
+      const state = this.workspaceStates.get(workspaceId)
+      const connection = state?.connection ?? this.getConfiguredConnection(workspaceId)
+      return { success: false, error: this.errorToSafeMessage(error, connection, state?.token) }
+    }
+  }
+
+  async createDocument(workspaceId: string, vaultPath: string, title: string): Promise<FlashQueryWriteResult> {
+    try {
+      const client = await this.requireMcpClient(workspaceId)
+      const resultPayload = await this.callJsonTool(client, 'write_document', {
+        mode: 'create',
+        path: vaultPath,
+        title,
+        content: '',
+      })
+      if (this.isErrorEnvelope(resultPayload)) {
+        return { success: false, error: this.errorEnvelopeMessage(resultPayload) }
+      }
+      return {
+        success: true,
+        modified: typeof resultPayload.modified === 'string' ? resultPayload.modified : '',
+      }
+    } catch (error) {
+      const state = this.workspaceStates.get(workspaceId)
+      const connection = state?.connection ?? this.getConfiguredConnection(workspaceId)
+      return { success: false, error: this.errorToSafeMessage(error, connection, state?.token) }
+    }
+  }
+
+  async manageDirectory(
+    workspaceId: string,
+    action: FlashQueryDirectoryAction,
+    paths: string[],
+    destinations?: string[],
+  ): Promise<FlashQueryWriteResult> {
+    try {
+      const client = await this.requireMcpClient(workspaceId)
+      const resultPayload = await this.callJsonTool(client, 'manage_directory', {
+        action,
+        paths,
+        ...(destinations ? { destinations } : {}),
+      })
+      if (this.isErrorEnvelope(resultPayload)) {
+        return { success: false, error: this.errorEnvelopeMessage(resultPayload) }
+      }
+      return { success: true, modified: '' }
+    } catch (error) {
+      const state = this.workspaceStates.get(workspaceId)
+      const connection = state?.connection ?? this.getConfiguredConnection(workspaceId)
+      return { success: false, error: this.errorToSafeMessage(error, connection, state?.token) }
+    }
+  }
+
+  async moveDocument(workspaceId: string, identifier: string, destination: string): Promise<FlashQueryWriteResult> {
+    try {
+      const client = await this.requireMcpClient(workspaceId)
+      const resultPayload = await this.callJsonTool(client, 'move_document', { identifier, destination })
+      if (this.isErrorEnvelope(resultPayload)) {
+        return { success: false, error: this.errorEnvelopeMessage(resultPayload) }
+      }
+      return {
+        success: true,
+        modified: typeof resultPayload.modified === 'string' ? resultPayload.modified : '',
+      }
+    } catch (error) {
+      const state = this.workspaceStates.get(workspaceId)
+      const connection = state?.connection ?? this.getConfiguredConnection(workspaceId)
+      return { success: false, error: this.errorToSafeMessage(error, connection, state?.token) }
+    }
+  }
+
+  async removeDocument(workspaceId: string, identifiers: string | string[]): Promise<FlashQueryWriteResult> {
+    try {
+      const client = await this.requireMcpClient(workspaceId)
+      const resultPayload = await this.callJsonTool(client, 'remove_document', { identifiers })
+      if (this.isErrorEnvelope(resultPayload)) {
+        return { success: false, error: this.errorEnvelopeMessage(resultPayload) }
+      }
+      return { success: true, modified: '' }
     } catch (error) {
       const state = this.workspaceStates.get(workspaceId)
       const connection = state?.connection ?? this.getConfiguredConnection(workspaceId)

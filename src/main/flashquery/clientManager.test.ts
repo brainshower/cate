@@ -1025,6 +1025,58 @@ describe('FlashQueryClientManager', () => {
     })
   })
 
+  it('calls FlashQuery MCP tools for vault create, directory, move, and remove operations', async () => {
+    const callTool = vi.fn()
+      .mockResolvedValueOnce({
+        content: [{ type: 'text', text: JSON.stringify({ modified: '2026-06-10T00:00:00Z' }) }],
+      })
+      .mockResolvedValueOnce({
+        content: [{ type: 'text', text: JSON.stringify({ results: [{ status: 'created' }] }) }],
+      })
+      .mockResolvedValueOnce({
+        content: [{ type: 'text', text: JSON.stringify({ modified: '2026-06-10T00:00:01Z' }) }],
+      })
+      .mockResolvedValueOnce({
+        content: [{ type: 'text', text: JSON.stringify({ removed: ['Docs/B.md'] }) }],
+      })
+    workspaceMock.workspaces = [workspaceInfo()]
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
+    await expect(manager.createDocument('workspace-1', 'Draft.md', 'Draft')).resolves.toEqual({
+      success: true,
+      modified: '2026-06-10T00:00:00Z',
+    })
+    await expect(manager.manageDirectory('workspace-1', 'create', ['Notes/Ideas'])).resolves.toEqual({
+      success: true,
+      modified: '',
+    })
+    await expect(manager.moveDocument('workspace-1', 'Docs/A.md', 'Docs/B.md')).resolves.toEqual({
+      success: true,
+      modified: '2026-06-10T00:00:01Z',
+    })
+    await expect(manager.removeDocument('workspace-1', 'Docs/B.md')).resolves.toEqual({
+      success: true,
+      modified: '',
+    })
+
+    expect(callTool).toHaveBeenNthCalledWith(1, {
+      name: 'write_document',
+      arguments: { mode: 'create', path: 'Draft.md', title: 'Draft', content: '' },
+    })
+    expect(callTool).toHaveBeenNthCalledWith(2, {
+      name: 'manage_directory',
+      arguments: { action: 'create', paths: ['Notes/Ideas'] },
+    })
+    expect(callTool).toHaveBeenNthCalledWith(3, {
+      name: 'move_document',
+      arguments: { identifier: 'Docs/A.md', destination: 'Docs/B.md' },
+    })
+    expect(callTool).toHaveBeenNthCalledWith(4, {
+      name: 'remove_document',
+      arguments: { identifiers: 'Docs/B.md' },
+    })
+  })
+
   it('T-U-004 rejects invalid tags and empty object writes before calling MCP', async () => {
     const callTool = vi.fn()
     workspaceMock.workspaces = [workspaceInfo()]
