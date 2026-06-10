@@ -40,18 +40,17 @@ export const NodeResizeOverlay: React.FC<NodeResizeOverlayProps> = ({
     />
   )
 
-  // Negative offsets push every strip just beyond the border. Corners overhang
-  // both ways so the diagonal handle is easy to hit. The top band sits OUTSIDE
-  // the top border too, so it never overlaps the in-panel title bar / drag
-  // handle (which lives just inside the top edge).
+  // Negative offsets push every strip just beyond the border. The top corner
+  // handles stay vertically outside the node too, so they never cover the
+  // in-panel titlebar controls at the top-right/top-left.
   return (
     <>
       {mk('top',    { left: corner, right: corner, top: -band, height: band }, 'ns-resize')}
       {mk('bottom', { left: corner, right: corner, bottom: -band, height: band }, 'ns-resize')}
       {mk('left',   { top: corner, bottom: corner, left: -band, width: band }, 'ew-resize')}
       {mk('right',  { top: corner, bottom: corner, right: -band, width: band }, 'ew-resize')}
-      {mk('topLeft',     { top: -band, left: -band, width: corner + band, height: corner + band }, 'nwse-resize')}
-      {mk('topRight',    { top: -band, right: -band, width: corner + band, height: corner + band }, 'nesw-resize')}
+      {mk('topLeft',     { top: -band, left: -band, width: corner + band, height: band }, 'nwse-resize')}
+      {mk('topRight',    { top: -band, right: -band, width: corner + band, height: band }, 'nesw-resize')}
       {mk('bottomLeft',  { bottom: -band, left: -band, width: corner + band, height: corner + band }, 'nesw-resize')}
       {mk('bottomRight', { bottom: -band, right: -band, width: corner + band, height: corner + band }, 'nwse-resize')}
     </>
