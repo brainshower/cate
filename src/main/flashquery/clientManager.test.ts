@@ -780,7 +780,7 @@ describe('FlashQueryClientManager', () => {
     })
   })
 
-  it('REQ-008 returns an empty vault listing for unconfigured or disconnected workspaces', async () => {
+  it('REQ-008 returns an empty vault listing for unconfigured workspaces', async () => {
     const fetchMock = installFetchMock()
     fetchMock.mockResolvedValue(okInfoResponse())
     const callTool = vi.fn()
@@ -788,13 +788,32 @@ describe('FlashQueryClientManager', () => {
     const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
 
     await expect(manager.listVault('workspace-1')).resolves.toEqual([])
+    expect(callTool).not.toHaveBeenCalled()
+  })
 
+  it('attempts list_vault for configured workspaces even after a stale disconnected status', async () => {
+    const fetchMock = installFetchMock()
+    fetchMock.mockResolvedValue(okInfoResponse())
+    const callTool = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({
+        entries: [{ name: 'Plan.md', path: 'Plan.md', type: 'file', title: 'Plan' }],
+      }) }],
+    })
     workspaceMock.workspaces = [workspaceInfo()]
+    workspaceMock.token = 'secret-token'
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
     await manager.connect('workspace-1', { transport: 'http', url: 'http://127.0.0.1:3100' })
     ;(manager as unknown as { workspaceStates: Map<string, { status: FlashQueryStatusPayload }> })
       .workspaceStates.get('workspace-1')!.status = { workspaceId: 'workspace-1', status: 'disconnected', error: 'offline' }
 
-    await expect(manager.listVault('workspace-1')).resolves.toEqual([])
+    await expect(manager.listVault('workspace-1')).resolves.toEqual([
+      { name: 'Plan.md', type: 'document', vaultPath: 'Plan.md', title: 'Plan' },
+    ])
+    expect(callTool).toHaveBeenCalledWith({
+      name: 'list_vault',
+      arguments: { path: '/', include: ['tracking'] },
+    })
   })
 
   it('returns an empty vault listing when configured client creation fails before disconnected status exists', async () => {
@@ -1168,7 +1187,7 @@ describe('FlashQueryClientManager', () => {
     expect(callTool).not.toHaveBeenCalled()
   })
 
-  it('T-U-006 normalizes vault-index entries from FlashQuery search and returns empty results when disconnected', async () => {
+  it('T-U-006 normalizes vault-index entries from FlashQuery search and retries after stale disconnected status', async () => {
     const callTool = vi.fn().mockResolvedValue({
       content: [{ type: 'text', text: JSON.stringify({
         results: [
@@ -1201,7 +1220,11 @@ describe('FlashQueryClientManager', () => {
 
     ;(manager as unknown as { workspaceStates: Map<string, { status: FlashQueryStatusPayload }> })
       .workspaceStates.get('workspace-1')!.status = { workspaceId: 'workspace-1', status: 'disconnected', error: 'offline' }
-    await expect(manager.listVaultIndex('workspace-1')).resolves.toEqual([])
+    await expect(manager.listVaultIndex('workspace-1')).resolves.toEqual([
+      { filename: 'Plan.md', fullPath: 'Docs/Plan.md' },
+      { filename: 'Today.md', fullPath: 'Notes/Today.md' },
+    ])
+    expect(callTool).toHaveBeenCalledTimes(2)
   })
 
   it('T-U-006 keeps the live workspace connected when vault-index search fails', async () => {

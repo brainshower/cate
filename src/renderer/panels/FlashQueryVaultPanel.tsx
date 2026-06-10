@@ -119,15 +119,30 @@ interface VaultTreeProps {
   expandedPaths: Set<string>
   loadingPaths: Set<string>
   selectedPaths: Set<string>
+  createDraft: CreateDraft | null
+  renameDraft: RenameDraft | null
   onRowClick: (entry: FlashQueryVaultEntry, event: React.MouseEvent) => void
   onRowDoubleClick: (entry: FlashQueryVaultEntry, event: React.MouseEvent) => void
   onRowContextMenu: (entry: FlashQueryVaultEntry, event: React.MouseEvent) => void
   onBackgroundContextMenu: (event: React.MouseEvent) => void
+  onCommitCreate: (name: string) => void
+  onCancelCreate: () => void
+  onCommitRename: (entry: FlashQueryVaultEntry, name: string) => void
+  onCancelRename: () => void
 }
 
 interface VisibleVaultRow {
   entry: FlashQueryVaultEntry
   depth: number
+}
+
+interface CreateDraft {
+  type: 'file' | 'folder'
+  parentPath: string
+}
+
+interface RenameDraft {
+  vaultPath: string
 }
 
 function flattenVisibleRows(
@@ -152,15 +167,52 @@ function VaultTree({
   expandedPaths,
   loadingPaths,
   selectedPaths,
+  createDraft,
+  renameDraft,
   onRowClick,
   onRowDoubleClick,
   onRowContextMenu,
   onBackgroundContextMenu,
+  onCommitCreate,
+  onCancelCreate,
+  onCommitRename,
+  onCancelRename,
 }: VaultTreeProps) {
   const visibleRows = useMemo(
     () => flattenVisibleRows(entries, expandedPaths, childrenByPath),
     [childrenByPath, entries, expandedPaths],
   )
+
+  const renderCreateRow = (depth: number) => {
+    if (!createDraft) return null
+    const Icon = createDraft.type === 'folder' ? Folder : FileText
+    return (
+      <div
+        data-testid="vault-create-row"
+        className="flex h-7 items-center gap-1.5 rounded px-2 text-secondary"
+        style={{ paddingLeft: 8 + depth * 16 }}
+      >
+        <span className="w-3 shrink-0" />
+        <Icon
+          size={14}
+          weight={createDraft.type === 'folder' ? 'fill' : 'regular'}
+          className={`shrink-0 ${createDraft.type === 'folder' ? 'text-teal-400' : 'text-muted'}`}
+        />
+        <input
+          autoFocus
+          className="min-w-0 flex-1 rounded border border-blue-500/50 bg-surface-5 px-1 text-xs text-primary outline-none"
+          placeholder={createDraft.type === 'folder' ? 'folder name' : 'file name'}
+          onBlur={(event) => onCommitCreate(event.currentTarget.value)}
+          onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') onCommitCreate(event.currentTarget.value)
+            if (event.key === 'Escape') onCancelCreate()
+            event.stopPropagation()
+          }}
+        />
+      </div>
+    )
+  }
 
   return (
     <div
@@ -169,6 +221,7 @@ function VaultTree({
       aria-label="FlashQuery vault"
       onContextMenu={onBackgroundContextMenu}
     >
+      {createDraft?.parentPath === '' && renderCreateRow(0)}
       {visibleRows.map(({ entry, depth }) => {
         const isFolder = entry.type === 'folder'
         const isExpanded = expandedPaths.has(entry.vaultPath)
@@ -176,9 +229,10 @@ function VaultTree({
         const Icon = isFolder ? (isExpanded ? FolderOpen : Folder) : FileText
         const label = entry.name
         const isSelected = selectedPaths.has(entry.vaultPath)
+        const isRenaming = renameDraft?.vaultPath === entry.vaultPath
         return (
+          <React.Fragment key={entry.vaultPath}>
           <div
-            key={entry.vaultPath}
             role="treeitem"
             aria-selected={isSelected}
             aria-expanded={isFolder ? isExpanded : undefined}
@@ -199,7 +253,27 @@ function VaultTree({
               <span className="w-3 shrink-0" />
             )}
             <Icon data-testid={`vault-row-icon-${entry.vaultPath}`} size={14} weight={isFolder ? 'fill' : 'regular'} className={`shrink-0 ${isFolder ? 'text-teal-400' : 'text-muted'}`} />
-            <span className="min-w-0 truncate">{label}</span>
+            {isRenaming ? (
+              <input
+                autoFocus
+                className="min-w-0 flex-1 rounded border border-blue-500/50 bg-surface-5 px-1 text-xs text-primary outline-none"
+                defaultValue={basename(entry.vaultPath)}
+                onFocus={(event) => {
+                  const value = event.currentTarget.value
+                  const dotIndex = value.lastIndexOf('.')
+                  event.currentTarget.setSelectionRange(0, dotIndex > 0 && entry.type === 'document' ? dotIndex : value.length)
+                }}
+                onBlur={(event) => onCommitRename(entry, event.currentTarget.value)}
+                onClick={(event) => event.stopPropagation()}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') onCommitRename(entry, event.currentTarget.value)
+                  if (event.key === 'Escape') onCancelRename()
+                  event.stopPropagation()
+                }}
+              />
+            ) : (
+              <span className="min-w-0 truncate">{label}</span>
+            )}
             {isLoading && (
               <CircleNotch
                 data-testid={`vault-loading-${entry.vaultPath}`}
@@ -210,6 +284,8 @@ function VaultTree({
               />
             )}
           </div>
+          {createDraft?.parentPath === entry.vaultPath && isFolder && isExpanded && renderCreateRow(depth + 1)}
+          </React.Fragment>
         )
       })}
     </div>
@@ -226,6 +302,8 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set())
   const [loadingPaths, setLoadingPaths] = useState<Set<string>>(new Set())
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set())
+  const [createDraft, setCreateDraft] = useState<CreateDraft | null>(null)
+  const [renameDraft, setRenameDraft] = useState<RenameDraft | null>(null)
   const [rootLoading, setRootLoading] = useState(false)
   const [rootLoaded, setRootLoaded] = useState(false)
   const lastSelectedPathRef = useRef<string | null>(null)
@@ -387,12 +465,34 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
     window.alert?.(`${operation} failed: ${error}`)
   }, [])
 
-  const createDocument = useCallback(async (parentPath: string) => {
-    const rawName = window.prompt('New file name')
-    const trimmed = rawName?.trim()
-    if (!trimmed) return
+  const startCreate = useCallback((type: 'file' | 'folder', parentPath: string) => {
+    setRenameDraft(null)
+    setCreateDraft({ type, parentPath })
+    if (parentPath) {
+      setExpandedPaths((prev) => new Set(prev).add(parentPath))
+      void loadFolder(parentPath)
+    }
+  }, [loadFolder])
+
+  const commitCreate = useCallback(async (name: string) => {
+    const draft = createDraft
+    setCreateDraft(null)
+    const trimmed = name.trim()
+    if (!draft || !trimmed) return
+
+    if (draft.type === 'folder') {
+      const vaultPath = joinVaultPath(draft.parentPath, trimmed)
+      const result = await window.electronAPI.flashqueryManageDirectory(workspaceId, 'create', [vaultPath])
+      if (!result.success) {
+        showMutationError('Create folder', result.error)
+        return
+      }
+      await refreshAfterVaultMutation(draft.parentPath)
+      return
+    }
+
     const filename = ensureMarkdownFilename(trimmed)
-    const vaultPath = joinVaultPath(parentPath, filename)
+    const vaultPath = joinVaultPath(draft.parentPath, filename)
     const result = await window.electronAPI.flashqueryCreateDocument(
       workspaceId,
       vaultPath,
@@ -402,25 +502,17 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
       showMutationError('Create file', result.error)
       return
     }
-    await refreshAfterVaultMutation(parentPath)
-  }, [refreshAfterVaultMutation, showMutationError, workspaceId])
+    await refreshAfterVaultMutation(draft.parentPath)
+  }, [createDraft, refreshAfterVaultMutation, showMutationError, workspaceId])
 
-  const createFolder = useCallback(async (parentPath: string) => {
-    const rawName = window.prompt('New folder name')
-    const trimmed = rawName?.trim()
-    if (!trimmed) return
-    const vaultPath = joinVaultPath(parentPath, trimmed)
-    const result = await window.electronAPI.flashqueryManageDirectory(workspaceId, 'create', [vaultPath])
-    if (!result.success) {
-      showMutationError('Create folder', result.error)
-      return
-    }
-    await refreshAfterVaultMutation(parentPath)
-  }, [refreshAfterVaultMutation, showMutationError, workspaceId])
+  const startRename = useCallback((entry: FlashQueryVaultEntry) => {
+    setCreateDraft(null)
+    setRenameDraft({ vaultPath: entry.vaultPath })
+  }, [])
 
-  const renameEntry = useCallback(async (entry: FlashQueryVaultEntry) => {
-    const rawName = window.prompt('Rename', basename(entry.vaultPath))
-    const trimmed = rawName?.trim()
+  const commitRename = useCallback(async (entry: FlashQueryVaultEntry, name: string) => {
+    setRenameDraft(null)
+    const trimmed = name.trim()
     if (!trimmed || trimmed === basename(entry.vaultPath)) return
 
     const parentPath = parentVaultPath(entry.vaultPath)
@@ -453,12 +545,12 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
     event.preventDefault()
     event.stopPropagation()
     const action = await window.electronAPI.showContextMenu([
-      { id: 'new-file', label: 'New file...' },
-      { id: 'new-folder', label: 'New folder...' },
+      { id: 'new-file', label: 'New File…' },
+      { id: 'new-folder', label: 'New Folder…' },
     ])
-    if (action === 'new-file') await createDocument('')
-    if (action === 'new-folder') await createFolder('')
-  }, [createDocument, createFolder])
+    if (action === 'new-file') startCreate('file', '')
+    if (action === 'new-folder') startCreate('folder', '')
+  }, [startCreate])
 
   const handleRowContextMenu = useCallback(async (entry: FlashQueryVaultEntry, event: React.MouseEvent) => {
     event.preventDefault()
@@ -473,26 +565,26 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
           { id: 'copy-path', label: 'Copy vault path' },
           { id: 'copy-reference', label: 'Copy as reference' },
           { type: 'separator' },
-          { id: 'rename', label: 'Rename' },
-          { id: 'delete', label: 'Delete' },
+          { id: 'rename', label: 'Rename…', accelerator: 'Return' },
+          { id: 'delete', label: 'Delete', accelerator: 'Cmd+Backspace' },
         ]
       : [
-          { id: 'new-file', label: 'New file...' },
-          { id: 'new-folder', label: 'New folder...' },
+          { id: 'new-file', label: 'New File…' },
+          { id: 'new-folder', label: 'New Folder…' },
           { type: 'separator' },
-          { id: 'rename', label: 'Rename' },
-          { id: 'delete', label: 'Delete' },
+          { id: 'rename', label: 'Rename…', accelerator: 'Return' },
+          { id: 'delete', label: 'Delete', accelerator: 'Cmd+Backspace' },
         ])
     if (action === 'open') openDocumentLegacy(entry, 'dock')
     if (action === 'open-frontmatter') useAppStore.getState().openFlashQueryFrontmatterForPath(workspaceId, entry.vaultPath)
     if (action === 'open-on-canvas') openDocumentLegacy(entry, 'canvas')
     if (action === 'copy-path') await navigator.clipboard.writeText(entry.vaultPath)
     if (action === 'copy-reference') await navigator.clipboard.writeText(`{{ref:${entry.vaultPath}}}`)
-    if (action === 'new-file') await createDocument(entry.vaultPath)
-    if (action === 'new-folder') await createFolder(entry.vaultPath)
-    if (action === 'rename') await renameEntry(entry)
+    if (action === 'new-file') startCreate('file', entry.vaultPath)
+    if (action === 'new-folder') startCreate('folder', entry.vaultPath)
+    if (action === 'rename') startRename(entry)
     if (action === 'delete') await deleteEntry(entry)
-  }, [createDocument, createFolder, deleteEntry, openDocumentLegacy, renameEntry, selectPath, workspaceId])
+  }, [deleteEntry, openDocumentLegacy, selectPath, startCreate, startRename, workspaceId])
 
   useEffect(() => {
     if (!connection) {
@@ -502,6 +594,8 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
       setLoadedFolderPaths(new Set())
       setExpandedPaths(new Set())
       setSelectedPaths(new Set())
+      setCreateDraft(null)
+      setRenameDraft(null)
       setRootLoaded(false)
       return
     }
@@ -511,6 +605,8 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
     setLoadedFolderPaths(new Set())
     setExpandedPaths(new Set())
     setSelectedPaths(new Set())
+    setCreateDraft(null)
+    setRenameDraft(null)
     setRootLoaded(false)
   }, [connection])
 
@@ -593,7 +689,7 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
   } else if (status?.kind === 'live') {
     if (rootLoading && !rootLoaded) {
       body = <SkeletonTree />
-    } else if (rootLoaded && rootEntries.length === 0) {
+    } else if (rootLoaded && rootEntries.length === 0 && !createDraft) {
       body = <EmptyState />
     } else {
       body = (
@@ -603,10 +699,16 @@ export default function FlashQueryVaultPanel({ workspaceId }: PanelProps) {
           expandedPaths={expandedPaths}
           loadingPaths={loadingPaths}
           selectedPaths={selectedPaths}
+          createDraft={createDraft}
+          renameDraft={renameDraft}
           onRowClick={handleRowClick}
           onRowDoubleClick={handleRowDoubleClick}
           onRowContextMenu={handleRowContextMenu}
           onBackgroundContextMenu={handleBackgroundContextMenu}
+          onCommitCreate={commitCreate}
+          onCancelCreate={() => setCreateDraft(null)}
+          onCommitRename={commitRename}
+          onCancelRename={() => setRenameDraft(null)}
         />
       )
     }

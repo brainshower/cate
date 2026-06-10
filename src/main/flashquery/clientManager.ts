@@ -137,7 +137,6 @@ export class FlashQueryClientManager {
 
   async listVault(workspaceId: string, vaultPath?: string): Promise<FlashQueryVaultEntry[]> {
     let state = this.workspaceStates.get(workspaceId)
-    if (state?.status?.status === 'disconnected') return []
 
     try {
       const client = await this.getOrCreateMcpClient(workspaceId)
@@ -324,9 +323,6 @@ export class FlashQueryClientManager {
   }
 
   async listVaultIndex(workspaceId: string): Promise<FlashQueryVaultIndexEntry[]> {
-    const state = this.workspaceStates.get(workspaceId)
-    if (state?.status?.status === 'disconnected') return []
-
     try {
       const client = await this.requireMcpClient(workspaceId)
       const payload = await this.callJsonTool(client, 'search', {

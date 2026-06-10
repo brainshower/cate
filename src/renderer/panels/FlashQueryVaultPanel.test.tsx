@@ -247,8 +247,11 @@ describe('FlashQueryVaultPanel State', () => {
     expect(screen.queryByRole('button', { name: /create/i })).toBeNull()
 
     vi.mocked(api.showContextMenu).mockResolvedValueOnce('new-folder')
-    vi.spyOn(window, 'prompt').mockReturnValueOnce('Ideas')
     fireEvent.contextMenu(screen.getByText('This vault has no documents yet.'))
+
+    const input = await screen.findByPlaceholderText('folder name')
+    fireEvent.change(input, { target: { value: 'Ideas' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
 
     await waitFor(() => expect(api.flashqueryManageDirectory).toHaveBeenCalledWith(workspaceId, 'create', ['Ideas']))
   })
@@ -433,8 +436,8 @@ describe('FlashQueryVaultPanel row and folder behavior', () => {
       { id: 'copy-path', label: 'Copy vault path' },
       { id: 'copy-reference', label: 'Copy as reference' },
       { type: 'separator' },
-      { id: 'rename', label: 'Rename' },
-      { id: 'delete', label: 'Delete' },
+      { id: 'rename', label: 'Rename…', accelerator: 'Return' },
+      { id: 'delete', label: 'Delete', accelerator: 'Cmd+Backspace' },
     ])
     expect(createEditorSpy).toHaveBeenCalledWith(
       workspaceId,
@@ -500,9 +503,12 @@ describe('FlashQueryVaultPanel row and folder behavior', () => {
       { name: 'Notes', type: 'folder', vaultPath: 'Notes' },
     ])
     vi.mocked(api.showContextMenu).mockResolvedValueOnce('new-folder')
-    vi.spyOn(window, 'prompt').mockReturnValueOnce('Ideas')
 
     fireEvent.contextMenu(screen.getByRole('treeitem', { name: /Notes/ }))
+
+    const input = await screen.findByPlaceholderText('folder name')
+    fireEvent.change(input, { target: { value: 'Ideas' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
 
     await waitFor(() => expect(api.flashqueryManageDirectory).toHaveBeenCalledWith(
       workspaceId,
@@ -516,9 +522,12 @@ describe('FlashQueryVaultPanel row and folder behavior', () => {
       { name: 'Notes', type: 'folder', vaultPath: 'Notes' },
     ])
     vi.mocked(api.showContextMenu).mockResolvedValueOnce('new-file')
-    vi.spyOn(window, 'prompt').mockReturnValueOnce('Draft')
 
     fireEvent.contextMenu(screen.getByRole('tree', { name: 'FlashQuery vault' }))
+
+    const input = await screen.findByPlaceholderText('file name')
+    fireEvent.change(input, { target: { value: 'Draft' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
 
     await waitFor(() => expect(api.flashqueryCreateDocument).toHaveBeenCalledWith(
       workspaceId,
@@ -527,20 +536,37 @@ describe('FlashQueryVaultPanel row and folder behavior', () => {
     ))
   })
 
-  it('renames documents and deletes folders through FlashQuery MCP tools', async () => {
+  it('renames documents and folders inline, then deletes folders through FlashQuery MCP tools', async () => {
     const api = await renderLiveTree([
       { name: 'Notes', type: 'folder', vaultPath: 'Notes' },
       { name: 'Project.md', type: 'document', vaultPath: 'Docs/Project.md' },
     ])
-    vi.mocked(api.showContextMenu).mockResolvedValueOnce('rename').mockResolvedValueOnce('delete')
-    vi.spyOn(window, 'prompt').mockReturnValueOnce('Renamed.md')
+    vi.mocked(api.showContextMenu).mockResolvedValueOnce('rename').mockResolvedValueOnce('rename').mockResolvedValueOnce('delete')
     vi.spyOn(window, 'confirm').mockReturnValueOnce(true)
 
     fireEvent.contextMenu(screen.getByRole('treeitem', { name: /Project.md/ }))
+    const input = await screen.findByDisplayValue('Project.md')
+    expect(input).toBe(document.activeElement)
+    fireEvent.change(input, { target: { value: 'Renamed.md' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
     await waitFor(() => expect(api.flashqueryMoveDocument).toHaveBeenCalledWith(
       workspaceId,
       'Docs/Project.md',
       'Docs/Renamed.md',
+    ))
+
+    fireEvent.contextMenu(screen.getByRole('treeitem', { name: /Notes/ }))
+    const folderInput = await screen.findByDisplayValue('Notes')
+    expect(folderInput).toBe(document.activeElement)
+    fireEvent.change(folderInput, { target: { value: 'Archive' } })
+    fireEvent.keyDown(folderInput, { key: 'Enter' })
+
+    await waitFor(() => expect(api.flashqueryManageDirectory).toHaveBeenCalledWith(
+      workspaceId,
+      'rename',
+      ['Notes'],
+      ['Archive'],
     ))
 
     fireEvent.contextMenu(screen.getByRole('treeitem', { name: /Notes/ }))
