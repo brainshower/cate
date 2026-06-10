@@ -49,18 +49,28 @@ export async function readFlashQueryHandoff(cwd: string): Promise<FlashQueryHand
 export async function openFlashQueryClient(handoff: FlashQueryHandoff): Promise<FlashQueryExtensionClient | null> {
   if (!handoff.endpointUrl) return null
 
-  const client = new Client({ name: 'cate-flashquery', version: '1.0.0' })
-  const headers = handoff.authMode === 'bearer' && handoff.bearerToken
-    ? new Headers({ Authorization: `Bearer ${handoff.bearerToken}` })
-    : undefined
-  const transport = new StreamableHTTPClientTransport(new URL(buildMcpUrl(handoff.endpointUrl)), {
-    ...(headers ? { requestInit: { headers } } : {}),
-  })
-  await client.connect(transport)
+  const mcpUrl = new URL(buildMcpUrl(handoff.endpointUrl))
+  let client = await connectFlashQuerySdkClient(handoff, mcpUrl)
+
+  async function reconnectAfterStaleSession(): Promise<void> {
+    const staleClient = client
+    client = await connectFlashQuerySdkClient(handoff, mcpUrl)
+    await staleClient.close().catch(() => {})
+  }
+
+  async function withStaleSessionRetry<T>(operation: () => Promise<T>): Promise<T> {
+    try {
+      return await operation()
+    } catch (err) {
+      if (!isStaleMcpSessionError(err)) throw err
+      await reconnectAfterStaleSession()
+      return await operation()
+    }
+  }
 
   return {
     async listRegistryTools(signal) {
-      const result = await client.listTools(undefined, { signal })
+      const result = await withStaleSessionRetry(() => client.listTools(undefined, { signal }))
       return result.tools.map((tool) => {
         const record = tool as Record<string, unknown>
         const metadata = metadataFrom(record)
@@ -81,27 +91,39 @@ export async function openFlashQueryClient(handoff: FlashQueryHandoff): Promise<
       })
     },
     async listModels(signal) {
-      return metadataListFromResult(await client.callTool(
+      return metadataListFromResult(await withStaleSessionRetry(() => client.callTool(
         { name: 'call_model', arguments: { resolver: 'list_models' } },
         undefined,
         { signal },
-      ))
+      )))
     },
     async listPurposes(signal) {
-      return metadataListFromResult(await client.callTool(
+      return metadataListFromResult(await withStaleSessionRetry(() => client.callTool(
         { name: 'call_model', arguments: { resolver: 'list_purposes' } },
         undefined,
         { signal },
-      ))
+      )))
     },
     async callTool(name, params, options) {
       const requestOptions = normalizeToolCallOptions(options)
-      return client.callTool({ name, arguments: params }, undefined, requestOptions)
+      return withStaleSessionRetry(() => client.callTool({ name, arguments: params }, undefined, requestOptions))
     },
     async close() {
       await client.close()
     },
   }
+}
+
+async function connectFlashQuerySdkClient(handoff: FlashQueryHandoff, mcpUrl: URL): Promise<Client> {
+  const client = new Client({ name: 'cate-flashquery', version: '1.0.0' })
+  const headers = handoff.authMode === 'bearer' && handoff.bearerToken
+    ? new Headers({ Authorization: `Bearer ${handoff.bearerToken}` })
+    : undefined
+  const transport = new StreamableHTTPClientTransport(mcpUrl, {
+    ...(headers ? { requestInit: { headers } } : {}),
+  })
+  await client.connect(transport)
+  return client
 }
 
 function normalizeToolCallOptions(options?: AbortSignal | FlashQueryToolCallOptions): FlashQueryToolCallOptions {
@@ -113,6 +135,14 @@ function normalizeToolCallOptions(options?: AbortSignal | FlashQueryToolCallOpti
 function buildMcpUrl(endpointUrl: string): string {
   const trimmed = endpointUrl.replace(/\/+$/, '')
   return trimmed.endsWith('/mcp') ? trimmed : `${trimmed}/mcp`
+}
+
+function isStaleMcpSessionError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false
+  const message = typeof (err as Record<string, unknown>).message === 'string'
+    ? ((err as Record<string, unknown>).message as string).toLowerCase()
+    : ''
+  return message.includes('no valid session id') || message.includes('invalid or missing session id')
 }
 
 function metadataFrom(record: Record<string, unknown>): Record<string, unknown> {
