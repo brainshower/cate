@@ -159,6 +159,7 @@ import {
 } from '../components/FlashQueryEditorTitleActions'
 import { useAgentStore } from '../../agent/renderer/agentStore'
 import { useAppStore } from '../stores/appStore'
+import { useSettingsStore } from '../stores/settingsStore'
 import { confirmCloseDirtyPanels } from '../lib/confirmCloseDirty'
 import type { FlashQueryStatusBroadcastPayload, FlashQueryWriteResult, PanelState } from '../../shared/types'
 
@@ -297,6 +298,7 @@ beforeEach(() => {
     value: { writeText: vi.fn().mockResolvedValue(undefined) },
   })
   seedWorkspace()
+  useSettingsStore.setState({ ...useSettingsStore.getState(), previewFontSize: 20, appFontSize: 16 })
   useAgentStore.setState({ panels: {} })
 })
 
@@ -343,6 +345,24 @@ describe('EditorPanel FlashQuery URI routing', () => {
     expect(monacoMock().uriParseCalls).toContain(cacheUri)
     expect(monacoMock().uriFileCalls).not.toContain(cacheUri)
     expect(monaco.editor.getModel(monaco.Uri.parse(cacheUri) as any)).toBe(monacoMock().getModelByRawUri(cacheUri))
+  })
+
+  it('uses the Preview font size setting for rendered markdown preview text', async () => {
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: '# Heading\n\nPreview body',
+      version_token: 'ignored-token',
+      modified: 'ignored-modified',
+    })
+    setElectronApi(api)
+    useSettingsStore.setState({ ...useSettingsStore.getState(), previewFontSize: 22 })
+
+    await renderEditor('flashquery://workspace-1/Docs/Preview-Font.md')
+    fireEvent.click(screen.getByTitle('Preview markdown'))
+
+    expect(screen.getByTestId('markdown-preview-body').style.fontSize).toBe('22px')
+    expect(screen.getByRole('heading', { name: 'Heading', level: 1 }).style.fontSize).toBe('36px')
+    expect(screen.getByText('Preview body')).toBeTruthy()
   })
 })
 

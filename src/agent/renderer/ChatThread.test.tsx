@@ -2,6 +2,8 @@
 import React from 'react'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { openTerminalUrl } from '../../renderer/lib/terminalUrlOpen'
+import { setCanvasOperations, useAppStore, type CanvasOperations } from '../../renderer/stores/appStore'
 import { ChatThread } from './ChatThread'
 import type { AgentMessage, ToolMessage } from './agentStore'
 
@@ -18,15 +20,63 @@ vi.mock('../../renderer/lib/perf/perfClient', () => ({
   useRenderCount: vi.fn(),
 }))
 
+vi.mock('../../renderer/lib/terminalRegistry', () => ({
+  terminalRegistry: {
+    dispose: vi.fn(),
+  },
+}))
+
+vi.mock('../../renderer/lib/terminalUrlOpen', () => ({
+  openTerminalUrl: vi.fn(),
+}))
+
+const ChatThreadAny = ChatThread as React.ComponentType<React.ComponentProps<typeof ChatThread> & { workspaceId?: string }>
+
 function renderThread(messages: AgentMessage[]) {
   return render(
-    <ChatThread
+    <ChatThreadAny
       messages={messages}
       pendingApprovals={[]}
       onApproval={vi.fn()}
       running={false}
+      workspaceId="cate-workspace"
     />,
   )
+}
+
+const makeCanvasOps = (): CanvasOperations => ({
+  addNodeAndFocus: vi.fn(),
+  removeNodeForPanel: vi.fn(),
+  loadWorkspaceCanvas: vi.fn(),
+  syncCanvasSnapshot: vi.fn(() => ({
+    nodes: {},
+    regions: {},
+    viewportOffset: { x: 0, y: 0 },
+    zoomLevel: 1,
+    focusedNodeId: null,
+  })),
+  clearAllNodes: vi.fn(),
+  focusPanelNode: vi.fn(),
+  storeApi: {} as CanvasOperations['storeApi'],
+})
+
+function seedWorkspace() {
+  useAppStore.setState({
+    selectedWorkspaceId: 'cate-workspace',
+    workspaces: [{
+      id: 'cate-workspace',
+      name: 'Workspace',
+      color: '#5AD8B8',
+      rootPath: '/workspace',
+      panels: {},
+      canvasNodes: {},
+      regions: {},
+      zoomLevel: 1,
+      viewportOffset: { x: 0, y: 0 },
+      focusedNodeId: null,
+    }],
+  })
+  setCanvasOperations(makeCanvasOps())
 }
 
 function tool(overrides: Partial<ToolMessage>): ToolMessage {
@@ -128,6 +178,7 @@ function completedCallModel(overrides: Partial<ToolMessage> = {}): ToolMessage {
 
 beforeEach(() => {
   Element.prototype.scrollTo = vi.fn()
+  seedWorkspace()
 })
 
 afterEach(() => {
@@ -367,5 +418,40 @@ describe('ChatThread FlashQuery ToolCard rendering', () => {
     expect(screen.getByText('get_document')).toBeTruthy()
     expect(screen.queryByText('FlashQuery tool loop')).toBeNull()
     expect(screen.queryByRole('table')).toBeNull()
+  })
+})
+
+describe('ChatThread markdown links', () => {
+  it('routes clicked website links to a Cate browser panel', () => {
+    renderThread([{
+      type: 'assistant',
+      id: 'assistant-1',
+      text: 'Open [the docs](https://example.com/docs).',
+      streaming: false,
+    }])
+
+    fireEvent.click(screen.getByRole('link', { name: 'the docs' }))
+
+    expect(openTerminalUrl).toHaveBeenCalledWith('cate-workspace', 'https://example.com/docs')
+  })
+
+  it('opens clicked FlashQuery vault document links as editor panels', () => {
+    renderThread([{
+      type: 'assistant',
+      id: 'assistant-1',
+      text: 'See [the plan](flashquery://fq-workspace/Docs/Plan.md).',
+      streaming: false,
+    }])
+
+    fireEvent.click(screen.getByRole('link', { name: 'the plan' }))
+
+    const workspace = useAppStore.getState().workspaces.find((ws) => ws.id === 'cate-workspace')
+    expect(Object.values(workspace?.panels ?? {})).toEqual([
+      expect.objectContaining({
+        type: 'editor',
+        filePath: 'flashquery://fq-workspace/Docs/Plan.md',
+        title: 'Plan.md',
+      }),
+    ])
   })
 })

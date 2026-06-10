@@ -44,6 +44,7 @@ import { setupCrossWindowDragListeners } from './drag'
 import { terminalRegistry } from './lib/terminalRegistry'
 import { applyCanvasChildPanels } from './lib/applyCanvasChildPanels'
 import { applyTheme } from './lib/themeManager'
+import { applyAppFontSize } from './lib/appFontSize'
 import { confirmCloseDirtyPanels } from './lib/confirmCloseDirty'
 import { confirmCloseCanvas } from './lib/confirmCloseCanvas'
 import { isExternalFileDrag } from './lib/importExternalEntries'
@@ -74,6 +75,11 @@ function getWindowParams(): { type: string; panelType?: string; panelId?: string
 
 export default function App() {
   const windowParams = getWindowParams()
+  const appFontSize = useSettingsStore((s) => s.appFontSize)
+
+  useEffect(() => {
+    applyAppFontSize(appFontSize)
+  }, [appFontSize])
 
   // Dock windows get a full docking shell with splits/tabs
   if (windowParams.type === 'dock') {

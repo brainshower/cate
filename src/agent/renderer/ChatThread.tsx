@@ -7,10 +7,13 @@
 // expands what they want to see.
 // =============================================================================
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { useRenderCount } from '../../renderer/lib/perf/perfClient'
-import ReactMarkdown from 'react-markdown'
+import ReactMarkdown, { defaultUrlTransform } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { openTerminalUrl } from '../../renderer/lib/terminalUrlOpen'
+import { useAppStore } from '../../renderer/stores/appStore'
+import { parseVaultUri } from '../../shared/flashqueryUri'
 import {
   Wrench,
   PencilSimple,
@@ -52,9 +55,10 @@ interface ChatThreadProps {
   /** Connection retry state — rendered inline at the tail of the chat. */
   retry?: RetryState
   onAbortRetry?: () => void
+  workspaceId?: string
 }
 
-export function ChatThread({ messages, pendingApprovals, onApproval, running, forkMap, onFork, onEditResend, onImplementPlan, onRefinePlan, onClearAndImplement, retry, onAbortRetry }: ChatThreadProps) {
+export function ChatThread({ messages, pendingApprovals, onApproval, running, forkMap, onFork, onEditResend, onImplementPlan, onRefinePlan, onClearAndImplement, retry, onAbortRetry, workspaceId }: ChatThreadProps) {
   useRenderCount('ChatThread')
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -150,6 +154,7 @@ export function ChatThread({ messages, pendingApprovals, onApproval, running, fo
             showModelTag={showModelTag}
             isCurrentTurn={isCurrentTurn}
             agentRunning={running}
+            workspaceId={workspaceId}
           />
         )
       })}
@@ -220,6 +225,7 @@ function MessageRow({
   showModelTag,
   isCurrentTurn,
   agentRunning,
+  workspaceId,
 }: {
   msg: AgentMessage
   shimmer?: boolean
@@ -233,6 +239,7 @@ function MessageRow({
   showModelTag?: boolean
   isCurrentTurn?: boolean
   agentRunning?: boolean
+  workspaceId?: string
 }) {
   useRenderCount('MessageRow')
   if (msg.type === 'user') {
@@ -261,7 +268,7 @@ function MessageRow({
       <div className={`text-[13.5px] text-primary leading-relaxed space-y-1.5 cate-fade-in ${shimmer ? 'cate-notif-pulse' : ''}`}>
         {msg.thinking && <ThinkingBlock text={msg.thinking} streaming={msg.streaming && !msg.text} />}
         <div>
-          <Markdown text={msg.text} />
+          <Markdown text={msg.text} workspaceId={workspaceId} />
           {msg.streaming && !msg.text && msg.thinking ? null : msg.streaming && <CursorBlink />}
         </div>
         {!msg.streaming && showModelTag && msg.stopReason === 'stop' && !(agentRunning && isCurrentTurn) && (
@@ -295,10 +302,10 @@ function MessageRow({
     return <div className={`text-center text-[11px] italic ${tone}`}>{msg.text}</div>
   }
   if (msg.type === 'tool' && msg.name === 'subagent') {
-    return <SubagentCard msg={msg} shimmer={shimmer} />
+    return <SubagentCard msg={msg} shimmer={shimmer} workspaceId={workspaceId} />
   }
   if (msg.type === 'tool' && isRichFlashQueryTool(msg)) {
-    return <FlashQueryToolCard msg={msg} shimmer={shimmer} />
+    return <FlashQueryToolCard msg={msg} shimmer={shimmer} workspaceId={workspaceId} />
   }
   if (msg.type === 'tool' && msg.name === 'plan_complete') {
     return (
@@ -311,7 +318,7 @@ function MessageRow({
       />
     )
   }
-  return <ToolCard msg={msg} shimmer={shimmer} />
+  return <ToolCard msg={msg} shimmer={shimmer} workspaceId={workspaceId} />
 }
 
 function formatTime(ms: number): string {
@@ -345,11 +352,12 @@ function ThinkingBlock({ text, streaming }: { text: string; streaming: boolean }
 // Markdown rendering — tight, readable styles that match the panel chrome.
 // -----------------------------------------------------------------------------
 
-function Markdown({ text }: { text: string }) {
+function Markdown({ text, workspaceId }: { text: string; workspaceId?: string }) {
   return (
     <div className="agent-markdown space-y-2 break-words">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
+        urlTransform={transformMarkdownUrl}
         components={{
           p: ({ children }) => <p className="leading-relaxed">{children}</p>,
           h1: ({ children }) => <h1 className="text-[15px] font-semibold text-primary mt-3 mb-1">{children}</h1>,
@@ -359,7 +367,7 @@ function Markdown({ text }: { text: string }) {
           ol: ({ children }) => <ol className="list-decimal pl-5 space-y-0.5">{children}</ol>,
           li: ({ children }) => <li className="leading-relaxed">{children}</li>,
           a: ({ href, children }) => (
-            <a href={href} target="_blank" rel="noreferrer"
+            <a href={href} target="_blank" rel="noreferrer" onClick={(event) => handleMarkdownLinkClick(event, href, workspaceId)}
                className="text-agent-light underline decoration-agent-light/30 hover:decoration-agent-light">
               {children}
             </a>
@@ -409,6 +417,43 @@ function Markdown({ text }: { text: string }) {
       </ReactMarkdown>
     </div>
   )
+}
+
+function transformMarkdownUrl(url: string): string {
+  if (url.startsWith('flashquery://') && parseVaultUri(url)) return url
+  return defaultUrlTransform(url)
+}
+
+function handleMarkdownLinkClick(
+  event: MouseEvent<HTMLAnchorElement>,
+  href: string | undefined,
+  workspaceId: string | undefined,
+): void {
+  if (!href) return
+
+  if (href.startsWith('flashquery://')) {
+    if (!workspaceId || !parseVaultUri(href)) return
+    event.preventDefault()
+    useAppStore.getState().createEditor(workspaceId, href)
+    return
+  }
+
+  if (!isHttpUrl(href)) return
+  event.preventDefault()
+  if (event.shiftKey || !workspaceId) {
+    window.electronAPI?.openExternalUrl(href)
+    return
+  }
+  openTerminalUrl(workspaceId, href)
+}
+
+function isHttpUrl(href: string): boolean {
+  try {
+    const url = new URL(href)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
 }
 
 function CursorBlink() {
@@ -523,7 +568,7 @@ function toolVerb(msg: ToolMessage): string {
   }
 }
 
-function ToolCard({ msg, shimmer }: { msg: ToolMessage; shimmer?: boolean }) {
+function ToolCard({ msg, shimmer, workspaceId }: { msg: ToolMessage; shimmer?: boolean; workspaceId?: string }) {
   const isBash = msg.name === 'bash' || msg.name === 'shell'
   const isRead = msg.name === 'read' || msg.name === 'view'
   const isWrite = msg.name === 'write'
@@ -640,7 +685,7 @@ function formatTokensShort(n: number): string {
 // stream (streaming text + nested tool calls).
 // -----------------------------------------------------------------------------
 
-function SubagentCard({ msg, shimmer }: { msg: ToolMessage; shimmer?: boolean }) {
+function SubagentCard({ msg, shimmer, workspaceId }: { msg: ToolMessage; shimmer?: boolean; workspaceId?: string }) {
   const [expanded, setExpanded] = useState(true)
   const args = (msg.args ?? {}) as Record<string, unknown>
   const fallbackResults: SubagentResult[] = useMemo(() => {
@@ -690,7 +735,7 @@ function SubagentCard({ msg, shimmer }: { msg: ToolMessage; shimmer?: boolean })
           {results.length === 0 ? (
             <div className="text-[11px] text-muted italic font-mono leading-snug">Waiting for subagent to start…</div>
           ) : (
-            results.map((r, i) => <SubagentResultRow key={i} result={r} parentRunning={running} />)
+            results.map((r, i) => <SubagentResultRow key={i} result={r} parentRunning={running} workspaceId={workspaceId} />)
           )}
           {msg.error && (
             <pre className="text-[11px] text-rose-300/90 whitespace-pre-wrap break-words font-mono leading-snug">
@@ -706,9 +751,11 @@ function SubagentCard({ msg, shimmer }: { msg: ToolMessage; shimmer?: boolean })
 function SubagentResultRow({
   result,
   parentRunning,
+  workspaceId,
 }: {
   result: SubagentResult
   parentRunning: boolean
+  workspaceId?: string
 }) {
   const terminalStop = result.stopReason === 'stop' || result.stopReason === 'error' ||
     result.stopReason === 'length' || result.stopReason === 'aborted'
@@ -762,7 +809,7 @@ function SubagentResultRow({
             if (p.type === 'text' && p.text) {
               return (
                 <div key={i} className="text-[12px] text-primary/90 leading-snug">
-                  <Markdown text={p.text} />
+                  <Markdown text={p.text} workspaceId={workspaceId} />
                 </div>
               )
             }
@@ -783,7 +830,7 @@ function SubagentResultRow({
           )}
           {!isRunning && result.exitCode === 0 && result.parts.length === 0 && result.finalText && (
             <div className="text-[12px] text-primary/90 leading-snug">
-              <Markdown text={result.finalText} />
+              <Markdown text={result.finalText} workspaceId={workspaceId} />
             </div>
           )}
         </div>
@@ -851,10 +898,10 @@ function isRichFlashQueryTool(msg: ToolMessage): boolean {
   return Boolean(msg.flashquery && (msg.name === 'call_model' || msg.name === 'call_macro'))
 }
 
-function FlashQueryToolCard({ msg, shimmer }: { msg: ToolMessage; shimmer?: boolean }) {
+function FlashQueryToolCard({ msg, shimmer, workspaceId }: { msg: ToolMessage; shimmer?: boolean; workspaceId?: string }) {
   const [expanded, setExpanded] = useState(false)
   const isRunning = msg.status === 'running' || msg.status === 'pending'
-  if (isRunning) return <ToolCard msg={msg} shimmer={shimmer} />
+  if (isRunning) return <ToolCard msg={msg} shimmer={shimmer} workspaceId={workspaceId} />
 
   const diagnostics = flashQueryDiagnostics(msg.flashquery, msg)
   const summary = msg.name === 'call_model'

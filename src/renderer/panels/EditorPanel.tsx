@@ -980,17 +980,32 @@ export default function EditorPanel({
 // -----------------------------------------------------------------------------
 
 function MarkdownPreview({ content }: { content: string }) {
+  const previewFontSize = useSettingsStore((s) => s.previewFontSize)
+  const baseSize = Number.isFinite(previewFontSize) ? Math.min(Math.max(Math.round(previewFontSize), 8), 40) : 14
+  const sizes = {
+    body: baseSize,
+    h1: Math.round(baseSize * 1.65),
+    h2: Math.round(baseSize * 1.35),
+    h3: Math.round(baseSize * 1.15),
+    h4: Math.round(baseSize * 1.05),
+    code: Math.max(8, Math.round(baseSize * 0.92)),
+  }
+
   return (
     <div className="absolute inset-0 overflow-auto px-6 py-4">
-      <div className="max-w-3xl mx-auto prose-markdown space-y-3 text-[13px] text-primary leading-relaxed">
+      <div
+        data-testid="markdown-preview-body"
+        className="max-w-3xl mx-auto prose-markdown space-y-3 text-primary leading-relaxed"
+        style={{ fontSize: sizes.body }}
+      >
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
             p: ({ children }) => <p className="leading-relaxed my-2">{children}</p>,
-            h1: ({ children }) => <h1 className="text-xl font-bold text-primary mt-6 mb-2 pb-1 border-b border-neutral-300 dark:border-neutral-700">{children}</h1>,
-            h2: ({ children }) => <h2 className="text-lg font-semibold text-primary mt-5 mb-2 pb-1 border-b border-neutral-300 dark:border-neutral-700">{children}</h2>,
-            h3: ({ children }) => <h3 className="text-[15px] font-semibold text-primary mt-4 mb-1">{children}</h3>,
-            h4: ({ children }) => <h4 className="text-[14px] font-semibold text-primary mt-3 mb-1">{children}</h4>,
+            h1: ({ children }) => <h1 className="font-bold text-primary mt-6 mb-2 pb-1 border-b border-neutral-300 dark:border-neutral-700" style={{ fontSize: sizes.h1 }}>{children}</h1>,
+            h2: ({ children }) => <h2 className="font-semibold text-primary mt-5 mb-2 pb-1 border-b border-neutral-300 dark:border-neutral-700" style={{ fontSize: sizes.h2 }}>{children}</h2>,
+            h3: ({ children }) => <h3 className="font-semibold text-primary mt-4 mb-1" style={{ fontSize: sizes.h3 }}>{children}</h3>,
+            h4: ({ children }) => <h4 className="font-semibold text-primary mt-3 mb-1" style={{ fontSize: sizes.h4 }}>{children}</h4>,
             ul: ({ children }) => <ul className="list-disc pl-5 space-y-1">{children}</ul>,
             ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1">{children}</ol>,
             li: ({ children }) => <li className="leading-relaxed">{children}</li>,
@@ -1012,25 +1027,25 @@ function MarkdownPreview({ content }: { content: string }) {
               const isBlock = /language-/.test(className ?? '')
               if (isBlock) {
                 return (
-                  <code className={`${className ?? ''} font-mono text-[12px] leading-snug`} {...props}>
+                  <code className={`${className ?? ''} font-mono leading-snug`} style={{ fontSize: sizes.code }} {...props}>
                     {children}
                   </code>
                 )
               }
               return (
-                <code className="font-mono text-[12px] px-1 py-[1px] rounded bg-neutral-200 dark:bg-neutral-800 text-pink-600 dark:text-pink-400" {...props}>
+                <code className="font-mono px-1 py-[1px] rounded bg-neutral-200 dark:bg-neutral-800 text-pink-600 dark:text-pink-400" style={{ fontSize: sizes.code }} {...props}>
                   {children}
                 </code>
               )
             },
             pre: ({ children }) => (
-              <pre className="rounded-md bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 px-4 py-3 overflow-x-auto text-[12px] leading-snug my-3">
+              <pre className="rounded-md bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 px-4 py-3 overflow-x-auto leading-snug my-3" style={{ fontSize: sizes.code }}>
                 {children}
               </pre>
             ),
             table: ({ children }) => (
               <div className="overflow-x-auto my-3">
-                <table className="min-w-full text-[12px] border border-neutral-200 dark:border-neutral-700 rounded-md">{children}</table>
+                <table className="min-w-full border border-neutral-200 dark:border-neutral-700 rounded-md" style={{ fontSize: sizes.code }}>{children}</table>
               </div>
             ),
             th: ({ children }) => (

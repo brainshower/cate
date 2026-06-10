@@ -947,7 +947,10 @@ export interface AppSettings {
   systemDarkThemeId: string
   /** User-imported / agent-authored unified themes. */
   customThemes: Theme[]
+  /** Root application font size in px. Most Tailwind rem-based UI scales from this. */
+  appFontSize: number
   editorFontSize: number
+  previewFontSize: number
 
   // Canvas
   showMinimap: boolean
@@ -1022,7 +1025,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   systemLightThemeId: 'light-subtle',
   systemDarkThemeId: 'dark-warm',
   customThemes: [],
+  appFontSize: 16,
   editorFontSize: 12,
+  previewFontSize: 14,
 
   // Canvas
   showMinimap: true,

@@ -162,6 +162,14 @@ export function AppearanceSettings() {
       <SettingRow label="Editor font size">
         <NumberInput value={store.editorFontSize} onChange={(v) => store.setSetting('editorFontSize', v)} min={8} max={32} step={1} />
       </SettingRow>
+
+      <SettingRow label="Preview font size" description="Markdown preview text size in editor preview mode.">
+        <NumberInput value={store.previewFontSize} onChange={(v) => store.setSetting('previewFontSize', v)} min={8} max={40} step={1} />
+      </SettingRow>
+
+      <SettingRow label="App font size" description="Scales rem-based UI text across Cate.">
+        <NumberInput value={store.appFontSize} onChange={(v) => store.setSetting('appFontSize', v)} min={12} max={24} step={1} />
+      </SettingRow>
     </div>
   )
 }
