@@ -38,6 +38,7 @@ class MockEditor implements ActiveEditorLike {
   private cursorListeners = new Set<Listener<{ position: { lineNumber: number } }>>()
   private contentListeners = new Set<Listener>()
   private disposed = false
+  private cursorLine = 1
   model: MockModel | null
   revealLineInCenter = vi.fn()
   setPosition = vi.fn()
@@ -48,6 +49,7 @@ class MockEditor implements ActiveEditorLike {
   }
 
   getModel = () => this.model
+  getPosition = () => ({ lineNumber: this.cursorLine })
   setModel(model: MockModel | null) { this.model = model }
   isDisposed = () => this.disposed
   dispose = () => { this.disposed = true }
@@ -60,6 +62,7 @@ class MockEditor implements ActiveEditorLike {
     return { dispose: () => this.contentListeners.delete(listener) }
   }
   emitCursor(lineNumber: number) {
+    this.cursorLine = lineNumber
     for (const listener of this.cursorListeners) listener({ position: { lineNumber } })
   }
   emitContentChange() {
@@ -160,6 +163,16 @@ describe('OutlinePanel source mode', () => {
     expect(screen.queryByText('First')).toBeNull()
   })
 
+  it('T-I-008 highlights the current cursor heading on initial bind', () => {
+    const { editor } = bindEditor('editor-1', '# One\nbody\n## Two\nbody')
+    editor.emitCursor(4)
+
+    renderOutline()
+
+    expect(screen.getByText('Two').closest('button')!.className).toContain('bg-blue-500/15')
+    expect(screen.getByText('One').closest('button')!.className).not.toContain('bg-blue-500/15')
+  })
+
   it('T-I-008 highlights the nearest heading at or before cursor line', () => {
     const { editor } = bindEditor('editor-1', '# One\nbody\n## Two\nbody')
     renderOutline()
@@ -168,6 +181,22 @@ describe('OutlinePanel source mode', () => {
 
     const two = screen.getByText('Two').closest('button')!
     expect(two.className).toContain('bg-blue-500/15')
+  })
+
+  it('T-I-009 uses the newly active editor cursor line when rebinding', () => {
+    const first = bindEditor('editor-1', '# First\nbody\n## First Child')
+    first.editor.emitCursor(3)
+    renderOutline()
+    expect(screen.getByText('First Child').closest('button')!.className).toContain('bg-blue-500/15')
+
+    const secondModel = new MockModel('# Second\nbody\n## Second Child\nbody')
+    const secondEditor = new MockEditor(secondModel)
+    secondEditor.emitCursor(1)
+
+    act(() => registerActiveEditor('workspace-1', 'editor-2', secondEditor))
+
+    expect(screen.getByText('Second').closest('button')!.className).toContain('bg-blue-500/15')
+    expect(screen.getByText('Second Child').closest('button')!.className).not.toContain('bg-blue-500/15')
   })
 
   it('T-I-009 and T-I-033 recalculates after model changes and depth changes', () => {
@@ -268,6 +297,9 @@ describe('OutlinePanel source mode', () => {
 
     const rows = screen.getAllByTestId('outline-heading-row')
     expect(screen.getByText('Beta')).toBeTruthy()
+    expect(rows[0].className).toContain('bg-yellow-400/20')
+    expect(rows[1].className).not.toContain('bg-blue-500')
+    expect(rows[1].className).not.toContain('text-white')
     expect(within(rows[0]).getByText(/Alp/i).tagName).toBe('MARK')
   })
 
@@ -293,10 +325,15 @@ describe('OutlinePanel source mode', () => {
     fireEvent.change(search, { target: { value: 'alpha' } })
     fireEvent.keyDown(search, { key: 'Enter' })
     expect(editor.revealLineInCenter).toHaveBeenLastCalledWith(1)
-    expect(screen.getAllByTestId('outline-heading-row')[0].className).toContain('bg-blue-500')
+    let rows = screen.getAllByTestId('outline-heading-row')
+    expect(rows[0].className).toContain('bg-blue-500')
+    expect(rows[1].className).not.toContain('bg-blue-500')
 
     fireEvent.keyDown(search, { key: 'Enter' })
     expect(editor.revealLineInCenter).toHaveBeenLastCalledWith(2)
+    rows = screen.getAllByTestId('outline-heading-row')
+    expect(rows[0].className).not.toContain('bg-blue-500')
+    expect(rows[1].className).toContain('bg-blue-500')
     fireEvent.keyDown(search, { key: 'Enter' })
     expect(editor.revealLineInCenter).toHaveBeenLastCalledWith(1)
   })

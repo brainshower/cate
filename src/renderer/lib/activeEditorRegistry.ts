@@ -11,6 +11,7 @@ export interface ActiveEditorModelLike {
 
 export interface ActiveEditorLike {
   getModel: () => ActiveEditorModelLike | null
+  getPosition?: () => { lineNumber: number } | null
   isDisposed?: () => boolean
   onDidChangeCursorPosition: (listener: (event: { position: { lineNumber: number } }) => void) => DisposableLike
   onDidChangeModelContent: (listener: () => void) => DisposableLike

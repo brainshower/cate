@@ -37,6 +37,11 @@ function nearestHeadingIndex(headings: DocumentHeading[], cursorLine: number): n
   return active
 }
 
+function currentCursorLine(editor: ActiveEditorLike): number {
+  const lineNumber = editor.getPosition?.()?.lineNumber
+  return typeof lineNumber === 'number' && lineNumber > 0 ? lineNumber : 1
+}
+
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
@@ -90,6 +95,7 @@ export default function OutlinePanel({ panelId, workspaceId }: PanelProps) {
     const activeModel: ActiveEditorModelLike = model
 
     const disposables: DisposableLike[] = []
+    setCursorLine(currentCursorLine(editor))
     parseCurrentModel(activeModel)
 
     disposables.push(editor.onDidChangeCursorPosition((event) => {
@@ -209,7 +215,7 @@ export default function OutlinePanel({ panelId, workspaceId }: PanelProps) {
               const isActive = index === activeHeadingIdx
               const matchPosition = matchingIndexes.indexOf(index)
               const isMatch = matchPosition >= 0
-              const isSearchFocused = trimmedQuery && matchPosition === searchMatchIdx
+              const isSearchFocused = isMatch && matchPosition === searchMatchIdx
               const rowClasses = [
                 'block w-full truncate rounded-r px-2 py-1 text-left transition-colors hover:bg-muted/60',
                 'border-l-2',
@@ -217,10 +223,10 @@ export default function OutlinePanel({ panelId, workspaceId }: PanelProps) {
                 heading.level >= 4 ? 'text-xs' : 'text-sm',
                 isSearchFocused
                   ? 'border-blue-400 bg-blue-500 text-white'
-                  : isActive
-                    ? 'border-blue-400 bg-blue-500/15 text-foreground'
-                    : isMatch
-                      ? 'border-transparent bg-yellow-400/20 text-foreground'
+                  : isMatch
+                    ? 'border-transparent bg-yellow-400/20 text-foreground'
+                    : isActive
+                      ? 'border-blue-400 bg-blue-500/15 text-foreground'
                       : 'border-transparent text-foreground',
               ].join(' ')
 
