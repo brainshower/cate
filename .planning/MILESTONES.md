@@ -1,5 +1,21 @@
 # Milestones
 
+## v1.2 FlashQuery Milestone 2 (Completed: 2026-06-06)
+
+**Phases completed:** 8 phases, 25 plans, 20 requirements
+
+**Key accomplishments:**
+
+- Manual refresh for clean and dirty FlashQuery vault body editor tabs with safe disconnected/error behavior.
+- Separate FlashQuery frontmatter editor tabs with independent Monaco YAML state and managed-field filtering.
+- Dedicated FlashQuery Vault Search panel with document/memory results, pagination, and row actions.
+- Bundled Cate FlashQuery Pi extension with eligible tool registration, `call_model`, `call_macro`, and diagnostics rendering.
+- Pi chat `@` mention autocomplete for literal `{{ref:path.md}}` document references plus cross-surface copy utilities.
+- Consistent disconnected, reconnecting, workspace-switch, stale-cache, in-flight, and regression behavior across Milestone 2 surfaces.
+- Milestone audit passed with 20/20 requirements satisfied; deterministic substitutes accepted for remaining live Pi/FlashQuery manual evidence.
+
+---
+
 ## v1.1 Release Readiness + Provenance Closeout (Shipped: 2026-06-02)
 
 **Phases completed:** 6 phases, 21 plans, 31 tasks

@@ -28,22 +28,26 @@ A Cate workspace can connect to a separately-running FlashQuery HTTP MCP server,
 
 The upstream Cate `v1.1.0` sync is complete and archived under `.planning/milestones/v1.1-*`. The fork preserved FlashQuery v1.0 behavior/security/E2E guarantees, completed post-handoff audits, and recorded provenance/runbook evidence for future upstream syncs.
 
-## Current Milestone: v1.2 FlashQuery Milestone 2
+**Shipped:** v1.2 FlashQuery Milestone 2 (2026-06-06).
 
-**Goal:** Continue Cate's FlashQuery integration with richer vault editor controls, vault search, and Pi agent access to FlashQuery tools and document references.
+Cate now has richer FlashQuery vault editor controls, separate frontmatter editing, vault search, bundled Pi FlashQuery tool access, literal document-reference autocomplete, clipboard utilities, and cross-surface disconnected/reconnect hardening. The milestone audit passed with 20/20 requirements satisfied and deterministic substitutes accepted for the remaining live Pi/FlashQuery manual evidence.
+
+## Current Milestone: v1.3 Document Outline
+
+**Goal:** Ship a first-class Document Outline panel for active Monaco editors with source-mode navigation, search, and Markdown-preview scroll routing.
 
 **Target features:**
-- Manual refresh for open FlashQuery vault editor tabs, including dirty-refresh confirmation and safe error handling.
-- Separate frontmatter editor tabs with full Monaco YAML editing, independent dirty/save state, and managed-field filtering.
-- FlashQuery Vault Search panel with filesystem, mixed, and semantic modes, document/memory result rendering, pagination, and copy/reveal/open actions.
-- Bundled Cate FlashQuery Pi extension that registers eligible FlashQuery tools, supports `call_model` and `call_macro`, preserves tool diagnostics, and keeps FlashQuery out of Pi Providers.
-- Pi chat `@` mention autocomplete for literal `{{ref:path.md}}` document references plus cross-surface copy utilities.
-- Consistent disconnected/reconnecting/workspace-switch behavior across refresh, frontmatter, search, vault-index cache, clipboard, and Pi tools.
+- Registered `outline` panel type with shared metadata, renderer registry entry, app-store factory, and right-dock placement.
+- Editor top-right Outline toggle adjacent to the existing Preview button, using the same muted/off and blue-highlighted/on treatment.
+- Pure heading parser for Markdown, HTML headings, and code-comment section markers, with H1-H3 default depth filtering.
+- React Outline panel with active editor binding, active heading tracking, source-mode click-to-jump, live reparse, search highlighting, clear, and Enter-to-cycle behavior.
+- Markdown preview heading IDs, duplicate heading slug handling, and Outline-to-preview scroll routing with standalone 1.5s blue flash.
+- Cleanup, theme compatibility, no-editor state, duplicate-heading behavior, and non-interference with EditorPanel lifecycle.
 
 Canonical source docs for this milestone:
 
-- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Continued FQ integration (milestone 2)/Milestone 2 Requirements.md`
-- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Continued FQ integration (milestone 2)/Milestone 2 Test Plan.md`
+- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Monaco Extension Testing/Outline-Chat/Document Outline Requirements.md`
+- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Monaco Extension Testing/Outline-Chat/Document Outline Test Plan.md`
 
 ## Requirements
 
@@ -67,12 +71,11 @@ Canonical source docs for this milestone:
 
 ### Active
 
-- User can refresh clean or dirty open FlashQuery body editor tabs from the vault without corrupting editor content or dirty state.
-- User can open and edit FlashQuery frontmatter in a separate YAML editor tab with independent state from the body editor.
-- User can search FlashQuery vault documents and memories from a dedicated Cate panel and interact with document/memory results.
-- User can access eligible FlashQuery tools through Cate's Pi extension system without exposing bearer tokens to renderer code or Pi global auth.
-- User can insert whole-document FlashQuery references into Pi chat through `@` autocomplete and copy vault paths/references from relevant surfaces.
-- User gets consistent degradation and recovery behavior when FlashQuery disconnects, reconnects, or workspace context changes.
+- User can open a Document Outline panel for the active editor from the editor toolbar and host it in the right dock zone.
+- User can navigate source-mode Monaco content through parsed Markdown, HTML, and code-section headings.
+- User can filter and cycle Outline headings while preserving spatial context and active-heading state.
+- User can use the same Outline navigation while Markdown preview is active, scrolling to preview heading IDs with standalone blue flash.
+- User gets stable cleanup, theme-compatible rendering, no-editor empty state, duplicate-heading handling, and no regressions to existing editor/preview behavior.
 
 ### Out of Scope
 
@@ -94,6 +97,9 @@ Canonical source docs for this milestone:
 - Multi-vault-per-workspace UI.
 - Preserving YAML comments, key order, and quoting on frontmatter writes.
 - FlashQuery roadmap work items RM-1 through RM-5; they are traceability context, not Cate implementation scope.
+- Document Chat from the Outline-Chat research guide — separate future devspec.
+- Graph Explorer unified selection model changes, including section-change subscriptions and `preview-section-select` dispatch — separate future devspec.
+- Replacing Cate's existing Markdown preview toggle or building a separate web UI.
 
 ## Context
 
@@ -163,6 +169,9 @@ Known codebase concerns that affect ongoing work:
 | Treat Milestone 2 product requirements/test plan as source of truth for v1.2 | The feature milestone has explicit REQ/T-U/T-E/T-M coverage and scoped source priorities | Planned — v1.2 |
 | Keep FlashQuery out of Pi Providers in Milestone 2 | Users must configure a native Pi LLM provider; FlashQuery enters Pi through eligible tools and brokered MCP tools only | Planned — v1.2 |
 | Use literal whole-document references for Pi `@` mentions | Keeps chat input simple and defers rich chips, anchors, and automatic external vault invalidation | Planned — v1.2 |
+| Treat Document Outline requirements/test plan as source of truth for v1.3 | The Outline spec has explicit REQ-001..REQ-022 coverage and test IDs for unit, integration, acceptance, and manual checks | Planned — v1.3 |
+| Execute Document Outline in two bundled phases | Foundation/source-mode behavior should land with its tests before preview routing and final hardening | Planned — v1.3 |
+| Keep Graph Explorer selection behavior out of Document Outline v1.3 | The Outline spec explicitly uses standalone blue-flash `scrollToHeading` behavior; unified section selection comes later | Planned — v1.3 |
 
 ## Planning Preference
 
@@ -186,4 +195,4 @@ This document evolves at milestone boundaries and, once explicitly created, phas
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-03 after creating v1.2 FlashQuery Milestone 2 planning*
+*Last updated: 2026-06-14 after creating v1.3 Document Outline planning*
