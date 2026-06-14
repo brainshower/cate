@@ -25,12 +25,16 @@ export interface ActiveEditorEntry {
   panelId: string
   editor: ActiveEditorLike
   model: ActiveEditorModelLike | null
+  markdownPreview: boolean
+  scrollPreviewToHeading?: (headingText: string) => void
 }
 
 export interface ActiveEditorSnapshot {
   panelId: string | null
   editor: ActiveEditorLike | null
   model: ActiveEditorModelLike | null
+  markdownPreview: boolean
+  scrollPreviewToHeading?: (headingText: string) => void
 }
 
 const entries = new Map<string, Map<string, ActiveEditorEntry>>()
@@ -63,6 +67,7 @@ export function registerActiveEditor(workspaceId: string, panelId: string, edito
     panelId,
     editor,
     model: safeModel(editor),
+    markdownPreview: false,
   })
   activePanelIds.set(workspaceId, panelId)
   notify(workspaceId)
@@ -72,6 +77,21 @@ export function updateActiveEditorModel(workspaceId: string, panelId: string): v
   const entry = entries.get(workspaceId)?.get(panelId)
   if (!entry) return
   entry.model = safeModel(entry.editor)
+  notify(workspaceId)
+}
+
+export function updateActiveEditorPreview(
+  workspaceId: string,
+  panelId: string,
+  preview: {
+    markdownPreview: boolean
+    scrollPreviewToHeading?: (headingText: string) => void
+  },
+): void {
+  const entry = entries.get(workspaceId)?.get(panelId)
+  if (!entry) return
+  entry.markdownPreview = preview.markdownPreview
+  entry.scrollPreviewToHeading = preview.scrollPreviewToHeading
   notify(workspaceId)
 }
 
@@ -92,7 +112,7 @@ export function getActiveEditorSnapshot(workspaceId: string): ActiveEditorSnapsh
   const panelId = activePanelIds.get(workspaceId) ?? null
   const entry = panelId ? entries.get(workspaceId)?.get(panelId) : null
   if (!entry || entry.editor.isDisposed?.()) {
-    return { panelId: null, editor: null, model: null }
+    return { panelId: null, editor: null, model: null, markdownPreview: false }
   }
   const model = safeModel(entry.editor)
   entry.model = model
@@ -100,6 +120,8 @@ export function getActiveEditorSnapshot(workspaceId: string): ActiveEditorSnapsh
     panelId,
     editor: entry.editor,
     model,
+    markdownPreview: entry.markdownPreview,
+    scrollPreviewToHeading: entry.scrollPreviewToHeading,
   }
 }
 

@@ -3,7 +3,17 @@
 // Supports both regular editing and git diff viewing modes.
 // =============================================================================
 
-import { useEffect, useRef, useCallback, useState } from 'react'
+import {
+  Children,
+  isValidElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type Ref,
+} from 'react'
 import { useRenderCount } from '../lib/perf/perfClient'
 import log from '../lib/logger'
 import * as monaco from 'monaco-editor'
@@ -12,7 +22,13 @@ import remarkGfm from 'remark-gfm'
 import type { EditorPanelProps } from './types'
 import { useAppStore } from '../stores/appStore'
 import { useSettingsStore } from '../stores/settingsStore'
-import { registerActiveEditor, unregisterActiveEditor, updateActiveEditorModel } from '../lib/activeEditorRegistry'
+import {
+  registerActiveEditor,
+  unregisterActiveEditor,
+  updateActiveEditorModel,
+  updateActiveEditorPreview,
+} from '../lib/activeEditorRegistry'
+import { createHeadingIdTracker, slugifyHeading } from '../lib/parseDocumentHeadings'
 import { refreshVaultIndexForWorkspace } from '../../agent/renderer/agentStore'
 import {
   registerEditorSave,
@@ -348,6 +364,7 @@ export default function EditorPanel({
 }: EditorPanelProps) {
   useRenderCount('EditorPanel')
   const containerRef = useRef<HTMLDivElement>(null)
+  const previewBodyRef = useRef<HTMLDivElement>(null)
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const diffEditorRef = useRef<monaco.editor.IStandaloneDiffEditor | null>(null)
   const isDirtyRef = useRef(false)
@@ -386,6 +403,20 @@ export default function EditorPanel({
       useAppStore.getState().setPanelMarkdownPreview(workspaceId, panelId, next),
     [workspaceId, panelId],
   )
+  const scrollPreviewToHeading = useCallback((headingText: string) => {
+    const previewBody = previewBodyRef.current
+    if (!previewBody) return
+    const targetId = slugifyHeading(headingText)
+    const heading = [...previewBody.querySelectorAll<HTMLHeadingElement>('h1, h2, h3, h4, h5, h6')]
+      .find((element) => element.id === targetId)
+    if (!heading) return
+
+    heading.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    heading.style.backgroundColor = 'rgba(0,122,204,0.2)'
+    window.setTimeout(() => {
+      heading.style.backgroundColor = ''
+    }, 1500)
+  }, [])
   const rootPath = ws?.rootPath
   const flashQueryConnection = ws?.flashqueryConnection
   const isFlashQueryFrontmatter = activeVaultUri?.part === 'frontmatter'
@@ -938,6 +969,13 @@ export default function EditorPanel({
     }
   }, [markdownPreview, isMarkdown, filePath])
 
+  useEffect(() => {
+    updateActiveEditorPreview(workspaceId, panelId, {
+      markdownPreview: markdownPreview && isMarkdown,
+      scrollPreviewToHeading,
+    })
+  }, [workspaceId, panelId, markdownPreview, isMarkdown, scrollPreviewToHeading])
+
   // ---------------------------------------------------------------------------
   // Watch app theme changes and update Monaco theme
   // ---------------------------------------------------------------------------
@@ -986,7 +1024,7 @@ export default function EditorPanel({
         </div>
       )}
       {markdownPreview && isMarkdown && (
-        <MarkdownPreview content={markdownContent} />
+        <MarkdownPreview content={markdownContent} previewBodyRef={previewBodyRef} />
       )}
       <FlashQueryRefreshConfirmDialog
         open={showRefreshConfirm}
@@ -1020,21 +1058,42 @@ export default function EditorPanel({
 // Markdown preview renderer
 // -----------------------------------------------------------------------------
 
-function MarkdownPreview({ content }: { content: string }) {
+function textFromReactNode(node: ReactNode): string {
+  if (typeof node === 'string' || typeof node === 'number') return String(node)
+  if (Array.isArray(node)) return node.map(textFromReactNode).join('')
+  if (isValidElement<{ alt?: string; children?: ReactNode }>(node)) {
+    if (typeof node.props.alt === 'string') return node.props.alt
+    return textFromReactNode(node.props.children)
+  }
+  return ''
+}
+
+function MarkdownPreview({
+  content,
+  previewBodyRef,
+}: {
+  content: string
+  previewBodyRef: Ref<HTMLDivElement>
+}) {
   const previewFontSize = useSettingsStore((s) => s.previewFontSize)
   const baseSize = Number.isFinite(previewFontSize) ? Math.min(Math.max(Math.round(previewFontSize), 8), 40) : 14
+  const nextHeadingId = useMemo(() => createHeadingIdTracker(), [content])
   const sizes = {
     body: baseSize,
     h1: Math.round(baseSize * 1.65),
     h2: Math.round(baseSize * 1.35),
     h3: Math.round(baseSize * 1.15),
     h4: Math.round(baseSize * 1.05),
+    h5: Math.round(baseSize),
+    h6: Math.max(8, Math.round(baseSize * 0.92)),
     code: Math.max(8, Math.round(baseSize * 0.92)),
   }
+  const headingProps = (children: ReactNode) => ({ id: nextHeadingId(textFromReactNode(Children.toArray(children))) })
 
   return (
     <div className="absolute inset-0 overflow-auto px-6 py-4">
       <div
+        ref={previewBodyRef}
         data-testid="markdown-preview-body"
         className="max-w-3xl mx-auto prose-markdown space-y-3 text-primary leading-relaxed"
         style={{ fontSize: sizes.body }}
@@ -1043,10 +1102,12 @@ function MarkdownPreview({ content }: { content: string }) {
           remarkPlugins={[remarkGfm]}
           components={{
             p: ({ children }) => <p className="leading-relaxed my-2">{children}</p>,
-            h1: ({ children }) => <h1 className="font-bold text-primary mt-6 mb-2 pb-1 border-b border-neutral-300 dark:border-neutral-700" style={{ fontSize: sizes.h1 }}>{children}</h1>,
-            h2: ({ children }) => <h2 className="font-semibold text-primary mt-5 mb-2 pb-1 border-b border-neutral-300 dark:border-neutral-700" style={{ fontSize: sizes.h2 }}>{children}</h2>,
-            h3: ({ children }) => <h3 className="font-semibold text-primary mt-4 mb-1" style={{ fontSize: sizes.h3 }}>{children}</h3>,
-            h4: ({ children }) => <h4 className="font-semibold text-primary mt-3 mb-1" style={{ fontSize: sizes.h4 }}>{children}</h4>,
+            h1: ({ children }) => <h1 {...headingProps(children)} className="font-bold text-primary mt-6 mb-2 pb-1 border-b border-neutral-300 dark:border-neutral-700" style={{ fontSize: sizes.h1 }}>{children}</h1>,
+            h2: ({ children }) => <h2 {...headingProps(children)} className="font-semibold text-primary mt-5 mb-2 pb-1 border-b border-neutral-300 dark:border-neutral-700" style={{ fontSize: sizes.h2 }}>{children}</h2>,
+            h3: ({ children }) => <h3 {...headingProps(children)} className="font-semibold text-primary mt-4 mb-1" style={{ fontSize: sizes.h3 }}>{children}</h3>,
+            h4: ({ children }) => <h4 {...headingProps(children)} className="font-semibold text-primary mt-3 mb-1" style={{ fontSize: sizes.h4 }}>{children}</h4>,
+            h5: ({ children }) => <h5 {...headingProps(children)} className="font-semibold text-primary mt-3 mb-1" style={{ fontSize: sizes.h5 }}>{children}</h5>,
+            h6: ({ children }) => <h6 {...headingProps(children)} className="font-medium text-primary/90 mt-2 mb-1" style={{ fontSize: sizes.h6 }}>{children}</h6>,
             ul: ({ children }) => <ul className="list-disc pl-5 space-y-1">{children}</ul>,
             ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1">{children}</ol>,
             li: ({ children }) => <li className="leading-relaxed">{children}</li>,

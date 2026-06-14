@@ -161,6 +161,7 @@ import { useAgentStore } from '../../agent/renderer/agentStore'
 import { useAppStore } from '../stores/appStore'
 import { useDockStore } from '../stores/dockStore'
 import { useSettingsStore } from '../stores/settingsStore'
+import { clearActiveEditorRegistryForTests, getActiveEditorSnapshot } from '../lib/activeEditorRegistry'
 import { confirmCloseDirtyPanels } from '../lib/confirmCloseDirty'
 import type { FlashQueryStatusBroadcastPayload, FlashQueryWriteResult, PanelState } from '../../shared/types'
 
@@ -301,11 +302,13 @@ beforeEach(() => {
   seedWorkspace()
   useSettingsStore.setState({ ...useSettingsStore.getState(), previewFontSize: 20, appFontSize: 16 })
   useAgentStore.setState({ panels: {} })
+  clearActiveEditorRegistryForTests()
 })
 
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
+  clearActiveEditorRegistryForTests()
 })
 
 describe('EditorPanel FlashQuery URI routing', () => {
@@ -463,6 +466,70 @@ describe('EditorPanel FlashQuery URI routing', () => {
     expect(screen.getByTestId('markdown-preview-body').style.fontSize).toBe('22px')
     expect(screen.getByRole('heading', { name: 'Heading', level: 1 }).style.fontSize).toBe('36px')
     expect(screen.getByText('Preview body')).toBeTruthy()
+  })
+
+  it('T-I-023 and T-I-024 MarkdownPreview renders deterministic IDs for h1-h6 and duplicate headings', async () => {
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: '# Intro\n## Intro\n### Deep\n#### Four\n##### Five\n###### Six',
+    })
+    setElectronApi(api)
+
+    await renderEditor('flashquery://workspace-1/Docs/Preview-Ids.md')
+    fireEvent.click(screen.getByTitle('Preview markdown'))
+
+    expect((await screen.findByRole('heading', { name: 'Intro', level: 1 })).id).toBe('intro')
+    expect(screen.getByRole('heading', { name: 'Intro', level: 2 }).id).toBe('intro-1')
+    expect(screen.getByRole('heading', { name: 'Deep', level: 3 }).id).toBe('deep')
+    expect(screen.getByRole('heading', { name: 'Four', level: 4 }).id).toBe('four')
+    expect(screen.getByRole('heading', { name: 'Five', level: 5 }).id).toBe('five')
+    expect(screen.getByRole('heading', { name: 'Six', level: 6 }).id).toBe('six')
+  })
+
+  it('T-I-025 MarkdownPreview heading IDs use stripped text consistently with slugifyHeading', async () => {
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: '# **Bold** [Link](https://example.com) `Code`!',
+    })
+    setElectronApi(api)
+
+    await renderEditor('flashquery://workspace-1/Docs/Preview-Formatted-Ids.md')
+    fireEvent.click(screen.getByTitle('Preview markdown'))
+
+    expect((await screen.findByRole('heading', { name: 'Bold Link Code!', level: 1 })).id).toBe('bold-link-code')
+  })
+
+  it('T-I-028, T-I-029, and T-I-030 preview scrolls smoothly, flashes blue, and dispatches no Graph Explorer event', async () => {
+    const scrollIntoView = vi.fn()
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoView,
+    })
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: '# Intro\n## Target Heading',
+    })
+    setElectronApi(api)
+
+    await renderEditor('flashquery://workspace-1/Docs/Preview-Scroll.md')
+    fireEvent.click(screen.getByTitle('Preview markdown'))
+    const target = await screen.findByRole('heading', { name: 'Target Heading', level: 2 })
+    await waitFor(() => expect(getActiveEditorSnapshot(workspaceId).markdownPreview).toBe(true))
+    vi.useFakeTimers()
+
+    expect(() => getActiveEditorSnapshot(workspaceId).scrollPreviewToHeading?.('Missing Heading')).not.toThrow()
+    act(() => {
+      getActiveEditorSnapshot(workspaceId).scrollPreviewToHeading?.('Target Heading')
+    })
+
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' })
+    expect(target.style.backgroundColor).toBe('rgba(0, 122, 204, 0.2)')
+    expect(dispatchSpy).not.toHaveBeenCalledWith(expect.objectContaining({ type: `preview-section${'-select'}` }))
+
+    act(() => vi.advanceTimersByTime(1500))
+
+    expect(target.style.backgroundColor).toBe('')
   })
 })
 
