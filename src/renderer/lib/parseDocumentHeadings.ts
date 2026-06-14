@@ -41,6 +41,25 @@ export function stripMarkdownInlineFormatting(text: string): string {
     .trim()
 }
 
+export function slugifyHeading(text: string): string {
+  return stripMarkdownInlineFormatting(text)
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+export function createHeadingIdTracker(): (text: string) => string {
+  const counts = new Map<string, number>()
+  return (text: string) => {
+    const base = slugifyHeading(text)
+    const count = counts.get(base) ?? 0
+    counts.set(base, count + 1)
+    return count === 0 ? base : `${base}-${count}`
+  }
+}
+
 function markerLevel(indent: string): number {
   if (indent.length >= 4) return 3
   if (indent.length >= 2) return 2

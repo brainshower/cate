@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { parseDocumentHeadings, stripMarkdownInlineFormatting } from './parseDocumentHeadings'
+import {
+  createHeadingIdTracker,
+  parseDocumentHeadings,
+  slugifyHeading,
+  stripMarkdownInlineFormatting,
+} from './parseDocumentHeadings'
 
 function modelFromText(text: string) {
   const lines = text.split('\n')
@@ -107,5 +112,27 @@ describe('parseDocumentHeadings html and code markers', () => {
       { line: 1, level: 1, text: 'Level One' },
       { line: 2, level: 2, text: 'Level Two' },
     ])
+  })
+
+  it('T-U-015 Covers REQ-017 slugifyHeading lowercases, strips punctuation, preserves hyphens, and strips inline Markdown', () => {
+    expect(slugifyHeading('Hello World')).toBe('hello-world')
+    expect(slugifyHeading('Hello, World!')).toBe('hello-world')
+    expect(slugifyHeading('  Already-hyphenated   heading  ')).toBe('already-hyphenated-heading')
+    expect(slugifyHeading('--- Trim Hyphens ---')).toBe('trim-hyphens')
+    expect(slugifyHeading('![Alt text](img.png)')).toBe('alt-text')
+    expect(slugifyHeading('[Link text](https://example.com)')).toBe('link-text')
+    expect(slugifyHeading('**Bold** *Italic* ~~Strike~~')).toBe('bold-italic-strike')
+    expect(slugifyHeading('***Bold Italic*** and `Code`')).toBe('bold-italic-and-code')
+  })
+
+  it('T-U-016 Covers REQ-017 duplicate heading IDs append deterministic render-order suffixes', () => {
+    const nextHeadingId = createHeadingIdTracker()
+
+    expect(nextHeadingId('Section')).toBe('section')
+    expect(nextHeadingId('Section')).toBe('section-1')
+    expect(nextHeadingId('Section')).toBe('section-2')
+    expect(nextHeadingId('**Section**')).toBe('section-3')
+    expect(nextHeadingId('Other Section')).toBe('other-section')
+    expect(nextHeadingId('Other Section')).toBe('other-section-1')
   })
 })
