@@ -141,6 +141,18 @@ export const PANEL_DEFINITIONS: Record<PanelType, SharedPanelDefinition> = {
     ghostSvg: ghost('rgb(90,216,184)', '<circle cx="11" cy="11" r="7"/><line x1="16" y1="16" x2="21" y2="21"/><path d="M8 11h6"/>'),
     canLiveOnCanvas: true,
   },
+  outline: {
+    type: 'outline',
+    label: 'Outline',
+    brandColor: '#4A9EFF',
+    switcherColor: '#007AFF',
+    mutedColor: '#4a7ab0',
+    tintClass: 'text-sky-400',
+    defaultSize: { width: 260, height: 500 },
+    minimumSize: { width: 180, height: 200 },
+    ghostSvg: ghost('rgb(74,158,255)', '<line x1="8" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="8" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>'),
+    canLiveOnCanvas: true,
+  },
   projectList: {
     type: 'projectList',
     label: 'Projects',

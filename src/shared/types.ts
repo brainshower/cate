@@ -29,7 +29,7 @@ export interface Rect {
 // Panel types
 // -----------------------------------------------------------------------------
 
-export type PanelType = 'terminal' | 'browser' | 'editor' | 'git' | 'fileExplorer' | 'flashqueryVault' | 'flashqueryVaultSearch' | 'projectList' | 'canvas' | 'agent' | 'document'
+export type PanelType = 'terminal' | 'browser' | 'editor' | 'git' | 'fileExplorer' | 'flashqueryVault' | 'flashqueryVaultSearch' | 'outline' | 'projectList' | 'canvas' | 'agent' | 'document'
 
 // -----------------------------------------------------------------------------
 // Canvas node
@@ -107,6 +107,8 @@ export interface PanelState {
   /** Unsaved buffer content for scratch (no-filePath) editors. Persisted so
    *  content survives canvas switches and app restarts. */
   unsavedContent?: string
+  /** Outline panels only: editor panel that opened this Outline instance. */
+  sourceEditorPanelId?: string
   /** Terminal panels only: explicit working directory override. When unset
    *  the terminal uses the workspace's `rootPath`. Set when the terminal was
    *  created from a dropped folder or worktree to scope it to that path. */
@@ -1099,6 +1101,7 @@ export const PANEL_CANVAS_DROP_SIZES: Record<PanelType, Size> = {
   fileExplorer: { width: 280, height: 440 },
   flashqueryVault: { width: 280, height: 440 },
   flashqueryVaultSearch: { width: 360, height: 500 },
+  outline: { width: 260, height: 460 },
   projectList: { width: 280, height: 360 },
   canvas: { width: 640, height: 480 },
   agent: { width: 520, height: 440 },

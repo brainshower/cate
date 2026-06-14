@@ -12,6 +12,7 @@ import remarkGfm from 'remark-gfm'
 import type { EditorPanelProps } from './types'
 import { useAppStore } from '../stores/appStore'
 import { useSettingsStore } from '../stores/settingsStore'
+import { registerActiveEditor, unregisterActiveEditor, updateActiveEditorModel } from '../lib/activeEditorRegistry'
 import { refreshVaultIndexForWorkspace } from '../../agent/renderer/agentStore'
 import {
   registerEditorSave,
@@ -377,6 +378,9 @@ export default function EditorPanel({
   // from one markdown file to the next. Keying it by panelId also keeps each
   // tab's choice independent across canvas switches.
   const markdownPreview = !!ws?.panels[panelId]?.markdownPreview
+  const associatedOutlinePanelId = Object.values(ws?.panels ?? {}).find((panel) =>
+    panel.type === 'outline' && panel.sourceEditorPanelId === panelId
+  )?.id
   const setMarkdownPreview = useCallback(
     (next: boolean) =>
       useAppStore.getState().setPanelMarkdownPreview(workspaceId, panelId, next),
@@ -386,6 +390,18 @@ export default function EditorPanel({
   const flashQueryConnection = ws?.flashqueryConnection
   const isFlashQueryFrontmatter = activeVaultUri?.part === 'frontmatter'
   const isMarkdown = !!filePath && /\.mdx?$/i.test(filePath) && !isFlashQueryFrontmatter
+  const toggleOutline = useCallback(() => {
+    if (associatedOutlinePanelId) {
+      useAppStore.getState().closePanel(workspaceId, associatedOutlinePanelId)
+      return
+    }
+    useAppStore.getState().createOutline(
+      workspaceId,
+      undefined,
+      { target: 'dock', zone: 'right' },
+      panelId,
+    )
+  }, [associatedOutlinePanelId, workspaceId, panelId])
 
   useEffect(() => {
     setFlashQueryStatus(null)
@@ -712,6 +728,7 @@ export default function EditorPanel({
     layoutObserver.observe(containerRef.current)
 
     editorRef.current = editor
+    registerActiveEditor(workspaceId, panelId, editor)
 
     // Jump to a line/column requested by a terminal file-link click (one-shot).
     // Runs after the model is set so the reveal targets real content.
@@ -747,6 +764,7 @@ export default function EditorPanel({
         retainModel(filePath)
         modelRetained = true
         editor.setModel(cached)
+        updateActiveEditorModel(workspaceId, panelId)
         applyPendingReveal()
       } else {
         const language = vaultUri?.part === 'frontmatter' ? 'yaml' : detectLanguage(filePath)
@@ -771,6 +789,7 @@ export default function EditorPanel({
             retainModel(filePath)
             modelRetained = true
             editor.setModel(model)
+            updateActiveEditorModel(workspaceId, panelId)
             applyPendingReveal()
           })
           .catch((err) => {
@@ -784,6 +803,7 @@ export default function EditorPanel({
             retainModel(filePath)
             modelRetained = true
             editor.setModel(model)
+            updateActiveEditorModel(workspaceId, panelId)
           })
       }
     } else {
@@ -792,6 +812,7 @@ export default function EditorPanel({
       const model = monaco.editor.createModel(restored, 'plaintext')
       createdModel = model
       editor.setModel(model)
+      updateActiveEditorModel(workspaceId, panelId)
       if (restored) {
         isDirtyRef.current = true
         useAppStore.getState().setPanelDirty(workspaceId, panelId, true)
@@ -803,6 +824,7 @@ export default function EditorPanel({
     // off the textarea (e.g. clicking the markdown preview toggle).
     const focusDisposable = editor.onDidFocusEditorText(() => {
       markEditorActive(panelId)
+      registerActiveEditor(workspaceId, panelId, editor)
     })
 
     let unsavedSaveTimer: ReturnType<typeof setTimeout> | null = null
@@ -836,6 +858,7 @@ export default function EditorPanel({
       changeDisposable.dispose()
       focusDisposable.dispose()
       clearEditorActive(panelId)
+      unregisterActiveEditor(workspaceId, panelId)
       if (unsavedSaveTimer) {
         clearTimeout(unsavedSaveTimer)
         unsavedSaveTimer = null
@@ -933,18 +956,34 @@ export default function EditorPanel({
 
   return (
     <div className="w-full h-full relative">
-      {isMarkdown && !diffMode && (
-        <button
-          onClick={() => setMarkdownPreview(!markdownPreview)}
-          className={`absolute top-2 right-5 z-10 px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
-            markdownPreview
-              ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-              : 'bg-neutral-200/80 dark:bg-neutral-700/80 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-600'
-          }`}
-          title={markdownPreview ? 'Show source' : 'Preview markdown'}
-        >
-          {markdownPreview ? 'Source' : 'Preview'}
-        </button>
+      {!diffMode && (
+        <div className="absolute top-2 right-5 z-10 flex items-center gap-1">
+          <button
+            onClick={toggleOutline}
+            aria-label="Toggle document outline"
+            className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+              associatedOutlinePanelId
+                ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                : 'bg-neutral-200/80 dark:bg-neutral-700/80 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-600'
+            }`}
+            title="Toggle document outline"
+          >
+            Outline
+          </button>
+          {isMarkdown && (
+            <button
+              onClick={() => setMarkdownPreview(!markdownPreview)}
+              className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+                markdownPreview
+                  ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                  : 'bg-neutral-200/80 dark:bg-neutral-700/80 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-600'
+              }`}
+              title={markdownPreview ? 'Show source' : 'Preview markdown'}
+            >
+              {markdownPreview ? 'Source' : 'Preview'}
+            </button>
+          )}
+        </div>
       )}
       {markdownPreview && isMarkdown && (
         <MarkdownPreview content={markdownContent} />

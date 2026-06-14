@@ -195,6 +195,60 @@ describe('appStore.createFlashQueryVaultSearch', () => {
   })
 })
 
+describe('appStore.createOutline', () => {
+  beforeEach(() => {
+    seedStore()
+    setCanvasOperations(makeCanvasOps())
+  })
+
+  it('creates an Outline panel in workspace state', () => {
+    const panelId = useAppStore.getState().createOutline(workspaceId)
+    const panel = useAppStore.getState().workspaces[0].panels[panelId]
+
+    expect(panel).toMatchObject({
+      id: panelId,
+      type: 'outline',
+      title: 'Outline',
+      isDirty: false,
+    })
+  })
+
+  it('places Outline panels in the right dock zone when requested', () => {
+    const panelId = useAppStore.getState().createOutline(workspaceId, undefined, {
+      target: 'dock',
+      zone: 'right',
+    }, 'editor-1')
+    const panel = useAppStore.getState().workspaces[0].panels[panelId]
+
+    expect(panel).toMatchObject({ sourceEditorPanelId: 'editor-1' })
+    expect(useDockStore.getState().panelLocations[panelId]).toMatchObject({
+      type: 'dock',
+      zone: 'right',
+    })
+  })
+
+  it('closes one right-zone Outline panel without closing unrelated right-zone panels', () => {
+    const outlinePanelId = useAppStore.getState().createOutline(workspaceId, undefined, {
+      target: 'dock',
+      zone: 'right',
+    })
+    const searchPanelId = useAppStore.getState().createFlashQueryVaultSearch(workspaceId, undefined, {
+      target: 'dock',
+      zone: 'right',
+    })
+
+    useAppStore.getState().closePanel(workspaceId, outlinePanelId)
+
+    const workspace = useAppStore.getState().workspaces[0]
+    expect(workspace.panels[outlinePanelId]).toBeUndefined()
+    expect(workspace.panels[searchPanelId]).toMatchObject({ type: 'flashqueryVaultSearch' })
+    expect(useDockStore.getState().panelLocations[searchPanelId]).toMatchObject({
+      type: 'dock',
+      zone: 'right',
+    })
+  })
+})
+
 describe('appStore.createEditor', () => {
   beforeEach(() => {
     seedStore()

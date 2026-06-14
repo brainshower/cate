@@ -159,6 +159,7 @@ import {
 } from '../components/FlashQueryEditorTitleActions'
 import { useAgentStore } from '../../agent/renderer/agentStore'
 import { useAppStore } from '../stores/appStore'
+import { useDockStore } from '../stores/dockStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { confirmCloseDirtyPanels } from '../lib/confirmCloseDirty'
 import type { FlashQueryStatusBroadcastPayload, FlashQueryWriteResult, PanelState } from '../../shared/types'
@@ -308,6 +309,105 @@ afterEach(() => {
 })
 
 describe('EditorPanel FlashQuery URI routing', () => {
+  it('T-I-017 renders the Outline toggle next to Preview for regular editors', async () => {
+    await renderEditor('flashquery://workspace-1/Docs/Outline-Toolbar.md')
+
+    expect(screen.getByLabelText('Toggle document outline')).toBeTruthy()
+    expect(screen.getByTitle('Preview markdown')).toBeTruthy()
+  })
+
+  it('T-I-018 hides the Outline toggle in diff mode', async () => {
+    const api = makeElectronApi()
+    setElectronApi(api)
+    seedWorkspace(makePanel(localPath, 'staged'))
+
+    render(<EditorPanel panelId={panelId} workspaceId={workspaceId} filePath={localPath} />)
+
+    await waitFor(() => expect(monaco.editor.createDiffEditor).toHaveBeenCalled())
+    expect(screen.queryByLabelText('Toggle document outline')).toBeNull()
+  })
+
+  it('T-I-019 opens Outline in the right dock zone with source editor association', async () => {
+    await renderEditor('flashquery://workspace-1/Docs/Outline-Open.md')
+
+    fireEvent.click(screen.getByLabelText('Toggle document outline'))
+
+    const workspace = useAppStore.getState().workspaces[0]
+    const outlinePanel = Object.values(workspace.panels).find((panel) => panel.type === 'outline')
+    expect(outlinePanel).toMatchObject({
+      title: 'Outline',
+      sourceEditorPanelId: panelId,
+    })
+    expect(useDockStore.getState().panelLocations[outlinePanel!.id]).toMatchObject({
+      type: 'dock',
+      zone: 'right',
+    })
+  })
+
+  it('T-I-020 closes only the associated Outline panel and preserves unrelated right-zone panels', async () => {
+    await renderEditor('flashquery://workspace-1/Docs/Outline-Close.md')
+    let unrelatedPanelId = ''
+    act(() => {
+      unrelatedPanelId = useAppStore.getState().createFlashQueryVaultSearch(workspaceId, undefined, {
+        target: 'dock',
+        zone: 'right',
+      })
+    })
+
+    fireEvent.click(screen.getByLabelText('Toggle document outline'))
+    const outlinePanelId = Object.values(useAppStore.getState().workspaces[0].panels)
+      .find((panel) => panel.type === 'outline' && panel.sourceEditorPanelId === panelId)!.id
+    fireEvent.click(screen.getByLabelText('Toggle document outline'))
+
+    const workspace = useAppStore.getState().workspaces[0]
+    expect(workspace.panels[outlinePanelId]).toBeUndefined()
+    expect(workspace.panels[unrelatedPanelId]).toMatchObject({ type: 'flashqueryVaultSearch' })
+    expect(useDockStore.getState().panelLocations[unrelatedPanelId]).toMatchObject({
+      type: 'dock',
+      zone: 'right',
+    })
+  })
+
+  it('T-I-020 keeps Outline association scoped to the source editor panel', async () => {
+    await renderEditor('flashquery://workspace-1/Docs/Outline-Scope.md')
+    let firstOutlineId = ''
+    act(() => {
+      firstOutlineId = useAppStore.getState().createOutline(workspaceId, undefined, {
+        target: 'dock',
+        zone: 'right',
+      }, 'other-editor')
+    })
+
+    fireEvent.click(screen.getByLabelText('Toggle document outline'))
+
+    const workspace = useAppStore.getState().workspaces[0]
+    expect(workspace.panels[firstOutlineId]).toMatchObject({ sourceEditorPanelId: 'other-editor' })
+    expect(Object.values(workspace.panels).filter((panel) => panel.type === 'outline')).toHaveLength(2)
+  })
+
+  it('T-I-021 uses muted/off and blue/on visual states', async () => {
+    await renderEditor('flashquery://workspace-1/Docs/Outline-State.md')
+    const toggle = screen.getByLabelText('Toggle document outline')
+
+    expect(toggle.className).toContain('text-neutral')
+    fireEvent.click(toggle)
+    expect(toggle.className).toContain('text-blue-400')
+  })
+
+  it('T-I-022 opening Outline does not change preview, dirty state, or editor model content', async () => {
+    await renderEditor('flashquery://workspace-1/Docs/Outline-Noninterference.md')
+    fireEvent.click(screen.getByTitle('Preview markdown'))
+    const beforeContent = monacoMock().latestEditor().getValue()
+    const beforePanel = useAppStore.getState().workspaces[0].panels[panelId]
+
+    fireEvent.click(screen.getByLabelText('Toggle document outline'))
+
+    const afterPanel = useAppStore.getState().workspaces[0].panels[panelId]
+    expect(afterPanel.markdownPreview).toBe(true)
+    expect(afterPanel.isDirty).toBe(beforePanel.isDirty)
+    expect(monacoMock().latestEditor().getValue()).toBe(beforeContent)
+  })
+
   it('T-I-079 mounts vault URI through flashqueryGetDocument and not fsReadFile', async () => {
     const api = makeElectronApi()
     setElectronApi(api)

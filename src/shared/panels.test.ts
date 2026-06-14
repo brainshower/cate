@@ -55,3 +55,34 @@ describe('Vault Search shared panel definition', () => {
     expect(PANEL_CANVAS_DROP_SIZES.flashqueryVaultSearch).toEqual({ width: 360, height: 500 })
   })
 })
+
+describe('Document Outline shared panel definition', () => {
+  it('T-U-001 registers outline as a panel type without casts', () => {
+    const panelType: PanelType = 'outline'
+
+    expect(PANEL_DEFINITIONS[panelType].type).toBe('outline')
+  })
+
+  it('T-U-002 locks Outline metadata, sizing, tint, ghost SVG, and canvas eligibility', () => {
+    expect(PANEL_DEFINITIONS.outline).toMatchObject({
+      type: 'outline',
+      label: 'Outline',
+      brandColor: '#4A9EFF',
+      switcherColor: '#007AFF',
+      mutedColor: '#4a7ab0',
+      tintClass: 'text-sky-400',
+      defaultSize: { width: 260, height: 500 },
+      minimumSize: PANEL_DEFINITIONS.fileExplorer.minimumSize,
+      canLiveOnCanvas: true,
+    })
+    expect(PANEL_DEFINITIONS.outline.defaultSize.width).toBeGreaterThanOrEqual(240)
+    expect(PANEL_DEFINITIONS.outline.defaultSize.width).toBeLessThanOrEqual(300)
+    expect(PANEL_DEFINITIONS.outline.minimumSize.width).toBeGreaterThanOrEqual(PANEL_DEFINITIONS.fileExplorer.minimumSize.width)
+    expect(PANEL_DEFINITIONS.outline.ghostSvg).toContain('rgb(74,158,255)')
+    expect(PANEL_DEFINITIONS.outline.ghostSvg).toContain('<line')
+  })
+
+  it('T-U-003 derives Outline canvas drop size from the shared panel table', () => {
+    expect(PANEL_CANVAS_DROP_SIZES.outline).toEqual({ width: 260, height: 460 })
+  })
+})

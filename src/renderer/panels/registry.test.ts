@@ -1,12 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
-import { MagnifyingGlass, Vault } from '@phosphor-icons/react'
+import { ListBullets, MagnifyingGlass, Vault } from '@phosphor-icons/react'
 
 const createFlashQueryVault = vi.fn()
 const createFlashQueryVaultSearch = vi.fn()
+const createOutline = vi.fn()
 
 vi.mock('../stores/appStore', () => ({
   useAppStore: {
-    getState: () => ({ createFlashQueryVault, createFlashQueryVaultSearch }),
+    getState: () => ({ createFlashQueryVault, createFlashQueryVaultSearch, createOutline }),
   },
 }))
 
@@ -18,6 +19,12 @@ vi.mock('./FlashQueryVaultPanel', () => ({
 
 vi.mock('./FlashQueryVaultSearchPanel', () => ({
   default: function MockFlashQueryVaultSearchPanel() {
+    return null
+  },
+}))
+
+vi.mock('./OutlinePanel', () => ({
+  default: function MockOutlinePanel() {
     return null
   },
 }))
@@ -98,5 +105,48 @@ describe('PANEL_REGISTRY flashqueryVaultSearch entry', () => {
     })).toBe('panel-1')
 
     expect(createFlashQueryVaultSearch).toHaveBeenCalledWith('workspace-1', canvasPoint, placement)
+  })
+})
+
+describe('PANEL_REGISTRY outline entry', () => {
+  it('T-U-004 registers the Outline renderer metadata', async () => {
+    const { PANEL_REGISTRY } = await import('./registry')
+
+    expect(PANEL_REGISTRY.outline.type).toBe('outline')
+    expect(PANEL_REGISTRY.outline.label).toBe('Outline')
+    expect(PANEL_REGISTRY.outline.icon).toBe(ListBullets)
+  })
+
+  it('T-U-004 lazy-loads OutlinePanel', async () => {
+    const { PANEL_REGISTRY } = await import('./registry')
+    const lazyPayload = PANEL_REGISTRY.outline.Component as unknown as {
+      _payload: { _result: () => Promise<unknown> }
+    }
+
+    const module = await lazyPayload._payload._result()
+
+    expect(module).toHaveProperty('default')
+  })
+
+  it('T-U-005 delegates creation to appStore.createOutline with exact argument order', async () => {
+    const { PANEL_REGISTRY } = await import('./registry')
+    const canvasPoint = { x: 20, y: 30 }
+    const placement = { target: 'dock' as const, zone: 'right' as const }
+    createOutline.mockReturnValueOnce('panel-1')
+
+    expect(PANEL_REGISTRY.outline.create({
+      workspaceId: 'workspace-1',
+      canvasPoint,
+      placement,
+    })).toBe('panel-1')
+
+    expect(createOutline).toHaveBeenCalledWith('workspace-1', canvasPoint, placement)
+  })
+
+  it('T-U-006 returns null when app-store Outline creation fails', async () => {
+    const { PANEL_REGISTRY } = await import('./registry')
+    createOutline.mockReturnValueOnce('')
+
+    expect(PANEL_REGISTRY.outline.create({ workspaceId: 'workspace-1' })).toBeNull()
   })
 })

@@ -62,7 +62,7 @@ Canonical source docs:
 6. Search supports case-insensitive highlighting, clear, Enter-to-cycle, wrapping, and visually distinct active/search states.
 7. Outline state is per panel instance, theme-compatible, and does not regress existing editor save, dirty-state, model-cache, dispose, Preview toggle, Chat, or Graph Explorer behavior.
 
-**Status:** Pending
+**Status:** Complete (2026-06-14)
 
 ### Phase 23: Preview Routing and Final Hardening
 

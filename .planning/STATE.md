@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Document Outline
-status: planning
-stopped_at: v1.3 milestone started; ready to plan Phase 22
-last_updated: "2026-06-14T17:40:02Z"
+status: executing
+stopped_at: Phase 22 complete; Phase 23 ready for planning/execution
+last_updated: "2026-06-14T18:36:00Z"
 last_activity: 2026-06-14
 progress:
   total_phases: 2
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  completed_phases: 1
+  total_plans: 4
+  completed_plans: 4
+  percent: 50
 ---
 
 # Project State
@@ -25,22 +25,22 @@ See: `.planning/PROJECT.md` (updated 2026-06-14 after v1.3 Document Outline plan
 
 ## Current Position
 
-Phase: Not started (Phase 22 next)
-Plan: —
-Status: Defining implementation plan
-Last activity: 2026-06-14 — Milestone v1.3 Document Outline started
+Phase: 22 complete
+Plan: 22-04 complete
+Status: Phase 23 next
+Last activity: 2026-06-14 — Phase 22 Outline foundation/source-mode implementation completed
 
 ## Session Continuity
 
-Last session: 2026-06-14T17:40:02Z
-Stopped At: v1.3 milestone started; ready to plan Phase 22
+Last session: 2026-06-14T18:36:00Z
+Stopped At: Phase 22 complete; Phase 23 preview routing remains
 Resume File: None
 
 ## Next Up
 
-Plan Phase 22 with `$gsd-plan-phase 22`.
+Plan or execute Phase 23.
 
-Phase 22 should implement the Outline panel foundation and source-mode navigation with bundled tests:
+Phase 22 implemented the Outline panel foundation and source-mode navigation with bundled tests:
 
 - T-U-001 through T-U-014
 - T-I-001 through T-I-022
@@ -48,7 +48,7 @@ Phase 22 should implement the Outline panel foundation and source-mode navigatio
 - T-A-001 through T-A-004, T-A-006, T-A-007
 - T-M-001 through T-M-004 as visual/manual checks where practical
 
-Phase 23 follows with Markdown preview heading IDs, scroll routing, blue-flash behavior, and bundled preview tests.
+Phase 23 follows with Markdown preview heading IDs, scroll routing, blue-flash behavior, and bundled preview tests for REQ-017 through REQ-019.
 
 ## Decisions
 
@@ -77,4 +77,4 @@ No v1.3 phases have been executed yet.
 
 ## Operator Next Steps
 
-- Start Phase 22 planning with `$gsd-plan-phase 22`.
+- Start Phase 23 planning/execution with the existing v1.3 roadmap context.
