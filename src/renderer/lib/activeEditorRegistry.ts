@@ -27,6 +27,7 @@ export interface ActiveEditorEntry {
   model: ActiveEditorModelLike | null
   markdownPreview: boolean
   scrollPreviewToHeading?: (headingText: string, occurrenceIndex?: number) => void
+  highlightSourceLine?: (lineNumber: number) => void
 }
 
 export interface ActiveEditorSnapshot {
@@ -35,6 +36,7 @@ export interface ActiveEditorSnapshot {
   model: ActiveEditorModelLike | null
   markdownPreview: boolean
   scrollPreviewToHeading?: (headingText: string, occurrenceIndex?: number) => void
+  highlightSourceLine?: (lineNumber: number) => void
 }
 
 const entries = new Map<string, Map<string, ActiveEditorEntry>>()
@@ -62,12 +64,15 @@ function safeModel(editor: ActiveEditorLike): ActiveEditorModelLike | null {
 }
 
 export function registerActiveEditor(workspaceId: string, panelId: string, editor: ActiveEditorLike): void {
+  const previous = entries.get(workspaceId)?.get(panelId)
   workspaceEntries(workspaceId).set(panelId, {
     workspaceId,
     panelId,
     editor,
     model: safeModel(editor),
-    markdownPreview: false,
+    markdownPreview: previous?.markdownPreview ?? false,
+    scrollPreviewToHeading: previous?.scrollPreviewToHeading,
+    highlightSourceLine: previous?.highlightSourceLine,
   })
   activePanelIds.set(workspaceId, panelId)
   notify(workspaceId)
@@ -86,12 +91,14 @@ export function updateActiveEditorPreview(
   preview: {
     markdownPreview: boolean
     scrollPreviewToHeading?: (headingText: string, occurrenceIndex?: number) => void
+    highlightSourceLine?: (lineNumber: number) => void
   },
 ): void {
   const entry = entries.get(workspaceId)?.get(panelId)
   if (!entry) return
   entry.markdownPreview = preview.markdownPreview
   entry.scrollPreviewToHeading = preview.scrollPreviewToHeading
+  entry.highlightSourceLine = preview.highlightSourceLine
   notify(workspaceId)
 }
 
@@ -131,6 +138,7 @@ function snapshotFromEntry(entry: ActiveEditorEntry | null): ActiveEditorSnapsho
     model,
     markdownPreview: entry.markdownPreview,
     scrollPreviewToHeading: entry.scrollPreviewToHeading,
+    highlightSourceLine: entry.highlightSourceLine,
   }
 }
 

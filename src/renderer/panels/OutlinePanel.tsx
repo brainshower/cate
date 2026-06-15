@@ -49,6 +49,7 @@ function sameSnapshot(a: ActiveEditorSnapshot, b: ActiveEditorSnapshot): boolean
     && a.model === b.model
     && a.markdownPreview === b.markdownPreview
     && a.scrollPreviewToHeading === b.scrollPreviewToHeading
+    && a.highlightSourceLine === b.highlightSourceLine
 }
 
 function escapeRegExp(value: string): string {
@@ -156,7 +157,7 @@ export default function OutlinePanel({ panelId, workspaceId, sourceEditorPanelId
   }, [headings, trimmedQuery])
 
   const navigateToHeading = useCallback((heading: DocumentHeading, options: { focusEditor?: boolean } = {}) => {
-    const { editor, markdownPreview, model, scrollPreviewToHeading } = snapshot
+    const { editor, markdownPreview, model, scrollPreviewToHeading, highlightSourceLine } = snapshot
     const focusEditor = options.focusEditor ?? true
     setCursorLine(heading.line)
     if (markdownPreview) {
@@ -166,6 +167,7 @@ export default function OutlinePanel({ panelId, workspaceId, sourceEditorPanelId
     if (!isUsableEditor(editor, model)) return
     editor.revealLineInCenter(heading.line)
     editor.setPosition({ lineNumber: heading.line, column: 1 })
+    highlightSourceLine?.(heading.line)
     if (focusEditor) editor.focus()
   }, [snapshot])
 

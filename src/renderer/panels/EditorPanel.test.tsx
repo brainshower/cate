@@ -19,6 +19,8 @@ vi.mock('monaco-editor', () => {
     value: string
     disposed: boolean
     getValue: () => string
+    getLineCount: () => number
+    getLineMaxColumn: (lineNumber: number) => number
     setValue: (value: string) => void
     isDisposed: () => boolean
     dispose: () => void
@@ -27,11 +29,16 @@ vi.mock('monaco-editor', () => {
     model: MockModel | null
     focusListeners: Listener[]
     changeListeners: Listener[]
+    decorationCollections: Array<{
+      set: ReturnType<typeof vi.fn>
+      clear: ReturnType<typeof vi.fn>
+    }>
     getValue: () => string
     getModel: () => MockModel | null
     setModel: (model: MockModel) => void
     onDidFocusEditorText: (listener: Listener) => { dispose: () => void }
     onDidChangeModelContent: (listener: Listener) => { dispose: () => void }
+    createDecorationsCollection: ReturnType<typeof vi.fn>
     updateOptions: ReturnType<typeof vi.fn>
     layout: ReturnType<typeof vi.fn>
     dispose: ReturnType<typeof vi.fn>
@@ -51,6 +58,8 @@ vi.mock('monaco-editor', () => {
       value,
       disposed: false,
       getValue: () => model.value,
+      getLineCount: () => model.value.split('\n').length,
+      getLineMaxColumn: (lineNumber) => (model.value.split('\n')[lineNumber - 1]?.length ?? 0) + 1,
       setValue: (next) => { model.value = next },
       isDisposed: () => model.disposed,
       dispose: () => { model.disposed = true },
@@ -64,6 +73,7 @@ vi.mock('monaco-editor', () => {
       model: null,
       focusListeners: [],
       changeListeners: [],
+      decorationCollections: [],
       getValue: () => editor.model?.getValue() ?? '',
       getModel: () => editor.model,
       setModel: (model) => { editor.model = model },
@@ -75,6 +85,14 @@ vi.mock('monaco-editor', () => {
         editor.changeListeners.push(listener)
         return { dispose: () => { editor.changeListeners = editor.changeListeners.filter((item) => item !== listener) } }
       },
+      createDecorationsCollection: vi.fn(() => {
+        const collection = {
+          set: vi.fn(),
+          clear: vi.fn(),
+        }
+        editor.decorationCollections.push(collection)
+        return collection
+      }),
       updateOptions: vi.fn(),
       layout: vi.fn(),
       dispose: vi.fn(),
@@ -120,6 +138,14 @@ vi.mock('monaco-editor', () => {
         uriParseCalls.push(value)
         return uriFrom(value)
       }),
+    },
+    Range: class Range {
+      constructor(
+        public startLineNumber: number,
+        public startColumn: number,
+        public endLineNumber: number,
+        public endColumn: number,
+      ) {}
     },
     languages: {
       getLanguages: vi.fn(() => [
@@ -490,6 +516,50 @@ describe('EditorPanel FlashQuery URI routing', () => {
     expect(screen.getByText('Preview body')).toBeTruthy()
   })
 
+  it('highlights a source heading line through the active editor registry callback', async () => {
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: '# One\n\n## Target\n\nBody',
+    })
+    setElectronApi(api)
+
+    await renderEditor('flashquery://workspace-1/Docs/Source-Highlight.md')
+    await waitFor(() => expect(getActiveEditorSnapshot(workspaceId).highlightSourceLine).toBeTypeOf('function'))
+    vi.useFakeTimers()
+
+    act(() => {
+      getActiveEditorSnapshot(workspaceId).highlightSourceLine?.(3)
+    })
+    act(() => vi.advanceTimersByTime(0))
+
+    const collection = monacoMock().latestEditor().decorationCollections[0]
+    expect(collection.set).toHaveBeenCalledWith([expect.objectContaining({
+      range: expect.objectContaining({ startLineNumber: 3, endLineNumber: 3 }),
+      options: expect.objectContaining({
+        isWholeLine: true,
+        className: 'cate-outline-target-line',
+      }),
+    })])
+
+    act(() => {
+      getActiveEditorSnapshot(workspaceId).highlightSourceLine?.(1)
+    })
+    act(() => vi.advanceTimersByTime(0))
+
+    expect(collection.clear).toHaveBeenCalled()
+    expect(collection.set).toHaveBeenLastCalledWith([expect.objectContaining({
+      range: expect.objectContaining({ startLineNumber: 1, endLineNumber: 1 }),
+      options: expect.objectContaining({
+        isWholeLine: true,
+        className: 'cate-outline-target-line',
+      }),
+    })])
+
+    act(() => vi.advanceTimersByTime(2200))
+
+    expect(collection.clear).toHaveBeenCalled()
+  })
+
   it('T-I-023 and T-I-024 MarkdownPreview renders deterministic IDs for h1-h6 and duplicate headings', async () => {
     const api = makeElectronApi()
     vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
@@ -546,12 +616,13 @@ describe('EditorPanel FlashQuery URI routing', () => {
     })
 
     expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' })
-    expect(target.style.backgroundColor).toBe('rgba(0, 122, 204, 0.2)')
+    expect(target.classList.contains('cate-preview-target-heading')).toBe(true)
+    expect(target.style.backgroundColor).toBe('rgba(59, 130, 246, 0.24)')
+    expect(target.style.outline).toBe('1px solid rgba(96, 165, 250, 0.55)')
+    act(() => vi.advanceTimersByTime(5000))
+    expect(target.classList.contains('cate-preview-target-heading')).toBe(true)
+    expect(target.style.backgroundColor).toBe('rgba(59, 130, 246, 0.24)')
     expect(dispatchSpy).not.toHaveBeenCalledWith(expect.objectContaining({ type: `preview-section${'-select'}` }))
-
-    act(() => vi.advanceTimersByTime(1500))
-
-    expect(target.style.backgroundColor).toBe('')
   })
 
   it('T-I-024 and T-I-026 preview scroll can target duplicate heading occurrences by suffix id', async () => {
@@ -578,8 +649,18 @@ describe('EditorPanel FlashQuery URI routing', () => {
 
     expect(headings.map((heading) => heading.id)).toEqual(['intro', 'intro-1'])
     expect(scrollIntoView).toHaveBeenCalledTimes(1)
-    expect(headings[0].style.backgroundColor).toBe('')
-    expect(headings[1].style.backgroundColor).toBe('rgba(0, 122, 204, 0.2)')
+    expect(headings[0].classList.contains('cate-preview-target-heading')).toBe(false)
+    expect(headings[0].classList.contains('cate-preview-target-heading')).toBe(false)
+    expect(headings[1].classList.contains('cate-preview-target-heading')).toBe(true)
+    expect(headings[1].style.backgroundColor).toBe('rgba(59, 130, 246, 0.24)')
+    act(() => vi.advanceTimersByTime(5000))
+    expect(headings[1].classList.contains('cate-preview-target-heading')).toBe(true)
+
+    act(() => {
+      getActiveEditorSnapshot(workspaceId).scrollPreviewToHeading?.('Intro', 0)
+    })
+    expect(headings[0].classList.contains('cate-preview-target-heading')).toBe(true)
+    expect(headings[1].classList.contains('cate-preview-target-heading')).toBe(false)
   })
 })
 

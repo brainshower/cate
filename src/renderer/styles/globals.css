@@ -161,6 +161,18 @@
   animation: cate-notif-sweep 2s ease-in-out infinite;
 }
 
+.monaco-editor .cate-outline-target-line {
+  background-color: rgba(0, 122, 204, 0.18) !important;
+  box-shadow: inset 3px 0 0 rgba(59, 130, 246, 0.75);
+}
+
+.prose-markdown .cate-preview-target-heading {
+  background-color: rgba(0, 122, 204, 0.2);
+  box-shadow: 0 0 0 4px rgba(0, 122, 204, 0.16);
+  border-radius: 4px;
+  transition: background-color 180ms ease, box-shadow 180ms ease;
+}
+
 @keyframes cate-fade-in {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }

@@ -131,6 +131,27 @@ describe('activeEditorRegistry', () => {
     expect(scrollPreviewToHeading).toHaveBeenCalledWith('Intro', 1)
   })
 
+  it('preserves preview/highlight callbacks when the same editor re-registers on focus', () => {
+    const active = editor(model())
+    const scrollPreviewToHeading = vi.fn((_headingText: string, _occurrenceIndex?: number) => {})
+    const highlightSourceLine = vi.fn((_lineNumber: number) => {})
+    registerActiveEditor('workspace-1', 'panel-1', active)
+
+    updateActiveEditorPreview('workspace-1', 'panel-1', {
+      markdownPreview: false,
+      scrollPreviewToHeading,
+      highlightSourceLine,
+    })
+    registerActiveEditor('workspace-1', 'panel-1', active)
+
+    expect(getActiveEditorSnapshot('workspace-1')).toMatchObject({
+      panelId: 'panel-1',
+      markdownPreview: false,
+      scrollPreviewToHeading,
+      highlightSourceLine,
+    })
+  })
+
   it('T-I-034 unsubscribes registry listeners', () => {
     const active = editor(model())
     const listener = vi.fn()

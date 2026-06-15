@@ -367,6 +367,11 @@ export default function EditorPanel({
   const previewBodyRef = useRef<HTMLDivElement>(null)
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const diffEditorRef = useRef<monaco.editor.IStandaloneDiffEditor | null>(null)
+  const outlineHighlightDecorationsRef = useRef<monaco.editor.IEditorDecorationsCollection | null>(null)
+  const outlineHighlightTimerRef = useRef<number | null>(null)
+  const outlineHighlightApplyTimerRef = useRef<number | null>(null)
+  const previewHighlightTimersRef = useRef<number[]>([])
+  const previewScrollEndCleanupRef = useRef<(() => void) | null>(null)
   const isDirtyRef = useRef(false)
   const filePathRef = useRef(filePath)
 
@@ -413,11 +418,73 @@ export default function EditorPanel({
       ?? headings.find((element) => element.id === baseId || element.id.startsWith(`${baseId}-`))
     if (!heading) return
 
+    const clearPreviewHeadingHighlight = (element: HTMLHeadingElement) => {
+      element.classList.remove('cate-preview-target-heading')
+      element.style.backgroundColor = ''
+      element.style.boxShadow = ''
+      element.style.outline = ''
+      element.style.outlineOffset = ''
+      element.style.borderRadius = ''
+      element.style.transition = ''
+    }
+    const applyPreviewHeadingHighlight = () => {
+      clearPreviewHeadingHighlight(heading)
+      void heading.offsetWidth
+      heading.classList.add('cate-preview-target-heading')
+      heading.style.backgroundColor = 'rgba(59, 130, 246, 0.24)'
+      heading.style.boxShadow = '0 0 0 5px rgba(59, 130, 246, 0.18)'
+      heading.style.outline = '1px solid rgba(96, 165, 250, 0.55)'
+      heading.style.outlineOffset = '3px'
+      heading.style.borderRadius = '4px'
+      heading.style.transition = 'background-color 180ms ease, box-shadow 180ms ease, outline-color 180ms ease'
+    }
+    for (const timer of previewHighlightTimersRef.current) window.clearTimeout(timer)
+    previewHighlightTimersRef.current = []
+    previewScrollEndCleanupRef.current?.()
+    previewScrollEndCleanupRef.current = null
+    for (const highlighted of headings) clearPreviewHeadingHighlight(highlighted)
     heading.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    heading.style.backgroundColor = 'rgba(0,122,204,0.2)'
-    window.setTimeout(() => {
-      heading.style.backgroundColor = ''
-    }, 1500)
+    applyPreviewHeadingHighlight()
+  }, [])
+  const highlightSourceLine = useCallback((lineNumber: number) => {
+    const editor = editorRef.current
+    const model = editor?.getModel()
+    if (!editor || !model || model.isDisposed()) return
+    const lineCount = model.getLineCount()
+    if (lineNumber < 1 || lineNumber > lineCount) return
+
+    if (outlineHighlightApplyTimerRef.current) window.clearTimeout(outlineHighlightApplyTimerRef.current)
+    if (outlineHighlightTimerRef.current) window.clearTimeout(outlineHighlightTimerRef.current)
+    outlineHighlightDecorationsRef.current?.clear()
+    outlineHighlightApplyTimerRef.current = window.setTimeout(() => {
+      if (!outlineHighlightDecorationsRef.current) {
+        outlineHighlightDecorationsRef.current = editor.createDecorationsCollection()
+      }
+      outlineHighlightDecorationsRef.current.set([{
+        range: new monaco.Range(lineNumber, 1, lineNumber, model.getLineMaxColumn(lineNumber)),
+        options: {
+          isWholeLine: true,
+          className: 'cate-outline-target-line',
+        },
+      }])
+      outlineHighlightApplyTimerRef.current = null
+      outlineHighlightTimerRef.current = window.setTimeout(() => {
+        outlineHighlightDecorationsRef.current?.clear()
+        outlineHighlightTimerRef.current = null
+      }, 2200)
+    }, 0)
+  }, [])
+  useEffect(() => {
+    return () => {
+      if (outlineHighlightApplyTimerRef.current) window.clearTimeout(outlineHighlightApplyTimerRef.current)
+      if (outlineHighlightTimerRef.current) window.clearTimeout(outlineHighlightTimerRef.current)
+      for (const timer of previewHighlightTimersRef.current) window.clearTimeout(timer)
+      previewHighlightTimersRef.current = []
+      previewScrollEndCleanupRef.current?.()
+      previewScrollEndCleanupRef.current = null
+      outlineHighlightDecorationsRef.current?.clear()
+      outlineHighlightDecorationsRef.current = null
+    }
   }, [])
   const rootPath = ws?.rootPath
   const flashQueryConnection = ws?.flashqueryConnection
@@ -976,8 +1043,9 @@ export default function EditorPanel({
     updateActiveEditorPreview(workspaceId, panelId, {
       markdownPreview: markdownPreview && isMarkdown,
       scrollPreviewToHeading,
+      highlightSourceLine,
     })
-  }, [workspaceId, panelId, markdownPreview, isMarkdown, scrollPreviewToHeading])
+  }, [workspaceId, panelId, markdownPreview, isMarkdown, scrollPreviewToHeading, highlightSourceLine])
 
   // ---------------------------------------------------------------------------
   // Watch app theme changes and update Monaco theme

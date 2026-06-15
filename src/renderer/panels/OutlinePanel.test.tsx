@@ -88,14 +88,20 @@ function bindEditor(panelId: string, text: string) {
   return { editor, model }
 }
 
-function setPreviewRouting(panelId: string, markdownPreview: boolean, scrollPreviewToHeading = vi.fn()) {
+function setPreviewRouting(
+  panelId: string,
+  markdownPreview: boolean,
+  scrollPreviewToHeading = vi.fn(),
+  highlightSourceLine = vi.fn(),
+) {
   act(() => {
     updateActiveEditorPreview('workspace-1', panelId, {
       markdownPreview,
       scrollPreviewToHeading,
+      highlightSourceLine,
     })
   })
-  return scrollPreviewToHeading
+  return { scrollPreviewToHeading, highlightSourceLine }
 }
 
 describe('OutlinePanel source mode', () => {
@@ -268,18 +274,20 @@ describe('OutlinePanel source mode', () => {
   it('T-I-011 clicks a source heading and calls Monaco navigation APIs', () => {
     const { editor } = bindEditor('editor-1', '# One\n## Two')
     renderOutline()
+    const { highlightSourceLine } = setPreviewRouting('editor-1', false)
 
     fireEvent.click(screen.getByText('Two'))
 
     expect(editor.revealLineInCenter).toHaveBeenCalledWith(2)
     expect(editor.setPosition).toHaveBeenCalledWith({ lineNumber: 2, column: 1 })
+    expect(highlightSourceLine).toHaveBeenCalledWith(2)
     expect(editor.focus).toHaveBeenCalled()
   })
 
   it('T-I-026 and T-I-030 clicks a heading in preview mode without Monaco navigation or selection dispatch', () => {
     const { editor } = bindEditor('editor-1', '# One\n## Two')
     renderOutline()
-    const scrollPreviewToHeading = setPreviewRouting('editor-1', true)
+    const { scrollPreviewToHeading } = setPreviewRouting('editor-1', true)
     const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
 
     fireEvent.click(screen.getByText('Two'))
@@ -297,7 +305,7 @@ describe('OutlinePanel source mode', () => {
   it('T-I-026 routes duplicate preview heading clicks with occurrence indexes', () => {
     const { editor } = bindEditor('editor-1', '# Overview\nbody\n## Overview\nbody')
     renderOutline()
-    const scrollPreviewToHeading = setPreviewRouting('editor-1', true)
+    const { scrollPreviewToHeading } = setPreviewRouting('editor-1', true)
 
     fireEvent.click(screen.getAllByText('Overview')[1])
 
@@ -309,7 +317,7 @@ describe('OutlinePanel source mode', () => {
     bindEditor('editor-1', '# Setup\n## Notes\n### Notes\n## Notes')
     renderOutline()
     fireEvent.change(screen.getByLabelText('Outline depth'), { target: { value: '2' } })
-    const scrollPreviewToHeading = setPreviewRouting('editor-1', true)
+    const { scrollPreviewToHeading } = setPreviewRouting('editor-1', true)
 
     fireEvent.click(screen.getAllByText('Notes')[1])
 
@@ -442,7 +450,7 @@ describe('OutlinePanel source mode', () => {
     const { editor } = bindEditor('editor-1', '# Alpha\n## Beta Alpha\n#### Alpha Deep')
     renderOutline()
     fireEvent.change(screen.getByLabelText('Outline depth'), { target: { value: '4' } })
-    const scrollPreviewToHeading = setPreviewRouting('editor-1', true)
+    const { scrollPreviewToHeading } = setPreviewRouting('editor-1', true)
     const search = screen.getByLabelText('Search outline') as HTMLInputElement
 
     fireEvent.change(search, { target: { value: 'alpha' } })
@@ -475,7 +483,7 @@ describe('OutlinePanel source mode', () => {
   it('T-I-027 Enter-to-cycle routes duplicate preview matches with occurrence indexes', () => {
     bindEditor('editor-1', '# Overview\n## Overview')
     renderOutline()
-    const scrollPreviewToHeading = setPreviewRouting('editor-1', true)
+    const { scrollPreviewToHeading } = setPreviewRouting('editor-1', true)
     const search = screen.getByLabelText('Search outline')
 
     fireEvent.change(search, { target: { value: 'overview' } })

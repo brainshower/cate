@@ -7,6 +7,8 @@ type MockModel = {
   value: string
   disposed: boolean
   getValue: () => string
+  getLineCount: () => number
+  getLineMaxColumn: (lineNumber: number) => number
   setValue: (value: string) => void
   isDisposed: () => boolean
   dispose: () => void
@@ -15,11 +17,16 @@ type MockEditor = {
   model: MockModel | null
   focusListeners: Listener[]
   changeListeners: Listener[]
+  decorationCollections: Array<{
+    set: ReturnType<typeof vi.fn>
+    clear: ReturnType<typeof vi.fn>
+  }>
   getValue: () => string
   getModel: () => MockModel | null
   setModel: (model: MockModel) => void
   onDidFocusEditorText: (listener: Listener) => { dispose: () => void }
   onDidChangeModelContent: (listener: Listener) => { dispose: () => void }
+  createDecorationsCollection: ReturnType<typeof vi.fn>
   updateOptions: ReturnType<typeof vi.fn>
   layout: ReturnType<typeof vi.fn>
   dispose: ReturnType<typeof vi.fn>
@@ -39,6 +46,8 @@ const makeModel = (value: string, uri?: MockUri): MockModel => {
     value,
     disposed: false,
     getValue: () => model.value,
+    getLineCount: () => model.value.split('\n').length,
+    getLineMaxColumn: (lineNumber) => (model.value.split('\n')[lineNumber - 1]?.length ?? 0) + 1,
     setValue: (next) => { model.value = next },
     isDisposed: () => model.disposed,
     dispose: () => { model.disposed = true },
@@ -52,6 +61,7 @@ const makeEditor = (): MockEditor => {
     model: null,
     focusListeners: [],
     changeListeners: [],
+    decorationCollections: [],
     getValue: () => editor.model?.getValue() ?? '',
     getModel: () => editor.model,
     setModel: (model) => { editor.model = model },
@@ -63,6 +73,14 @@ const makeEditor = (): MockEditor => {
       editor.changeListeners.push(listener)
       return { dispose: () => { editor.changeListeners = editor.changeListeners.filter((item) => item !== listener) } }
     },
+    createDecorationsCollection: vi.fn(() => {
+      const collection = {
+        set: vi.fn(),
+        clear: vi.fn(),
+      }
+      editor.decorationCollections.push(collection)
+      return collection
+    }),
     updateOptions: vi.fn(),
     layout: vi.fn(),
     dispose: vi.fn(),
@@ -106,6 +124,15 @@ export const Uri = {
     uriParseCalls.push(value)
     return uriFrom(value)
   }),
+}
+
+export class Range {
+  constructor(
+    public startLineNumber: number,
+    public startColumn: number,
+    public endLineNumber: number,
+    public endColumn: number,
+  ) {}
 }
 
 export const languages = {
