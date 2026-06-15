@@ -119,6 +119,30 @@ describe('OutlinePanel source mode', () => {
     expect(depth.value).toBe('3')
   })
 
+  it('keeps depth and search controls themed and contained in the Outline panel', () => {
+    bindEditor('editor-1', '# One\n## Two')
+    renderOutline()
+
+    const depth = screen.getByLabelText('Outline depth')
+    const search = screen.getByLabelText('Search outline')
+
+    expect(depth.className).toContain('box-border')
+    expect(depth.className).toContain('max-w-full')
+    expect(depth.className).toContain('min-w-0')
+    expect(depth.className).toContain('border-subtle')
+    expect(depth.className).toContain('bg-surface-2')
+    expect(depth.className).toContain('text-primary')
+    expect(depth.className).not.toContain('bg-background')
+    expect(search.className).toContain('box-border')
+    expect(search.className).toContain('max-w-full')
+    expect(search.className).toContain('min-w-0')
+    expect(search.className).toContain('border-subtle')
+    expect(search.className).toContain('bg-surface-2')
+    expect(search.className).toContain('text-primary')
+    expect(search.className).toContain('placeholder:text-muted')
+    expect(search.className).not.toContain('bg-background')
+  })
+
   it('T-I-002 renders row indentation and level-based text styling', () => {
     bindEditor('editor-1', '# One\n## Two\n#### Four')
     renderOutline()

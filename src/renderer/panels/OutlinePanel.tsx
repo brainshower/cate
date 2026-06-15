@@ -173,17 +173,17 @@ export default function OutlinePanel({ panelId, workspaceId }: PanelProps) {
   }
 
   return (
-    <section className="flex h-full min-h-0 flex-col bg-background text-foreground" data-panel-id={panelId}>
-      <header className="border-b border-border px-3 py-2">
+    <section className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-surface-2 text-primary" data-panel-id={panelId}>
+      <header className="border-b border-subtle px-3 py-2">
         <h2 className="text-sm font-semibold">Outline</h2>
       </header>
 
-      <div className="space-y-2 border-b border-border px-3 py-2">
+      <div className="min-w-0 shrink-0 space-y-2 overflow-hidden border-b border-subtle px-2.5 py-1.5">
         <label className="sr-only" htmlFor={`${panelId}-depth`}>Outline depth</label>
         <select
           id={`${panelId}-depth`}
           aria-label="Outline depth"
-          className="w-full rounded border border-border bg-background px-2 py-1 text-xs text-foreground"
+          className="box-border block h-7 w-full min-w-0 max-w-full appearance-none rounded-[3px] border border-subtle bg-surface-2 px-2 py-1 text-xs text-primary shadow-none focus:border-focus"
           value={maxDepth}
           onChange={(event) => setMaxDepth(Number(event.target.value))}
         >
@@ -192,11 +192,11 @@ export default function OutlinePanel({ panelId, workspaceId }: PanelProps) {
           ))}
         </select>
 
-        <div className="relative">
+        <div className="relative min-w-0 max-w-full">
           <input
             ref={searchInputRef}
             aria-label="Search outline"
-            className="w-full rounded border border-border bg-background px-2 py-1 pr-8 text-xs text-foreground placeholder:text-muted-foreground"
+            className="box-border block h-7 w-full min-w-0 max-w-full rounded-[3px] border border-subtle bg-surface-2 px-2 py-1 pr-7 text-xs text-primary placeholder:text-muted shadow-none focus:border-focus"
             value={searchQuery}
             placeholder="Search headings"
             onChange={handleQueryChange}
@@ -211,7 +211,7 @@ export default function OutlinePanel({ panelId, workspaceId }: PanelProps) {
             <button
               type="button"
               aria-label="Clear outline search"
-              className="absolute right-1 top-1 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="absolute right-1 top-1/2 -translate-y-1/2 rounded-[3px] p-0.5 text-muted hover:bg-hover hover:text-primary"
               onClick={clearSearch}
             >
               <X size={14} />
@@ -220,9 +220,9 @@ export default function OutlinePanel({ panelId, workspaceId }: PanelProps) {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto px-2 py-2">
+      <div className="min-h-0 min-w-0 flex-1 overflow-auto px-2 py-2">
         {headings.length === 0 ? (
-          <div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
+          <div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted">
             No active editor headings.
           </div>
         ) : (
@@ -240,10 +240,10 @@ export default function OutlinePanel({ panelId, workspaceId }: PanelProps) {
                 isSearchFocused
                   ? 'border-blue-400 bg-blue-500 text-white'
                   : isMatch
-                    ? 'border-transparent bg-yellow-400/20 text-foreground'
+                    ? 'border-transparent bg-yellow-400/20 text-primary'
                     : isActive
-                      ? 'border-blue-400 bg-blue-500/15 text-foreground'
-                      : 'border-transparent text-foreground',
+                      ? 'border-blue-400 bg-blue-500/15 text-primary'
+                      : 'border-transparent text-primary',
               ].join(' ')
 
               return (
