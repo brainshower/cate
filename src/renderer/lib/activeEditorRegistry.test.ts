@@ -6,6 +6,7 @@ import {
   subscribeActiveEditor,
   unregisterActiveEditor,
   updateActiveEditorModel,
+  updateActiveEditorPreview,
   type ActiveEditorLike,
   type ActiveEditorModelLike,
 } from './activeEditorRegistry'
@@ -71,6 +72,7 @@ describe('activeEditorRegistry', () => {
       panelId: null,
       editor: null,
       model: null,
+      markdownPreview: false,
     })
 
     unregisterActiveEditor('workspace-1', 'panel-1')
@@ -88,6 +90,23 @@ describe('activeEditorRegistry', () => {
 
     expect(listener).toHaveBeenCalledTimes(1)
     expect(getActiveEditorSnapshot('workspace-1').model?.getLineCount()).toBe(2)
+  })
+
+  it('stores preview mode and scroll callback on the active editor snapshot', () => {
+    const active = editor(model())
+    const scrollPreviewToHeading = vi.fn()
+    registerActiveEditor('workspace-1', 'panel-1', active)
+
+    updateActiveEditorPreview('workspace-1', 'panel-1', {
+      markdownPreview: true,
+      scrollPreviewToHeading,
+    })
+
+    expect(getActiveEditorSnapshot('workspace-1')).toMatchObject({
+      panelId: 'panel-1',
+      markdownPreview: true,
+      scrollPreviewToHeading,
+    })
   })
 
   it('T-I-034 unsubscribes registry listeners', () => {

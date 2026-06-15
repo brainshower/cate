@@ -3,6 +3,15 @@ import React from 'react'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('../../renderer/lib/logger', () => ({
+  default: {
+    debug: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+  },
+}))
+
 import { ChatInput } from './AgentChatInput'
 import type { AgentSlashCommand, FlashQueryVaultIndexEntry } from '../../shared/types'
 
