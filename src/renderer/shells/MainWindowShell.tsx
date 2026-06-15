@@ -132,6 +132,8 @@ export default function MainWindowShell({
           <>
             <DockZone
               position="left"
+              viewportLeftEdge
+              viewportRightEdge={false}
               renderPanel={renderPanel}
               getPanelTitle={getPanelTitle}
               onClosePanel={onClosePanel}
@@ -147,6 +149,8 @@ export default function MainWindowShell({
         <div className="flex-1 min-h-0 min-w-0 relative overflow-hidden">
           <DockZone
             position="center"
+            viewportLeftEdge={!leftVisible}
+            viewportRightEdge={!rightVisible}
             renderPanel={renderPanel}
             getPanelTitle={getPanelTitle}
             onClosePanel={onClosePanel}
@@ -160,12 +164,19 @@ export default function MainWindowShell({
               direction="horizontal"
               onResize={(delta) => handleZoneResize('right', delta)}
             />
-            <DockZone
-              position="right"
-              renderPanel={renderPanel}
-              getPanelTitle={getPanelTitle}
-              onClosePanel={onClosePanel}
-            />
+            <div
+              className="flex min-h-0 min-w-0 shrink-0"
+              style={{ marginRight: 'var(--cate-right-sidebar-width, 0px)' }}
+            >
+              <DockZone
+                position="right"
+                viewportLeftEdge={false}
+                viewportRightEdge
+                renderPanel={renderPanel}
+                getPanelTitle={getPanelTitle}
+                onClosePanel={onClosePanel}
+              />
+            </div>
           </>
         )}
       </div>

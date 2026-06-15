@@ -20,9 +20,22 @@ interface DockZoneProps {
   workspaceId?: string
   onPanelRemoved?: (panelId: string) => void
   onPanelRenamed?: (panelId: string, title: string) => void
+  viewportLeftEdge?: boolean
+  viewportRightEdge?: boolean
 }
 
-export default function DockZone({ position, renderPanel, getPanelTitle, onClosePanel, getPanel, workspaceId, onPanelRemoved, onPanelRenamed }: DockZoneProps) {
+export default function DockZone({
+  position,
+  renderPanel,
+  getPanelTitle,
+  onClosePanel,
+  getPanel,
+  workspaceId,
+  onPanelRemoved,
+  onPanelRenamed,
+  viewportLeftEdge = true,
+  viewportRightEdge = true,
+}: DockZoneProps) {
   const zone = useDockStoreContext((s) => s.zones[position])
   const zoneRef = useRef<HTMLDivElement>(null)
 
@@ -85,7 +98,7 @@ export default function DockZone({ position, renderPanel, getPanelTitle, onClose
       className={`flex flex-col overflow-hidden relative ${isCenter ? 'bg-canvas-bg' : 'bg-surface-4'}`}
       style={style}
     >
-      {zone.layout ? renderNode(zone.layout, true, true) : (
+      {zone.layout ? renderNode(zone.layout, viewportLeftEdge, viewportRightEdge) : (
         // Empty center zone — show background
         isCenter && <div className="w-full h-full" />
       )}
