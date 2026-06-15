@@ -403,12 +403,14 @@ export default function EditorPanel({
       useAppStore.getState().setPanelMarkdownPreview(workspaceId, panelId, next),
     [workspaceId, panelId],
   )
-  const scrollPreviewToHeading = useCallback((headingText: string) => {
+  const scrollPreviewToHeading = useCallback((headingText: string, occurrenceIndex = 0) => {
     const previewBody = previewBodyRef.current
     if (!previewBody) return
-    const targetId = slugifyHeading(headingText)
-    const heading = [...previewBody.querySelectorAll<HTMLHeadingElement>('h1, h2, h3, h4, h5, h6')]
-      .find((element) => element.id === targetId)
+    const baseId = slugifyHeading(headingText)
+    const targetId = occurrenceIndex > 0 ? `${baseId}-${occurrenceIndex}` : baseId
+    const headings = [...previewBody.querySelectorAll<HTMLHeadingElement>('h1, h2, h3, h4, h5, h6')]
+    const heading = headings.find((element) => element.id === targetId)
+      ?? headings.find((element) => element.id === baseId || element.id.startsWith(`${baseId}-`))
     if (!heading) return
 
     heading.scrollIntoView({ behavior: 'smooth', block: 'start' })

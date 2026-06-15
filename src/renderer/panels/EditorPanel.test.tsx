@@ -531,6 +531,34 @@ describe('EditorPanel FlashQuery URI routing', () => {
 
     expect(target.style.backgroundColor).toBe('')
   })
+
+  it('T-I-024 and T-I-026 preview scroll can target duplicate heading occurrences by suffix id', async () => {
+    const scrollIntoView = vi.fn()
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoView,
+    })
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: '# Intro\n\nFirst\n\n## Intro\n\nSecond',
+    })
+    setElectronApi(api)
+
+    await renderEditor('flashquery://workspace-1/Docs/Preview-Duplicate-Scroll.md')
+    fireEvent.click(screen.getByTitle('Preview markdown'))
+    const headings = await screen.findAllByRole('heading', { name: 'Intro' })
+    await waitFor(() => expect(getActiveEditorSnapshot(workspaceId).markdownPreview).toBe(true))
+    vi.useFakeTimers()
+
+    act(() => {
+      getActiveEditorSnapshot(workspaceId).scrollPreviewToHeading?.('Intro', 1)
+    })
+
+    expect(headings.map((heading) => heading.id)).toEqual(['intro', 'intro-1'])
+    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+    expect(headings[0].style.backgroundColor).toBe('')
+    expect(headings[1].style.backgroundColor).toBe('rgba(0, 122, 204, 0.2)')
+  })
 })
 
 describe('EditorPanel FlashQuery save and dirty behavior', () => {

@@ -8,7 +8,7 @@ import {
   type ActiveEditorSnapshot,
   type DisposableLike,
 } from '../lib/activeEditorRegistry'
-import { parseDocumentHeadings, type DocumentHeading } from '../lib/parseDocumentHeadings'
+import { parseDocumentHeadings, slugifyHeading, type DocumentHeading } from '../lib/parseDocumentHeadings'
 import type { PanelProps } from './types'
 
 const DEPTH_OPTIONS = [2, 3, 4, 5, 6] as const
@@ -44,6 +44,16 @@ function currentCursorLine(editor: ActiveEditorLike): number {
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function headingOccurrenceIndex(headings: DocumentHeading[], target: DocumentHeading): number {
+  const targetSlug = slugifyHeading(target.text)
+  let occurrence = 0
+  for (const heading of headings) {
+    if (heading === target) return occurrence
+    if (slugifyHeading(heading.text) === targetSlug) occurrence++
+  }
+  return 0
 }
 
 function HighlightedHeadingText({ text, query }: { text: string; query: string }) {
@@ -132,14 +142,14 @@ export default function OutlinePanel({ panelId, workspaceId }: PanelProps) {
   const navigateToHeading = useCallback((heading: DocumentHeading) => {
     const { editor, markdownPreview, model, scrollPreviewToHeading } = snapshot
     if (markdownPreview) {
-      scrollPreviewToHeading?.(heading.text)
+      scrollPreviewToHeading?.(heading.text, headingOccurrenceIndex(headings, heading))
       return
     }
     if (!isUsableEditor(editor, model)) return
     editor.revealLineInCenter(heading.line)
     editor.setPosition({ lineNumber: heading.line, column: 1 })
     editor.focus()
-  }, [snapshot])
+  }, [headings, snapshot])
 
   const clearSearch = useCallback(() => {
     setSearchQuery('')

@@ -92,9 +92,9 @@ describe('activeEditorRegistry', () => {
     expect(getActiveEditorSnapshot('workspace-1').model?.getLineCount()).toBe(2)
   })
 
-  it('stores preview mode and scroll callback on the active editor snapshot', () => {
+  it('stores preview mode and scroll callback with duplicate occurrence support on the active editor snapshot', () => {
     const active = editor(model())
-    const scrollPreviewToHeading = vi.fn()
+    const scrollPreviewToHeading = vi.fn((_headingText: string, _occurrenceIndex?: number) => {})
     registerActiveEditor('workspace-1', 'panel-1', active)
 
     updateActiveEditorPreview('workspace-1', 'panel-1', {
@@ -107,6 +107,10 @@ describe('activeEditorRegistry', () => {
       markdownPreview: true,
       scrollPreviewToHeading,
     })
+
+    getActiveEditorSnapshot('workspace-1').scrollPreviewToHeading?.('Intro', 1)
+
+    expect(scrollPreviewToHeading).toHaveBeenCalledWith('Intro', 1)
   })
 
   it('T-I-034 unsubscribes registry listeners', () => {

@@ -26,7 +26,7 @@ export interface ActiveEditorEntry {
   editor: ActiveEditorLike
   model: ActiveEditorModelLike | null
   markdownPreview: boolean
-  scrollPreviewToHeading?: (headingText: string) => void
+  scrollPreviewToHeading?: (headingText: string, occurrenceIndex?: number) => void
 }
 
 export interface ActiveEditorSnapshot {
@@ -34,7 +34,7 @@ export interface ActiveEditorSnapshot {
   editor: ActiveEditorLike | null
   model: ActiveEditorModelLike | null
   markdownPreview: boolean
-  scrollPreviewToHeading?: (headingText: string) => void
+  scrollPreviewToHeading?: (headingText: string, occurrenceIndex?: number) => void
 }
 
 const entries = new Map<string, Map<string, ActiveEditorEntry>>()
@@ -85,7 +85,7 @@ export function updateActiveEditorPreview(
   panelId: string,
   preview: {
     markdownPreview: boolean
-    scrollPreviewToHeading?: (headingText: string) => void
+    scrollPreviewToHeading?: (headingText: string, occurrenceIndex?: number) => void
   },
 ): void {
   const entry = entries.get(workspaceId)?.get(panelId)

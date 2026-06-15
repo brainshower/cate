@@ -244,11 +244,22 @@ describe('OutlinePanel source mode', () => {
 
     fireEvent.click(screen.getByText('Two'))
 
-    expect(scrollPreviewToHeading).toHaveBeenCalledWith('Two')
+    expect(scrollPreviewToHeading).toHaveBeenCalledWith('Two', 0)
     expect(editor.revealLineInCenter).not.toHaveBeenCalled()
     expect(editor.setPosition).not.toHaveBeenCalled()
     expect(editor.focus).not.toHaveBeenCalled()
     expect(dispatchSpy).not.toHaveBeenCalledWith(expect.objectContaining({ type: `preview-section${'-select'}` }))
+  })
+
+  it('T-I-026 routes duplicate preview heading clicks with occurrence indexes', () => {
+    const { editor } = bindEditor('editor-1', '# Overview\nbody\n## Overview\nbody')
+    renderOutline()
+    const scrollPreviewToHeading = setPreviewRouting('editor-1', true)
+
+    fireEvent.click(screen.getAllByText('Overview')[1])
+
+    expect(scrollPreviewToHeading).toHaveBeenCalledWith('Overview', 1)
+    expect(editor.revealLineInCenter).not.toHaveBeenCalled()
   })
 
   it('T-I-031 debounces content-change reparsing by 300ms', () => {
@@ -383,6 +394,7 @@ describe('OutlinePanel source mode', () => {
       'Alpha Deep',
       'Alpha',
     ])
+    expect(scrollPreviewToHeading.mock.calls.map((call) => call[1])).toEqual([0, 0, 0, 0])
     expect(editor.revealLineInCenter).not.toHaveBeenCalled()
     expect(screen.getAllByTestId('outline-heading-row').some((row) => row.textContent === 'Alpha Deep')).toBe(true)
     expect(search.value).toBe('alpha')
@@ -395,6 +407,22 @@ describe('OutlinePanel source mode', () => {
     expect(screen.getAllByTestId('outline-heading-row').some((row) => row.textContent === 'Alpha Deep')).toBe(true)
     fireEvent.keyDown(search, { key: 'Enter' })
     expect(editor.revealLineInCenter).toHaveBeenLastCalledWith(2)
+  })
+
+  it('T-I-027 Enter-to-cycle routes duplicate preview matches with occurrence indexes', () => {
+    bindEditor('editor-1', '# Overview\n## Overview')
+    renderOutline()
+    const scrollPreviewToHeading = setPreviewRouting('editor-1', true)
+    const search = screen.getByLabelText('Search outline')
+
+    fireEvent.change(search, { target: { value: 'overview' } })
+    fireEvent.keyDown(search, { key: 'Enter' })
+    fireEvent.keyDown(search, { key: 'Enter' })
+
+    expect(scrollPreviewToHeading.mock.calls).toEqual([
+      ['Overview', 0],
+      ['Overview', 1],
+    ])
   })
 
   it('T-I-016 resets search cycle index when the query changes', () => {
