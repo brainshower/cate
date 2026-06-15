@@ -85,6 +85,26 @@ Final Phase 23 hardening passed. REQ-017, REQ-018, and REQ-019 have focused auto
 **Total deviations:** 2 auto-fixed.
 **Impact:** Positive verification stability and direct coverage; no production behavior broadened beyond Phase 23 scope.
 
+## Post-Audit Residual
+
+An auditor found one residual duplicate-preview-routing edge case after the original Phase 23 fix: Outline occurrence indexes were computed from the depth-filtered Outline rows, while Markdown preview heading IDs are assigned across all rendered headings. With depth `2`, `# Setup\n## Notes\n### Notes\n## Notes` routed the second visible `Notes` row to occurrence `1` instead of preview ID `notes-2`.
+
+Resolution:
+
+- Added a red regression in `src/renderer/panels/OutlinePanel.test.tsx` for the exact depth-filtered duplicate case; it failed with `('Notes', 1)` before the fix.
+- Updated `src/renderer/panels/OutlinePanel.tsx` to compute preview occurrence indexes from the active model with a full-depth source-line count.
+- Confirmed Cate preview renders setext headings via `ReactMarkdown`/`remark-gfm`; added setext support and coverage in `src/renderer/lib/parseDocumentHeadings.ts` / `.test.ts`.
+- Confirmed raw HTML headings are not rendered as preview heading elements without `rehype-raw`; source-mode HTML/code marker Outline behavior remains unchanged.
+
+Verification after residual fix:
+
+| Command | Result |
+|---|---|
+| `npx -p node@22 npm test -- src/renderer/panels/OutlinePanel.test.tsx` before implementation | Failed as expected: required regression received `('Notes', 1)` instead of `('Notes', 2)` |
+| `npx -p node@22 npm test -- src/renderer/lib/parseDocumentHeadings.test.ts src/renderer/panels/OutlinePanel.test.tsx` | Passed: 2 files, 37 tests |
+| `npx -p node@22 npm test -- src/renderer/lib/parseDocumentHeadings.test.ts src/renderer/lib/activeEditorRegistry.test.ts src/renderer/panels/OutlinePanel.test.tsx src/renderer/panels/EditorPanel.test.tsx` | Passed: 4 files, 84 tests |
+| `npx -p node@22 npm run typecheck` | Passed |
+
 ## Self-Check: PASSED
 
 REQ-017, REQ-018, and REQ-019 are implemented and verified. All required focused automated tests pass, the full Vitest suite passes under Node 22, typecheck passes, and excluded Graph Explorer/Document Chat behavior remains out of scope.

@@ -46,14 +46,16 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-function headingOccurrenceIndex(headings: DocumentHeading[], target: DocumentHeading): number {
+function headingOccurrenceIndex(model: ActiveEditorModelLike | null, target: DocumentHeading): number {
+  if (!model || model.isDisposed?.()) return 0
   const targetSlug = slugifyHeading(target.text)
+  const allHeadings = parseDocumentHeadings(model, 6)
   let occurrence = 0
-  for (const heading of headings) {
-    if (heading === target) return occurrence
+  for (const heading of allHeadings) {
+    if (heading.line >= target.line) break
     if (slugifyHeading(heading.text) === targetSlug) occurrence++
   }
-  return 0
+  return occurrence
 }
 
 function HighlightedHeadingText({ text, query }: { text: string; query: string }) {
@@ -142,14 +144,14 @@ export default function OutlinePanel({ panelId, workspaceId }: PanelProps) {
   const navigateToHeading = useCallback((heading: DocumentHeading) => {
     const { editor, markdownPreview, model, scrollPreviewToHeading } = snapshot
     if (markdownPreview) {
-      scrollPreviewToHeading?.(heading.text, headingOccurrenceIndex(headings, heading))
+      scrollPreviewToHeading?.(heading.text, headingOccurrenceIndex(model, heading))
       return
     }
     if (!isUsableEditor(editor, model)) return
     editor.revealLineInCenter(heading.line)
     editor.setPosition({ lineNumber: heading.line, column: 1 })
     editor.focus()
-  }, [headings, snapshot])
+  }, [snapshot])
 
   const clearSearch = useCallback(() => {
     setSearchQuery('')

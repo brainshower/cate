@@ -262,6 +262,17 @@ describe('OutlinePanel source mode', () => {
     expect(editor.revealLineInCenter).not.toHaveBeenCalled()
   })
 
+  it('T-I-026 routes duplicate preview heading clicks with indexes from hidden deeper headings', () => {
+    bindEditor('editor-1', '# Setup\n## Notes\n### Notes\n## Notes')
+    renderOutline()
+    fireEvent.change(screen.getByLabelText('Outline depth'), { target: { value: '2' } })
+    const scrollPreviewToHeading = setPreviewRouting('editor-1', true)
+
+    fireEvent.click(screen.getAllByText('Notes')[1])
+
+    expect(scrollPreviewToHeading).toHaveBeenCalledWith('Notes', 2)
+  })
+
   it('T-I-031 debounces content-change reparsing by 300ms', () => {
     vi.useFakeTimers()
     const { editor, model } = bindEditor('editor-1', '# One')

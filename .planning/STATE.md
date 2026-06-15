@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Document Outline
 status: complete
-stopped_at: Phase 23 complete; v1.3 Document Outline implemented and verified
-last_updated: "2026-06-15T00:14:27Z"
-last_activity: 2026-06-14
+stopped_at: Phase 23 post-audit residual fixed; v1.3 Document Outline implemented and verified
+last_updated: "2026-06-15T10:03:00Z"
+last_activity: 2026-06-15
 progress:
   total_phases: 2
   completed_phases: 2
@@ -28,7 +28,7 @@ See: `.planning/PROJECT.md` (updated 2026-06-14 after v1.3 Document Outline plan
 Phase: 23 complete
 Plan: 23-04 complete
 Status: v1.3 Document Outline complete
-Last activity: 2026-06-14 — Phase 23 preview routing and final hardening completed
+Last activity: 2026-06-15 — Phase 23 duplicate-preview-routing residual fixed
 
 ## Session Continuity
 
@@ -55,6 +55,13 @@ Phase 23 implemented Markdown preview heading IDs, scroll routing, blue-flash be
 - Full focused rerun across Phase 22 and Phase 23 Outline surfaces
 - Full `npm test` suite: 91 files passed, 845 tests passed, 3 skipped
 
+Post-audit residual fix on 2026-06-15:
+
+- Fixed duplicate preview routing when deeper same-slug headings are hidden by the active Outline depth filter.
+- Added regression coverage for depth `2` with `# Setup\n## Notes\n### Notes\n## Notes`, proving the second visible `Notes` row routes to occurrence `2`.
+- Added setext heading parsing coverage to align the full-depth occurrence count with Cate's `ReactMarkdown`/`remark-gfm` preview heading population.
+- Verified with focused Phase 23 suites: 4 files passed, 84 tests passed; `npm run typecheck` passed.
+
 ## Decisions
 
 Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table.
@@ -65,6 +72,7 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table.
 | 2026-06-14 | v1.3 continues phase numbering from v1.2, starting at Phase 22. | Preserves sequential project roadmap history across shipped milestones. |
 | 2026-06-14 | v1.3 executes in two implementation phases. | The owner requested two phases; Phase 22 bundles foundation/source-mode behavior with tests, and Phase 23 bundles preview routing/final hardening with tests. |
 | 2026-06-14 | Document Chat and Graph Explorer unified selection behavior remain out of scope. | Those are separate future devspecs; this milestone implements the standalone Outline and blue-flash preview behavior. |
+| 2026-06-15 | Preview duplicate occurrence indexes are computed from full-depth source heading order, not visible Outline depth. | Preview heading IDs are assigned across all rendered headings, so hidden deeper duplicates must still count for correct preview routing. |
 
 ## Deferred Items
 

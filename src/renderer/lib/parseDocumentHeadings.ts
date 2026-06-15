@@ -10,7 +10,25 @@ export interface HeadingTextModel {
 }
 
 const MARKDOWN_HEADING_RE = /^(#{1,6})\s+(.+?)\s*#*\s*$/
+const SETEXT_HEADING_RE = /^\s*(=+|-+)\s*$/
 const HTML_HEADING_RE = /<h([1-6])(?:\s[^>]*)?>(.*?)<\/h\1>/i
+const FRONTMATTER_FENCE_RE = /^---\s*$/
+
+function frontmatterBodyStart(model: HeadingTextModel, lineCount: number): number {
+  // Detect a leading YAML frontmatter block (a `---` fence on line 1 with a
+  // closing `---` fence later) and return the first body line after it. This
+  // stops the closing fence from turning the last frontmatter line into a
+  // phantom setext heading. We bail if an ATX heading appears before the
+  // closing fence, so a leading `---` thematic break that merely wraps real
+  // content is never mistaken for frontmatter.
+  if (lineCount < 2 || !FRONTMATTER_FENCE_RE.test(model.getLineContent(1))) return 1
+  for (let lineNumber = 2; lineNumber <= lineCount; lineNumber++) {
+    const line = model.getLineContent(lineNumber)
+    if (/^#{1,6}\s/.test(line)) return 1
+    if (FRONTMATTER_FENCE_RE.test(line)) return lineNumber + 1
+  }
+  return 1
+}
 
 function clampDepth(maxDepth: number): number {
   if (!Number.isFinite(maxDepth)) return 3
@@ -100,9 +118,29 @@ function parseCodeMarker(line: string): { level: number; text: string } | null {
 export function parseDocumentHeadings(model: HeadingTextModel, maxDepth: number): DocumentHeading[] {
   const depth = clampDepth(maxDepth)
   const headings: DocumentHeading[] = []
+  const lineCount = model.getLineCount()
+  const startLine = frontmatterBodyStart(model, lineCount)
 
-  for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber++) {
+  for (let lineNumber = startLine; lineNumber <= lineCount; lineNumber++) {
     const line = model.getLineContent(lineNumber)
+    const nextLine = lineNumber < lineCount ? model.getLineContent(lineNumber + 1) : ''
+    const setext = nextLine ? SETEXT_HEADING_RE.exec(nextLine) : null
+    // A setext underline applies to a preceding paragraph line, not to an ATX
+    // heading. `# Heading` followed by `---` is an ATX heading plus a thematic
+    // break (matching ReactMarkdown), so it must not be consumed as setext.
+    if (line.trim() && setext && !MARKDOWN_HEADING_RE.test(line)) {
+      const level = setext[1].startsWith('=') ? 1 : 2
+      if (level <= depth) {
+        headings.push({
+          line: lineNumber,
+          level,
+          text: stripMarkdownInlineFormatting(line.trim()),
+        })
+      }
+      lineNumber++
+      continue
+    }
+
     const decoratedHashMarker = /^(\s*)#\s+(?:--+|===+|---+|##)/.test(line)
     if (decoratedHashMarker) {
       const marker = parseCodeMarker(line)

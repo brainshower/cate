@@ -42,6 +42,50 @@ describe('parseDocumentHeadings markdown headings', () => {
     expect(headings.map((heading) => heading.text)).toEqual(['One', 'Two', 'Three'])
   })
 
+  it('parses setext Markdown headings rendered by ReactMarkdown preview', () => {
+    const headings = parseDocumentHeadings(modelFromText([
+      'Setext One',
+      '==========',
+      'body',
+      'Setext Two',
+      '----------',
+      '### Three',
+    ].join('\n')), 6)
+
+    expect(headings).toEqual([
+      { line: 1, level: 1, text: 'Setext One' },
+      { line: 4, level: 2, text: 'Setext Two' },
+      { line: 6, level: 3, text: 'Three' },
+    ])
+  })
+
+  it('skips a leading YAML frontmatter block so its closing fence is not a phantom setext heading', () => {
+    const headings = parseDocumentHeadings(modelFromText([
+      '---',
+      'title: My Doc',
+      'date: 2026-01-01',
+      '---',
+      '# Real Heading',
+    ].join('\n')), 6)
+
+    expect(headings).toEqual([
+      { line: 5, level: 1, text: 'Real Heading' },
+    ])
+  })
+
+  it('does not treat a leading thematic break wrapping real content as frontmatter', () => {
+    const headings = parseDocumentHeadings(modelFromText([
+      '---',
+      '# Real Heading',
+      '---',
+      'body',
+    ].join('\n')), 6)
+
+    expect(headings).toEqual([
+      { line: 2, level: 1, text: 'Real Heading' },
+    ])
+  })
+
   it('T-U-009 strips Markdown inline syntax in the required order', () => {
     expect(stripMarkdownInlineFormatting('![Alt text](img.png)')).toBe('Alt text')
     expect(stripMarkdownInlineFormatting('[Link text](https://example.com)')).toBe('Link text')
