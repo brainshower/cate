@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Document Outline
-status: executing
-stopped_at: Phase 22 complete; Phase 23 ready for planning/execution
-last_updated: "2026-06-14T18:36:00Z"
+status: complete
+stopped_at: Phase 23 complete; v1.3 Document Outline implemented and verified
+last_updated: "2026-06-15T00:14:27Z"
 last_activity: 2026-06-14
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
   completed_plans: 4
-  percent: 50
+  percent: 100
 ---
 
 # Project State
@@ -25,20 +25,20 @@ See: `.planning/PROJECT.md` (updated 2026-06-14 after v1.3 Document Outline plan
 
 ## Current Position
 
-Phase: 22 complete
-Plan: 22-04 complete
-Status: Phase 23 next
-Last activity: 2026-06-14 — Phase 22 Outline foundation/source-mode implementation completed
+Phase: 23 complete
+Plan: 23-04 complete
+Status: v1.3 Document Outline complete
+Last activity: 2026-06-14 — Phase 23 preview routing and final hardening completed
 
 ## Session Continuity
 
-Last session: 2026-06-14T18:36:00Z
-Stopped At: Phase 22 complete; Phase 23 preview routing remains
+Last session: 2026-06-15T00:14:27Z
+Stopped At: Phase 23 complete; v1.3 Document Outline implemented and verified
 Resume File: None
 
 ## Next Up
 
-Plan or execute Phase 23.
+No v1.3 implementation phases remain.
 
 Phase 22 implemented the Outline panel foundation and source-mode navigation with bundled tests:
 
@@ -48,7 +48,12 @@ Phase 22 implemented the Outline panel foundation and source-mode navigation wit
 - T-A-001 through T-A-004, T-A-006, T-A-007
 - T-M-001 through T-M-004 as visual/manual checks where practical
 
-Phase 23 follows with Markdown preview heading IDs, scroll routing, blue-flash behavior, and bundled preview tests for REQ-017 through REQ-019.
+Phase 23 implemented Markdown preview heading IDs, scroll routing, blue-flash behavior, and bundled preview tests for REQ-017 through REQ-019:
+
+- T-U-015 through T-U-016
+- T-I-023 through T-I-030
+- Full focused rerun across Phase 22 and Phase 23 Outline surfaces
+- Full `npm test` suite: 91 files passed, 845 tests passed, 3 skipped
 
 ## Decisions
 
@@ -73,8 +78,8 @@ Items acknowledged for this milestone:
 
 ## Performance Metrics
 
-No v1.3 phases have been executed yet.
+Phase 22 and Phase 23 are complete. Full Vitest regression suite passed under Node 22 after adding the missing renderer logger mock to the existing at-mention test.
 
 ## Operator Next Steps
 
-- Start Phase 23 planning/execution with the existing v1.3 roadmap context.
+- No v1.3 GSD execution remains. Owner may optionally perform live Electron UAT for T-A-005 and preview-routing-sensitive Phase 22 manual checks.

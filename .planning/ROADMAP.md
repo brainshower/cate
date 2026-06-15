@@ -31,7 +31,7 @@ See archived roadmap for full phase details: [milestones/v1.2-ROADMAP.md](milest
 </details>
 
 <details open>
-<summary>🔄 v1.3 Document Outline (Phases 22-23) — ACTIVE</summary>
+<summary>✅ v1.3 Document Outline (Phases 22-23) — COMPLETE</summary>
 
 Milestone goal: ship a first-class Document Outline panel for active Monaco editors with source-mode navigation, search, and Markdown-preview scroll routing.
 
@@ -85,7 +85,7 @@ Canonical source docs:
 5. Duplicate headings, no-target headings, preview toggling, and source/preview transitions degrade safely without losing Outline state unnecessarily.
 6. Final focused verification proves all 22 requirements are mapped, tested, and non-regressive.
 
-**Status:** Pending
+**Status:** Complete (2026-06-14)
 
 **Coverage:** 2 phases, 22/22 requirements mapped.
 
@@ -93,7 +93,7 @@ Canonical source docs:
 
 ## Current Status
 
-Active milestone: v1.3 Document Outline. Phase 22 is next.
+Active milestone: v1.3 Document Outline is complete. Phase 22 and Phase 23 are implemented and verified.
 
 ## Notes
 
