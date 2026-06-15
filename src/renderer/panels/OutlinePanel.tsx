@@ -130,7 +130,11 @@ export default function OutlinePanel({ panelId, workspaceId }: PanelProps) {
   }, [headings, trimmedQuery])
 
   const navigateToHeading = useCallback((heading: DocumentHeading) => {
-    const { editor, model } = snapshot
+    const { editor, markdownPreview, model, scrollPreviewToHeading } = snapshot
+    if (markdownPreview) {
+      scrollPreviewToHeading?.(heading.text)
+      return
+    }
     if (!isUsableEditor(editor, model)) return
     editor.revealLineInCenter(heading.line)
     editor.setPosition({ lineNumber: heading.line, column: 1 })

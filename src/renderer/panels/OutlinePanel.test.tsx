@@ -5,6 +5,7 @@ import {
   registerActiveEditor,
   unregisterActiveEditor,
   updateActiveEditorModel,
+  updateActiveEditorPreview,
   type ActiveEditorLike,
   type ActiveEditorModelLike,
   type DisposableLike,
@@ -85,6 +86,16 @@ function bindEditor(panelId: string, text: string) {
   const editor = new MockEditor(model)
   act(() => registerActiveEditor('workspace-1', panelId, editor))
   return { editor, model }
+}
+
+function setPreviewRouting(panelId: string, markdownPreview: boolean, scrollPreviewToHeading = vi.fn()) {
+  act(() => {
+    updateActiveEditorPreview('workspace-1', panelId, {
+      markdownPreview,
+      scrollPreviewToHeading,
+    })
+  })
+  return scrollPreviewToHeading
 }
 
 describe('OutlinePanel source mode', () => {
@@ -225,6 +236,21 @@ describe('OutlinePanel source mode', () => {
     expect(editor.focus).toHaveBeenCalled()
   })
 
+  it('T-I-026 and T-I-030 clicks a heading in preview mode without Monaco navigation or selection dispatch', () => {
+    const { editor } = bindEditor('editor-1', '# One\n## Two')
+    renderOutline()
+    const scrollPreviewToHeading = setPreviewRouting('editor-1', true)
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
+
+    fireEvent.click(screen.getByText('Two'))
+
+    expect(scrollPreviewToHeading).toHaveBeenCalledWith('Two')
+    expect(editor.revealLineInCenter).not.toHaveBeenCalled()
+    expect(editor.setPosition).not.toHaveBeenCalled()
+    expect(editor.focus).not.toHaveBeenCalled()
+    expect(dispatchSpy).not.toHaveBeenCalledWith(expect.objectContaining({ type: `preview-section${'-select'}` }))
+  })
+
   it('T-I-031 debounces content-change reparsing by 300ms', () => {
     vi.useFakeTimers()
     const { editor, model } = bindEditor('editor-1', '# One')
@@ -336,6 +362,39 @@ describe('OutlinePanel source mode', () => {
     expect(rows[1].className).toContain('bg-blue-500')
     fireEvent.keyDown(search, { key: 'Enter' })
     expect(editor.revealLineInCenter).toHaveBeenLastCalledWith(1)
+  })
+
+  it('T-I-027 Enter-to-cycle uses preview routing for each match, wraps, and preserves state across preview toggles', () => {
+    const { editor } = bindEditor('editor-1', '# Alpha\n## Beta Alpha\n#### Alpha Deep')
+    renderOutline()
+    fireEvent.change(screen.getByLabelText('Outline depth'), { target: { value: '4' } })
+    const scrollPreviewToHeading = setPreviewRouting('editor-1', true)
+    const search = screen.getByLabelText('Search outline') as HTMLInputElement
+
+    fireEvent.change(search, { target: { value: 'alpha' } })
+    fireEvent.keyDown(search, { key: 'Enter' })
+    fireEvent.keyDown(search, { key: 'Enter' })
+    fireEvent.keyDown(search, { key: 'Enter' })
+    fireEvent.keyDown(search, { key: 'Enter' })
+
+    expect(scrollPreviewToHeading.mock.calls.map((call) => call[0])).toEqual([
+      'Alpha',
+      'Beta Alpha',
+      'Alpha Deep',
+      'Alpha',
+    ])
+    expect(editor.revealLineInCenter).not.toHaveBeenCalled()
+    expect(screen.getAllByTestId('outline-heading-row').some((row) => row.textContent === 'Alpha Deep')).toBe(true)
+    expect(search.value).toBe('alpha')
+    expect((screen.getByLabelText('Outline depth') as HTMLSelectElement).value).toBe('4')
+
+    setPreviewRouting('editor-1', false, scrollPreviewToHeading)
+
+    expect(search.value).toBe('alpha')
+    expect((screen.getByLabelText('Outline depth') as HTMLSelectElement).value).toBe('4')
+    expect(screen.getAllByTestId('outline-heading-row').some((row) => row.textContent === 'Alpha Deep')).toBe(true)
+    fireEvent.keyDown(search, { key: 'Enter' })
+    expect(editor.revealLineInCenter).toHaveBeenLastCalledWith(2)
   })
 
   it('T-I-016 resets search cycle index when the query changes', () => {
