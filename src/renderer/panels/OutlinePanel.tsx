@@ -155,8 +155,9 @@ export default function OutlinePanel({ panelId, workspaceId, sourceEditorPanelId
       .filter((index) => index >= 0)
   }, [headings, trimmedQuery])
 
-  const navigateToHeading = useCallback((heading: DocumentHeading) => {
+  const navigateToHeading = useCallback((heading: DocumentHeading, options: { focusEditor?: boolean } = {}) => {
     const { editor, markdownPreview, model, scrollPreviewToHeading } = snapshot
+    const focusEditor = options.focusEditor ?? true
     setCursorLine(heading.line)
     if (markdownPreview) {
       scrollPreviewToHeading?.(heading.text, headingOccurrenceIndex(model, heading))
@@ -165,7 +166,7 @@ export default function OutlinePanel({ panelId, workspaceId, sourceEditorPanelId
     if (!isUsableEditor(editor, model)) return
     editor.revealLineInCenter(heading.line)
     editor.setPosition({ lineNumber: heading.line, column: 1 })
-    editor.focus()
+    if (focusEditor) editor.focus()
   }, [snapshot])
 
   const clearSearch = useCallback(() => {
@@ -184,7 +185,7 @@ export default function OutlinePanel({ panelId, workspaceId, sourceEditorPanelId
     const next = (searchMatchIdx + 1) % matchingIndexes.length
     const headingIndex = matchingIndexes[next]
     setSearchMatchIdx(next)
-    navigateToHeading(headings[headingIndex])
+    navigateToHeading(headings[headingIndex], { focusEditor: false })
   }
 
   return (

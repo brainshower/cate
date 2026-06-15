@@ -411,22 +411,31 @@ describe('OutlinePanel source mode', () => {
   it('T-I-015 cycles search matches, wraps, applies focus styling, and navigates source lines', () => {
     const { editor } = bindEditor('editor-1', '# Alpha\n## Beta Alpha')
     renderOutline()
-    const search = screen.getByLabelText('Search outline')
+    const search = screen.getByLabelText('Search outline') as HTMLInputElement
+    search.focus()
 
     fireEvent.change(search, { target: { value: 'alpha' } })
     fireEvent.keyDown(search, { key: 'Enter' })
     expect(editor.revealLineInCenter).toHaveBeenLastCalledWith(1)
+    expect(editor.setPosition).toHaveBeenLastCalledWith({ lineNumber: 1, column: 1 })
+    expect(editor.focus).not.toHaveBeenCalled()
+    expect(document.activeElement).toBe(search)
     let rows = screen.getAllByTestId('outline-heading-row')
     expect(rows[0].className).toContain('bg-blue-500')
     expect(rows[1].className).not.toContain('bg-blue-500')
 
     fireEvent.keyDown(search, { key: 'Enter' })
     expect(editor.revealLineInCenter).toHaveBeenLastCalledWith(2)
+    expect(editor.setPosition).toHaveBeenLastCalledWith({ lineNumber: 2, column: 1 })
+    expect(editor.focus).not.toHaveBeenCalled()
+    expect(document.activeElement).toBe(search)
     rows = screen.getAllByTestId('outline-heading-row')
     expect(rows[0].className).not.toContain('bg-blue-500')
     expect(rows[1].className).toContain('bg-blue-500')
     fireEvent.keyDown(search, { key: 'Enter' })
     expect(editor.revealLineInCenter).toHaveBeenLastCalledWith(1)
+    expect(editor.focus).not.toHaveBeenCalled()
+    expect(document.activeElement).toBe(search)
   })
 
   it('T-I-027 Enter-to-cycle uses preview routing for each match, wraps, and preserves state across preview toggles', () => {
