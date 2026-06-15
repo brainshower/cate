@@ -315,6 +315,7 @@ describe('appStore.createOutline', () => {
       expect(liveDockStore.getState().zones.center.layout).toMatchObject({
         type: 'split',
         direction: 'horizontal',
+        ratios: [2 / 3, 1 / 3],
         children: [
           { type: 'tabs', id: 'stack-1', panelIds: [sourcePanelId], activeIndex: 0 },
           { type: 'tabs', panelIds: [outlinePanelId], activeIndex: 0 },

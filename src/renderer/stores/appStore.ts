@@ -257,6 +257,8 @@ export type PanelPlacement =
    *  workspace.panels record only. */
   | { target: 'none' }
 
+const CANVAS_OUTLINE_SPLIT_RATIOS: [number, number] = [2 / 3, 1 / 3]
+
 // -----------------------------------------------------------------------------
 // Worktree colors — fixed palette assigned round-robin to new worktrees.
 // Picked to be visually distinct in both light and dark themes.
@@ -573,7 +575,7 @@ function layoutWithPanelSplitRight(
         panelIds: [sourcePanelId],
         activeIndex: 0,
       }, newStack],
-      ratios: [0.68, 0.32],
+      ratios: CANVAS_OUTLINE_SPLIT_RATIOS,
     }
   }
 
@@ -592,7 +594,7 @@ function layoutWithPanelSplitRight(
     id: generateId(),
     direction: 'horizontal',
     children: [sourceOnlyStack, newStack],
-    ratios: [0.68, 0.32],
+    ratios: CANVAS_OUTLINE_SPLIT_RATIOS,
   }
   return replaceStackInLayout(layout, sourceStack.id, splitNode)
 }
@@ -626,7 +628,12 @@ function placePanelInCanvasNode(
     const sourceIndex = sourceStack?.panelIds.indexOf(sourcePanelId) ?? -1
     if (sourceStack) {
       const dockTarget: DockDropTarget = mode === 'split-right'
-        ? { type: 'split', stackId: sourceStack.id, edge: 'right' }
+        ? {
+            type: 'split',
+            stackId: sourceStack.id,
+            edge: 'right',
+            ratios: CANVAS_OUTLINE_SPLIT_RATIOS,
+          }
         : {
             type: 'tab',
             stackId: sourceStack.id,

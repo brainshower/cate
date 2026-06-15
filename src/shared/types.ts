@@ -440,7 +440,7 @@ export type PanelLocation =
 
 /** Drop target for dock drag-and-drop */
 export type DockDropTarget =
-  | { type: 'split'; stackId: string; edge: 'top' | 'bottom' | 'left' | 'right' }
+  | { type: 'split'; stackId: string; edge: 'top' | 'bottom' | 'left' | 'right'; ratios?: [number, number] }
   | { type: 'tab'; stackId: string; index?: number }
   | { type: 'newWindow'; screenPosition: Point }
   | { type: 'zone'; zone: DockZonePosition }

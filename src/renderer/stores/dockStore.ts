@@ -138,6 +138,7 @@ function insertIntoSplit(
   refIndex: number,
   newChild: DockLayoutNode,
   isAfter: boolean = true,
+  splitRatios?: [number, number],
 ): DockLayoutNode {
   if (root.type === 'tabs') return root
   if (root.type === 'split' && root.id === splitId) {
@@ -145,16 +146,17 @@ function insertIntoSplit(
     const insertPos = isAfter ? refIndex + 1 : refIndex
     newChildren.splice(insertPos, 0, newChild)
     const newRatios = [...root.ratios]
-    // Split the existing sibling's ratio in half for the new child
-    const share = newRatios[refIndex] / 2
-    newRatios[refIndex] = share
-    newRatios.splice(insertPos, 0, share)
+    const sourceShare = newRatios[refIndex]
+    const existingRatio = splitRatios ? splitRatios[isAfter ? 0 : 1] : 0.5
+    const newRatio = splitRatios ? splitRatios[isAfter ? 1 : 0] : 0.5
+    newRatios[refIndex] = sourceShare * existingRatio
+    newRatios.splice(insertPos, 0, sourceShare * newRatio)
     return { ...root, children: newChildren, ratios: newRatios }
   }
   return {
     ...root,
     children: root.children.map((child) =>
-      insertIntoSplit(child, splitId, refIndex, newChild, isAfter),
+      insertIntoSplit(child, splitId, refIndex, newChild, isAfter, splitRatios),
     ),
   }
 }
@@ -286,6 +288,7 @@ export function createDockStore(initialState?: { zones: WindowDockState; locatio
               parentInfo.index,
               newStack,
               isAfter,
+              target.ratios,
             )
           } else {
             const splitNode: DockSplitNode = {
@@ -293,7 +296,7 @@ export function createDockStore(initialState?: { zones: WindowDockState; locatio
               id: generateId(),
               direction,
               children: isAfter ? [existingStack, newStack] : [newStack, existingStack],
-              ratios: [0.5, 0.5],
+              ratios: target.ratios ?? [0.5, 0.5],
             }
             newLayout = replaceInTree(newLayout, target.stackId, splitNode)
           }
