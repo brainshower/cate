@@ -77,8 +77,8 @@ class MockEditor implements ActiveEditorLike {
   }
 }
 
-function renderOutline(panelId = 'outline-1') {
-  return render(<OutlinePanel panelId={panelId} workspaceId="workspace-1" />)
+function renderOutline(panelId = 'outline-1', sourceEditorPanelId?: string) {
+  return render(<OutlinePanel panelId={panelId} workspaceId="workspace-1" sourceEditorPanelId={sourceEditorPanelId} />)
 }
 
 function bindEditor(panelId: string, text: string) {
@@ -108,6 +108,22 @@ describe('OutlinePanel source mode', () => {
     cleanup()
     vi.useRealTimers()
     clearActiveEditorRegistryForTests()
+  })
+
+  it('binds an Outline panel to its source editor instead of the active editor', () => {
+    const first = bindEditor('editor-1', '# First File\n## First Target')
+    const second = bindEditor('editor-2', '# Second File\n## Second Target')
+
+    renderOutline('outline-editor-1', 'editor-1')
+
+    expect(screen.getByText('First File')).toBeTruthy()
+    expect(screen.queryByText('Second File')).toBeNull()
+
+    fireEvent.click(screen.getByText('First Target'))
+
+    expect(first.editor.revealLineInCenter).toHaveBeenCalledWith(2)
+    expect(second.editor.revealLineInCenter).not.toHaveBeenCalled()
+    expect(second.editor.setPosition).not.toHaveBeenCalled()
   })
 
   it('T-I-001 renders depth options with H1-H3 selected by default', () => {
@@ -269,6 +285,9 @@ describe('OutlinePanel source mode', () => {
     fireEvent.click(screen.getByText('Two'))
 
     expect(scrollPreviewToHeading).toHaveBeenCalledWith('Two', 0)
+    const rows = screen.getAllByTestId('outline-heading-row')
+    expect(rows[0].className).not.toContain('bg-blue-500/15')
+    expect(rows[1].className).toContain('bg-blue-500/15')
     expect(editor.revealLineInCenter).not.toHaveBeenCalled()
     expect(editor.setPosition).not.toHaveBeenCalled()
     expect(editor.focus).not.toHaveBeenCalled()

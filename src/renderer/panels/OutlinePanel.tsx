@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { X } from '@phosphor-icons/react'
 import {
   getActiveEditorSnapshot,
+  getEditorSnapshotForPanel,
   subscribeActiveEditor,
   type ActiveEditorLike,
   type ActiveEditorModelLike,
@@ -9,7 +10,7 @@ import {
   type DisposableLike,
 } from '../lib/activeEditorRegistry'
 import { parseDocumentHeadings, slugifyHeading, type DocumentHeading } from '../lib/parseDocumentHeadings'
-import type { PanelProps } from './types'
+import type { OutlinePanelProps } from './types'
 
 const DEPTH_OPTIONS = [2, 3, 4, 5, 6] as const
 const INDENTS: Record<number, number> = {
@@ -40,6 +41,14 @@ function nearestHeadingIndex(headings: DocumentHeading[], cursorLine: number): n
 function currentCursorLine(editor: ActiveEditorLike): number {
   const lineNumber = editor.getPosition?.()?.lineNumber
   return typeof lineNumber === 'number' && lineNumber > 0 ? lineNumber : 1
+}
+
+function sameSnapshot(a: ActiveEditorSnapshot, b: ActiveEditorSnapshot): boolean {
+  return a.panelId === b.panelId
+    && a.editor === b.editor
+    && a.model === b.model
+    && a.markdownPreview === b.markdownPreview
+    && a.scrollPreviewToHeading === b.scrollPreviewToHeading
 }
 
 function escapeRegExp(value: string): string {
@@ -73,7 +82,7 @@ function HighlightedHeadingText({ text, query }: { text: string; query: string }
   )
 }
 
-export default function OutlinePanel({ panelId, workspaceId }: PanelProps) {
+export default function OutlinePanel({ panelId, workspaceId, sourceEditorPanelId }: OutlinePanelProps) {
   const [snapshot, setSnapshot] = useState<ActiveEditorSnapshot>(() => getActiveEditorSnapshot(workspaceId))
   const [headings, setHeadings] = useState<DocumentHeading[]>([])
   const [maxDepth, setMaxDepth] = useState(3)
@@ -84,10 +93,15 @@ export default function OutlinePanel({ panelId, workspaceId }: PanelProps) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    const refresh = () => setSnapshot(getActiveEditorSnapshot(workspaceId))
+    const refresh = () => {
+      const nextSnapshot = sourceEditorPanelId
+        ? getEditorSnapshotForPanel(workspaceId, sourceEditorPanelId)
+        : getActiveEditorSnapshot(workspaceId)
+      setSnapshot((current) => sameSnapshot(current, nextSnapshot) ? current : nextSnapshot)
+    }
     refresh()
     return subscribeActiveEditor(workspaceId, refresh)
-  }, [workspaceId])
+  }, [workspaceId, sourceEditorPanelId])
 
   const parseCurrentModel = useCallback((model = snapshot.model) => {
     if (!model || model.isDisposed?.()) {
@@ -143,6 +157,7 @@ export default function OutlinePanel({ panelId, workspaceId }: PanelProps) {
 
   const navigateToHeading = useCallback((heading: DocumentHeading) => {
     const { editor, markdownPreview, model, scrollPreviewToHeading } = snapshot
+    setCursorLine(heading.line)
     if (markdownPreview) {
       scrollPreviewToHeading?.(heading.text, headingOccurrenceIndex(model, heading))
       return

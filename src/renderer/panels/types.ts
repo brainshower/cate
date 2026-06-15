@@ -31,6 +31,10 @@ export interface BrowserPanelProps extends PanelProps {
   url?: string
 }
 
+export interface OutlinePanelProps extends PanelProps {
+  sourceEditorPanelId?: string
+}
+
 // -----------------------------------------------------------------------------
 // Panel display helpers
 // -----------------------------------------------------------------------------

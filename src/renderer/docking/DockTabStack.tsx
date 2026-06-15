@@ -22,6 +22,17 @@ const PANEL_TYPE_LABELS: Record<PanelType, string> = Object.fromEntries(
   (Object.keys(PANEL_DEFINITIONS) as PanelType[]).map((t) => [t, PANEL_DEFINITIONS[t].label]),
 ) as Record<PanelType, string>
 
+function getCenterEdgeStyle(leftEdge?: boolean, rightEdge?: boolean): React.CSSProperties | undefined {
+  if (!leftEdge && !rightEdge) return undefined
+
+  const leftInset = leftEdge ? 'var(--cate-left-sidebar-width, 0px)' : '0px'
+  const rightInset = rightEdge ? 'var(--cate-right-sidebar-width, 0px)' : '0px'
+  return {
+    ...(leftEdge ? { marginLeft: leftInset } : null),
+    width: `calc(100% - ${leftInset} - ${rightInset})`,
+  }
+}
+
 interface DockTabStackProps {
   stack: DockTabStackType
   zone: 'left' | 'right' | 'bottom' | 'center'
@@ -209,6 +220,13 @@ export default function DockTabStack({ stack, zone: zoneProp, renderPanel, getPa
     return { draggedPanelId: dragSource.panelId, originalIndex: idx }
   }, [showTabPlaceholder, dragSource, stack.id, stack.panelIds])
 
+  const centerChromeEdgeStyle = zoneProp === 'center'
+    ? getCenterEdgeStyle(leftEdge, rightEdge)
+    : undefined
+  const centerContentEdgeStyle = zoneProp === 'center' && activePanel?.type !== 'canvas'
+    ? getCenterEdgeStyle(leftEdge, rightEdge)
+    : undefined
+
   return (
     <div ref={stackRef} className="flex flex-col h-full w-full min-h-0 min-w-0 overflow-hidden relative">
       {/* Tab bar — VS Code style: dark strip with active tab merging into the
@@ -218,12 +236,7 @@ export default function DockTabStack({ stack, zone: zoneProp, renderPanel, getPa
         style={{
           backgroundColor: 'var(--node-chrome-bg, var(--surface-1))',
           ...(onTabBarMouseDown ? { cursor: 'grab' } : null),
-          ...(zoneProp === 'center' && leftEdge
-            ? { marginLeft: 'var(--cate-left-sidebar-width, 0px)' }
-            : null),
-          ...(zoneProp === 'center' && rightEdge
-            ? { marginRight: 'var(--cate-right-sidebar-width, 0px)' }
-            : null),
+          ...centerChromeEdgeStyle,
         }}
         onContextMenu={onEmptyContextMenu}
         onMouseDown={(e) => {
@@ -335,14 +348,7 @@ export default function DockTabStack({ stack, zone: zoneProp, renderPanel, getPa
       {/* Active panel content */}
       <div
         className="flex-1 min-h-0 min-w-0 w-full overflow-hidden"
-        style={{
-          ...(zoneProp === 'center' && leftEdge && activePanel?.type !== 'canvas'
-            ? { marginLeft: 'var(--cate-left-sidebar-width, 0px)' }
-            : null),
-          ...(zoneProp === 'center' && rightEdge && activePanel?.type !== 'canvas'
-            ? { marginRight: 'var(--cate-right-sidebar-width, 0px)' }
-            : null),
-        }}
+        style={centerContentEdgeStyle}
       >
         {activePanelId ? renderPanel(activePanelId) : (
           <div className="flex items-center justify-center h-full text-muted text-sm">

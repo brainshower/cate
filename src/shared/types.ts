@@ -109,6 +109,9 @@ export interface PanelState {
   unsavedContent?: string
   /** Outline panels only: editor panel that opened this Outline instance. */
   sourceEditorPanelId?: string
+  /** Outline panels only: canvas node that owns the source editor, when local
+   *  to a canvas node rather than Cate's global right dock. */
+  sourceCanvasNodeId?: string
   /** Terminal panels only: explicit working directory override. When unset
    *  the terminal uses the workspace's `rootPath`. Set when the terminal was
    *  created from a dropped folder or worktree to scope it to that path. */

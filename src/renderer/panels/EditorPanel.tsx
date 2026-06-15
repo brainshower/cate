@@ -431,10 +431,11 @@ export default function EditorPanel({
     useAppStore.getState().createOutline(
       workspaceId,
       undefined,
-      { target: 'dock', zone: 'right' },
+      nodeId ? { target: 'none' } : { target: 'dock', zone: 'right' },
       panelId,
+      nodeId || undefined,
     )
-  }, [associatedOutlinePanelId, workspaceId, panelId])
+  }, [associatedOutlinePanelId, workspaceId, panelId, nodeId])
 
   useEffect(() => {
     setFlashQueryStatus(null)

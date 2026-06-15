@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearActiveEditorRegistryForTests,
   getActiveEditorSnapshot,
+  getEditorSnapshotForPanel,
   registerActiveEditor,
   subscribeActiveEditor,
   unregisterActiveEditor,
@@ -59,6 +60,23 @@ describe('activeEditorRegistry', () => {
     expect(getActiveEditorSnapshot('workspace-1')).toMatchObject({
       panelId: 'panel-2',
       editor: second,
+    })
+  })
+
+  it('returns a snapshot for a specific editor panel without using active focus', () => {
+    const first = editor(model())
+    const second = editor(model())
+
+    registerActiveEditor('workspace-1', 'panel-1', first)
+    registerActiveEditor('workspace-1', 'panel-2', second)
+
+    expect(getActiveEditorSnapshot('workspace-1')).toMatchObject({
+      panelId: 'panel-2',
+      editor: second,
+    })
+    expect(getEditorSnapshotForPanel('workspace-1', 'panel-1')).toMatchObject({
+      panelId: 'panel-1',
+      editor: first,
     })
   })
 

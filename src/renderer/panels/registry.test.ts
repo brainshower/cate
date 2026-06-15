@@ -143,6 +143,25 @@ describe('PANEL_REGISTRY outline entry', () => {
     expect(createOutline).toHaveBeenCalledWith('workspace-1', canvasPoint, placement)
   })
 
+  it('passes source editor metadata to rendered Outline panels', async () => {
+    const { renderPanelComponent } = await import('./registry')
+
+    const element = renderPanelComponent(
+      {
+        id: 'outline-1',
+        type: 'outline',
+        sourceEditorPanelId: 'editor-1',
+      },
+      { workspaceId: 'workspace-1', nodeId: 'node-1' },
+    )
+
+    expect(element?.props).toMatchObject({
+      panelId: 'outline-1',
+      workspaceId: 'workspace-1',
+      sourceEditorPanelId: 'editor-1',
+    })
+  })
+
   it('T-U-006 returns null when app-store Outline creation fails', async () => {
     const { PANEL_REGISTRY } = await import('./registry')
     createOutline.mockReturnValueOnce('')

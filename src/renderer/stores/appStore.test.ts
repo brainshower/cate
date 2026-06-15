@@ -247,6 +247,171 @@ describe('appStore.createOutline', () => {
       zone: 'right',
     })
   })
+
+  it('opens canvas Outline as a right split in the source canvas node', () => {
+    const addNodeAndFocus = vi.fn()
+    const setNodeDockLayout = vi.fn()
+    const focusNode = vi.fn()
+    const sourcePanelId = useAppStore.getState().createEditor(
+      workspaceId,
+      'flashquery://workspace-1/Docs/Plan.md',
+      { x: 100, y: 120 },
+      { target: 'canvas', position: { x: 100, y: 120 } },
+    )
+    const initialLayout = {
+      type: 'tabs' as const,
+      id: 'stack-1',
+      panelIds: [sourcePanelId],
+      activeIndex: 0,
+    }
+    const liveDockStore = createDockStore({
+      zones: {
+        left: { position: 'left', visible: false, size: 260, layout: null },
+        right: { position: 'right', visible: false, size: 260, layout: null },
+        bottom: { position: 'bottom', visible: false, size: 240, layout: null },
+        center: { position: 'center', visible: true, size: 0, layout: initialLayout },
+      },
+      locations: {
+        [sourcePanelId]: { type: 'dock', zone: 'center', stackId: 'stack-1' },
+      },
+    })
+    registerNodeDockStore('canvas-1', 'node-1', liveDockStore)
+    setCanvasOperations(makeCanvasOpsWithNode(
+      sourcePanelId,
+      { x: 100, y: 120 },
+      { width: 640, height: 420 },
+      {
+        addNodeAndFocus,
+        storeApi: {
+          getState: () => ({
+            nodeForPanel: (candidate: string) => candidate === sourcePanelId ? 'node-1' : null,
+            nodes: {
+              'node-1': {
+                id: 'node-1',
+                panelId: sourcePanelId,
+                origin: { x: 100, y: 120 },
+                size: { width: 640, height: 420 },
+                zOrder: 1,
+                creationIndex: 1,
+                dockLayout: initialLayout,
+              },
+            },
+            setNodeDockLayout,
+            focusNode,
+          }),
+        } as unknown as CanvasOperations['storeApi'],
+      },
+    ))
+
+    try {
+      const outlinePanelId = useAppStore.getState().createOutline(
+        workspaceId,
+        undefined,
+        { target: 'none' },
+        sourcePanelId,
+      )
+
+      expect(addNodeAndFocus).not.toHaveBeenCalled()
+      expect(liveDockStore.getState().zones.center.layout).toMatchObject({
+        type: 'split',
+        direction: 'horizontal',
+        children: [
+          { type: 'tabs', id: 'stack-1', panelIds: [sourcePanelId], activeIndex: 0 },
+          { type: 'tabs', panelIds: [outlinePanelId], activeIndex: 0 },
+        ],
+      })
+      expect(setNodeDockLayout).toHaveBeenCalledWith('node-1', liveDockStore.getState().zones.center.layout)
+      expect(useDockStore.getState().panelLocations[outlinePanelId]).toBeUndefined()
+      expect(focusNode).toHaveBeenCalledWith('node-1')
+    } finally {
+      unregisterNodeDockStore('canvas-1', 'node-1')
+    }
+  })
+
+  it('uses the explicit source canvas node id when panel lookup misses the source editor', () => {
+    const addNodeAndFocus = vi.fn()
+    const setNodeDockLayout = vi.fn()
+    const focusNode = vi.fn()
+    const sourcePanelId = useAppStore.getState().createEditor(
+      workspaceId,
+      'flashquery://workspace-1/Docs/Plan.md',
+      undefined,
+      { target: 'none' },
+    )
+    const initialLayout = {
+      type: 'tabs' as const,
+      id: 'stack-1',
+      panelIds: [sourcePanelId],
+      activeIndex: 0,
+    }
+    const liveDockStore = createDockStore({
+      zones: {
+        left: { position: 'left', visible: false, size: 260, layout: null },
+        right: { position: 'right', visible: false, size: 260, layout: null },
+        bottom: { position: 'bottom', visible: false, size: 240, layout: null },
+        center: { position: 'center', visible: true, size: 0, layout: initialLayout },
+      },
+      locations: {
+        [sourcePanelId]: { type: 'dock', zone: 'center', stackId: 'stack-1' },
+      },
+    })
+    registerNodeDockStore('canvas-1', 'node-1', liveDockStore)
+    setCanvasOperations(makeCanvasOpsWithNode(
+      sourcePanelId,
+      { x: 100, y: 120 },
+      { width: 640, height: 420 },
+      {
+        addNodeAndFocus,
+        storeApi: {
+          getState: () => ({
+            nodeForPanel: () => null,
+            nodes: {
+              'node-1': {
+                id: 'node-1',
+                panelId: sourcePanelId,
+                origin: { x: 100, y: 120 },
+                size: { width: 640, height: 420 },
+                zOrder: 1,
+                creationIndex: 1,
+                dockLayout: initialLayout,
+              },
+            },
+            setNodeDockLayout,
+            focusNode,
+          }),
+        } as unknown as CanvasOperations['storeApi'],
+      },
+    ))
+
+    try {
+      const outlinePanelId = useAppStore.getState().createOutline(
+        workspaceId,
+        undefined,
+        { target: 'none' },
+        sourcePanelId,
+        'node-1',
+      )
+
+      expect(useAppStore.getState().workspaces[0].panels[outlinePanelId]).toMatchObject({
+        type: 'outline',
+        sourceEditorPanelId: sourcePanelId,
+        sourceCanvasNodeId: 'node-1',
+      })
+      expect(liveDockStore.getState().zones.center.layout).toMatchObject({
+        type: 'split',
+        direction: 'horizontal',
+        children: [
+          { type: 'tabs', id: 'stack-1', panelIds: [sourcePanelId], activeIndex: 0 },
+          { type: 'tabs', panelIds: [outlinePanelId], activeIndex: 0 },
+        ],
+      })
+      expect(addNodeAndFocus).not.toHaveBeenCalled()
+      expect(setNodeDockLayout).toHaveBeenCalledWith('node-1', liveDockStore.getState().zones.center.layout)
+      expect(focusNode).toHaveBeenCalledWith('node-1')
+    } finally {
+      unregisterNodeDockStore('canvas-1', 'node-1')
+    }
+  })
 })
 
 describe('appStore.createEditor', () => {

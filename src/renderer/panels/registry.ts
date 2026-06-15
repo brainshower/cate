@@ -191,7 +191,7 @@ export function getPanelDef(type: PanelType | string): RendererPanelDefinition {
  *  the panel state itself, so callers don't need to know which extras any
  *  given type expects. Caller wraps in <Suspense> at the boundary it wants. */
 export function renderPanelComponent(
-  panel: { type: PanelType; id: string; filePath?: string; url?: string },
+  panel: { type: PanelType; id: string; filePath?: string; url?: string; sourceEditorPanelId?: string },
   ctx: { workspaceId: string; nodeId: string; zoomLevel?: number },
 ): React.ReactElement | null {
   const def = PANEL_REGISTRY[panel.type]
@@ -205,6 +205,7 @@ export function renderPanelComponent(
     extras.url = panel.url
     extras.zoomLevel = ctx.zoomLevel ?? 1
   }
+  if (panel.type === 'outline') extras.sourceEditorPanelId = panel.sourceEditorPanelId
   const props: PanelProps & Record<string, unknown> = {
     panelId: panel.id,
     workspaceId: ctx.workspaceId,

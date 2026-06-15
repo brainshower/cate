@@ -26,4 +26,13 @@ describe('CanvasPanel node dock registry lifecycle', () => {
     expect(dockStackSource).toContain(rootClass)
     expect(dockStackSource).toContain(contentClass)
   })
+
+  it('reserves real width for global sidebars on center-edge dock stacks', () => {
+    const dockStackSource = readFileSync('src/renderer/docking/DockTabStack.tsx', 'utf8')
+
+    expect(dockStackSource).toContain('function getCenterEdgeStyle')
+    expect(dockStackSource).toContain('width: `calc(100% - ${leftInset} - ${rightInset})`')
+    expect(dockStackSource).toContain("rightEdge ? 'var(--cate-right-sidebar-width, 0px)' : '0px'")
+    expect(dockStackSource).toContain("style={centerContentEdgeStyle}")
+  })
 })

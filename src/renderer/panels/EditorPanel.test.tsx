@@ -330,7 +330,7 @@ describe('EditorPanel FlashQuery URI routing', () => {
     expect(screen.queryByLabelText('Toggle document outline')).toBeNull()
   })
 
-  it('T-I-019 opens Outline in the right dock zone with source editor association', async () => {
+  it('T-I-019 opens Outline in the right dock zone for a docked editor with source editor association', async () => {
     await renderEditor('flashquery://workspace-1/Docs/Outline-Open.md')
 
     fireEvent.click(screen.getByLabelText('Toggle document outline'))
@@ -345,6 +345,28 @@ describe('EditorPanel FlashQuery URI routing', () => {
       type: 'dock',
       zone: 'right',
     })
+  })
+
+  it('opens Outline inside the source canvas node when the editor is canvas-mounted', async () => {
+    const panel = makePanel('flashquery://workspace-1/Docs/Canvas-Outline.md')
+    seedWorkspace(panel)
+    const originalCreateOutline = useAppStore.getState().createOutline
+    const createOutline = vi.fn()
+    useAppStore.setState({ createOutline } as Partial<ReturnType<typeof useAppStore.getState>>)
+
+    render(<EditorPanel panelId={panelId} workspaceId={workspaceId} nodeId="node-1" filePath={panel.filePath} />)
+    await waitFor(() => expect(monacoMock().latestEditor()?.getModel()).toBeTruthy())
+
+    fireEvent.click(screen.getByLabelText('Toggle document outline'))
+
+    expect(createOutline).toHaveBeenCalledWith(
+      workspaceId,
+      undefined,
+      { target: 'none' },
+      panelId,
+      'node-1',
+    )
+    useAppStore.setState({ createOutline: originalCreateOutline } as Partial<ReturnType<typeof useAppStore.getState>>)
   })
 
   it('T-I-020 closes only the associated Outline panel and preserves unrelated right-zone panels', async () => {

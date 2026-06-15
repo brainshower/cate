@@ -111,13 +111,22 @@ export function unregisterActiveEditor(workspaceId: string, panelId: string): vo
 export function getActiveEditorSnapshot(workspaceId: string): ActiveEditorSnapshot {
   const panelId = activePanelIds.get(workspaceId) ?? null
   const entry = panelId ? entries.get(workspaceId)?.get(panelId) : null
+  return snapshotFromEntry(entry ?? null)
+}
+
+export function getEditorSnapshotForPanel(workspaceId: string, panelId: string): ActiveEditorSnapshot {
+  const entry = entries.get(workspaceId)?.get(panelId) ?? null
+  return snapshotFromEntry(entry)
+}
+
+function snapshotFromEntry(entry: ActiveEditorEntry | null): ActiveEditorSnapshot {
   if (!entry || entry.editor.isDisposed?.()) {
     return { panelId: null, editor: null, model: null, markdownPreview: false }
   }
   const model = safeModel(entry.editor)
   entry.model = model
   return {
-    panelId,
+    panelId: entry.panelId,
     editor: entry.editor,
     model,
     markdownPreview: entry.markdownPreview,
