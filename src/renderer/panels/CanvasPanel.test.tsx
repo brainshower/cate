@@ -17,4 +17,13 @@ describe('CanvasPanel node dock registry lifecycle', () => {
     expect(lifecycleBlock).toContain('registerNodeDockStore(canvasPanelId, nodeId, dockStoreApi)')
     expect(lifecycleBlock).toContain('unregisterNodeDockStore(canvasPanelId, nodeId)')
   })
+
+  it('keeps canvas-node dock stacks width-contained so child panel controls cannot overflow', () => {
+    const dockStackSource = readFileSync('src/renderer/docking/DockTabStack.tsx', 'utf8')
+    const rootClass = 'className="flex flex-col h-full w-full min-h-0 min-w-0 overflow-hidden relative"'
+    const contentClass = 'className="flex-1 min-h-0 min-w-0 w-full overflow-hidden"'
+
+    expect(dockStackSource).toContain(rootClass)
+    expect(dockStackSource).toContain(contentClass)
+  })
 })

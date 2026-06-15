@@ -37,3 +37,12 @@ updated: 2026-06-15
 - fix: Replaced the Outline panel/control classes with valid Cate theme utilities (`bg-surface-2`, `text-primary`, `border-subtle`, `placeholder:text-muted`, `focus:border-focus`) and compact prototype-aligned sizing. Added explicit containment classes to the panel, control band, select, search wrapper, and search input.
 - verification: Red `OutlinePanel.test.tsx` failed on missing containment/theme classes. Green `OutlinePanel.test.tsx` passed 27 tests. Focused outline/preview suite passed 4 files and 87 tests. `npm run typecheck` passed.
 - files_changed: `src/renderer/panels/OutlinePanel.tsx`, `src/renderer/panels/OutlinePanel.test.tsx`
+
+## Follow-up: Canvas Hosting Overflow
+
+- timestamp: 2026-06-15
+  observation: After the first fix, controls were visually themed but still extended past the right edge when Outline lived inside a Canvas node.
+- root_cause: Canvas-node mini-docks render panel content through `DockTabStack`. The stack root and active content wrapper did not carry horizontal containment classes (`w-full`, `min-w-0`, `overflow-hidden`), so child panel controls could still visually overflow in the compact Canvas host even when the Outline component itself used contained fields.
+- fix: Added width/min-width/overflow containment to `DockTabStack` root, tab bar, and active panel content wrapper.
+- verification: Red `CanvasPanel.test.tsx` failed on the missing dock-stack containment class contract. Green `CanvasPanel.test.tsx` + `OutlinePanel.test.tsx` passed 29 tests. Focused canvas/dock/outline/preview suite passed 6 files and 97 tests. `npm run typecheck` passed.
+- files_changed: `src/renderer/docking/DockTabStack.tsx`, `src/renderer/panels/CanvasPanel.test.tsx`

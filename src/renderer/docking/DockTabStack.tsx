@@ -210,11 +210,11 @@ export default function DockTabStack({ stack, zone: zoneProp, renderPanel, getPa
   }, [showTabPlaceholder, dragSource, stack.id, stack.panelIds])
 
   return (
-    <div ref={stackRef} className="flex flex-col h-full min-h-0 relative">
+    <div ref={stackRef} className="flex flex-col h-full w-full min-h-0 min-w-0 overflow-hidden relative">
       {/* Tab bar — VS Code style: dark strip with active tab merging into the
           content area below via a top accent border. */}
       <div
-        className={`dock-tab-bar flex items-stretch overflow-hidden ${compact ? 'min-h-[26px]' : 'min-h-[36px]'}`}
+        className={`dock-tab-bar flex min-w-0 items-stretch overflow-hidden ${compact ? 'min-h-[26px]' : 'min-h-[36px]'}`}
         style={{
           backgroundColor: 'var(--node-chrome-bg, var(--surface-1))',
           ...(onTabBarMouseDown ? { cursor: 'grab' } : null),
@@ -334,7 +334,7 @@ export default function DockTabStack({ stack, zone: zoneProp, renderPanel, getPa
 
       {/* Active panel content */}
       <div
-        className="flex-1 min-h-0 overflow-hidden"
+        className="flex-1 min-h-0 min-w-0 w-full overflow-hidden"
         style={{
           ...(zoneProp === 'center' && leftEdge && activePanel?.type !== 'canvas'
             ? { marginLeft: 'var(--cate-left-sidebar-width, 0px)' }
