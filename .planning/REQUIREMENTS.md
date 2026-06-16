@@ -35,17 +35,17 @@ Build the Cate-side Semantic Connections Inspector as an embeddings-only Markdow
 
 ### Preview Interaction and Selection Sync
 
-- [ ] **REQ-007:** Preview hover and click-pin semantics use `activeChunkId = hoveredChunkId || pinnedChunkId`, including clear-on-Esc, empty-space click, and whole-document affordance.
-- [ ] **REQ-008:** Preview text selection, links, and existing preview interactions remain normal; pinning uses click-level semantics, not drag/mousedown semantics.
-- [ ] **REQ-009:** Preview, Outline, and SC panel share a React/Zustand selection surface; production code does not use a browser `CustomEvent` bridge.
+- [x] **REQ-007:** Preview hover and click-pin semantics use `activeChunkId = hoveredChunkId || pinnedChunkId`, including clear-on-Esc, empty-space click, and whole-document affordance.
+- [x] **REQ-008:** Preview text selection, links, and existing preview interactions remain normal; pinning uses click-level semantics, not drag/mousedown semantics.
+- [x] **REQ-009:** Preview, Outline, and SC panel share a React/Zustand selection surface; production code does not use a browser `CustomEvent` bridge.
 - [ ] **REQ-010:** Clicking an Outline heading while preview mode is active scrolls preview and pins the matching chunk; source-mode Outline behavior remains unchanged.
 - [ ] **REQ-011:** Outline highlights shared selection when present and falls back to cursor-derived active-heading behavior otherwise.
 - [ ] **REQ-012:** Outline matches chunk IDs to headings by slug first and preview DOM fallback second.
 
 ### Preview Decorations
 
-- [ ] **REQ-013:** Active and pinned preview chunks render teal selection treatment through CSS classes on `[data-chunk-id]` wrappers.
-- [ ] **REQ-014:** Orange caution decorations render only from typed warn/caution edge data; embeddings-only mode shows no caution treatment.
+- [x] **REQ-013:** Active and pinned preview chunks render teal selection treatment through CSS classes on `[data-chunk-id]` wrappers.
+- [x] **REQ-014:** Orange caution decorations render only from typed warn/caution edge data; embeddings-only mode shows no caution treatment.
 
 ### SC Inspector Data Model
 

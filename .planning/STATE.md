@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Semantic Connections Inspector
 status: in_progress
-stopped_at: Completed 24-02-PLAN.md
-last_updated: "2026-06-16T21:00:17.402Z"
-last_activity: 2026-06-16 — Milestone v1.4 started
+stopped_at: Completed 24-04-PLAN.md
+last_updated: "2026-06-16T21:20:01Z"
+last_activity: 2026-06-16 — Completed Plan 24-04 shared preview selection
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 4
-  completed_plans: 3
-  percent: 75
+  completed_plans: 4
+  percent: 100
 ---
 
 # Project State
@@ -26,19 +26,19 @@ See: `.planning/PROJECT.md` (updated 2026-06-16 for v1.4 Semantic Connections In
 ## Current Position
 
 Phase: 24 — SC Inspector Foundation, Docking, Preview Chunks, and Selection
-Plan: 04 of 04 remaining in current phase wave
-Status: In progress
-Last activity: 2026-06-16 — Completed Plan 24-02 dock minimum-size enforcement
+Plan: 04 of 04 completed in current phase wave
+Status: Phase 24 complete; ready for Phase 25
+Last activity: 2026-06-16 — Completed Plan 24-04 shared preview selection
 
 ## Session Continuity
 
-Last session: 2026-06-16T21:00:17.383Z
-Stopped At: Completed 24-02-PLAN.md
+Last session: 2026-06-16T21:20:01Z
+Stopped At: Completed 24-04-PLAN.md
 Resume File: None
 
 ## Next Up
 
-Plan and execute Phase 24: SC Inspector Foundation, Docking, Preview Chunks, and Selection.
+Plan and execute Phase 25: Inspector UI, Adapter Boundary, Outline Sync, E2E, and Acceptance Polish.
 
 Phase 24 bundles the first three source implementation phases from the Semantic Connections Inspector requirements:
 
@@ -71,6 +71,8 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table.
 | 2026-06-16 | Tests from the supplied plan must land with the feature slices they verify. | Prevents a risky final test catch-up and keeps each feature set verified before moving on. |
 | 2026-06-16 | Dock minimum math lives in a pure helper module beside DockSplitContainer. | Keeps recursive dock math testable without renderer store side effects while preserving component-level resize wiring. |
 | 2026-06-16 | The 10% dock ratio floor remains secondary to panel-specific pixel minimums. | Satisfies REQ-035 while preserving the existing ratio-floor safety behavior. |
+| 2026-06-16 | Plan 24-04 uses a dedicated renderer-local Zustand store for preview hover/pin selection instead of CustomEvent preview bridges. | Gives Preview, Outline, and the SC shell one shared selection surface for Phase 25. |
+| 2026-06-16 | Plan 24-04 keeps Outline matching slug-based for the foundation; full two-pass DOM fallback remains Phase 25 scope. | Satisfies initial Outline awareness without pulling the final matching algorithm into the foundation phase. |
 
 ## Deferred Items
 
@@ -106,7 +108,8 @@ Items acknowledged and deferred at milestone close on 2026-06-16:
 | Phase | Plan | Duration | Tasks | Files |
 |---|---:|---:|---:|---:|
 | 24-sc-inspector-foundation-docking-preview-chunks-and-selection | 02 | 10min | 2 | 3 |
+| 24-sc-inspector-foundation-docking-preview-chunks-and-selection | 04 | 18min | 3 | 10 |
 
 ## Operator Next Steps
 
-- Continue Phase 24 with the remaining plan after the completed 24-01, 24-02, and concurrent 24-03 summaries.
+- Continue with Phase 25 after the completed 24-01 through 24-04 summaries.
