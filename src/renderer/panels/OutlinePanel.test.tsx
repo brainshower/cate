@@ -11,6 +11,7 @@ import {
   type DisposableLike,
 } from '../lib/activeEditorRegistry'
 import OutlinePanel from './OutlinePanel'
+import { clearPreviewSelectionForTests, usePreviewSelectionStore } from '../stores/previewSelectionStore'
 
 type Listener<T = void> = (event: T) => void
 
@@ -107,6 +108,7 @@ function setPreviewRouting(
 describe('OutlinePanel source mode', () => {
   beforeEach(() => {
     clearActiveEditorRegistryForTests()
+    clearPreviewSelectionForTests()
     vi.useRealTimers()
   })
 
@@ -114,6 +116,7 @@ describe('OutlinePanel source mode', () => {
     cleanup()
     vi.useRealTimers()
     clearActiveEditorRegistryForTests()
+    clearPreviewSelectionForTests()
   })
 
   it('binds an Outline panel to its source editor instead of the active editor', () => {
@@ -373,6 +376,33 @@ describe('OutlinePanel source mode', () => {
 
     fireEvent.click(screen.getByText('One'))
 
+    expect(editor.revealLineInCenter).not.toHaveBeenCalled()
+  })
+
+  it('T-I-036 uses shared selection highlight before falling back to cursor heading', () => {
+    const { editor } = bindEditor('editor-1', '# One\nbody\n## Two\nbody')
+    editor.emitCursor(1)
+    renderOutline()
+
+    act(() => usePreviewSelectionStore.getState().setHoveredChunkId('two'))
+
+    expect(screen.getByText('Two').closest('button')!.className).toContain('bg-blue-500/15')
+    expect(screen.getByText('One').closest('button')!.className).not.toContain('bg-blue-500/15')
+
+    act(() => usePreviewSelectionStore.getState().clearSelection())
+
+    expect(screen.getByText('One').closest('button')!.className).toContain('bg-blue-500/15')
+  })
+
+  it('T-I-037 pins the matching section when clicking an Outline row in preview mode', () => {
+    const { editor } = bindEditor('editor-1', '# One\nbody\n## Two\nbody')
+    renderOutline()
+    const { scrollPreviewToHeading } = setPreviewRouting('editor-1', true)
+
+    fireEvent.click(screen.getByText('Two'))
+
+    expect(scrollPreviewToHeading).toHaveBeenCalledWith('Two', 0)
+    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('two')
     expect(editor.revealLineInCenter).not.toHaveBeenCalled()
   })
 

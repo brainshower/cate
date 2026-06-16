@@ -9,7 +9,8 @@ import {
   type ActiveEditorSnapshot,
   type DisposableLike,
 } from '../lib/activeEditorRegistry'
-import { parseDocumentHeadings, slugifyHeading, type DocumentHeading } from '../lib/parseDocumentHeadings'
+import { createHeadingIdTracker, parseDocumentHeadings, slugifyHeading, type DocumentHeading } from '../lib/parseDocumentHeadings'
+import { usePreviewSelectionStore } from '../stores/previewSelectionStore'
 import type { OutlinePanelProps } from './types'
 
 const DEPTH_OPTIONS = [2, 3, 4, 5, 6] as const
@@ -68,6 +69,16 @@ function headingOccurrenceIndex(model: ActiveEditorModelLike | null, target: Doc
   return occurrence
 }
 
+function previewChunkIdByLine(model: ActiveEditorModelLike | null): Map<number, string> {
+  const ids = new Map<number, string>()
+  if (!model || model.isDisposed?.()) return ids
+  const nextChunkId = createHeadingIdTracker()
+  for (const heading of parseDocumentHeadings(model, 6)) {
+    ids.set(heading.line, nextChunkId(heading.text))
+  }
+  return ids
+}
+
 function HighlightedHeadingText({ text, query }: { text: string; query: string }) {
   const trimmed = query.trim()
   if (!trimmed) return <>{text}</>
@@ -90,6 +101,7 @@ export default function OutlinePanel({ panelId, workspaceId, sourceEditorPanelId
   const [searchQuery, setSearchQuery] = useState('')
   const [searchMatchIdx, setSearchMatchIdx] = useState(-1)
   const [cursorLine, setCursorLine] = useState(1)
+  const activeChunkId = usePreviewSelectionStore((state) => state.activeChunkId)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -146,7 +158,15 @@ export default function OutlinePanel({ panelId, workspaceId, sourceEditorPanelId
     }
   }, [parseCurrentModel, snapshot])
 
-  const activeHeadingIdx = useMemo(() => nearestHeadingIndex(headings, cursorLine), [headings, cursorLine])
+  const chunkIdsByLine = useMemo(() => previewChunkIdByLine(snapshot.model), [snapshot.model, headings])
+  const sharedActiveHeadingIdx = useMemo(() => {
+    if (!activeChunkId) return -1
+    return headings.findIndex((heading) => chunkIdsByLine.get(heading.line) === activeChunkId)
+  }, [activeChunkId, chunkIdsByLine, headings])
+  const activeHeadingIdx = useMemo(
+    () => sharedActiveHeadingIdx >= 0 ? sharedActiveHeadingIdx : nearestHeadingIndex(headings, cursorLine),
+    [headings, cursorLine, sharedActiveHeadingIdx],
+  )
   const trimmedQuery = searchQuery.trim()
   const matchingIndexes = useMemo(() => {
     if (!trimmedQuery) return []
@@ -162,6 +182,8 @@ export default function OutlinePanel({ panelId, workspaceId, sourceEditorPanelId
     setCursorLine(heading.line)
     if (markdownPreview) {
       scrollPreviewToHeading?.(heading.text, headingOccurrenceIndex(model, heading))
+      const chunkId = previewChunkIdByLine(model).get(heading.line)
+      if (chunkId) usePreviewSelectionStore.getState().selectSection(chunkId)
       return
     }
     if (!isUsableEditor(editor, model)) return
