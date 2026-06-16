@@ -86,3 +86,31 @@ describe('Document Outline shared panel definition', () => {
     expect(PANEL_CANVAS_DROP_SIZES.outline).toEqual({ width: 260, height: 460 })
   })
 })
+
+describe('Semantic Connections shared panel definition', () => {
+  it('T-U-001 registers semantic-connections as a panel type without casts', () => {
+    const panelType: PanelType = 'semantic-connections'
+
+    expect(PANEL_DEFINITIONS[panelType].type).toBe('semantic-connections')
+  })
+
+  it('T-U-001 locks Semantic Connections metadata, sizing, tint, ghost SVG, and canvas eligibility', () => {
+    expect(PANEL_DEFINITIONS['semantic-connections']).toMatchObject({
+      type: 'semantic-connections',
+      label: 'Connections',
+      brandColor: '#14B8A6',
+      switcherColor: '#14B8A6',
+      mutedColor: '#3f8f86',
+      tintClass: 'text-teal-400',
+      defaultSize: { width: 360, height: 400 },
+      minimumSize: { width: 330, height: 200 },
+      canLiveOnCanvas: true,
+    })
+    expect(PANEL_DEFINITIONS['semantic-connections'].ghostSvg).toContain('rgb(20,184,166)')
+    expect(PANEL_DEFINITIONS['semantic-connections'].ghostSvg).toContain('<path')
+  })
+
+  it('T-U-001 derives Semantic Connections canvas drop size from the shared panel table', () => {
+    expect(PANEL_CANVAS_DROP_SIZES['semantic-connections']).toEqual({ width: 360, height: 400 })
+  })
+})

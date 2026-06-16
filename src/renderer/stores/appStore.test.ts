@@ -415,6 +415,48 @@ describe('appStore.createOutline', () => {
   })
 })
 
+describe('appStore.createSemanticConnections', () => {
+  beforeEach(() => {
+    seedStore()
+    setCanvasOperations(makeCanvasOps())
+  })
+
+  it('T-U-003 creates a Semantic Connections panel in workspace state', () => {
+    const panelId = useAppStore.getState().createSemanticConnections(workspaceId)
+    const panel = useAppStore.getState().workspaces[0].panels[panelId]
+
+    expect(panel).toMatchObject({
+      id: panelId,
+      type: 'semantic-connections',
+      title: 'Connections',
+      isDirty: false,
+    })
+  })
+
+  it('T-U-003 places Semantic Connections panels in the right dock zone when requested', () => {
+    const panelId = useAppStore.getState().createSemanticConnections(workspaceId, undefined, {
+      target: 'dock',
+      zone: 'right',
+    })
+
+    expect(useDockStore.getState().panelLocations[panelId]).toMatchObject({
+      type: 'dock',
+      zone: 'right',
+    })
+  })
+
+  it('T-U-003 delegates canvas placement through the ordinary placement path', () => {
+    const addNodeAndFocus = vi.fn()
+    setCanvasOperations(makeCanvasOps({ addNodeAndFocus }))
+    const position = { x: 24, y: 48 }
+    const placement = { target: 'canvas' as const, position }
+
+    const panelId = useAppStore.getState().createSemanticConnections(workspaceId, { x: 1, y: 2 }, placement)
+
+    expect(addNodeAndFocus).toHaveBeenCalledWith(panelId, 'semantic-connections', position)
+  })
+})
+
 describe('appStore.createEditor', () => {
   beforeEach(() => {
     seedStore()

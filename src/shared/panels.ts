@@ -153,6 +153,18 @@ export const PANEL_DEFINITIONS: Record<PanelType, SharedPanelDefinition> = {
     ghostSvg: ghost('rgb(74,158,255)', '<line x1="8" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="8" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>'),
     canLiveOnCanvas: true,
   },
+  'semantic-connections': {
+    type: 'semantic-connections',
+    label: 'Connections',
+    brandColor: '#14B8A6',
+    switcherColor: '#14B8A6',
+    mutedColor: '#3f8f86',
+    tintClass: 'text-teal-400',
+    defaultSize: { width: 360, height: 400 },
+    minimumSize: { width: 330, height: 200 },
+    ghostSvg: ghost('rgb(20,184,166)', '<path d="M7 7h10v10H7z"/><path d="M3 12h4"/><path d="M17 12h4"/><path d="M12 3v4"/><path d="M12 17v4"/><circle cx="7" cy="7" r="2"/><circle cx="17" cy="7" r="2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>'),
+    canLiveOnCanvas: true,
+  },
   projectList: {
     type: 'projectList',
     label: 'Projects',

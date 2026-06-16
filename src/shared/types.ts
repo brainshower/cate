@@ -29,7 +29,7 @@ export interface Rect {
 // Panel types
 // -----------------------------------------------------------------------------
 
-export type PanelType = 'terminal' | 'browser' | 'editor' | 'git' | 'fileExplorer' | 'flashqueryVault' | 'flashqueryVaultSearch' | 'outline' | 'projectList' | 'canvas' | 'agent' | 'document'
+export type PanelType = 'terminal' | 'browser' | 'editor' | 'git' | 'fileExplorer' | 'flashqueryVault' | 'flashqueryVaultSearch' | 'outline' | 'semantic-connections' | 'projectList' | 'canvas' | 'agent' | 'document'
 
 // -----------------------------------------------------------------------------
 // Canvas node
@@ -1105,6 +1105,7 @@ export const PANEL_CANVAS_DROP_SIZES: Record<PanelType, Size> = {
   flashqueryVault: { width: 280, height: 440 },
   flashqueryVaultSearch: { width: 360, height: 500 },
   outline: { width: 260, height: 460 },
+  'semantic-connections': { width: 360, height: 400 },
   projectList: { width: 280, height: 360 },
   canvas: { width: 640, height: 480 },
   agent: { width: 520, height: 440 },

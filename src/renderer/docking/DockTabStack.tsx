@@ -8,7 +8,7 @@ import { useDockStoreApi } from '../stores/DockStoreContext'
 import { registerDropZone, useDragStore } from '../drag'
 import type { DockTabStack as DockTabStackType, PanelState, PanelType } from '../../shared/types'
 import { useAppStore } from '../stores/appStore'
-import { Columns, Plus } from '@phosphor-icons/react'
+import { Columns, Plus, SlidersHorizontal } from '@phosphor-icons/react'
 import { DockTabBar } from './DockTabBar'
 import { DockTabContextMenu, SPLIT_MENU_ITEMS } from './DockTabContextMenu'
 import type { SplitMenuItem } from './DockTabContextMenu'
@@ -293,6 +293,31 @@ export default function DockTabStack({ stack, zone: zoneProp, renderPanel, getPa
               workspaceId={effectiveWorkspaceId}
               compact={compact}
             />
+          </div>
+        )}
+
+        {activePanel?.type === 'semantic-connections' && (
+          <div
+            className={`flex items-center self-center ${compact ? 'px-0.5 gap-0.5' : 'px-1 gap-1'}`}
+            data-testid="semantic-connections-title-action-row"
+            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <span
+              className={`inline-flex items-center justify-center rounded border border-teal-400/30 bg-teal-400/10 font-mono text-teal-200 ${compact ? 'h-[18px] min-w-[18px] px-1 text-[10px]' : 'h-[22px] min-w-[22px] px-1.5 text-[11px]'}`}
+              aria-label="Connection count"
+              title="Connection count"
+            >
+              0
+            </span>
+            <button
+              data-node-chrome-button
+              className={`flex items-center justify-center rounded text-secondary hover:text-primary hover:bg-hover cursor-pointer ${compact ? 'w-[18px] h-[18px]' : 'w-[22px] h-[22px]'}`}
+              aria-label="Configure semantic connections"
+              title="Configure semantic connections"
+            >
+              <SlidersHorizontal size={compact ? 12 : 14} />
+            </button>
           </div>
         )}
 

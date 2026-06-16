@@ -22,6 +22,7 @@ import {
   Vault,
   MagnifyingGlass,
   ListBullets,
+  Graph,
   SquaresFour,
   List,
   FileDoc,
@@ -48,6 +49,7 @@ const FileExplorerPanel = React.lazy(() => import('./FileExplorerPanel'))
 const FlashQueryVaultPanel = React.lazy(() => import('./FlashQueryVaultPanel'))
 const FlashQueryVaultSearchPanel = React.lazy(() => import('./FlashQueryVaultSearchPanel'))
 const OutlinePanel = React.lazy(() => import('./OutlinePanel'))
+const SemanticConnectionsPanel = React.lazy(() => import('./SemanticConnectionsPanel'))
 const ProjectListPanel = React.lazy(() => import('./ProjectListPanel'))
 const CanvasPanel = React.lazy(() => import('./CanvasPanel'))
 const AgentPanel = React.lazy(() => import('../../agent/renderer/AgentPanel'))
@@ -145,6 +147,13 @@ export const PANEL_REGISTRY: Record<PanelType, RendererPanelDefinition> = {
     Component: OutlinePanel,
     create: ({ workspaceId, canvasPoint, placement }) =>
       useAppStore.getState().createOutline(workspaceId, canvasPoint, placement) || null,
+  },
+  'semantic-connections': {
+    ...PANEL_DEFINITIONS['semantic-connections'],
+    icon: Graph,
+    Component: SemanticConnectionsPanel,
+    create: ({ workspaceId, canvasPoint, placement }) =>
+      useAppStore.getState().createSemanticConnections(workspaceId, canvasPoint, placement) || null,
   },
   projectList: {
     ...PANEL_DEFINITIONS.projectList,

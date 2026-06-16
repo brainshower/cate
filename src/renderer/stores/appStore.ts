@@ -326,6 +326,7 @@ interface AppStoreActions {
   createFlashQueryVault: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
   createFlashQueryVaultSearch: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
   createOutline: (workspaceId: string, position?: Point, placement?: PanelPlacement, sourceEditorPanelId?: string, sourceCanvasNodeId?: string) => string
+  createSemanticConnections: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
   createProjectList: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
   createCanvas: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
   createAgent: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
@@ -1320,6 +1321,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
         return null as unknown as string
       }
       return panel.id
+    }
+    return addAndPlacePanel(set, get, workspaceId, panel, placement, position)
+  },
+
+  createSemanticConnections(workspaceId, position?, placement?) {
+    const panel: PanelState = {
+      id: generateId(),
+      type: 'semantic-connections',
+      title: 'Connections',
+      isDirty: false,
     }
     return addAndPlacePanel(set, get, workspaceId, panel, placement, position)
   },

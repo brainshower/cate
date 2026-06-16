@@ -35,6 +35,8 @@ export interface OutlinePanelProps extends PanelProps {
   sourceEditorPanelId?: string
 }
 
+export interface SemanticConnectionsPanelProps extends PanelProps {}
+
 // -----------------------------------------------------------------------------
 // Panel display helpers
 // -----------------------------------------------------------------------------
