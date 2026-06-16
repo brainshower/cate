@@ -372,6 +372,7 @@ export default function EditorPanel({
   const outlineHighlightApplyTimerRef = useRef<number | null>(null)
   const previewHighlightTimersRef = useRef<number[]>([])
   const previewScrollEndCleanupRef = useRef<(() => void) | null>(null)
+  const markdownPreviewActiveRef = useRef(false)
   const isDirtyRef = useRef(false)
   const filePathRef = useRef(filePath)
 
@@ -490,6 +491,7 @@ export default function EditorPanel({
   const flashQueryConnection = ws?.flashqueryConnection
   const isFlashQueryFrontmatter = activeVaultUri?.part === 'frontmatter'
   const isMarkdown = !!filePath && /\.mdx?$/i.test(filePath) && !isFlashQueryFrontmatter
+  markdownPreviewActiveRef.current = markdownPreview && isMarkdown
   const toggleOutline = useCallback(() => {
     if (associatedOutlinePanelId) {
       useAppStore.getState().closePanel(workspaceId, associatedOutlinePanelId)
@@ -951,6 +953,10 @@ export default function EditorPanel({
           useAppStore.getState().setPanelUnsavedContent(workspaceId, panelId, value || undefined)
         }, 300)
       }
+
+      if (markdownPreviewActiveRef.current) {
+        setMarkdownContent(editor.getModel()?.getValue() ?? '')
+      }
     })
 
     return () => {
@@ -1139,6 +1145,74 @@ function textFromReactNode(node: ReactNode): string {
   return ''
 }
 
+interface MarkdownPreviewChunk {
+  content: string
+  chunkId: string | null
+}
+
+const ATX_MARKDOWN_HEADING_RE = /^(#{1,6})\s+(.+?)\s*#*\s*$/
+const SETEXT_MARKDOWN_HEADING_RE = /^\s*(=+|-+)\s*$/
+const FENCED_CODE_RE = /^(\s*)(`{3,}|~{3,})/
+
+function markdownHeadingTextAt(lines: string[], index: number): string | null {
+  const line = lines[index] ?? ''
+  const atx = ATX_MARKDOWN_HEADING_RE.exec(line)
+  if (atx) return atx[2]
+
+  const nextLine = lines[index + 1] ?? ''
+  if (line.trim() && SETEXT_MARKDOWN_HEADING_RE.test(nextLine) && !ATX_MARKDOWN_HEADING_RE.test(line)) {
+    return line.trim()
+  }
+
+  return null
+}
+
+function splitMarkdownPreviewChunks(content: string): MarkdownPreviewChunk[] {
+  const lines = content.split('\n')
+  const headingStarts: Array<{ index: number, text: string }> = []
+  let fenceMarker: string | null = null
+
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index]
+    const fence = FENCED_CODE_RE.exec(line)
+    if (fence) {
+      const marker = fence[2][0]
+      if (fenceMarker === marker) {
+        fenceMarker = null
+      } else if (!fenceMarker) {
+        fenceMarker = marker
+      }
+    }
+    if (fenceMarker) continue
+
+    const text = markdownHeadingTextAt(lines, index)
+    if (text) headingStarts.push({ index, text })
+  }
+
+  if (headingStarts.length === 0) return [{ content, chunkId: null }]
+
+  const nextChunkId = createHeadingIdTracker()
+  const chunks: MarkdownPreviewChunk[] = []
+  const firstHeading = headingStarts[0]
+  if (firstHeading.index > 0) {
+    chunks.push({
+      content: lines.slice(0, firstHeading.index).join('\n'),
+      chunkId: null,
+    })
+  }
+
+  for (let index = 0; index < headingStarts.length; index++) {
+    const start = headingStarts[index]
+    const end = headingStarts[index + 1]?.index ?? lines.length
+    chunks.push({
+      content: lines.slice(start.index, end).join('\n'),
+      chunkId: nextChunkId(start.text),
+    })
+  }
+
+  return chunks.filter((chunk) => chunk.content.length > 0)
+}
+
 function MarkdownPreview({
   content,
   previewBodyRef,
@@ -1148,7 +1222,6 @@ function MarkdownPreview({
 }) {
   const previewFontSize = useSettingsStore((s) => s.previewFontSize)
   const baseSize = Number.isFinite(previewFontSize) ? Math.min(Math.max(Math.round(previewFontSize), 8), 40) : 14
-  const nextHeadingId = useMemo(() => createHeadingIdTracker(), [content])
   const sizes = {
     body: baseSize,
     h1: Math.round(baseSize * 1.65),
@@ -1159,7 +1232,72 @@ function MarkdownPreview({
     h6: Math.max(8, Math.round(baseSize * 0.92)),
     code: Math.max(8, Math.round(baseSize * 0.92)),
   }
-  const headingProps = (children: ReactNode) => ({ id: nextHeadingId(textFromReactNode(Children.toArray(children))) })
+  const previewChunks = useMemo(() => splitMarkdownPreviewChunks(content), [content])
+  const markdownComponentsForChunk = (chunkId: string | null) => {
+    const headingProps = (children: ReactNode) => ({
+      id: chunkId ?? slugifyHeading(textFromReactNode(Children.toArray(children))),
+    })
+    return {
+    p: ({ children }: { children?: ReactNode }) => <p className="leading-relaxed my-2">{children}</p>,
+    h1: ({ children }: { children?: ReactNode }) => <h1 {...headingProps(children)} className="font-bold text-primary mt-6 mb-2 pb-1 border-b border-neutral-300 dark:border-neutral-700" style={{ fontSize: sizes.h1 }}>{children}</h1>,
+    h2: ({ children }: { children?: ReactNode }) => <h2 {...headingProps(children)} className="font-semibold text-primary mt-5 mb-2 pb-1 border-b border-neutral-300 dark:border-neutral-700" style={{ fontSize: sizes.h2 }}>{children}</h2>,
+    h3: ({ children }: { children?: ReactNode }) => <h3 {...headingProps(children)} className="font-semibold text-primary mt-4 mb-1" style={{ fontSize: sizes.h3 }}>{children}</h3>,
+    h4: ({ children }: { children?: ReactNode }) => <h4 {...headingProps(children)} className="font-semibold text-primary mt-3 mb-1" style={{ fontSize: sizes.h4 }}>{children}</h4>,
+    h5: ({ children }: { children?: ReactNode }) => <h5 {...headingProps(children)} className="font-semibold text-primary mt-3 mb-1" style={{ fontSize: sizes.h5 }}>{children}</h5>,
+    h6: ({ children }: { children?: ReactNode }) => <h6 {...headingProps(children)} className="font-medium text-primary/90 mt-2 mb-1" style={{ fontSize: sizes.h6 }}>{children}</h6>,
+    ul: ({ children }: { children?: ReactNode }) => <ul className="list-disc pl-5 space-y-1">{children}</ul>,
+    ol: ({ children }: { children?: ReactNode }) => <ol className="list-decimal pl-5 space-y-1">{children}</ol>,
+    li: ({ children }: { children?: ReactNode }) => <li className="leading-relaxed">{children}</li>,
+    a: ({ href, children }: { href?: string, children?: ReactNode }) => (
+      <a href={href} target="_blank" rel="noreferrer"
+         className="text-blue-500 dark:text-blue-400 underline decoration-blue-500/30 hover:decoration-blue-500">
+        {children}
+      </a>
+    ),
+    blockquote: ({ children }: { children?: ReactNode }) => (
+      <blockquote className="border-l-3 border-neutral-400 dark:border-neutral-600 pl-3 text-primary/80 italic my-2">
+        {children}
+      </blockquote>
+    ),
+    hr: () => <hr className="border-neutral-300 dark:border-neutral-700 my-4" />,
+    strong: ({ children }: { children?: ReactNode }) => <strong className="font-semibold text-primary">{children}</strong>,
+    em: ({ children }: { children?: ReactNode }) => <em className="italic">{children}</em>,
+    code: ({ className, children, ...props }: { className?: string, children?: ReactNode }) => {
+      const isBlock = /language-/.test(className ?? '')
+      if (isBlock) {
+        return (
+          <code className={`${className ?? ''} font-mono leading-snug`} style={{ fontSize: sizes.code }} {...props}>
+            {children}
+          </code>
+        )
+      }
+      return (
+        <code className="font-mono px-1 py-[1px] rounded bg-neutral-200 dark:bg-neutral-800 text-pink-600 dark:text-pink-400" style={{ fontSize: sizes.code }} {...props}>
+          {children}
+        </code>
+      )
+    },
+    pre: ({ children }: { children?: ReactNode }) => (
+      <pre className="rounded-md bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 px-4 py-3 overflow-x-auto leading-snug my-3" style={{ fontSize: sizes.code }}>
+        {children}
+      </pre>
+    ),
+    table: ({ children }: { children?: ReactNode }) => (
+      <div className="overflow-x-auto my-3">
+        <table className="min-w-full border border-neutral-200 dark:border-neutral-700 rounded-md" style={{ fontSize: sizes.code }}>{children}</table>
+      </div>
+    ),
+    th: ({ children }: { children?: ReactNode }) => (
+      <th className="text-left px-3 py-1.5 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 font-medium">{children}</th>
+    ),
+    td: ({ children }: { children?: ReactNode }) => (
+      <td className="px-3 py-1.5 border-b border-neutral-100 dark:border-neutral-800 align-top">{children}</td>
+    ),
+    img: ({ src, alt }: { src?: string, alt?: string }) => (
+      <img src={src} alt={alt ?? ''} className="max-w-full rounded-md my-2" />
+    ),
+    }
+  }
 
   return (
     <div className="absolute inset-0 overflow-auto px-6 py-4">
@@ -1169,71 +1307,19 @@ function MarkdownPreview({
         className="max-w-3xl mx-auto prose-markdown space-y-3 text-primary leading-relaxed"
         style={{ fontSize: sizes.body }}
       >
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          components={{
-            p: ({ children }) => <p className="leading-relaxed my-2">{children}</p>,
-            h1: ({ children }) => <h1 {...headingProps(children)} className="font-bold text-primary mt-6 mb-2 pb-1 border-b border-neutral-300 dark:border-neutral-700" style={{ fontSize: sizes.h1 }}>{children}</h1>,
-            h2: ({ children }) => <h2 {...headingProps(children)} className="font-semibold text-primary mt-5 mb-2 pb-1 border-b border-neutral-300 dark:border-neutral-700" style={{ fontSize: sizes.h2 }}>{children}</h2>,
-            h3: ({ children }) => <h3 {...headingProps(children)} className="font-semibold text-primary mt-4 mb-1" style={{ fontSize: sizes.h3 }}>{children}</h3>,
-            h4: ({ children }) => <h4 {...headingProps(children)} className="font-semibold text-primary mt-3 mb-1" style={{ fontSize: sizes.h4 }}>{children}</h4>,
-            h5: ({ children }) => <h5 {...headingProps(children)} className="font-semibold text-primary mt-3 mb-1" style={{ fontSize: sizes.h5 }}>{children}</h5>,
-            h6: ({ children }) => <h6 {...headingProps(children)} className="font-medium text-primary/90 mt-2 mb-1" style={{ fontSize: sizes.h6 }}>{children}</h6>,
-            ul: ({ children }) => <ul className="list-disc pl-5 space-y-1">{children}</ul>,
-            ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1">{children}</ol>,
-            li: ({ children }) => <li className="leading-relaxed">{children}</li>,
-            a: ({ href, children }) => (
-              <a href={href} target="_blank" rel="noreferrer"
-                 className="text-blue-500 dark:text-blue-400 underline decoration-blue-500/30 hover:decoration-blue-500">
-                {children}
-              </a>
-            ),
-            blockquote: ({ children }) => (
-              <blockquote className="border-l-3 border-neutral-400 dark:border-neutral-600 pl-3 text-primary/80 italic my-2">
-                {children}
-              </blockquote>
-            ),
-            hr: () => <hr className="border-neutral-300 dark:border-neutral-700 my-4" />,
-            strong: ({ children }) => <strong className="font-semibold text-primary">{children}</strong>,
-            em: ({ children }) => <em className="italic">{children}</em>,
-            code: ({ className, children, ...props }) => {
-              const isBlock = /language-/.test(className ?? '')
-              if (isBlock) {
-                return (
-                  <code className={`${className ?? ''} font-mono leading-snug`} style={{ fontSize: sizes.code }} {...props}>
-                    {children}
-                  </code>
-                )
-              }
-              return (
-                <code className="font-mono px-1 py-[1px] rounded bg-neutral-200 dark:bg-neutral-800 text-pink-600 dark:text-pink-400" style={{ fontSize: sizes.code }} {...props}>
-                  {children}
-                </code>
-              )
-            },
-            pre: ({ children }) => (
-              <pre className="rounded-md bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 px-4 py-3 overflow-x-auto leading-snug my-3" style={{ fontSize: sizes.code }}>
-                {children}
-              </pre>
-            ),
-            table: ({ children }) => (
-              <div className="overflow-x-auto my-3">
-                <table className="min-w-full border border-neutral-200 dark:border-neutral-700 rounded-md" style={{ fontSize: sizes.code }}>{children}</table>
-              </div>
-            ),
-            th: ({ children }) => (
-              <th className="text-left px-3 py-1.5 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 font-medium">{children}</th>
-            ),
-            td: ({ children }) => (
-              <td className="px-3 py-1.5 border-b border-neutral-100 dark:border-neutral-800 align-top">{children}</td>
-            ),
-            img: ({ src, alt }) => (
-              <img src={src} alt={alt ?? ''} className="max-w-full rounded-md my-2" />
-            ),
-          }}
-        >
-          {content}
-        </ReactMarkdown>
+        {previewChunks.map((chunk, index) => {
+          const markdown = (
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponentsForChunk(chunk.chunkId)}>
+              {chunk.content}
+            </ReactMarkdown>
+          )
+          if (!chunk.chunkId) return <div key={`preview-chunk-${index}`} className="space-y-3">{markdown}</div>
+          return (
+            <div key={chunk.chunkId} data-chunk-id={chunk.chunkId} className="cate-preview-chunk space-y-3">
+              {markdown}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

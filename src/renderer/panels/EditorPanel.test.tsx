@@ -516,6 +516,93 @@ describe('EditorPanel FlashQuery URI routing', () => {
     expect(screen.getByText('Preview body')).toBeTruthy()
   })
 
+  it('T-I-001 and T-I-002 MarkdownPreview wraps each heading-scoped section with body content', async () => {
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: [
+        'Intro before heading',
+        '',
+        '# First Section',
+        '',
+        'First paragraph',
+        '',
+        '- First item',
+        '',
+        '## Second Section',
+        '',
+        'Second paragraph',
+      ].join('\n'),
+    })
+    setElectronApi(api)
+
+    await renderEditor('flashquery://workspace-1/Docs/Preview-Chunks.md')
+    fireEvent.click(screen.getByTitle('Preview markdown'))
+
+    const previewBody = await screen.findByTestId('markdown-preview-body')
+    const chunks = [...previewBody.querySelectorAll<HTMLDivElement>('div[data-chunk-id]')]
+
+    expect(chunks.map((chunk) => chunk.dataset.chunkId)).toEqual(['first-section', 'second-section'])
+    expect(screen.getByText('Intro before heading').closest('[data-chunk-id]')).toBeNull()
+    expect(chunks[0].querySelector('h1')?.id).toBe('first-section')
+    expect(chunks[0].contains(screen.getByRole('heading', { name: 'First Section', level: 1 }))).toBe(true)
+    expect(chunks[0].contains(screen.getByText('First paragraph'))).toBe(true)
+    expect(chunks[0].contains(screen.getByText('First item'))).toBe(true)
+    expect(chunks[0].contains(screen.getByRole('heading', { name: 'Second Section', level: 2 }))).toBe(false)
+    expect(chunks[1].contains(screen.getByRole('heading', { name: 'Second Section', level: 2 }))).toBe(true)
+    expect(chunks[1].contains(screen.getByText('Second paragraph'))).toBe(true)
+  })
+
+  it('T-I-003 MarkdownPreview chunk IDs match duplicate heading ID suffixes', async () => {
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: '# Repeat\n\nFirst\n\n## Repeat\n\nSecond\n\n# **Repeat**\n\nThird',
+    })
+    setElectronApi(api)
+
+    await renderEditor('flashquery://workspace-1/Docs/Preview-Duplicate-Chunks.md')
+    fireEvent.click(screen.getByTitle('Preview markdown'))
+
+    const previewBody = await screen.findByTestId('markdown-preview-body')
+    const chunks = [...previewBody.querySelectorAll<HTMLDivElement>('div[data-chunk-id]')]
+    const headings = await screen.findAllByRole('heading', { name: 'Repeat' })
+
+    expect(chunks.map((chunk) => chunk.dataset.chunkId)).toEqual(['repeat', 'repeat-1', 'repeat-2'])
+    expect(headings.map((heading) => heading.id)).toEqual(['repeat', 'repeat-1', 'repeat-2'])
+    for (const [index, chunk] of chunks.entries()) {
+      expect(chunk.dataset.chunkId).toBe(headings[index].id)
+      expect(chunk.contains(headings[index])).toBe(true)
+    }
+  })
+
+  it('refreshes preview chunk wrappers on rerender and clears them when preview exits', async () => {
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: '# Before\n\nOld body',
+    })
+    setElectronApi(api)
+
+    await renderEditor('flashquery://workspace-1/Docs/Preview-Chunk-Lifecycle.md')
+    fireEvent.click(screen.getByTitle('Preview markdown'))
+
+    const previewBody = await screen.findByTestId('markdown-preview-body')
+    await waitFor(() => expect(previewBody.querySelectorAll('[data-chunk-id="before"]')).toHaveLength(1))
+
+    act(() => {
+      monacoMock().setLatestValue('# After\n\nNew body')
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('markdown-preview-body').querySelectorAll('[data-chunk-id="before"]')).toHaveLength(0)
+      expect(screen.getByTestId('markdown-preview-body').querySelectorAll('[data-chunk-id="after"]')).toHaveLength(1)
+    })
+    expect(screen.getByTestId('markdown-preview-body').querySelector('[data-chunk-id="after"]')?.contains(screen.getByText('New body'))).toBe(true)
+
+    fireEvent.click(screen.getByTitle('Show source'))
+
+    await waitFor(() => expect(screen.queryByTestId('markdown-preview-body')).toBeNull())
+    expect(document.querySelectorAll('[data-chunk-id]')).toHaveLength(0)
+  })
+
   it('highlights a source heading line through the active editor registry callback', async () => {
     const api = makeElectronApi()
     vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
