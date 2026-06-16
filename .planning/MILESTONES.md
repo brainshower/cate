@@ -1,5 +1,25 @@
 # Milestones
 
+## v1.3 Document Outline (Shipped: 2026-06-16)
+
+**Phases completed:** 2 phases, 8 plans, 22 requirements
+
+**Audit:** passed with notes; 22/22 requirements satisfied, no current gaps. Product clarification accepted the current Outline highlight lifecycle for source and preview mode.
+
+**Key accomplishments:**
+
+- Outline is registered as a first-class Cate panel type across shared metadata, renderer registry, app-store creation, and right-dock placement tests.
+- A pure heading parser supports Markdown, HTML headings, and code comment section markers with depth filtering and inline Markdown cleanup.
+- Source-mode Outline binds to the active Monaco editor, renders depth-filtered headings, tracks cursor position, navigates source lines, live-updates, and supports search cycling.
+- Editor toolbar toggles a source-editor-associated Outline panel in the existing right dock without disturbing Preview, dirty state, model content, or unrelated dock panels.
+- Markdown preview headings receive deterministic shared slug IDs, including duplicate suffix handling.
+- Outline clicks and Enter-to-cycle navigation route to Markdown preview when Preview is active and fall back to Monaco source navigation otherwise.
+- Duplicate preview routing was hardened for depth-filtered duplicate headings, setext headings, and frontmatter skipping.
+
+**Known deferred items at close:** 11 open artifact records acknowledged as deferred bookkeeping; see `.planning/STATE.md` Deferred Items.
+
+---
+
 ## v1.2 FlashQuery Milestone 2 (Completed: 2026-06-06)
 
 **Phases completed:** 8 phases, 25 plans, 20 requirements

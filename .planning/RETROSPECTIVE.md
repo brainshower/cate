@@ -62,6 +62,55 @@
 
 ---
 
+## Milestone: v1.3 — Document Outline
+
+**Shipped:** 2026-06-16
+**Phases:** 2 | **Plans:** 8 | **Requirements:** 22
+
+### What Was Built
+
+- A registered `outline` panel type wired through shared panel metadata, renderer registry, app-store creation, and right-dock placement.
+- An editor toolbar Outline toggle adjacent to Preview, hidden in diff mode and associated with the source editor panel for precise close behavior.
+- A pure heading parser for Markdown, HTML headings, and code comment section markers with inline Markdown stripping, depth filtering, setext support, and frontmatter skipping.
+- A React Outline panel that binds to the active Monaco editor, tracks active heading state, live-updates on editor/model changes, supports search highlighting, clear, and Enter-to-cycle behavior.
+- Markdown preview heading IDs using a shared slug helper with deterministic duplicate suffixes.
+- Outline navigation that routes to source-mode Monaco or Markdown preview depending on current editor state, with hardened duplicate-heading occurrence targeting.
+
+### What Worked
+
+- The two-phase split was the right size: Phase 22 delivered the panel, parser, source navigation, and search; Phase 23 then added preview IDs, preview routing, and final hardening.
+- Keeping parser and slug logic pure made the hardest edge cases cheap to verify: duplicates, inline formatting, setext headings, frontmatter, and depth filtering.
+- The post-phase gap document was useful when treated as historical evidence rather than current truth. Resolved gaps could be rechecked quickly against HEAD.
+- Product-owner clarification corrected the audit result without touching stable code. Source-mode persistent highlight and current preview timing are accepted behavior, not defects.
+
+### What Was Inefficient
+
+- Older phase prose and tests still described a 1.5s standalone flash cleanup after the accepted behavior shifted toward persistent selected-heading styling. That wording caused a false audit gap.
+- The first milestone audit over-weighted artifact wording before reconciling it with current code and product intent.
+- Preview highlight timing proved hard to improve through agent iteration; accepting the current behavior avoided more churn on a usable interaction.
+
+### Patterns Established
+
+- For audit conflicts, current code plus explicit product clarification outranks stale phase wording.
+- Duplicate preview routing must compute occurrence indexes from full-depth source heading order, not the currently visible Outline depth.
+- Source-mode Outline target highlight should persist until natural user editing clears it.
+- Preview-mode Outline target highlight is allowed to appear quickly before/during scroll and keep the current lifecycle.
+
+### Key Lessons
+
+1. Milestone audits should inspect actual code and tests, then classify old gap docs as historical claims to verify, not final truth.
+2. When a behavior is intentionally accepted after failed improvement attempts, record that clarification in the audit artifact immediately.
+3. A test that asserts persistent highlight behavior is not wrong if the product intent now favors persistence; the requirement language needs to move with the intent.
+4. Depth-filtered UI state can diverge from rendered Markdown preview IDs; preview routing should use the rendered/full source heading sequence.
+
+### Cost Observations
+
+- Model mix: primary work used high-capability coding agents, with focused verifier/audit passes for phase and milestone checks.
+- Sessions: multiple sessions from 2026-06-14 through 2026-06-16.
+- Notable: The final close-out cost was dominated by resolving documentation drift around REQ-018, not by code changes.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -69,12 +118,14 @@
 | Milestone | Sessions | Phases | Plans | Tasks | Key Change |
 |-----------|----------|--------|-------|-------|------------|
 | v1.0 | multi-session over 2 days | 7 | 23 | 61 | First milestone in this project; established the /gsd workflow chain end-to-end, the post-execution gap-and-resolution Gaps.md pattern, and the retroactive close-out discipline. |
+| v1.3 | multiple sessions over 3 days | 2 | 8 | n/a | Document Outline shipped as a focused two-phase feature; audit process learned to reconcile stale artifact wording with current code and explicit product clarification. |
 
 ### Cumulative Quality
 
 | Milestone | Source files added | Test files added | LOC added (src/) | E2E specs added | Notable |
 |-----------|--------------------|--------------------|------------------|------------------|---------|
 | v1.0 | 18 net new FlashQuery-touching files (51 src/ touched total) | 9 new test files | ~6,800 | 4 (`flashquery-happy-path`, `flashquery-disconnect`, `flashquery-persistence`, `flashquery-vault-browse`) + 1 fixture (`flashquery-server.spec.ts`) | Full v1 user journey covered E2E; integration audit returned WIRED across all 8 cross-cutting flows |
+| v1.3 | focused Outline/editor/preview files | focused parser, registry, OutlinePanel, and EditorPanel tests | n/a | 0 | 22/22 requirements satisfied; focused integration run passed 92 tests after audit clarification. |
 
 ### Recurring Themes (to watch in v1.1+)
 

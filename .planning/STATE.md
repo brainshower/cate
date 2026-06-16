@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Document Outline
-status: complete
-stopped_at: Phase 23 post-audit residual fixed; v1.3 Document Outline implemented and verified
-last_updated: "2026-06-15T10:03:00Z"
-last_activity: 2026-06-15
+status: Awaiting next milestone
+stopped_at: Phase 23 complete; v1.3 Document Outline implemented and verified
+last_updated: "2026-06-16T18:38:27.151Z"
+last_activity: 2026-06-16 — Milestone v1.3 completed and archived
 progress:
   total_phases: 2
   completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 8
+  completed_plans: 8
   percent: 100
 ---
 
@@ -18,17 +18,17 @@ progress:
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-06-14 after v1.3 Document Outline planning)
+See: `.planning/PROJECT.md` (updated 2026-06-16 after v1.3 Document Outline shipped)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** v1.3 Document Outline
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-Phase: 23 complete
-Plan: 23-04 complete
-Status: v1.3 Document Outline complete
-Last activity: 2026-06-15 — Phase 23 duplicate-preview-routing residual fixed
+Phase: Milestone v1.3 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-06-16 — Milestone v1.3 completed and archived
 
 ## Session Continuity
 
@@ -84,10 +84,26 @@ Items acknowledged for this milestone:
 | future_feature | Graph Explorer unified selection model integration | Deferred to the Graph Explorer devspec; do not implement `preview-section-select` dispatch in v1.3. |
 | enhancement | Persistent Outline depth preference | Deferred unless it emerges as necessary during implementation. |
 
+Items acknowledged and deferred at milestone close on 2026-06-16:
+
+| Category | Item | Status |
+|----------|------|--------|
+| debug | flashquery-vault-disconnected | investigating |
+| debug | flashquery-vault-mutation-refresh | fixing |
+| debug | monaco-context-menu-offset | fixing |
+| debug | outline-heading-target-highlight | verifying |
+| debug | outline-sidebar-right-toolbar-overlap | verifying |
+| debug | settings-width-pi-font-size | unknown |
+| uat | phase-17/17-UAT.md | unknown; 0 open scenarios |
+| uat | phase-19/19-HUMAN-UAT.md | accepted-simulated; 0 open scenarios |
+| uat | phase-19/19-UAT.md | unknown; 0 open scenarios |
+| uat | phase-20/20-UAT.md | passed; 0 open scenarios |
+| uat | phase-21/21-UAT.md | accepted-simulated; 0 open scenarios |
+
 ## Performance Metrics
 
 Phase 22 and Phase 23 are complete. Full Vitest regression suite passed under Node 22 after adding the missing renderer logger mock to the existing at-mention test.
 
 ## Operator Next Steps
 
-- No v1.3 GSD execution remains. Owner may optionally perform live Electron UAT for T-A-005 and preview-routing-sensitive Phase 22 manual checks.
+- Start the next milestone with /gsd:new-milestone

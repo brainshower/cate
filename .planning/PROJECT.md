@@ -32,17 +32,9 @@ The upstream Cate `v1.1.0` sync is complete and archived under `.planning/milest
 
 Cate now has richer FlashQuery vault editor controls, separate frontmatter editing, vault search, bundled Pi FlashQuery tool access, literal document-reference autocomplete, clipboard utilities, and cross-surface disconnected/reconnect hardening. The milestone audit passed with 20/20 requirements satisfied and deterministic substitutes accepted for the remaining live Pi/FlashQuery manual evidence.
 
-## Current Milestone: v1.3 Document Outline
+**Shipped:** v1.3 Document Outline (2026-06-16).
 
-**Goal:** Ship a first-class Document Outline panel for active Monaco editors with source-mode navigation, search, and Markdown-preview scroll routing.
-
-**Target features:**
-- Registered `outline` panel type with shared metadata, renderer registry entry, app-store factory, and right-dock placement.
-- Editor top-right Outline toggle adjacent to the existing Preview button, using the same muted/off and blue-highlighted/on treatment.
-- Pure heading parser for Markdown, HTML headings, and code-comment section markers, with H1-H3 default depth filtering.
-- React Outline panel with active editor binding, active heading tracking, source-mode click-to-jump, live reparse, search highlighting, clear, and Enter-to-cycle behavior.
-- Markdown preview heading IDs, duplicate heading slug handling, and Outline-to-preview scroll routing with standalone 1.5s blue flash.
-- Cleanup, theme compatibility, no-editor state, duplicate-heading behavior, and non-interference with EditorPanel lifecycle.
+Cate now has a first-class Document Outline panel for active Monaco editors. The Outline panel can be opened from the editor toolbar into the right dock, parses Markdown/HTML/code-section headings, supports active-heading tracking, search filtering, Enter cycling, source-mode navigation, and Markdown preview routing with deterministic heading IDs and duplicate-heading handling. The v1.3 audit passed with notes after product clarification accepted the current source and preview highlight lifecycle.
 
 Canonical source docs for this milestone:
 
@@ -68,14 +60,15 @@ Canonical source docs for this milestone:
 - ✓ User can restart Cate and keep the workspace's FlashQuery connection metadata and bearer token available without eager startup probing — v1.0 (Phase 7)
 - ✓ User can recover from missing config, auth failures, and write failures without corrupting local workspace state — v1.0 (Phase 7, +Test Connection bearer validation post-milestone in `9820189`)
 - ✓ User can launch the FlashQuery Vault panel from the Command Palette and the left sidebar, not just from the canvas panel registry — v1.0 (post-milestone in `6445909` + `71659cd`)
+- ✓ User can open a Document Outline panel for the active editor from the editor toolbar and host it in the right dock zone — v1.3
+- ✓ User can navigate source-mode Monaco content through parsed Markdown, HTML, and code-section headings — v1.3
+- ✓ User can filter and cycle Outline headings while preserving spatial context and active-heading state — v1.3
+- ✓ User can use the same Outline navigation while Markdown preview is active, scrolling to preview heading IDs with the accepted highlight lifecycle — v1.3
+- ✓ User gets stable cleanup, theme-compatible rendering, no-editor empty state, duplicate-heading handling, and no regressions to existing editor/preview behavior — v1.3
 
 ### Active
 
-- User can open a Document Outline panel for the active editor from the editor toolbar and host it in the right dock zone.
-- User can navigate source-mode Monaco content through parsed Markdown, HTML, and code-section headings.
-- User can filter and cycle Outline headings while preserving spatial context and active-heading state.
-- User can use the same Outline navigation while Markdown preview is active, scrolling to preview heading IDs with standalone blue flash.
-- User gets stable cleanup, theme-compatible rendering, no-editor empty state, duplicate-heading handling, and no regressions to existing editor/preview behavior.
+- No active requirements. Start the next milestone with fresh requirements.
 
 ### Out of Scope
 
@@ -169,9 +162,10 @@ Known codebase concerns that affect ongoing work:
 | Treat Milestone 2 product requirements/test plan as source of truth for v1.2 | The feature milestone has explicit REQ/T-U/T-E/T-M coverage and scoped source priorities | Planned — v1.2 |
 | Keep FlashQuery out of Pi Providers in Milestone 2 | Users must configure a native Pi LLM provider; FlashQuery enters Pi through eligible tools and brokered MCP tools only | Planned — v1.2 |
 | Use literal whole-document references for Pi `@` mentions | Keeps chat input simple and defers rich chips, anchors, and automatic external vault invalidation | Planned — v1.2 |
-| Treat Document Outline requirements/test plan as source of truth for v1.3 | The Outline spec has explicit REQ-001..REQ-022 coverage and test IDs for unit, integration, acceptance, and manual checks | Planned — v1.3 |
-| Execute Document Outline in two bundled phases | Foundation/source-mode behavior should land with its tests before preview routing and final hardening | Planned — v1.3 |
-| Keep Graph Explorer selection behavior out of Document Outline v1.3 | The Outline spec explicitly uses standalone blue-flash `scrollToHeading` behavior; unified section selection comes later | Planned — v1.3 |
+| Treat Document Outline requirements/test plan as source of truth for v1.3 | The Outline spec has explicit REQ-001..REQ-022 coverage and test IDs for unit, integration, acceptance, and manual checks | ✓ Good — v1.3 |
+| Execute Document Outline in two bundled phases | Foundation/source-mode behavior should land with its tests before preview routing and final hardening | ✓ Good — v1.3 |
+| Keep Graph Explorer selection behavior out of Document Outline v1.3 | The Outline spec explicitly uses standalone preview scroll behavior; unified section selection comes later | ✓ Good — v1.3 |
+| Accept current Outline highlight lifecycle for v1.3 | Source-mode persistence is desirable until editing; preview-mode timing is acceptable after attempted delayed-render alternatives did not improve the experience | ✓ Good — v1.3 |
 
 ## Planning Preference
 
@@ -195,4 +189,4 @@ This document evolves at milestone boundaries and, once explicitly created, phas
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-14 after creating v1.3 Document Outline planning*
+*Last updated: 2026-06-16 after shipping v1.3 Document Outline*
