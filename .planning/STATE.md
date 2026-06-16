@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Semantic Connections Inspector
-status: planning
-stopped_at: Milestone v1.4 started; ready to plan Phase 24
-last_updated: "2026-06-16T20:03:05.000Z"
+status: in_progress
+stopped_at: Completed 24-02-PLAN.md
+last_updated: "2026-06-16T21:00:17.402Z"
 last_activity: 2026-06-16 — Milestone v1.4 started
 progress:
   total_phases: 2
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 4
+  completed_plans: 3
+  percent: 75
 ---
 
 # Project State
@@ -21,19 +21,19 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-16 for v1.4 Semantic Connections Inspector)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** Planning v1.4 Semantic Connections Inspector
+**Current focus:** Executing v1.4 Semantic Connections Inspector
 
 ## Current Position
 
-Phase: Not started (Phase 24 ready for discussion/planning)
-Plan: —
-Status: Defining implementation plan
-Last activity: 2026-06-16 — Milestone v1.4 started
+Phase: 24 — SC Inspector Foundation, Docking, Preview Chunks, and Selection
+Plan: 04 of 04 remaining in current phase wave
+Status: In progress
+Last activity: 2026-06-16 — Completed Plan 24-02 dock minimum-size enforcement
 
 ## Session Continuity
 
-Last session: 2026-06-16T20:03:05Z
-Stopped At: Milestone v1.4 started; ready to plan Phase 24
+Last session: 2026-06-16T21:00:17.383Z
+Stopped At: Completed 24-02-PLAN.md
 Resume File: None
 
 ## Next Up
@@ -69,6 +69,8 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table.
 | 2026-06-16 | v1.4 continues phase numbering from v1.3, starting at Phase 24. | Preserves sequential project roadmap history across shipped milestones. |
 | 2026-06-16 | v1.4 executes in two GSD phases that group source phases 1-3 and 4-7. | The owner requested exactly this grouping while preserving the seven source implementation phases as sub-slices. |
 | 2026-06-16 | Tests from the supplied plan must land with the feature slices they verify. | Prevents a risky final test catch-up and keeps each feature set verified before moving on. |
+| 2026-06-16 | Dock minimum math lives in a pure helper module beside DockSplitContainer. | Keeps recursive dock math testable without renderer store side effects while preserving component-level resize wiring. |
+| 2026-06-16 | The 10% dock ratio floor remains secondary to panel-specific pixel minimums. | Satisfies REQ-035 while preserving the existing ratio-floor safety behavior. |
 
 ## Deferred Items
 
@@ -101,9 +103,10 @@ Items acknowledged and deferred at milestone close on 2026-06-16:
 
 ## Performance Metrics
 
-No v1.4 implementation has run yet. Phase 24 planning should define focused verification commands for each feature/test slice and preserve the interleaved-test constraint.
+| Phase | Plan | Duration | Tasks | Files |
+|---|---:|---:|---:|---:|
+| 24-sc-inspector-foundation-docking-preview-chunks-and-selection | 02 | 10min | 2 | 3 |
 
 ## Operator Next Steps
 
-- `$gsd-discuss-phase 24` — gather implementation context for SC Inspector foundation.
-- `$gsd-plan-phase 24` — plan Phase 24 directly if discussion is unnecessary.
+- Continue Phase 24 with the remaining plan after the completed 24-01, 24-02, and concurrent 24-03 summaries.

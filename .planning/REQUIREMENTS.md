@@ -24,7 +24,7 @@ Build the Cate-side Semantic Connections Inspector as an embeddings-only Markdow
 ### Panel Registration and Hosting
 
 - [ ] **REQ-001:** Cate registers `semantic-connections` as a first-class panel type with shared metadata, renderer registry wiring, lazy panel loading, and app-store creation.
-- [ ] **REQ-002:** The Inspector docks through the existing Outline-style dock pattern in both main workspace docks and canvas-node mini-docks.
+- [x] **REQ-002:** The Inspector docks through the existing Outline-style dock pattern in both main workspace docks and canvas-node mini-docks.
 - [ ] **REQ-003:** The panel body does not duplicate dock header chrome; SC-specific count and config controls appear only in the active dock header.
 
 ### Markdown Preview Chunk Addressability
@@ -81,7 +81,7 @@ Build the Cate-side Semantic Connections Inspector as an embeddings-only Markdow
 
 ### Dock Minimum Size Fix
 
-- [ ] **REQ-035:** `DockSplitContainer` enforces panel-specific minimum sizes from descendant panel definitions while preserving clamped adjacent resize transfer.
+- [x] **REQ-035:** `DockSplitContainer` enforces panel-specific minimum sizes from descendant panel definitions while preserving clamped adjacent resize transfer.
 
 ### Deep-Linking
 

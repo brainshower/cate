@@ -46,6 +46,8 @@ Active milestone: v1.4 Semantic Connections Inspector. Build the Cate-side embed
 
 **Goal:** Implement source requirement phases 1-3 as a cohesive foundation: first-class panel registration, semantic connection types/utilities, dock minimum-size enforcement, preview chunk wrappers, shared selection state, preview hover/pin behavior, and initial Outline selection awareness.
 
+**GSD progress:** In progress — 3 of 4 plan summaries complete (`24-01`, `24-02`, and concurrent `24-03`).
+
 **Source phases included:**
 
 - Requirements Section 6.1 Phase 1: Types, Utilities, and Panel Registration
