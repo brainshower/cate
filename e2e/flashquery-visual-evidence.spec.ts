@@ -51,7 +51,7 @@ async function switchTheme(page: Page, themeId: 'dark-warm' | 'light-subtle') {
 
 async function prepareVisualSurfaces(page: Page, serverUrl: string, workspaceRoot: string) {
   const workspaceId = await configure(page, serverUrl, workspaceRoot)
-  await page.getByTitle('FlashQuery Vault').click()
+  await page.getByRole('button', { name: 'FlashQuery Vault' }).click()
   await expect(page.getByTestId('vault-panel-header')).toBeVisible()
   await expect(page.getByRole('treeitem', { name: /Welcome/ }).first()).toBeVisible()
   await page.evaluate(() => window.__cateE2E!.openVaultDocument('Welcome.md', 'dock'))

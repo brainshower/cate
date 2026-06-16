@@ -71,7 +71,9 @@ test('vault browse shows filenames when list metadata has a stale document title
     await configure(page, server.baseUrl, workspaceRoot)
     await page.evaluate(() => window.__cateE2E!.createFlashQueryVault({ x: 260, y: 180 }))
 
-    await page.getByText('Trash').first().click()
+    const trashFolder = page.getByRole('treeitem', { name: 'Trash' }).first()
+    await expect(trashFolder).toBeVisible()
+    await trashFolder.click()
     await expect(page.getByRole('treeitem', { name: 'scratch3.md' })).toBeVisible()
     await expect(page.getByRole('treeitem', { name: 'Errors3' })).toHaveCount(0)
 

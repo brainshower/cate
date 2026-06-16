@@ -23,15 +23,15 @@ Build the Cate-side Semantic Connections Inspector as an embeddings-only Markdow
 
 ### Panel Registration and Hosting
 
-- [ ] **REQ-001:** Cate registers `semantic-connections` as a first-class panel type with shared metadata, renderer registry wiring, lazy panel loading, and app-store creation.
+- [x] **REQ-001:** Cate registers `semantic-connections` as a first-class panel type with shared metadata, renderer registry wiring, lazy panel loading, and app-store creation.
 - [x] **REQ-002:** The Inspector docks through the existing Outline-style dock pattern in both main workspace docks and canvas-node mini-docks.
-- [ ] **REQ-003:** The panel body does not duplicate dock header chrome; SC-specific count and config controls appear only in the active dock header.
+- [x] **REQ-003:** The panel body does not duplicate dock header chrome; SC-specific count and config controls appear only in the active dock header.
 
 ### Markdown Preview Chunk Addressability
 
-- [ ] **REQ-004:** Markdown preview wraps each heading-scoped region in a stable `div[data-chunk-id]` covering the heading and body until the next heading.
-- [ ] **REQ-005:** Preview chunk IDs reuse Cate's existing `slugifyHeading` and `createHeadingIdTracker` behavior.
-- [ ] **REQ-006:** Chunk wrappers, handlers, and decorations refresh across preview rerenders and are cleared when preview mode exits.
+- [x] **REQ-004:** Markdown preview wraps each heading-scoped region in a stable `div[data-chunk-id]` covering the heading and body until the next heading.
+- [x] **REQ-005:** Preview chunk IDs reuse Cate's existing `slugifyHeading` and `createHeadingIdTracker` behavior.
+- [x] **REQ-006:** Chunk wrappers, handlers, and decorations refresh across preview rerenders and are cleared when preview mode exits.
 
 ### Preview Interaction and Selection Sync
 
@@ -49,10 +49,10 @@ Build the Cate-side Semantic Connections Inspector as an embeddings-only Markdow
 
 ### SC Inspector Data Model
 
-- [ ] **REQ-015:** Cate defines shared semantic connection types that support embeddings-only launch and future typed-edge mode.
+- [x] **REQ-015:** Cate defines shared semantic connection types that support embeddings-only launch and future typed-edge mode.
 - [ ] **REQ-016:** Embeddings-only data renders as a first-class similarity browser with score-descending cards and no typed-edge controls.
-- [ ] **REQ-017:** Sparse mixed typed/untyped data is supported without assuming every connection has `rel` or `dir`.
-- [ ] **REQ-018:** Pure utility functions cover edge labels, display ordering, document-wide rel availability, and caution flags.
+- [x] **REQ-017:** Sparse mixed typed/untyped data is supported without assuming every connection has `rel` or `dir`.
+- [x] **REQ-018:** Pure utility functions cover edge labels, display ordering, document-wide rel availability, and caution flags.
 
 ### Data Fetching Interface Contract
 

@@ -101,7 +101,8 @@ test('T-E-002 opens and saves independent FlashQuery frontmatter editors', async
     const workspaceId = await configure(page, server.baseUrl, workspaceRoot)
 
     const bodyPanelId = await openVaultEditor(page, 'Frontmatter.md')
-    await page.locator(`[data-tab-panel-id="${bodyPanelId}"]`).getByLabel('Open frontmatter').click()
+    await expect(page.locator(`[data-tab-panel-id="${bodyPanelId}"]`)).toBeVisible()
+    await page.getByLabel('Open frontmatter').click()
     const frontmatterUri = `flashquery://${workspaceId}/Frontmatter.md?part=frontmatter`
     const frontmatterPanelId = await page.waitForFunction((uri) => {
       return window.__cateE2E!.editorPanelIdsForFilePath(uri)[0] ?? null

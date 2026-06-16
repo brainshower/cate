@@ -12,6 +12,20 @@ vi.mock('../stores/appStore', () => ({
   },
 }))
 
+vi.mock('../stores/previewSelectionStore', () => {
+  const usePreviewSelectionStore = Object.assign(
+    <T,>(selector: (state: { activeChunkId: string | null }) => T) => selector({ activeChunkId: null }),
+    {
+      getState: () => ({
+        activeChunkId: null,
+        clearSelection: () => {},
+      }),
+    },
+  )
+
+  return { usePreviewSelectionStore }
+})
+
 vi.mock('./FlashQueryVaultPanel', () => ({
   default: function MockFlashQueryVaultPanel() {
     return null
