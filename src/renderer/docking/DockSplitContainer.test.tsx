@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { DockLayoutNode, PanelState } from '../../shared/types'
+import type { DockLayoutNode, DockSplitNode, PanelState } from '../../shared/types'
 import {
   calculateEffectiveMinimumSize,
   resizeAdjacentSplitRatios,
@@ -24,7 +24,7 @@ const split = (
   direction: 'horizontal' | 'vertical',
   children: DockLayoutNode[],
   ratios: number[],
-): DockLayoutNode => ({
+): DockSplitNode => ({
   type: 'split',
   id,
   direction,
