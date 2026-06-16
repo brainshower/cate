@@ -4,9 +4,11 @@
 // =============================================================================
 
 import React, { useCallback, useRef } from 'react'
-import { useDockStoreContext } from '../stores/DockStoreContext'
 import type { DockSplitNode } from '../../shared/types'
+import { useAppStore } from '../stores/appStore'
+import { useDockStoreContext } from '../stores/DockStoreContext'
 import DockResizeHandle from './DockResizeHandle'
+import { resizeAdjacentSplitRatios } from './dockMinimumSize'
 
 interface DockSplitContainerProps {
   node: DockSplitNode
@@ -28,6 +30,10 @@ export default function DockSplitContainer({
   rightEdge = false,
 }: DockSplitContainerProps) {
   const setSplitRatio = useDockStoreContext((s) => s.setSplitRatio)
+  const panels = useAppStore((s) => {
+    const workspaceId = s.selectedWorkspaceId
+    return s.workspaces.find((workspace) => workspace.id === workspaceId)?.panels ?? {}
+  })
   const isHorizontal = node.direction === 'horizontal'
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -45,22 +51,17 @@ export default function DockSplitContainer({
       if (containerSize <= 0) return
 
       const currentRatios = ratiosRef.current
-      const ratioDelta = delta / containerSize
-      const newRatios = [...currentRatios]
-      const minRatio = 0.1
-
-      // Clamp so neither panel goes below minRatio, then transfer
-      // only the actual change between the two adjacent panels.
-      // Other panels stay untouched (no re-normalization).
-      const a = currentRatios[index]
-      const b = currentRatios[index + 1]
-      const clampedDelta = Math.max(minRatio - a, Math.min(b - minRatio, ratioDelta))
-      newRatios[index] = a + clampedDelta
-      newRatios[index + 1] = b - clampedDelta
+      const newRatios = resizeAdjacentSplitRatios(
+        { ...node, ratios: currentRatios },
+        index,
+        delta,
+        containerSize,
+        panels,
+      )
 
       setSplitRatio(node.id, newRatios)
     },
-    [node.id, isHorizontal, setSplitRatio],
+    [node, isHorizontal, panels, setSplitRatio],
   )
 
   return (
