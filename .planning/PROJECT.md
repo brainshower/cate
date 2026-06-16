@@ -41,6 +41,21 @@ Canonical source docs for this milestone:
 - `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Monaco Extension Testing/Outline-Chat/Document Outline Requirements.md`
 - `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Monaco Extension Testing/Outline-Chat/Document Outline Test Plan.md`
 
+## Current Milestone: v1.4 Semantic Connections Inspector
+
+**Goal:** Build the Cate-side Semantic Connections Inspector as an embeddings-only Markdown preview companion panel with Outline-style docking, preview chunk selection, Outline synchronization, adapter-boundary readiness, exception states, accessibility, and interleaved tests.
+
+**Target features:**
+- First-class `semantic-connections` panel registration, dock hosting, header chrome, and panel-specific dock minimum-size enforcement.
+- Markdown preview chunk wrappers with shared hover/pin selection state, preview decorations, and Outline synchronization.
+- Semantic connection types, pure display utilities, embeddings-only and sparse typed-mode UI behavior, and Cate-side provider/adapter contract.
+- Inspector cards, Top-N config, exception/loading/stale states, safe card open behavior, keyboard accessibility, E2E coverage, and manual acceptance checks.
+
+Canonical source docs for this milestone:
+
+- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Monaco Extension Testing/Graph Explorer/Semantic Connections Inspector Requirements.md`
+- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Monaco Extension Testing/Graph Explorer/Semantic Connections Inspector Test Plan.md`
+
 ## Requirements
 
 ### Validated
@@ -68,7 +83,14 @@ Canonical source docs for this milestone:
 
 ### Active
 
-- No active requirements. Start the next milestone with fresh requirements.
+See `.planning/REQUIREMENTS.md` for the active v1.4 Semantic Connections Inspector requirements. Summary:
+
+- User can open a first-class Semantic Connections Inspector beside Markdown preview and Outline in main docks and canvas-node mini-docks.
+- User can interact with heading-scoped preview chunks through hover, click-pin, Esc/whole-document clearing, and synchronized Outline/Inspector selection.
+- User can browse embeddings-only semantic similarity connections with accessible cards, Top-N config, loading/empty/error/stale states, and no typed-edge controls unless typed data exists.
+- Cate can consume a semantic-connections provider/adapter contract that maps FlashQuery chunk metadata to preview chunk IDs without implementing the FlashQuery backend query API.
+- Dock resizing respects panel-specific minimum sizes, including the SC Inspector hard width floor.
+- Implementation phases must land tests from the supplied test plan alongside each feature slice.
 
 ### Out of Scope
 
@@ -91,8 +113,11 @@ Canonical source docs for this milestone:
 - Preserving YAML comments, key order, and quoting on frontmatter writes.
 - FlashQuery roadmap work items RM-1 through RM-5; they are traceability context, not Cate implementation scope.
 - Document Chat from the Outline-Chat research guide — separate future devspec.
-- Graph Explorer unified selection model changes, including section-change subscriptions and `preview-section-select` dispatch — separate future devspec.
+- Broader Graph Explorer unified selection work beyond the SC Inspector preview/Outline/panel synchronization described in v1.4.
 - Replacing Cate's existing Markdown preview toggle or building a separate web UI.
+- FlashQuery server-side implementation of a connection-query API for the Semantic Connections Inspector — v1.4 defines the Cate adapter boundary only.
+- Graph-store, typed-edge classification, typed-edge persistence, and typed graph edge UI as required runtime data.
+- Spatial Graph Explorer Map view and source-mode Monaco line decorations for semantic connections.
 
 ## Context
 
@@ -166,6 +191,11 @@ Known codebase concerns that affect ongoing work:
 | Execute Document Outline in two bundled phases | Foundation/source-mode behavior should land with its tests before preview routing and final hardening | ✓ Good — v1.3 |
 | Keep Graph Explorer selection behavior out of Document Outline v1.3 | The Outline spec explicitly uses standalone preview scroll behavior; unified section selection comes later | ✓ Good — v1.3 |
 | Accept current Outline highlight lifecycle for v1.3 | Source-mode persistence is desirable until editing; preview-mode timing is acceptable after attempted delayed-render alternatives did not improve the experience | ✓ Good — v1.3 |
+| Treat Semantic Connections Inspector requirements/test plan as source of truth for v1.4 | The spec defines an embeddings-only launch, Cate/FlashQuery boundary, and complete REQ/test traceability | Planned — v1.4 |
+| Execute Semantic Connections Inspector in two GSD phases | Owner requested source phases 1-3 in the first GSD phase and source phases 4-7 in the second | Planned — v1.4 |
+| Require tests to land with the feature slices they verify | Avoids final test catch-up and keeps each feature group verified before the next slice starts | Planned — v1.4 |
+| Keep FlashQuery connection-query backend out of v1.4 | Cate can define the adapter and UI contract while backend work remains a separate FlashQuery milestone | Planned — v1.4 |
+| Launch SC Inspector as embeddings-only | FlashQuery has no typed graph edge store today; typed fields remain optional for future upgrade | Planned — v1.4 |
 
 ## Planning Preference
 
@@ -189,4 +219,4 @@ This document evolves at milestone boundaries and, once explicitly created, phas
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-16 after shipping v1.3 Document Outline*
+*Last updated: 2026-06-16 for v1.4 Semantic Connections Inspector planning*

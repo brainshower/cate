@@ -1,66 +1,58 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: Document Outline
-status: Awaiting next milestone
-stopped_at: Phase 23 complete; v1.3 Document Outline implemented and verified
-last_updated: "2026-06-16T18:38:27.151Z"
-last_activity: 2026-06-16 — Milestone v1.3 completed and archived
+milestone: v1.4
+milestone_name: Semantic Connections Inspector
+status: planning
+stopped_at: Milestone v1.4 started; ready to plan Phase 24
+last_updated: "2026-06-16T20:03:05.000Z"
+last_activity: 2026-06-16 — Milestone v1.4 started
 progress:
   total_phases: 2
-  completed_phases: 2
-  total_plans: 8
-  completed_plans: 8
-  percent: 100
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-06-16 after v1.3 Document Outline shipped)
+See: `.planning/PROJECT.md` (updated 2026-06-16 for v1.4 Semantic Connections Inspector)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** Planning next milestone
+**Current focus:** Planning v1.4 Semantic Connections Inspector
 
 ## Current Position
 
-Phase: Milestone v1.3 complete
+Phase: Not started (Phase 24 ready for discussion/planning)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-06-16 — Milestone v1.3 completed and archived
+Status: Defining implementation plan
+Last activity: 2026-06-16 — Milestone v1.4 started
 
 ## Session Continuity
 
-Last session: 2026-06-15T00:14:27Z
-Stopped At: Phase 23 complete; v1.3 Document Outline implemented and verified
+Last session: 2026-06-16T20:03:05Z
+Stopped At: Milestone v1.4 started; ready to plan Phase 24
 Resume File: None
 
 ## Next Up
 
-No v1.3 implementation phases remain.
+Plan and execute Phase 24: SC Inspector Foundation, Docking, Preview Chunks, and Selection.
 
-Phase 22 implemented the Outline panel foundation and source-mode navigation with bundled tests:
+Phase 24 bundles the first three source implementation phases from the Semantic Connections Inspector requirements:
 
-- T-U-001 through T-U-014
-- T-I-001 through T-I-022
-- T-I-031 through T-I-035
-- T-A-001 through T-A-004, T-A-006, T-A-007
-- T-M-001 through T-M-004 as visual/manual checks where practical
+- Types, utilities, and panel registration
+- Dock minimum size enforcement
+- Preview chunk wrapping and shared selection store
 
-Phase 23 implemented Markdown preview heading IDs, scroll routing, blue-flash behavior, and bundled preview tests for REQ-017 through REQ-019:
+Tests must be implemented alongside each feature slice:
 
-- T-U-015 through T-U-016
-- T-I-023 through T-I-030
-- Full focused rerun across Phase 22 and Phase 23 Outline surfaces
-- Full `npm test` suite: 91 files passed, 845 tests passed, 3 skipped
-
-Post-audit residual fix on 2026-06-15:
-
-- Fixed duplicate preview routing when deeper same-slug headings are hidden by the active Outline depth filter.
-- Added regression coverage for depth `2` with `# Setup\n## Notes\n### Notes\n## Notes`, proving the second visible `Notes` row routes to occurrence `2`.
-- Added setext heading parsing coverage to align the full-depth occurrence count with Cate's `ReactMarkdown`/`remark-gfm` preview heading population.
-- Verified with focused Phase 23 suites: 4 files passed, 84 tests passed; `npm run typecheck` passed.
+- `T-U-001` through `T-U-010`
+- `T-U-013`, `T-U-014`
+- `T-I-001` through `T-I-008`
+- `T-I-027` through `T-I-035`
+- `T-E-004`
 
 ## Decisions
 
@@ -73,6 +65,10 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table.
 | 2026-06-14 | v1.3 executes in two implementation phases. | The owner requested two phases; Phase 22 bundles foundation/source-mode behavior with tests, and Phase 23 bundles preview routing/final hardening with tests. |
 | 2026-06-14 | Document Chat and Graph Explorer unified selection behavior remain out of scope. | Those are separate future devspecs; this milestone implements the standalone Outline and blue-flash preview behavior. |
 | 2026-06-15 | Preview duplicate occurrence indexes are computed from full-depth source heading order, not visible Outline depth. | Preview heading IDs are assigned across all rendered headings, so hidden deeper duplicates must still count for correct preview routing. |
+| 2026-06-16 | v1.4 uses the Semantic Connections Inspector requirements and test plan as mandatory source-of-truth docs. | The product docs define the embeddings-only launch constraint, Cate/FlashQuery boundary, and direct REQ/test traceability. |
+| 2026-06-16 | v1.4 continues phase numbering from v1.3, starting at Phase 24. | Preserves sequential project roadmap history across shipped milestones. |
+| 2026-06-16 | v1.4 executes in two GSD phases that group source phases 1-3 and 4-7. | The owner requested exactly this grouping while preserving the seven source implementation phases as sub-slices. |
+| 2026-06-16 | Tests from the supplied plan must land with the feature slices they verify. | Prevents a risky final test catch-up and keeps each feature set verified before moving on. |
 
 ## Deferred Items
 
@@ -81,8 +77,11 @@ Items acknowledged for this milestone:
 | Category | Item | Status |
 |----------|------|--------|
 | future_feature | Document Chat | Deferred to a separate devspec and milestone. |
-| future_feature | Graph Explorer unified selection model integration | Deferred to the Graph Explorer devspec; do not implement `preview-section-select` dispatch in v1.3. |
+| future_feature | Graph Explorer unified selection model integration | Superseded by v1.4 Semantic Connections Inspector shared selection work. |
 | enhancement | Persistent Outline depth preference | Deferred unless it emerges as necessary during implementation. |
+| future_feature | FlashQuery server-side connection query API | Deferred outside this Cate milestone; v1.4 defines and consumes the Cate-side adapter boundary only. |
+| future_feature | Typed graph edge store and relationship classification | Deferred beyond embeddings-only launch. |
+| future_feature | Spatial Graph Explorer Map view | Deferred beyond Inspector launch. |
 
 Items acknowledged and deferred at milestone close on 2026-06-16:
 
@@ -102,8 +101,9 @@ Items acknowledged and deferred at milestone close on 2026-06-16:
 
 ## Performance Metrics
 
-Phase 22 and Phase 23 are complete. Full Vitest regression suite passed under Node 22 after adding the missing renderer logger mock to the existing at-mention test.
+No v1.4 implementation has run yet. Phase 24 planning should define focused verification commands for each feature/test slice and preserve the interleaved-test constraint.
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd:new-milestone
+- `$gsd-discuss-phase 24` — gather implementation context for SC Inspector foundation.
+- `$gsd-plan-phase 24` — plan Phase 24 directly if discussion is unnecessary.
