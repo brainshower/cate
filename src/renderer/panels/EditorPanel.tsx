@@ -11,6 +11,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type MouseEvent,
   type ReactNode,
   type Ref,
 } from 'react'
@@ -51,6 +52,7 @@ import {
   FLASHQUERY_EDITOR_TITLE_ACTION_EVENT,
   type FlashQueryEditorTitleActionDetail,
 } from '../components/FlashQueryEditorTitleActions'
+import { usePreviewSelectionStore } from '../stores/previewSelectionStore'
 
 // -----------------------------------------------------------------------------
 // Monaco worker setup for Electron (Vite bundler)
@@ -1150,6 +1152,10 @@ interface MarkdownPreviewChunk {
   chunkId: string | null
 }
 
+function chunkWrapperFromEventTarget(target: EventTarget | null): HTMLElement | null {
+  return target instanceof Element ? target.closest<HTMLElement>('[data-chunk-id]') : null
+}
+
 const ATX_MARKDOWN_HEADING_RE = /^(#{1,6})\s+(.+?)\s*#*\s*$/
 const SETEXT_MARKDOWN_HEADING_RE = /^\s*(=+|-+)\s*$/
 const FENCED_CODE_RE = /^(\s*)(`{3,}|~{3,})/
@@ -1221,6 +1227,11 @@ function MarkdownPreview({
   previewBodyRef: Ref<HTMLDivElement>
 }) {
   const previewFontSize = useSettingsStore((s) => s.previewFontSize)
+  const activeChunkId = usePreviewSelectionStore((s) => s.activeChunkId)
+  const pinnedChunkId = usePreviewSelectionStore((s) => s.pinnedChunkId)
+  const cautionChunkIds = usePreviewSelectionStore((s) => s.cautionChunkIds)
+  const pointerDownRef = useRef<{ chunkId: string | null, x: number, y: number } | null>(null)
+  const cautionChunks = useMemo(() => new Set(cautionChunkIds), [cautionChunkIds])
   const baseSize = Number.isFinite(previewFontSize) ? Math.min(Math.max(Math.round(previewFontSize), 8), 40) : 14
   const sizes = {
     body: baseSize,
@@ -1233,6 +1244,56 @@ function MarkdownPreview({
     code: Math.max(8, Math.round(baseSize * 0.92)),
   }
   const previewChunks = useMemo(() => splitMarkdownPreviewChunks(content), [content])
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') usePreviewSelectionStore.getState().clearSelection()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  const handleMouseOver = useCallback((event: MouseEvent<HTMLDivElement>) => {
+    const chunk = chunkWrapperFromEventTarget(event.target)
+    const chunkId = chunk?.dataset.chunkId ?? null
+    if (chunkId) usePreviewSelectionStore.getState().setHoveredChunkId(chunkId)
+  }, [])
+
+  const handleMouseOut = useCallback((event: MouseEvent<HTMLDivElement>) => {
+    const chunk = chunkWrapperFromEventTarget(event.target)
+    if (!chunk) return
+    const related = chunkWrapperFromEventTarget(event.relatedTarget)
+    if (related === chunk) return
+    usePreviewSelectionStore.getState().setHoveredChunkId(null)
+  }, [])
+
+  const handleMouseDown = useCallback((event: MouseEvent<HTMLDivElement>) => {
+    const chunk = chunkWrapperFromEventTarget(event.target)
+    pointerDownRef.current = {
+      chunkId: chunk?.dataset.chunkId ?? null,
+      x: event.clientX,
+      y: event.clientY,
+    }
+  }, [])
+
+  const handleClick = useCallback((event: MouseEvent<HTMLDivElement>) => {
+    const chunk = chunkWrapperFromEventTarget(event.target)
+    if (!chunk) {
+      usePreviewSelectionStore.getState().clearSelection()
+      return
+    }
+    if (event.target instanceof Element && event.target.closest('a')) return
+
+    const started = pointerDownRef.current
+    pointerDownRef.current = null
+    const chunkId = chunk.dataset.chunkId
+    if (!chunkId || (started && started.chunkId !== chunkId)) return
+    const moved = started ? Math.abs(event.clientX - started.x) + Math.abs(event.clientY - started.y) : 0
+    const selectedText = window.getSelection?.()?.toString() ?? ''
+    if (moved > 4 || selectedText.length > 0) return
+
+    usePreviewSelectionStore.getState().selectSection(chunkId)
+  }, [])
+
   const markdownComponentsForChunk = (chunkId: string | null) => {
     const headingProps = (children: ReactNode) => ({
       id: chunkId ?? slugifyHeading(textFromReactNode(Children.toArray(children))),
@@ -1304,8 +1365,13 @@ function MarkdownPreview({
       <div
         ref={previewBodyRef}
         data-testid="markdown-preview-body"
+        tabIndex={-1}
         className="max-w-3xl mx-auto prose-markdown space-y-3 text-primary leading-relaxed"
         style={{ fontSize: sizes.body }}
+        onMouseOver={handleMouseOver}
+        onMouseOut={handleMouseOut}
+        onMouseDown={handleMouseDown}
+        onClick={handleClick}
       >
         {previewChunks.map((chunk, index) => {
           const markdown = (
@@ -1314,8 +1380,19 @@ function MarkdownPreview({
             </ReactMarkdown>
           )
           if (!chunk.chunkId) return <div key={`preview-chunk-${index}`} className="space-y-3">{markdown}</div>
+          const chunkClasses = [
+            'cate-preview-chunk space-y-3 rounded border-l-2 border-transparent px-3 py-1 transition-colors',
+            activeChunkId === chunk.chunkId ? 'cate-preview-chunk-active border-teal-400 bg-teal-500/10' : '',
+            pinnedChunkId === chunk.chunkId ? 'cate-preview-chunk-pinned ring-1 ring-teal-400/50' : '',
+            cautionChunks.has(chunk.chunkId) ? 'cate-preview-chunk-caution border-orange-400 bg-orange-500/10 ring-orange-400/60' : '',
+          ].filter(Boolean).join(' ')
           return (
-            <div key={chunk.chunkId} data-chunk-id={chunk.chunkId} className="cate-preview-chunk space-y-3">
+            <div
+              key={chunk.chunkId}
+              data-chunk-id={chunk.chunkId}
+              data-caution={cautionChunks.has(chunk.chunkId) ? 'true' : undefined}
+              className={chunkClasses}
+            >
               {markdown}
             </div>
           )

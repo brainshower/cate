@@ -4,8 +4,10 @@ export interface PreviewSelectionState {
   hoveredChunkId: string | null
   pinnedChunkId: string | null
   activeChunkId: string | null
+  cautionChunkIds: string[]
   setHoveredChunkId: (chunkId: string | null) => void
   setPinnedChunkId: (chunkId: string | null) => void
+  setCautionChunkIds: (chunkIds: string[]) => void
   selectSection: (chunkId: string) => void
   clearSelection: () => void
 }
@@ -18,6 +20,7 @@ export const usePreviewSelectionStore = create<PreviewSelectionState>((set) => (
   hoveredChunkId: null,
   pinnedChunkId: null,
   activeChunkId: null,
+  cautionChunkIds: [],
   setHoveredChunkId: (hoveredChunkId) => set((state) => ({
     hoveredChunkId,
     activeChunkId: activeChunkId(hoveredChunkId, state.pinnedChunkId),
@@ -26,6 +29,7 @@ export const usePreviewSelectionStore = create<PreviewSelectionState>((set) => (
     pinnedChunkId,
     activeChunkId: activeChunkId(state.hoveredChunkId, pinnedChunkId),
   })),
+  setCautionChunkIds: (cautionChunkIds) => set({ cautionChunkIds }),
   selectSection: (chunkId) => set({
     hoveredChunkId: null,
     pinnedChunkId: chunkId,
@@ -43,5 +47,6 @@ export function clearPreviewSelectionForTests(): void {
     hoveredChunkId: null,
     pinnedChunkId: null,
     activeChunkId: null,
+    cautionChunkIds: [],
   })
 }

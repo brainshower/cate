@@ -189,6 +189,7 @@ import { useDockStore } from '../stores/dockStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { clearActiveEditorRegistryForTests, getActiveEditorSnapshot } from '../lib/activeEditorRegistry'
 import { confirmCloseDirtyPanels } from '../lib/confirmCloseDirty'
+import { clearPreviewSelectionForTests, usePreviewSelectionStore } from '../stores/previewSelectionStore'
 import type { FlashQueryStatusBroadcastPayload, FlashQueryWriteResult, PanelState } from '../../shared/types'
 
 type ElectronApiMock = Pick<
@@ -325,16 +326,22 @@ beforeEach(() => {
     configurable: true,
     value: { writeText: vi.fn().mockResolvedValue(undefined) },
   })
+  Object.defineProperty(window, 'getSelection', {
+    configurable: true,
+    value: () => ({ toString: () => '' }),
+  })
   seedWorkspace()
   useSettingsStore.setState({ ...useSettingsStore.getState(), previewFontSize: 20, appFontSize: 16 })
   useAgentStore.setState({ panels: {} })
   clearActiveEditorRegistryForTests()
+  clearPreviewSelectionForTests()
 })
 
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
   clearActiveEditorRegistryForTests()
+  clearPreviewSelectionForTests()
 })
 
 describe('EditorPanel FlashQuery URI routing', () => {
@@ -748,6 +755,122 @@ describe('EditorPanel FlashQuery URI routing', () => {
     })
     expect(headings[0].classList.contains('cate-preview-target-heading')).toBe(true)
     expect(headings[1].classList.contains('cate-preview-target-heading')).toBe(false)
+  })
+
+  it('T-I-004 and T-I-031 resolves nested preview targets to the enclosing chunk on hover', async () => {
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: '# First Section\n\nParagraph with **nested emphasis**.\n\n- Nested list item',
+    })
+    setElectronApi(api)
+
+    await renderEditor('flashquery://workspace-1/Docs/Preview-Hover.md')
+    fireEvent.click(screen.getByTitle('Preview markdown'))
+    await screen.findByText('nested emphasis')
+
+    fireEvent.mouseOver(screen.getByText('nested emphasis'))
+    expect(usePreviewSelectionStore.getState().hoveredChunkId).toBe('first-section')
+    expect(usePreviewSelectionStore.getState().activeChunkId).toBe('first-section')
+
+    fireEvent.mouseOut(screen.getByText('Nested list item'))
+    expect(usePreviewSelectionStore.getState().hoveredChunkId).toBeNull()
+    expect(usePreviewSelectionStore.getState().activeChunkId).toBeNull()
+  })
+
+  it('T-I-005 preserves drag text selection without pinning', async () => {
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: '# Drag Target\n\nSelectable body text',
+    })
+    setElectronApi(api)
+    Object.defineProperty(window, 'getSelection', {
+      configurable: true,
+      value: () => ({ toString: () => 'Selectable' }),
+    })
+
+    await renderEditor('flashquery://workspace-1/Docs/Preview-Drag.md')
+    fireEvent.click(screen.getByTitle('Preview markdown'))
+    const text = await screen.findByText('Selectable body text')
+
+    fireEvent.mouseDown(text, { clientX: 10, clientY: 10 })
+    fireEvent.mouseUp(text, { clientX: 60, clientY: 10 })
+    fireEvent.click(text)
+
+    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBeNull()
+  })
+
+  it('T-I-006 and T-I-008 applies active, pinned, and caution classes to chunk wrappers', async () => {
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: '# Active Section\n\nActive body\n\n## Pinned Section\n\nPinned body\n\n## Risk Section\n\nRisk body',
+    })
+    setElectronApi(api)
+
+    await renderEditor('flashquery://workspace-1/Docs/Preview-Decorations.md')
+    fireEvent.click(screen.getByTitle('Preview markdown'))
+    const previewBody = await screen.findByTestId('markdown-preview-body')
+
+    act(() => {
+      usePreviewSelectionStore.getState().setPinnedChunkId('pinned-section')
+      usePreviewSelectionStore.getState().setHoveredChunkId('active-section')
+      usePreviewSelectionStore.getState().setCautionChunkIds(['risk-section'])
+    })
+
+    const active = previewBody.querySelector('[data-chunk-id="active-section"]')!
+    const pinned = previewBody.querySelector('[data-chunk-id="pinned-section"]')!
+    const caution = previewBody.querySelector('[data-chunk-id="risk-section"]')!
+
+    expect(active.className).toContain('cate-preview-chunk-active')
+    expect(pinned.className).toContain('cate-preview-chunk-pinned')
+    expect(caution.className).toContain('cate-preview-chunk-caution')
+    expect(caution.getAttribute('data-caution')).toBe('true')
+  })
+
+  it('T-I-007 leaves embeddings-only fixtures without caution decoration', async () => {
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: '# Embeddings Only\n\nSimilarity body',
+    })
+    setElectronApi(api)
+
+    await renderEditor('flashquery://workspace-1/Docs/Preview-Embeddings.md')
+    fireEvent.click(screen.getByTitle('Preview markdown'))
+    const previewBody = await screen.findByTestId('markdown-preview-body')
+
+    expect(previewBody.querySelector('[data-caution="true"]')).toBeNull()
+    expect(previewBody.querySelector('[data-chunk-id="embeddings-only"]')?.className).not.toContain('cate-preview-chunk-caution')
+  })
+
+  it('T-I-032 through T-I-035 pins, restores pinned scope after hover, and clears selection', async () => {
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: '# First Section\n\nFirst body\n\n## Second Section\n\nSecond body',
+    })
+    setElectronApi(api)
+
+    await renderEditor('flashquery://workspace-1/Docs/Preview-Selection.md')
+    fireEvent.click(screen.getByTitle('Preview markdown'))
+    const first = await screen.findByText('First body')
+    await screen.findByText('Second body')
+    const secondChunk = screen.getByTestId('markdown-preview-body').querySelector('[data-chunk-id="second-section"]')!
+
+    fireEvent.click(first)
+    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('first-section')
+    expect(usePreviewSelectionStore.getState().activeChunkId).toBe('first-section')
+
+    fireEvent.mouseOver(secondChunk)
+    expect(usePreviewSelectionStore.getState().activeChunkId).toBe('second-section')
+
+    fireEvent.mouseOut(secondChunk)
+    expect(usePreviewSelectionStore.getState().activeChunkId).toBe('first-section')
+
+    fireEvent.keyDown(screen.getByTestId('markdown-preview-body'), { key: 'Escape' })
+    expect(usePreviewSelectionStore.getState().activeChunkId).toBeNull()
+
+    act(() => usePreviewSelectionStore.getState().selectSection('first-section'))
+    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('first-section')
+    fireEvent.click(screen.getByTestId('markdown-preview-body'))
+    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBeNull()
   })
 })
 
