@@ -349,6 +349,7 @@ describe('EditorPanel FlashQuery URI routing', () => {
     await renderEditor('flashquery://workspace-1/Docs/Outline-Toolbar.md')
 
     expect(screen.getByLabelText('Toggle document outline')).toBeTruthy()
+    expect(screen.getByLabelText('Toggle document graph')).toBeTruthy()
     expect(screen.getByTitle('Preview markdown')).toBeTruthy()
   })
 
@@ -361,6 +362,7 @@ describe('EditorPanel FlashQuery URI routing', () => {
 
     await waitFor(() => expect(monaco.editor.createDiffEditor).toHaveBeenCalled())
     expect(screen.queryByLabelText('Toggle document outline')).toBeNull()
+    expect(screen.queryByLabelText('Toggle document graph')).toBeNull()
   })
 
   it('T-I-019 opens Outline in the right dock zone for a docked editor with source editor association', async () => {
@@ -375,6 +377,23 @@ describe('EditorPanel FlashQuery URI routing', () => {
       sourceEditorPanelId: panelId,
     })
     expect(useDockStore.getState().panelLocations[outlinePanel!.id]).toMatchObject({
+      type: 'dock',
+      zone: 'right',
+    })
+  })
+
+  it('opens Graph in the right dock zone for a docked editor with source editor association', async () => {
+    await renderEditor('flashquery://workspace-1/Docs/Graph-Open.md')
+
+    fireEvent.click(screen.getByLabelText('Toggle document graph'))
+
+    const workspace = useAppStore.getState().workspaces[0]
+    const graphPanel = Object.values(workspace.panels).find((panel) => panel.type === 'semantic-connections')
+    expect(graphPanel).toMatchObject({
+      title: 'Connections',
+      sourceEditorPanelId: panelId,
+    })
+    expect(useDockStore.getState().panelLocations[graphPanel!.id]).toMatchObject({
       type: 'dock',
       zone: 'right',
     })
@@ -400,6 +419,28 @@ describe('EditorPanel FlashQuery URI routing', () => {
       'node-1',
     )
     useAppStore.setState({ createOutline: originalCreateOutline } as Partial<ReturnType<typeof useAppStore.getState>>)
+  })
+
+  it('opens Graph inside the source canvas node when the editor is canvas-mounted', async () => {
+    const panel = makePanel('flashquery://workspace-1/Docs/Canvas-Graph.md')
+    seedWorkspace(panel)
+    const originalCreateSemanticConnections = useAppStore.getState().createSemanticConnections
+    const createSemanticConnections = vi.fn()
+    useAppStore.setState({ createSemanticConnections } as Partial<ReturnType<typeof useAppStore.getState>>)
+
+    render(<EditorPanel panelId={panelId} workspaceId={workspaceId} nodeId="node-1" filePath={panel.filePath} />)
+    await waitFor(() => expect(monacoMock().latestEditor()?.getModel()).toBeTruthy())
+
+    fireEvent.click(screen.getByLabelText('Toggle document graph'))
+
+    expect(createSemanticConnections).toHaveBeenCalledWith(
+      workspaceId,
+      undefined,
+      { target: 'none' },
+      panelId,
+      'node-1',
+    )
+    useAppStore.setState({ createSemanticConnections: originalCreateSemanticConnections } as Partial<ReturnType<typeof useAppStore.getState>>)
   })
 
   it('T-I-020 closes only the associated Outline panel and preserves unrelated right-zone panels', async () => {

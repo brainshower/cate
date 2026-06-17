@@ -404,6 +404,9 @@ export default function EditorPanel({
   const associatedOutlinePanelId = Object.values(ws?.panels ?? {}).find((panel) =>
     panel.type === 'outline' && panel.sourceEditorPanelId === panelId
   )?.id
+  const associatedGraphPanelId = Object.values(ws?.panels ?? {}).find((panel) =>
+    panel.type === 'semantic-connections' && panel.sourceEditorPanelId === panelId
+  )?.id
   const setMarkdownPreview = useCallback(
     (next: boolean) =>
       useAppStore.getState().setPanelMarkdownPreview(workspaceId, panelId, next),
@@ -485,6 +488,19 @@ export default function EditorPanel({
       nodeId || undefined,
     )
   }, [associatedOutlinePanelId, workspaceId, panelId, nodeId])
+  const toggleGraph = useCallback(() => {
+    if (associatedGraphPanelId) {
+      useAppStore.getState().closePanel(workspaceId, associatedGraphPanelId)
+      return
+    }
+    useAppStore.getState().createSemanticConnections(
+      workspaceId,
+      undefined,
+      nodeId ? { target: 'none' } : { target: 'dock', zone: 'right' },
+      panelId,
+      nodeId,
+    )
+  }, [associatedGraphPanelId, workspaceId, panelId, nodeId])
 
   useEffect(() => {
     setFlashQueryStatus(null)
@@ -1066,6 +1082,18 @@ export default function EditorPanel({
             title="Toggle document outline"
           >
             Outline
+          </button>
+          <button
+            onClick={toggleGraph}
+            aria-label="Toggle document graph"
+            className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+              associatedGraphPanelId
+                ? 'bg-teal-500/20 text-teal-400 hover:bg-teal-500/30'
+                : 'bg-neutral-200/80 dark:bg-neutral-700/80 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-600'
+            }`}
+            title="Toggle document graph"
+          >
+            Graph
           </button>
           {isMarkdown && (
             <button

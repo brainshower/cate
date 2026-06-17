@@ -326,7 +326,7 @@ interface AppStoreActions {
   createFlashQueryVault: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
   createFlashQueryVaultSearch: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
   createOutline: (workspaceId: string, position?: Point, placement?: PanelPlacement, sourceEditorPanelId?: string, sourceCanvasNodeId?: string) => string
-  createSemanticConnections: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
+  createSemanticConnections: (workspaceId: string, position?: Point, placement?: PanelPlacement, sourceEditorPanelId?: string, sourceCanvasNodeId?: string) => string
   createProjectList: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
   createCanvas: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
   createAgent: (workspaceId: string, position?: Point, placement?: PanelPlacement) => string
@@ -1334,12 +1334,34 @@ export const useAppStore = create<AppStore>((set, get) => ({
     return addAndPlacePanel(set, get, workspaceId, panel, placement, position)
   },
 
-  createSemanticConnections(workspaceId, position?, placement?) {
+  createSemanticConnections(workspaceId, position?, placement?, sourceEditorPanelId?, sourceCanvasNodeId?) {
     const panel: PanelState = {
       id: generateId(),
       type: 'semantic-connections',
       title: 'Connections',
       isDirty: false,
+      ...(sourceEditorPanelId ? { sourceEditorPanelId } : {}),
+      ...(sourceCanvasNodeId ? { sourceCanvasNodeId } : {}),
+    }
+    if (placement?.target === 'none' && sourceEditorPanelId) {
+      set((state) => ({
+        workspaces: state.workspaces.map((ws) =>
+          ws.id === workspaceId
+            ? { ...ws, panels: { ...ws.panels, [panel.id]: panel } }
+            : ws,
+        ),
+      }))
+      if (!placePanelInCanvasNode(workspaceId, sourceEditorPanelId, panel.id, 'split-right', sourceCanvasNodeId)) {
+        set((state) => ({
+          workspaces: state.workspaces.map((ws) => {
+            if (ws.id !== workspaceId) return ws
+            const { [panel.id]: _removed, ...panels } = ws.panels
+            return { ...ws, panels }
+          }),
+        }))
+        return null as unknown as string
+      }
+      return panel.id
     }
     return addAndPlacePanel(set, get, workspaceId, panel, placement, position)
   },
