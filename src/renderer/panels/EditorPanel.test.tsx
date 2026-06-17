@@ -721,14 +721,14 @@ describe('EditorPanel FlashQuery URI routing', () => {
     fireEvent.click(screen.getByTitle('Preview markdown'))
     await screen.findByTestId('markdown-preview-body')
 
-    act(() => usePreviewSelectionStore.getState().selectSection('selected'))
-    expect(usePreviewSelectionStore.getState().activeChunkId).toBe('selected')
+    act(() => usePreviewSelectionStore.getState().selectSection('selected', panelId))
+    expect(usePreviewSelectionStore.getState().getScope(panelId).activeChunkId).toBe('selected')
 
     fireEvent.click(screen.getByTitle('Show source'))
 
     await waitFor(() => expect(screen.queryByTestId('markdown-preview-body')).toBeNull())
-    expect(usePreviewSelectionStore.getState().activeChunkId).toBeNull()
-    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBeNull()
+    expect(usePreviewSelectionStore.getState().getScope(panelId).activeChunkId).toBeNull()
+    expect(usePreviewSelectionStore.getState().getScope(panelId).pinnedChunkId).toBeNull()
   })
 
   it('highlights a source heading line through the active editor registry callback', async () => {
@@ -833,7 +833,7 @@ describe('EditorPanel FlashQuery URI routing', () => {
     expect(target.classList.contains('cate-preview-target-heading')).toBe(false)
     expect(target.style.backgroundColor).toBe('')
     expect(target.style.outline).toBe('')
-    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('target-heading')
+    expect(usePreviewSelectionStore.getState().getScope(panelId).pinnedChunkId).toBe('target-heading')
     await waitFor(() => {
       expect(screen.getByTestId('markdown-preview-body').querySelector('[data-chunk-id="target-heading"]')?.getAttribute('class') ?? '')
         .toContain('cate-preview-chunk-pinned')
@@ -865,14 +865,14 @@ describe('EditorPanel FlashQuery URI routing', () => {
 
     expect(headings.map((heading) => heading.id)).toEqual(['intro', 'intro-1'])
     expect(scrollIntoView).toHaveBeenCalledTimes(1)
-    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('intro-1')
+    expect(usePreviewSelectionStore.getState().getScope(panelId).pinnedChunkId).toBe('intro-1')
     await waitFor(() => expect(previewBody.querySelector('[data-chunk-id="intro-1"]')?.getAttribute('class') ?? '').toContain('cate-preview-chunk-pinned'))
     expect(previewBody.querySelector('[data-chunk-id="intro"]')?.getAttribute('class') ?? '').not.toContain('cate-preview-chunk-pinned')
 
     act(() => {
       getActiveEditorSnapshot(workspaceId).scrollPreviewToHeading?.('Intro', 0)
     })
-    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('intro')
+    expect(usePreviewSelectionStore.getState().getScope(panelId).pinnedChunkId).toBe('intro')
     await waitFor(() => expect(previewBody.querySelector('[data-chunk-id="intro"]')?.getAttribute('class') ?? '').toContain('cate-preview-chunk-pinned'))
     expect(previewBody.querySelector('[data-chunk-id="intro-1"]')?.getAttribute('class') ?? '').not.toContain('cate-preview-chunk-pinned')
   })
@@ -889,12 +889,12 @@ describe('EditorPanel FlashQuery URI routing', () => {
     await screen.findByText('nested emphasis')
 
     fireEvent.mouseOver(screen.getByText('nested emphasis'))
-    expect(usePreviewSelectionStore.getState().hoveredChunkId).toBe('first-section')
-    expect(usePreviewSelectionStore.getState().activeChunkId).toBe('first-section')
+    expect(usePreviewSelectionStore.getState().getScope(panelId).hoveredChunkId).toBe('first-section')
+    expect(usePreviewSelectionStore.getState().getScope(panelId).activeChunkId).toBe('first-section')
 
     fireEvent.mouseOut(screen.getByText('Nested list item'))
-    expect(usePreviewSelectionStore.getState().hoveredChunkId).toBeNull()
-    expect(usePreviewSelectionStore.getState().activeChunkId).toBeNull()
+    expect(usePreviewSelectionStore.getState().getScope(panelId).hoveredChunkId).toBeNull()
+    expect(usePreviewSelectionStore.getState().getScope(panelId).activeChunkId).toBeNull()
   })
 
   it('T-I-005 preserves drag text selection without pinning', async () => {
@@ -916,7 +916,7 @@ describe('EditorPanel FlashQuery URI routing', () => {
     fireEvent.mouseUp(text, { clientX: 60, clientY: 10 })
     fireEvent.click(text)
 
-    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBeNull()
+    expect(usePreviewSelectionStore.getState().getScope(panelId).pinnedChunkId).toBeNull()
   })
 
   it('T-I-006 and T-I-008 applies active, pinned, and caution classes to chunk wrappers', async () => {
@@ -931,9 +931,9 @@ describe('EditorPanel FlashQuery URI routing', () => {
     const previewBody = await screen.findByTestId('markdown-preview-body')
 
     act(() => {
-      usePreviewSelectionStore.getState().setPinnedChunkId('pinned-section')
-      usePreviewSelectionStore.getState().setHoveredChunkId('active-section')
-      usePreviewSelectionStore.getState().setCautionChunkIds(['risk-section', 'selected-risk'])
+      usePreviewSelectionStore.getState().setPinnedChunkId('pinned-section', panelId)
+      usePreviewSelectionStore.getState().setHoveredChunkId('active-section', panelId)
+      usePreviewSelectionStore.getState().setCautionChunkIds(['risk-section', 'selected-risk'], panelId)
     })
 
     const active = previewBody.querySelector('[data-chunk-id="active-section"]')!
@@ -946,7 +946,7 @@ describe('EditorPanel FlashQuery URI routing', () => {
     expect(caution.className).toContain('cate-preview-chunk-caution')
     expect(caution.getAttribute('data-caution')).toBe('true')
 
-    act(() => usePreviewSelectionStore.getState().selectSection('selected-risk'))
+    act(() => usePreviewSelectionStore.getState().selectSection('selected-risk', panelId))
 
     expect(selectedCaution.className).toContain('cate-preview-chunk-active')
     expect(selectedCaution.className).toContain('cate-preview-chunk-pinned')
@@ -988,22 +988,22 @@ describe('EditorPanel FlashQuery URI routing', () => {
     const secondChunk = screen.getByTestId('markdown-preview-body').querySelector('[data-chunk-id="second-section"]')!
 
     fireEvent.click(first)
-    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('first-section')
-    expect(usePreviewSelectionStore.getState().activeChunkId).toBe('first-section')
+    expect(usePreviewSelectionStore.getState().getScope(panelId).pinnedChunkId).toBe('first-section')
+    expect(usePreviewSelectionStore.getState().getScope(panelId).activeChunkId).toBe('first-section')
 
     fireEvent.mouseOver(secondChunk)
-    expect(usePreviewSelectionStore.getState().activeChunkId).toBe('second-section')
+    expect(usePreviewSelectionStore.getState().getScope(panelId).activeChunkId).toBe('second-section')
 
     fireEvent.mouseOut(secondChunk)
-    expect(usePreviewSelectionStore.getState().activeChunkId).toBe('first-section')
+    expect(usePreviewSelectionStore.getState().getScope(panelId).activeChunkId).toBe('first-section')
 
     fireEvent.keyDown(screen.getByTestId('markdown-preview-body'), { key: 'Escape' })
-    expect(usePreviewSelectionStore.getState().activeChunkId).toBeNull()
+    expect(usePreviewSelectionStore.getState().getScope(panelId).activeChunkId).toBeNull()
 
-    act(() => usePreviewSelectionStore.getState().selectSection('first-section'))
-    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('first-section')
+    act(() => usePreviewSelectionStore.getState().selectSection('first-section', panelId))
+    expect(usePreviewSelectionStore.getState().getScope(panelId).pinnedChunkId).toBe('first-section')
     fireEvent.click(screen.getByTestId('markdown-preview-body'))
-    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBeNull()
+    expect(usePreviewSelectionStore.getState().getScope(panelId).pinnedChunkId).toBeNull()
   })
 
   it('REQ-007 keeps a pinned scope when Escape is owned by another editing surface', async () => {
@@ -1017,8 +1017,8 @@ describe('EditorPanel FlashQuery URI routing', () => {
     fireEvent.click(screen.getByTitle('Preview markdown'))
     await screen.findByText('First body')
 
-    act(() => usePreviewSelectionStore.getState().selectSection('first-section'))
-    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('first-section')
+    act(() => usePreviewSelectionStore.getState().selectSection('first-section', panelId))
+    expect(usePreviewSelectionStore.getState().getScope(panelId).pinnedChunkId).toBe('first-section')
 
     // Escape while a terminal owns focus must NOT clear the pinned scope.
     const terminal = document.createElement('div')
@@ -1028,12 +1028,12 @@ describe('EditorPanel FlashQuery URI routing', () => {
     document.body.appendChild(terminal)
     terminalInput.focus()
     fireEvent.keyDown(terminalInput, { key: 'Escape' })
-    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('first-section')
+    expect(usePreviewSelectionStore.getState().getScope(panelId).pinnedChunkId).toBe('first-section')
 
     // Escape with no foreign editing surface focused still clears (pin-then-Esc).
     terminalInput.blur()
     fireEvent.keyDown(screen.getByTestId('markdown-preview-body'), { key: 'Escape' })
-    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBeNull()
+    expect(usePreviewSelectionStore.getState().getScope(panelId).pinnedChunkId).toBeNull()
 
     terminal.remove()
   })

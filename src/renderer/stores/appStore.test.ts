@@ -457,6 +457,94 @@ describe('appStore.createSemanticConnections', () => {
   })
 })
 
+describe('appStore derived editor sidebars', () => {
+  beforeEach(() => {
+    seedStore()
+    setCanvasOperations(makeCanvasOps())
+  })
+
+  it('closes Outline and Connections panels associated with a closed editor', () => {
+    const editorPanelId = useAppStore.getState().createEditor(workspaceId, '/workspace/Plan.md', undefined, {
+      target: 'dock',
+      zone: 'center',
+    })
+    const outlinePanelId = useAppStore.getState().createOutline(workspaceId, undefined, {
+      target: 'dock',
+      zone: 'right',
+    }, editorPanelId)
+    const graphPanelId = useAppStore.getState().createSemanticConnections(workspaceId, undefined, {
+      target: 'dock',
+      zone: 'right',
+    }, editorPanelId)
+
+    useAppStore.getState().closePanel(workspaceId, editorPanelId)
+
+    const workspace = useAppStore.getState().workspaces[0]
+    expect(workspace.panels[editorPanelId]).toBeUndefined()
+    expect(workspace.panels[outlinePanelId]).toBeUndefined()
+    expect(workspace.panels[graphPanelId]).toBeUndefined()
+    expect(useDockStore.getState().panelLocations[outlinePanelId]).toBeUndefined()
+    expect(useDockStore.getState().panelLocations[graphPanelId]).toBeUndefined()
+  })
+
+  it('reveals and activates the active editor matching right-dock sidebar', () => {
+    const editorOneId = useAppStore.getState().createEditor(workspaceId, '/workspace/One.md', undefined, {
+      target: 'dock',
+      zone: 'center',
+    })
+    const editorTwoId = useAppStore.getState().createEditor(workspaceId, '/workspace/Two.md', undefined, {
+      target: 'dock',
+      zone: 'center',
+    })
+    const outlineOneId = useAppStore.getState().createOutline(workspaceId, undefined, {
+      target: 'dock',
+      zone: 'right',
+    }, editorOneId)
+    const graphOneId = useAppStore.getState().createSemanticConnections(workspaceId, undefined, {
+      target: 'dock',
+      zone: 'right',
+    }, editorOneId)
+    const outlineTwoId = useAppStore.getState().createOutline(workspaceId, undefined, {
+      target: 'dock',
+      zone: 'right',
+    }, editorTwoId)
+    const graphTwoId = useAppStore.getState().createSemanticConnections(workspaceId, undefined, {
+      target: 'dock',
+      zone: 'right',
+    }, editorTwoId)
+
+    const graphOneLocation = useDockStore.getState().panelLocations[graphOneId]
+    expect(graphOneLocation).toMatchObject({ type: 'dock', zone: 'right' })
+    const rightStackId = graphOneLocation?.type === 'dock' ? graphOneLocation.stackId : null
+    expect(rightStackId).toBeTruthy()
+    useDockStore.getState().setActiveTab(rightStackId!, [
+      outlineOneId,
+      graphOneId,
+      outlineTwoId,
+      graphTwoId,
+    ].indexOf(graphOneId))
+    useDockStore.setState((state) => ({
+      zones: {
+        ...state.zones,
+        right: {
+          ...state.zones.right,
+          visible: false,
+        },
+      },
+    }))
+
+    useAppStore.getState().focusAssociatedSidebars(workspaceId, editorTwoId)
+
+    const rightLayout = useDockStore.getState().zones.right.layout
+    expect(useDockStore.getState().zones.right.visible).toBe(true)
+    expect(rightLayout).toMatchObject({
+      type: 'tabs',
+      panelIds: [outlineOneId, graphOneId, outlineTwoId, graphTwoId],
+      activeIndex: 3,
+    })
+  })
+})
+
 describe('appStore.createEditor', () => {
   beforeEach(() => {
     seedStore()

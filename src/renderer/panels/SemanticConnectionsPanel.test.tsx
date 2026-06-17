@@ -133,7 +133,7 @@ function renderPanel(result: SemanticConnectionsResult, options: { activeChunkId
   const filePath = readyEditor()
   if (options.activeChunkId) {
     const activeChunkId = options.activeChunkId
-    act(() => usePreviewSelectionStore.getState().selectSection(activeChunkId))
+    act(() => usePreviewSelectionStore.getState().selectSection(activeChunkId, 'editor-1'))
   }
   return render(
     <SemanticConnectionsPanel
@@ -335,7 +335,7 @@ describe('SemanticConnectionsPanel', () => {
     expect(screen.getByRole('button', { name: 'Show whole document semantic connections' }).getAttribute('aria-pressed')).toBe('false')
     expect(screen.getByRole('button', { name: 'Show selected section semantic connections' }).getAttribute('aria-pressed')).toBe('true')
     expect(screen.getByLabelText('Connection count: 0 connections').textContent).toBe('0')
-    expect(usePreviewSelectionStore.getState().activeChunkId).toBe('scope')
+    expect(usePreviewSelectionStore.getState().getScope('editor-1').activeChunkId).toBe('scope')
   })
 
   it('T-I-020 keeps stale connections visible with a subtle stale indicator', async () => {
@@ -430,7 +430,7 @@ describe('SemanticConnectionsPanel', () => {
     renderPanelWithProvider(cachedProvider)
     expect(await screen.findByText('Alpha Notes')).toBeTruthy()
 
-    act(() => usePreviewSelectionStore.getState().selectSection('scope'))
+    act(() => usePreviewSelectionStore.getState().selectSection('scope', 'editor-1'))
 
     await waitFor(() => expect(cachedProvider.loadDocumentConnections).toHaveBeenCalledTimes(1))
   })
@@ -497,7 +497,7 @@ describe('SemanticConnectionsPanel', () => {
     expect(await screen.findByText('Loading connections')).toBeTruthy()
     expect(screen.getByTestId('semantic-connections-panel').className).toContain('overflow-hidden')
 
-    act(() => usePreviewSelectionStore.getState().selectSection('scope'))
+    act(() => usePreviewSelectionStore.getState().selectSection('scope', 'editor-1'))
     await waitFor(() => expect(asyncProvider.loadDocumentConnections).toHaveBeenCalledTimes(2))
 
     await act(async () => {
@@ -562,7 +562,7 @@ describe('SemanticConnectionsPanel', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Open Plan Scope' }))
 
     expect(scrollPreviewToHeading).toHaveBeenCalledWith('Scope')
-    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('scope')
+    expect(usePreviewSelectionStore.getState().getScope('editor-1').pinnedChunkId).toBe('scope')
   })
 
   it('REQ-036 opens a cross-document target through a registered preview editor when available', async () => {
@@ -606,7 +606,7 @@ describe('SemanticConnectionsPanel', () => {
 
     expect(targetScroll).toHaveBeenCalledWith('Details')
     expect(targetEditor.focus).toHaveBeenCalled()
-    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('details')
+    expect(usePreviewSelectionStore.getState().getScope('editor-target').pinnedChunkId).toBe('details')
   })
 
   it('REQ-036 creates an editor for cross-document targets when no registered editor is available', async () => {
@@ -708,7 +708,7 @@ describe('SemanticConnectionsPanel', () => {
     }, { activeChunkId: 'scope' })
 
     expect(await screen.findByText('Alpha Notes')).toBeTruthy()
-    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('scope')
+    expect(usePreviewSelectionStore.getState().getScope('editor-1').pinnedChunkId).toBe('scope')
 
     const unrelated = document.createElement('button')
     unrelated.textContent = 'Unrelated'
@@ -716,11 +716,11 @@ describe('SemanticConnectionsPanel', () => {
     unrelated.focus()
     fireEvent.keyDown(unrelated, { key: 'Escape' })
 
-    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('scope')
+    expect(usePreviewSelectionStore.getState().getScope('editor-1').pinnedChunkId).toBe('scope')
 
     fireEvent.keyDown(screen.getByTestId('semantic-connections-panel'), { key: 'Escape' })
 
-    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBeNull()
+    expect(usePreviewSelectionStore.getState().getScope('editor-1').pinnedChunkId).toBeNull()
   })
 })
 

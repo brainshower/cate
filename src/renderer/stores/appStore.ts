@@ -339,6 +339,7 @@ interface AppStoreActions {
 
   // Panel management
   closePanel: (workspaceId: string, panelId: string) => void
+  focusAssociatedSidebars: (workspaceId: string, sourceEditorPanelId: string) => void
   updatePanelTitle: (workspaceId: string, panelId: string, title: string) => void
   /** Apply a title that came from the running process (xterm OSC 0/1/2). Skips
    *  the update if the user has manually renamed the tab. */
@@ -714,6 +715,28 @@ function findStackContainingPanel(
     if (found) return found
   }
   return null
+}
+
+function activePanelIdInLayout(
+  node: import('../../shared/types').DockLayoutNode | null | undefined,
+): string | null {
+  if (!node) return null
+  if (node.type === 'tabs') return node.panelIds[node.activeIndex] ?? null
+  for (const child of node.children) {
+    const panelId = activePanelIdInLayout(child)
+    if (panelId) return panelId
+  }
+  return null
+}
+
+function associatedDerivedPanelIds(ws: WorkspaceState | undefined, sourcePanelId: string): string[] {
+  if (!ws) return []
+  return Object.values(ws.panels)
+    .filter((panel) =>
+      (panel.type === 'outline' || panel.type === 'semantic-connections') &&
+      panel.sourceEditorPanelId === sourcePanelId
+    )
+    .map((panel) => panel.id)
 }
 
 /** Apply an update to a single panel within a workspace. No-ops if the
@@ -1402,6 +1425,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
     // Dispose terminal before removing the panel
     const ws = get().workspaces.find((w) => w.id === workspaceId)
     const panel = ws?.panels[panelId]
+    if (panel?.type === 'editor') {
+      for (const derivedPanelId of associatedDerivedPanelIds(ws, panelId)) {
+        get().closePanel(workspaceId, derivedPanelId)
+      }
+    }
     if (panel?.type === 'terminal') {
       terminalRegistry.dispose(panelId)
     }
@@ -1446,6 +1474,41 @@ export const useAppStore = create<AppStore>((set, get) => ({
         return { ...ws, panels: remainingPanels }
       }),
     }))
+  },
+
+  focusAssociatedSidebars(workspaceId, sourceEditorPanelId) {
+    const ws = get().workspaces.find((w) => w.id === workspaceId)
+    if (!ws?.panels[sourceEditorPanelId]) return
+
+    const dock = useDockStore.getState()
+    const rightLayout = dock.zones.right.layout
+    const activeRightPanelId = activePanelIdInLayout(rightLayout)
+    const activeRightPanelType = activeRightPanelId ? ws.panels[activeRightPanelId]?.type : undefined
+    const derivedPanels = Object.values(ws.panels).filter((panel) => {
+      const location = dock.panelLocations[panel.id]
+      return (panel.type === 'outline' || panel.type === 'semantic-connections') &&
+        panel.sourceEditorPanelId === sourceEditorPanelId &&
+        location?.type === 'dock' &&
+        location.zone === 'right'
+    })
+    const target = derivedPanels.find((panel) => panel.type === activeRightPanelType)
+      ?? derivedPanels[0]
+    if (!target) return
+
+    const stack = findStackContainingPanel(rightLayout, target.id)
+    const index = stack?.panelIds.indexOf(target.id) ?? -1
+    if (!stack || index < 0) return
+
+    useDockStore.setState((state) => ({
+      zones: {
+        ...state.zones,
+        right: {
+          ...state.zones.right,
+          visible: true,
+        },
+      },
+    }))
+    useDockStore.getState().setActiveTab(stack.id, index)
   },
 
   updatePanelTitle(workspaceId, panelId, title) {

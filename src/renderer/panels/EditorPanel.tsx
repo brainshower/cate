@@ -424,8 +424,8 @@ export default function EditorPanel({
 
     heading.scrollIntoView({ behavior: 'smooth', block: 'start' })
     const chunkId = heading.closest<HTMLElement>('[data-chunk-id]')?.dataset.chunkId
-    if (chunkId) usePreviewSelectionStore.getState().selectSection(chunkId)
-  }, [])
+    if (chunkId) usePreviewSelectionStore.getState().selectSection(chunkId, panelId)
+  }, [panelId])
   const resolvePreviewChunkIdForHeading = useCallback((headingText: string, occurrenceIndex = 0): string | null => {
     const previewBody = previewBodyRef.current
     if (!previewBody) return null
@@ -1114,7 +1114,7 @@ export default function EditorPanel({
         </div>
       )}
       {markdownPreview && isMarkdown && (
-        <MarkdownPreview content={markdownContent} previewBodyRef={previewBodyRef} />
+        <MarkdownPreview content={markdownContent} previewBodyRef={previewBodyRef} selectionScopeId={panelId} />
       )}
       <FlashQueryRefreshConfirmDialog
         open={showRefreshConfirm}
@@ -1205,14 +1205,16 @@ function splitMarkdownPreviewChunks(content: string): MarkdownPreviewChunk[] {
 function MarkdownPreview({
   content,
   previewBodyRef,
+  selectionScopeId,
 }: {
   content: string
   previewBodyRef: Ref<HTMLDivElement>
+  selectionScopeId: string
 }) {
   const previewFontSize = useSettingsStore((s) => s.previewFontSize)
-  const activeChunkId = usePreviewSelectionStore((s) => s.activeChunkId)
-  const pinnedChunkId = usePreviewSelectionStore((s) => s.pinnedChunkId)
-  const cautionChunkIds = usePreviewSelectionStore((s) => s.cautionChunkIds)
+  const activeChunkId = usePreviewSelectionStore((s) => s.getScope(selectionScopeId).activeChunkId)
+  const pinnedChunkId = usePreviewSelectionStore((s) => s.getScope(selectionScopeId).pinnedChunkId)
+  const cautionChunkIds = usePreviewSelectionStore((s) => s.getScope(selectionScopeId).cautionChunkIds)
   const pointerDownRef = useRef<{ chunkId: string | null, x: number, y: number } | null>(null)
   const cautionChunks = useMemo(() => new Set(cautionChunkIds), [cautionChunkIds])
   const baseSize = Number.isFinite(previewFontSize) ? Math.min(Math.max(Math.round(previewFontSize), 8), 40) : 14
@@ -1245,28 +1247,28 @@ function MarkdownPreview({
         !active.closest('[data-testid="semantic-connections-panel"]') &&
         !!active.closest('.xterm, .monaco-editor, input, textarea, select, [contenteditable="true"]')
       if (ownedElsewhere) return
-      usePreviewSelectionStore.getState().clearSelection()
+      usePreviewSelectionStore.getState().clearSelection(selectionScopeId)
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
-      usePreviewSelectionStore.getState().clearSelection()
+      usePreviewSelectionStore.getState().clearSelection(selectionScopeId)
     }
-  }, [])
+  }, [selectionScopeId])
 
   const handleMouseOver = useCallback((event: MouseEvent<HTMLDivElement>) => {
     const chunk = chunkWrapperFromEventTarget(event.target)
     const chunkId = chunk?.dataset.chunkId ?? null
-    if (chunkId) usePreviewSelectionStore.getState().setHoveredChunkId(chunkId)
-  }, [])
+    if (chunkId) usePreviewSelectionStore.getState().setHoveredChunkId(chunkId, selectionScopeId)
+  }, [selectionScopeId])
 
   const handleMouseOut = useCallback((event: MouseEvent<HTMLDivElement>) => {
     const chunk = chunkWrapperFromEventTarget(event.target)
     if (!chunk) return
     const related = chunkWrapperFromEventTarget(event.relatedTarget)
     if (related === chunk) return
-    usePreviewSelectionStore.getState().setHoveredChunkId(null)
-  }, [])
+    usePreviewSelectionStore.getState().setHoveredChunkId(null, selectionScopeId)
+  }, [selectionScopeId])
 
   const handleMouseDown = useCallback((event: MouseEvent<HTMLDivElement>) => {
     const chunk = chunkWrapperFromEventTarget(event.target)
@@ -1280,7 +1282,7 @@ function MarkdownPreview({
   const handleClick = useCallback((event: MouseEvent<HTMLDivElement>) => {
     const chunk = chunkWrapperFromEventTarget(event.target)
     if (!chunk) {
-      usePreviewSelectionStore.getState().clearSelection()
+      usePreviewSelectionStore.getState().clearSelection(selectionScopeId)
       return
     }
     if (event.target instanceof Element && event.target.closest('a')) return
@@ -1293,8 +1295,8 @@ function MarkdownPreview({
     const selectedText = window.getSelection?.()?.toString() ?? ''
     if (moved > 4 || selectedText.length > 0) return
 
-    usePreviewSelectionStore.getState().selectSection(chunkId)
-  }, [])
+    usePreviewSelectionStore.getState().selectSection(chunkId, selectionScopeId)
+  }, [selectionScopeId])
 
   const markdownComponentsForChunk = (chunkId: string | null) => {
     const headingProps = (children: ReactNode) => ({

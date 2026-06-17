@@ -385,12 +385,12 @@ describe('OutlinePanel source mode', () => {
     editor.emitCursor(1)
     renderOutline()
 
-    act(() => usePreviewSelectionStore.getState().setHoveredChunkId('two'))
+    act(() => usePreviewSelectionStore.getState().setHoveredChunkId('two', 'editor-1'))
 
     expect(screen.getByText('Two').closest('button')!.className).toContain('bg-blue-500/15')
     expect(screen.getByText('One').closest('button')!.className).not.toContain('bg-blue-500/15')
 
-    act(() => usePreviewSelectionStore.getState().clearSelection())
+    act(() => usePreviewSelectionStore.getState().clearSelection('editor-1'))
 
     expect(screen.getByText('One').closest('button')!.className).toContain('bg-blue-500/15')
   })
@@ -403,7 +403,7 @@ describe('OutlinePanel source mode', () => {
     fireEvent.click(screen.getByText('Two'))
 
     expect(scrollPreviewToHeading).toHaveBeenCalledWith('Two', 0)
-    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('two')
+    expect(usePreviewSelectionStore.getState().getScope('editor-1').pinnedChunkId).toBe('two')
     expect(editor.revealLineInCenter).not.toHaveBeenCalled()
   })
 
@@ -416,7 +416,7 @@ describe('OutlinePanel source mode', () => {
         resolvePreviewChunkIdForHeading: (headingText, occurrenceIndex) =>
           headingText === 'Two' && occurrenceIndex === 0 ? 'dom-generated-two' : null,
       })
-      usePreviewSelectionStore.getState().setHoveredChunkId('dom-generated-two')
+      usePreviewSelectionStore.getState().setHoveredChunkId('dom-generated-two', 'editor-1')
     })
 
     expect(screen.getByText('Two').closest('button')!.className).toContain('bg-blue-500/15')

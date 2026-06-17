@@ -110,6 +110,11 @@ export default function DockTabStack({ stack, zone: zoneProp, renderPanel, getPa
 
   const activePanel = activePanelId ? resolvePanel(activePanelId) : undefined
 
+  useEffect(() => {
+    if (zoneProp !== 'center' || compact || activePanel?.type !== 'editor') return
+    useAppStore.getState().focusAssociatedSidebars(effectiveWorkspaceId, activePanel.id)
+  }, [activePanel?.id, activePanel?.type, compact, effectiveWorkspaceId, zoneProp])
+
   // Tab interaction actions (rename, click, context menus, add/split helpers).
   const actions = useDockTabActions({
     stack,

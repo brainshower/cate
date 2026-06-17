@@ -58,4 +58,24 @@ describe('previewSelectionStore', () => {
       activeChunkId: 'pinned-section',
     })
   })
+
+  it('keeps section selection isolated by editor scope', () => {
+    const store = usePreviewSelectionStore.getState()
+
+    store.selectSection('same-heading', 'editor-one')
+    store.selectSection('other-heading', 'editor-two')
+    store.setHoveredChunkId('hovered-heading', 'editor-one')
+
+    expect(usePreviewSelectionStore.getState().getScope('editor-one')).toMatchObject({
+      hoveredChunkId: 'hovered-heading',
+      pinnedChunkId: 'same-heading',
+      activeChunkId: 'hovered-heading',
+    })
+    expect(usePreviewSelectionStore.getState().getScope('editor-two')).toMatchObject({
+      hoveredChunkId: null,
+      pinnedChunkId: 'other-heading',
+      activeChunkId: 'other-heading',
+    })
+    expect(usePreviewSelectionStore.getState().activeChunkId).toBeNull()
+  })
 })

@@ -223,8 +223,14 @@ export function useDockTabActions(params: DockTabActionsParams) {
   const handleTabClick = useCallback(
     (index: number) => {
       setActiveTab(stack.id, index)
+      const panelId = stack.panelIds[index]
+      const panel = panelId ? getPanelLocal(panelId) : undefined
+      const wsId = workspaceId ?? useAppStore.getState().selectedWorkspaceId
+      if (panel?.type === 'editor' && wsId) {
+        useAppStore.getState().focusAssociatedSidebars(wsId, panel.id)
+      }
     },
-    [stack.id, setActiveTab],
+    [getPanelLocal, stack.id, stack.panelIds, setActiveTab, workspaceId],
   )
 
   return {

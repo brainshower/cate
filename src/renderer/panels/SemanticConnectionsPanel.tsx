@@ -272,10 +272,11 @@ export default function SemanticConnectionsPanel({
   provider = defaultProvider,
   createEditorForOpen,
 }: SemanticConnectionsPanelProps) {
-  const activeChunkId = usePreviewSelectionStore((state) => state.activeChunkId)
   const [snapshot, setSnapshot] = useState<ActiveEditorSnapshot>(() =>
     sourceEditorPanelId ? getEditorSnapshotForPanel(workspaceId, sourceEditorPanelId) : getActiveEditorSnapshot(workspaceId),
   )
+  const selectionScopeId = snapshot.panelId ?? sourceEditorPanelId ?? null
+  const activeChunkId = usePreviewSelectionStore((state) => state.getScope(selectionScopeId).activeChunkId)
   const [result, setResult] = useState<SemanticConnectionsResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [loadIssue, setLoadIssue] = useState<LoadIssue>(null)
@@ -310,7 +311,7 @@ export default function SemanticConnectionsPanel({
   const openRegisteredPreview = useCallback((targetSnapshot: ActiveEditorSnapshot, heading: string, chunkId: string): boolean => {
     if (!targetSnapshot.panelId || !targetSnapshot.markdownPreview || !targetSnapshot.scrollPreviewToHeading) return false
     targetSnapshot.scrollPreviewToHeading(heading)
-    usePreviewSelectionStore.getState().selectSection(chunkId)
+    usePreviewSelectionStore.getState().selectSection(chunkId, targetSnapshot.panelId)
     targetSnapshot.editor?.focus()
     return true
   }, [])
@@ -326,7 +327,7 @@ export default function SemanticConnectionsPanel({
 
     if (sameDocument) {
       snapshot.scrollPreviewToHeading?.(heading)
-      usePreviewSelectionStore.getState().selectSection(chunkId)
+      usePreviewSelectionStore.getState().selectSection(chunkId, selectionScopeId)
       return
     }
 
@@ -343,7 +344,7 @@ export default function SemanticConnectionsPanel({
     }
 
     openFileAsPanel(workspaceId, editorPath, undefined, { target: 'dock', zone: 'center' })
-  }, [createEditorForOpen, documentPath, openRegisteredPreview, snapshot, sourceEditorPanelId, workspaceId])
+  }, [createEditorForOpen, documentPath, openRegisteredPreview, selectionScopeId, snapshot, sourceEditorPanelId, workspaceId])
 
   useEffect(() => {
     if (precondition || !snapshot.panelId || !documentPath) return
@@ -453,7 +454,7 @@ export default function SemanticConnectionsPanel({
       data-semantic-diagnostics-count={result?.diagnostics.length ? String(result.diagnostics.length) : undefined}
       onKeyDown={(event) => {
         if (event.key === 'Escape') {
-          usePreviewSelectionStore.getState().clearSelection()
+          usePreviewSelectionStore.getState().clearSelection(selectionScopeId)
         }
       }}
     >
@@ -464,7 +465,7 @@ export default function SemanticConnectionsPanel({
           className={`rounded border px-2 py-1 text-xs font-medium ${activeChunkId ? 'border-subtle text-secondary hover:text-primary' : 'border-teal-400/50 bg-teal-400/10 text-teal-100'}`}
           aria-pressed={!activeChunkId}
           aria-label="Show whole document semantic connections"
-          onClick={() => usePreviewSelectionStore.getState().clearSelection()}
+          onClick={() => usePreviewSelectionStore.getState().clearSelection(selectionScopeId)}
         >
           Whole Document
         </button>

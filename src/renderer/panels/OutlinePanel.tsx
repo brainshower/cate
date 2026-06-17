@@ -112,7 +112,8 @@ export default function OutlinePanel({ panelId, workspaceId, sourceEditorPanelId
   const [searchQuery, setSearchQuery] = useState('')
   const [searchMatchIdx, setSearchMatchIdx] = useState(-1)
   const [cursorLine, setCursorLine] = useState(1)
-  const activeChunkId = usePreviewSelectionStore((state) => state.activeChunkId)
+  const selectionScopeId = snapshot.panelId ?? sourceEditorPanelId ?? null
+  const activeChunkId = usePreviewSelectionStore((state) => state.getScope(selectionScopeId).activeChunkId)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -198,7 +199,7 @@ export default function OutlinePanel({ panelId, workspaceId, sourceEditorPanelId
     if (markdownPreview) {
       scrollPreviewToHeading?.(heading.text, headingOccurrenceIndex(model, heading))
       const chunkId = previewChunkIdForHeading(model, heading, snapshot.resolvePreviewChunkIdForHeading)
-      if (chunkId) usePreviewSelectionStore.getState().selectSection(chunkId)
+      if (chunkId) usePreviewSelectionStore.getState().selectSection(chunkId, selectionScopeId)
       return
     }
     if (!isUsableEditor(editor, model)) return
@@ -206,7 +207,7 @@ export default function OutlinePanel({ panelId, workspaceId, sourceEditorPanelId
     editor.setPosition({ lineNumber: heading.line, column: 1 })
     highlightSourceLine?.(heading.line)
     if (focusEditor) editor.focus()
-  }, [snapshot])
+  }, [selectionScopeId, snapshot])
 
   const clearSearch = useCallback(() => {
     setSearchQuery('')
