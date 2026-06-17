@@ -423,6 +423,14 @@ export default function EditorPanel({
     const chunkId = heading.closest<HTMLElement>('[data-chunk-id]')?.dataset.chunkId
     if (chunkId) usePreviewSelectionStore.getState().selectSection(chunkId)
   }, [])
+  const resolvePreviewChunkIdForHeading = useCallback((headingText: string, occurrenceIndex = 0): string | null => {
+    const previewBody = previewBodyRef.current
+    if (!previewBody) return null
+    const headings = [...previewBody.querySelectorAll<HTMLHeadingElement>('h1, h2, h3, h4, h5, h6')]
+      .filter((heading) => heading.textContent?.trim() === headingText)
+    const heading = headings[occurrenceIndex] ?? null
+    return heading?.closest<HTMLElement>('[data-chunk-id]')?.dataset.chunkId ?? null
+  }, [])
   const highlightSourceLine = useCallback((lineNumber: number) => {
     const editor = editorRef.current
     const model = editor?.getModel()
@@ -1022,9 +1030,10 @@ export default function EditorPanel({
       markdownPreview: markdownPreview && isMarkdown,
       filePath,
       scrollPreviewToHeading,
+      resolvePreviewChunkIdForHeading,
       highlightSourceLine,
     })
-  }, [workspaceId, panelId, markdownPreview, isMarkdown, scrollPreviewToHeading, highlightSourceLine])
+  }, [workspaceId, panelId, markdownPreview, isMarkdown, scrollPreviewToHeading, resolvePreviewChunkIdForHeading, highlightSourceLine])
 
   // ---------------------------------------------------------------------------
   // Watch app theme changes and update Monaco theme

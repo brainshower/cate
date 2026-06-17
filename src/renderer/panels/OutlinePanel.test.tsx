@@ -6,6 +6,7 @@ import {
   unregisterActiveEditor,
   updateActiveEditorModel,
   updateActiveEditorPreview,
+  updateActiveEditorPreviewChunkResolver,
   type ActiveEditorLike,
   type ActiveEditorModelLike,
   type DisposableLike,
@@ -404,6 +405,22 @@ describe('OutlinePanel source mode', () => {
     expect(scrollPreviewToHeading).toHaveBeenCalledWith('Two', 0)
     expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('two')
     expect(editor.revealLineInCenter).not.toHaveBeenCalled()
+  })
+
+  it('T-I-038 resolves shared selection by preview DOM fallback when slug matching cannot find the chunk', () => {
+    bindEditor('editor-1', '# One\nbody\n## Two\nbody')
+    renderOutline()
+
+    act(() => {
+      updateActiveEditorPreviewChunkResolver('workspace-1', 'editor-1', {
+        resolvePreviewChunkIdForHeading: (headingText, occurrenceIndex) =>
+          headingText === 'Two' && occurrenceIndex === 0 ? 'dom-generated-two' : null,
+      })
+      usePreviewSelectionStore.getState().setHoveredChunkId('dom-generated-two')
+    })
+
+    expect(screen.getByText('Two').closest('button')!.className).toContain('bg-blue-500/15')
+    expect(screen.getByText('One').closest('button')!.className).not.toContain('bg-blue-500/15')
   })
 
   it('T-I-012 ignores whitespace-only search and matches case-insensitively', () => {

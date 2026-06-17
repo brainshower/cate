@@ -8,6 +8,7 @@ import {
   unregisterActiveEditor,
   updateActiveEditorModel,
   updateActiveEditorPreview,
+  updateActiveEditorPreviewChunkResolver,
   type ActiveEditorLike,
   type ActiveEditorModelLike,
 } from './activeEditorRegistry'
@@ -150,6 +151,19 @@ describe('activeEditorRegistry', () => {
       scrollPreviewToHeading,
       highlightSourceLine,
     })
+  })
+
+  it('stores a preview chunk resolver for DOM fallback matching', () => {
+    const active = editor(model())
+    const resolvePreviewChunkIdForHeading = vi.fn((_headingText: string, _occurrenceIndex?: number) => 'intro-dom')
+    registerActiveEditor('workspace-1', 'panel-1', active)
+
+    updateActiveEditorPreviewChunkResolver('workspace-1', 'panel-1', {
+      resolvePreviewChunkIdForHeading,
+    })
+
+    expect(getActiveEditorSnapshot('workspace-1').resolvePreviewChunkIdForHeading?.('Intro', 0)).toBe('intro-dom')
+    expect(resolvePreviewChunkIdForHeading).toHaveBeenCalledWith('Intro', 0)
   })
 
   it('T-I-034 unsubscribes registry listeners', () => {

@@ -28,6 +28,7 @@ export interface ActiveEditorEntry {
   filePath?: string
   markdownPreview: boolean
   scrollPreviewToHeading?: (headingText: string, occurrenceIndex?: number) => void
+  resolvePreviewChunkIdForHeading?: (headingText: string, occurrenceIndex?: number) => string | null
   highlightSourceLine?: (lineNumber: number) => void
 }
 
@@ -38,6 +39,7 @@ export interface ActiveEditorSnapshot {
   filePath?: string
   markdownPreview: boolean
   scrollPreviewToHeading?: (headingText: string, occurrenceIndex?: number) => void
+  resolvePreviewChunkIdForHeading?: (headingText: string, occurrenceIndex?: number) => string | null
   highlightSourceLine?: (lineNumber: number) => void
 }
 
@@ -75,6 +77,7 @@ export function registerActiveEditor(workspaceId: string, panelId: string, edito
     filePath: previous?.filePath,
     markdownPreview: previous?.markdownPreview ?? false,
     scrollPreviewToHeading: previous?.scrollPreviewToHeading,
+    resolvePreviewChunkIdForHeading: previous?.resolvePreviewChunkIdForHeading,
     highlightSourceLine: previous?.highlightSourceLine,
   })
   activePanelIds.set(workspaceId, panelId)
@@ -95,6 +98,7 @@ export function updateActiveEditorPreview(
     markdownPreview: boolean
     filePath?: string
     scrollPreviewToHeading?: (headingText: string, occurrenceIndex?: number) => void
+    resolvePreviewChunkIdForHeading?: (headingText: string, occurrenceIndex?: number) => string | null
     highlightSourceLine?: (lineNumber: number) => void
   },
 ): void {
@@ -103,7 +107,21 @@ export function updateActiveEditorPreview(
   entry.markdownPreview = preview.markdownPreview
   entry.filePath = preview.filePath
   entry.scrollPreviewToHeading = preview.scrollPreviewToHeading
+  entry.resolvePreviewChunkIdForHeading = preview.resolvePreviewChunkIdForHeading
   entry.highlightSourceLine = preview.highlightSourceLine
+  notify(workspaceId)
+}
+
+export function updateActiveEditorPreviewChunkResolver(
+  workspaceId: string,
+  panelId: string,
+  preview: {
+    resolvePreviewChunkIdForHeading?: (headingText: string, occurrenceIndex?: number) => string | null
+  },
+): void {
+  const entry = entries.get(workspaceId)?.get(panelId)
+  if (!entry) return
+  entry.resolvePreviewChunkIdForHeading = preview.resolvePreviewChunkIdForHeading
   notify(workspaceId)
 }
 
@@ -144,6 +162,7 @@ function snapshotFromEntry(entry: ActiveEditorEntry | null): ActiveEditorSnapsho
     filePath: entry.filePath,
     markdownPreview: entry.markdownPreview,
     scrollPreviewToHeading: entry.scrollPreviewToHeading,
+    resolvePreviewChunkIdForHeading: entry.resolvePreviewChunkIdForHeading,
     highlightSourceLine: entry.highlightSourceLine,
   }
 }

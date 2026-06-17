@@ -50,6 +50,7 @@ function sameSnapshot(a: ActiveEditorSnapshot, b: ActiveEditorSnapshot): boolean
     && a.model === b.model
     && a.markdownPreview === b.markdownPreview
     && a.scrollPreviewToHeading === b.scrollPreviewToHeading
+    && a.resolvePreviewChunkIdForHeading === b.resolvePreviewChunkIdForHeading
     && a.highlightSourceLine === b.highlightSourceLine
 }
 
@@ -77,6 +78,16 @@ function previewChunkIdByLine(model: ActiveEditorModelLike | null): Map<number, 
     ids.set(heading.line, nextChunkId(heading.text))
   }
   return ids
+}
+
+function previewChunkIdForHeading(
+  model: ActiveEditorModelLike | null,
+  heading: DocumentHeading,
+  resolver?: (headingText: string, occurrenceIndex?: number) => string | null,
+): string | null {
+  const slugMatch = previewChunkIdByLine(model).get(heading.line)
+  if (slugMatch) return slugMatch
+  return resolver?.(heading.text, headingOccurrenceIndex(model, heading)) ?? null
 }
 
 function HighlightedHeadingText({ text, query }: { text: string; query: string }) {
@@ -161,8 +172,12 @@ export default function OutlinePanel({ panelId, workspaceId, sourceEditorPanelId
   const chunkIdsByLine = useMemo(() => previewChunkIdByLine(snapshot.model), [snapshot.model, headings])
   const sharedActiveHeadingIdx = useMemo(() => {
     if (!activeChunkId) return -1
-    return headings.findIndex((heading) => chunkIdsByLine.get(heading.line) === activeChunkId)
-  }, [activeChunkId, chunkIdsByLine, headings])
+    const slugMatch = headings.findIndex((heading) => chunkIdsByLine.get(heading.line) === activeChunkId)
+    if (slugMatch >= 0) return slugMatch
+    return headings.findIndex((heading) =>
+      snapshot.resolvePreviewChunkIdForHeading?.(heading.text, headingOccurrenceIndex(snapshot.model, heading)) === activeChunkId
+    )
+  }, [activeChunkId, chunkIdsByLine, headings, snapshot])
   const activeHeadingIdx = useMemo(
     () => sharedActiveHeadingIdx >= 0 ? sharedActiveHeadingIdx : nearestHeadingIndex(headings, cursorLine),
     [headings, cursorLine, sharedActiveHeadingIdx],
@@ -182,7 +197,7 @@ export default function OutlinePanel({ panelId, workspaceId, sourceEditorPanelId
     setCursorLine(heading.line)
     if (markdownPreview) {
       scrollPreviewToHeading?.(heading.text, headingOccurrenceIndex(model, heading))
-      const chunkId = previewChunkIdByLine(model).get(heading.line)
+      const chunkId = previewChunkIdForHeading(model, heading, snapshot.resolvePreviewChunkIdForHeading)
       if (chunkId) usePreviewSelectionStore.getState().selectSection(chunkId)
       return
     }
