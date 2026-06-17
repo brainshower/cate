@@ -257,6 +257,28 @@ test('T-E-009 source-mode guidance transitions to loaded cards when preview acti
   }
 })
 
+test('opening Graph from source mode switches Markdown editor to Preview automatically', async () => {
+  let app: ElectronApplication | null = null
+  try {
+    const launched = await launchWithWorkspace()
+    app = launched.app
+    const { page, workspaceRoot } = launched
+    await openPreview(page, workspaceRoot)
+    await page.getByTitle('Show source').click()
+    await expect(page.getByTitle('Preview markdown')).toBeVisible()
+    await page.evaluate(() => window.__cateE2E!.setSemanticConnectionsScenario('default'))
+
+    await page.getByRole('button', { name: 'Toggle document graph' }).click()
+
+    const panel = page.getByTestId('semantic-connections-panel')
+    await expect(page.getByTestId('markdown-preview-body')).toBeVisible()
+    await expect(panel).not.toContainText('Switch to Preview')
+    await expect(panel).toContainText('Design Companion')
+  } finally {
+    if (app) await closeApp(app)
+  }
+})
+
 test('T-E-010 empty state transitions to loaded cards after connections become available', async () => {
   let app: ElectronApplication | null = null
   try {

@@ -493,6 +493,9 @@ export default function EditorPanel({
       useAppStore.getState().closePanel(workspaceId, associatedGraphPanelId)
       return
     }
+    if (isMarkdown && !markdownPreview) {
+      useAppStore.getState().setPanelMarkdownPreview(workspaceId, panelId, true)
+    }
     useAppStore.getState().createSemanticConnections(
       workspaceId,
       undefined,
@@ -500,7 +503,7 @@ export default function EditorPanel({
       panelId,
       nodeId,
     )
-  }, [associatedGraphPanelId, workspaceId, panelId, nodeId])
+  }, [associatedGraphPanelId, isMarkdown, markdownPreview, workspaceId, panelId, nodeId])
 
   useEffect(() => {
     setFlashQueryStatus(null)

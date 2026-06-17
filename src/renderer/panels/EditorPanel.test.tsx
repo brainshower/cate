@@ -399,6 +399,30 @@ describe('EditorPanel FlashQuery URI routing', () => {
     })
   })
 
+  it('switches a Markdown editor to Preview when opening Graph from source mode', async () => {
+    await renderEditor('flashquery://workspace-1/Docs/Graph-Preview.md')
+
+    expect(useAppStore.getState().workspaces[0].panels[panelId].markdownPreview).toBeUndefined()
+
+    fireEvent.click(screen.getByLabelText('Toggle document graph'))
+
+    expect(useAppStore.getState().workspaces[0].panels[panelId].markdownPreview).toBe(true)
+    expect(Object.values(useAppStore.getState().workspaces[0].panels).some((panel) =>
+      panel.type === 'semantic-connections' && panel.sourceEditorPanelId === panelId
+    )).toBe(true)
+  })
+
+  it('opens Graph without forcing Preview when the source editor is not Markdown', async () => {
+    await renderEditor('/repo/notes.txt')
+
+    fireEvent.click(screen.getByLabelText('Toggle document graph'))
+
+    expect(useAppStore.getState().workspaces[0].panels[panelId].markdownPreview).toBeUndefined()
+    expect(Object.values(useAppStore.getState().workspaces[0].panels).some((panel) =>
+      panel.type === 'semantic-connections' && panel.sourceEditorPanelId === panelId
+    )).toBe(true)
+  })
+
   it('opens Outline inside the source canvas node when the editor is canvas-mounted', async () => {
     const panel = makePanel('flashquery://workspace-1/Docs/Canvas-Outline.md')
     seedWorkspace(panel)
