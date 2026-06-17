@@ -107,7 +107,7 @@ export interface PanelState {
   /** Unsaved buffer content for scratch (no-filePath) editors. Persisted so
    *  content survives canvas switches and app restarts. */
   unsavedContent?: string
-  /** Outline panels only: editor panel that opened this Outline instance. */
+  /** Outline/Semantic Connections panels only: editor panel that opened this derived view. */
   sourceEditorPanelId?: string
   /** Outline panels only: canvas node that owns the source editor, when local
    *  to a canvas node rather than Cate's global right dock. */

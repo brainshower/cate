@@ -17,6 +17,9 @@ import type { NativeContextMenuItem } from '../../shared/electron-api'
 import * as monaco from 'monaco-editor'
 import { terminalRegistry } from './terminalRegistry'
 import { handleAgentEvent, useAgentStore } from '../../agent/renderer/agentStore'
+import type { SemanticConnectionsProvider, SemanticConnectionsResult } from './semanticConnections'
+
+type SemanticConnectionsScenario = 'default' | 'empty' | 'stale'
 
 declare global {
   interface Window {
@@ -31,7 +34,7 @@ declare global {
       createFlashQueryVaultSearch(point: Point, placement?: PanelPlacement): string
       createSemanticConnections(point: Point, placement?: PanelPlacement): string
       createAgent(point: Point, placement?: PanelPlacement): string
-      openFileEditor(workspaceId: string, filePath: string): string
+      openFileEditor(workspaceId: string, filePath: string, placement?: PanelPlacement): string
       editorPanelIdsForFilePath(filePath: string): string[]
       openVaultDocument(vaultPath: string, mode: 'dock' | 'canvas'): string
       editorPanelIdsForPath(vaultPath: string): string[]
@@ -44,6 +47,9 @@ declare global {
       saveEditorPanel(panelId: string): Promise<string>
       writeVaultDocument(vaultPath: string, content: string): Promise<void>
       retryFlashQuery(workspaceId?: string): Promise<void>
+      setSemanticConnectionsScenario(scenario: SemanticConnectionsScenario): void
+      semanticConnectionsProvider(): SemanticConnectionsProvider
+      setSemanticConnectionsSource(panelId: string, sourceEditorPanelId: string): void
       chooseNextContextMenuAction(action: string | null): void
       lastContextMenuItems(): NativeContextMenuItem[]
       panelLocation(panelId: string): string | null
@@ -78,6 +84,128 @@ declare global {
 
 export function installE2EHarness(): void {
   if (window.__cateE2E) return
+
+  let semanticConnectionsScenario: SemanticConnectionsScenario = 'default'
+
+  const semanticConnectionsFixtures = (): Record<SemanticConnectionsScenario, SemanticConnectionsResult> => {
+    const defaultResult: SemanticConnectionsResult = {
+      mode: 'embeddings-only',
+      overall: [
+        {
+          id: 'design-companion',
+          score: 0.91,
+          target: {
+            title: 'Design Companion',
+            path: 'Docs/Design.md',
+            heading: 'Design Brief',
+            chunkId: 'design-brief',
+            snippet: 'Design notes align the Inspector body with the compact brief.',
+            body: 'Expanded design body stays reachable after preview pinning.',
+          },
+        },
+        {
+          id: 'runtime-neighbor',
+          score: 0.82,
+          target: {
+            title: 'Runtime Neighbor',
+            path: 'Docs/Runtime.md',
+            heading: 'Runtime Notes',
+            chunkId: 'runtime-notes',
+            snippet: 'Runtime notes cover adapter recovery and stale refresh.',
+          },
+        },
+      ],
+      byChunkId: {
+        'design-brief': [
+          {
+            id: 'design-deep-dive',
+            score: 0.94,
+            target: {
+              title: 'Design Deep Dive',
+              path: 'Docs/Design.md',
+              heading: 'Design Brief',
+              chunkId: 'design-brief',
+              snippet: 'Design deep dive follows the selected preview chunk.',
+              body: 'Expanded design body stays reachable after preview pinning.',
+            },
+          },
+        ],
+        'runtime-notes': [
+          {
+            id: 'runtime-deep-dive',
+            score: 0.89,
+            target: {
+              title: 'Runtime Deep Dive',
+              path: 'Docs/Runtime.md',
+              heading: 'Runtime Notes',
+              chunkId: 'runtime-notes',
+              snippet: 'Runtime deep dive follows the selected preview chunk.',
+              body: 'Expanded runtime body stays reachable after preview pinning.',
+            },
+          },
+        ],
+      },
+      chunkOrder: ['overview', 'design-brief', 'runtime-notes'],
+      chunkMap: {
+        'design-brief': {
+          previewChunkId: 'design-brief',
+          documentPath: 'Docs/Design.md',
+          documentTitle: 'Design Companion',
+          headingText: 'Design Brief',
+        },
+        'runtime-notes': {
+          previewChunkId: 'runtime-notes',
+          documentPath: 'Docs/Runtime.md',
+          documentTitle: 'Runtime Neighbor',
+          headingText: 'Runtime Notes',
+        },
+      },
+      diagnostics: [],
+    }
+    const emptyResult: SemanticConnectionsResult = {
+      mode: 'embeddings-only',
+      overall: [],
+      byChunkId: {},
+      chunkOrder: [],
+      chunkMap: {},
+      diagnostics: [],
+    }
+    return {
+      default: defaultResult,
+      empty: emptyResult,
+      stale: { ...defaultResult, stale: true },
+    }
+  }
+
+  const setSemanticConnectionsScenario = (scenario: SemanticConnectionsScenario): void => {
+    semanticConnectionsScenario = scenario
+  }
+
+  const semanticConnectionsProvider = (): SemanticConnectionsProvider => ({
+    async loadDocumentConnections() {
+      return semanticConnectionsFixtures()[semanticConnectionsScenario]
+    },
+  })
+
+  const setSemanticConnectionsSource = (panelId: string, sourceEditorPanelId: string): void => {
+    const workspaceId = selectedWorkspaceId()
+    useAppStore.setState((state) => ({
+      workspaces: state.workspaces.map((workspace) =>
+        workspace.id === workspaceId
+          ? {
+              ...workspace,
+              panels: {
+                ...workspace.panels,
+                [panelId]: {
+                  ...workspace.panels[panelId],
+                  sourceEditorPanelId,
+                },
+              },
+            }
+          : workspace,
+      ),
+    }))
+  }
 
   // The Canvas component stamps data-canvas-panel-id on its root — use the
   // DOM as the source of truth for which canvas is currently mounted/active.
@@ -173,12 +301,12 @@ export function installE2EHarness(): void {
     )
   }
 
-  const openFileEditor = (workspaceId: string, filePath: string): string => {
+  const openFileEditor = (workspaceId: string, filePath: string, placement?: PanelPlacement): string => {
     return useAppStore.getState().createEditor(
       workspaceId,
       filePath,
       undefined,
-      { target: 'dock', zone: 'center' },
+      placement ?? { target: 'dock', zone: 'center' },
     )
   }
 
@@ -385,6 +513,9 @@ export function installE2EHarness(): void {
     saveEditorPanel,
     writeVaultDocument,
     retryFlashQuery,
+    setSemanticConnectionsScenario,
+    semanticConnectionsProvider,
+    setSemanticConnectionsSource,
     chooseNextContextMenuAction,
     lastContextMenuItems,
     panelLocation,

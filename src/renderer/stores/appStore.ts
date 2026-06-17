@@ -22,7 +22,7 @@ import type {
   DockStateSnapshot,
   WorktreeMeta,
 } from '../../shared/types'
-import { PANEL_DEFAULT_SIZES, ZOOM_DEFAULT, ALL_ZONES, sanitizeFlashQueryConnection } from '../../shared/types'
+import { PANEL_DEFAULT_SIZES, PANEL_MINIMUM_SIZES, ZOOM_DEFAULT, ALL_ZONES, sanitizeFlashQueryConnection } from '../../shared/types'
 import { ACCENT_COLORS } from '../../shared/colors'
 import type { CanvasNodeId, CanvasNodeState, CanvasRegion } from '../../shared/types'
 import type { StoreApi } from 'zustand'
@@ -404,6 +404,15 @@ function placePanel(
     return
   }
   if (placement?.target === 'dock') {
+    if (placement.zone === 'left' || placement.zone === 'right') {
+      const minimum = PANEL_MINIMUM_SIZES[panelType]?.width
+      const current = useDockStore.getState().zones[placement.zone].size
+      if (minimum && current < minimum) useDockStore.getState().setZoneSize(placement.zone, minimum)
+    } else if (placement.zone === 'bottom') {
+      const minimum = PANEL_MINIMUM_SIZES[panelType]?.height
+      const current = useDockStore.getState().zones.bottom.size
+      if (minimum && current < minimum) useDockStore.getState().setZoneSize('bottom', minimum)
+    }
     useDockStore.getState().dockPanel(panelId, placement.zone)
     return
   }

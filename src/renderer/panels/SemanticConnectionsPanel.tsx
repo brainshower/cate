@@ -28,7 +28,11 @@ const emptyResult: SemanticConnectionsResult = {
 }
 
 const defaultProvider: SemanticConnectionsProvider = {
-  async loadDocumentConnections() {
+  async loadDocumentConnections(input) {
+    const e2eProvider = typeof window !== 'undefined'
+      ? window.__cateE2E?.semanticConnectionsProvider?.()
+      : undefined
+    if (e2eProvider) return e2eProvider.loadDocumentConnections(input)
     return emptyResult
   },
 }
@@ -187,6 +191,11 @@ function ConnectionCard({
           aria-expanded={expanded}
           aria-label={expandLabel}
           onClick={() => connection.target.body && setExpanded((value) => !value)}
+          onKeyDown={(event) => {
+            if (!connection.target.body || (event.key !== 'Enter' && event.key !== ' ')) return
+            event.preventDefault()
+            setExpanded((value) => !value)
+          }}
           disabled={!connection.target.body}
         >
           <span className="block truncate text-sm font-medium text-primary">{connection.target.title}</span>
@@ -383,18 +392,40 @@ export default function SemanticConnectionsPanel({
     if (topN !== Infinity && sortedConnections.length > 0 && topN >= sortedConnections.length) setTopN(Infinity)
   }, [sortedConnections.length, topN])
 
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') usePreviewSelectionStore.getState().clearSelection()
+    }
+    window.addEventListener('keydown', handleEscape, true)
+    window.addEventListener('keyup', handleEscape, true)
+    document.addEventListener('keydown', handleEscape, true)
+    document.addEventListener('keyup', handleEscape, true)
+    return () => {
+      window.removeEventListener('keydown', handleEscape, true)
+      window.removeEventListener('keyup', handleEscape, true)
+      document.removeEventListener('keydown', handleEscape, true)
+      document.removeEventListener('keyup', handleEscape, true)
+    }
+  }, [])
+
   return (
     <section
       className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-surface-2 text-primary"
       data-panel-id={panelId}
       data-testid="semantic-connections-panel"
       data-semantic-diagnostics-count={result?.diagnostics.length ? String(result.diagnostics.length) : undefined}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          usePreviewSelectionStore.getState().clearSelection()
+        }
+      }}
     >
       <div className="flex h-9 shrink-0 items-center gap-2 border-b border-subtle px-3">
         <span className="text-[11px] font-medium uppercase tracking-normal text-muted">Scope</span>
         <button
           type="button"
           className="min-w-0 truncate text-left text-xs text-secondary hover:text-primary"
+          aria-label="Current semantic connection scope"
           onClick={() => usePreviewSelectionStore.getState().clearSelection()}
         >
           {activeChunkId ? 'One section selected' : 'Whole document'}

@@ -214,7 +214,9 @@ export function renderPanelComponent(
     extras.url = panel.url
     extras.zoomLevel = ctx.zoomLevel ?? 1
   }
-  if (panel.type === 'outline') extras.sourceEditorPanelId = panel.sourceEditorPanelId
+  if (panel.type === 'outline' || panel.type === 'semantic-connections') {
+    extras.sourceEditorPanelId = panel.sourceEditorPanelId
+  }
   const props: PanelProps & Record<string, unknown> = {
     panelId: panel.id,
     workspaceId: ctx.workspaceId,
