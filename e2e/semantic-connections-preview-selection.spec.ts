@@ -35,7 +35,8 @@ test('T-E-004 preview hover updates Semantic Connections scope and Outline highl
     await expect(secondChunk).toBeVisible()
     await secondChunk.hover()
 
-    await expect(page.getByTestId('semantic-connections-panel')).toContainText('Section second-section')
+    await expect(page.getByTestId('semantic-connections-panel')).toContainText('One section selected')
+    await expect(page.getByTestId('semantic-connections-panel')).not.toContainText('second-section')
     await expect.poll(() => page.evaluate(() => {
       const rows = [...document.querySelectorAll<HTMLElement>('[data-testid="outline-heading-row"]')]
       const row = rows.find((candidate) => candidate.textContent?.trim() === 'Second Section')

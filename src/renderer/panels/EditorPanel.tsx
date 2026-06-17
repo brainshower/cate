@@ -29,7 +29,7 @@ import {
   updateActiveEditorModel,
   updateActiveEditorPreview,
 } from '../lib/activeEditorRegistry'
-import { createHeadingIdTracker, slugifyHeading } from '../lib/parseDocumentHeadings'
+import { createHeadingIdTracker, parseDocumentHeadings, slugifyHeading } from '../lib/parseDocumentHeadings'
 import { refreshVaultIndexForWorkspace } from '../../agent/renderer/agentStore'
 import {
   registerEditorSave,
@@ -372,8 +372,6 @@ export default function EditorPanel({
   const outlineHighlightDecorationsRef = useRef<monaco.editor.IEditorDecorationsCollection | null>(null)
   const outlineHighlightTimerRef = useRef<number | null>(null)
   const outlineHighlightApplyTimerRef = useRef<number | null>(null)
-  const previewHighlightTimersRef = useRef<number[]>([])
-  const previewScrollEndCleanupRef = useRef<(() => void) | null>(null)
   const markdownPreviewActiveRef = useRef(false)
   const isDirtyRef = useRef(false)
   const filePathRef = useRef(filePath)
@@ -421,33 +419,9 @@ export default function EditorPanel({
       ?? headings.find((element) => element.id === baseId || element.id.startsWith(`${baseId}-`))
     if (!heading) return
 
-    const clearPreviewHeadingHighlight = (element: HTMLHeadingElement) => {
-      element.classList.remove('cate-preview-target-heading')
-      element.style.backgroundColor = ''
-      element.style.boxShadow = ''
-      element.style.outline = ''
-      element.style.outlineOffset = ''
-      element.style.borderRadius = ''
-      element.style.transition = ''
-    }
-    const applyPreviewHeadingHighlight = () => {
-      clearPreviewHeadingHighlight(heading)
-      void heading.offsetWidth
-      heading.classList.add('cate-preview-target-heading')
-      heading.style.backgroundColor = 'rgba(59, 130, 246, 0.24)'
-      heading.style.boxShadow = '0 0 0 5px rgba(59, 130, 246, 0.18)'
-      heading.style.outline = '1px solid rgba(96, 165, 250, 0.55)'
-      heading.style.outlineOffset = '3px'
-      heading.style.borderRadius = '4px'
-      heading.style.transition = 'background-color 180ms ease, box-shadow 180ms ease, outline-color 180ms ease'
-    }
-    for (const timer of previewHighlightTimersRef.current) window.clearTimeout(timer)
-    previewHighlightTimersRef.current = []
-    previewScrollEndCleanupRef.current?.()
-    previewScrollEndCleanupRef.current = null
-    for (const highlighted of headings) clearPreviewHeadingHighlight(highlighted)
     heading.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    applyPreviewHeadingHighlight()
+    const chunkId = heading.closest<HTMLElement>('[data-chunk-id]')?.dataset.chunkId
+    if (chunkId) usePreviewSelectionStore.getState().selectSection(chunkId)
   }, [])
   const highlightSourceLine = useCallback((lineNumber: number) => {
     const editor = editorRef.current
@@ -481,10 +455,6 @@ export default function EditorPanel({
     return () => {
       if (outlineHighlightApplyTimerRef.current) window.clearTimeout(outlineHighlightApplyTimerRef.current)
       if (outlineHighlightTimerRef.current) window.clearTimeout(outlineHighlightTimerRef.current)
-      for (const timer of previewHighlightTimersRef.current) window.clearTimeout(timer)
-      previewHighlightTimersRef.current = []
-      previewScrollEndCleanupRef.current?.()
-      previewScrollEndCleanupRef.current = null
       outlineHighlightDecorationsRef.current?.clear()
       outlineHighlightDecorationsRef.current = null
     }
@@ -1156,48 +1126,20 @@ function chunkWrapperFromEventTarget(target: EventTarget | null): HTMLElement | 
   return target instanceof Element ? target.closest<HTMLElement>('[data-chunk-id]') : null
 }
 
-const ATX_MARKDOWN_HEADING_RE = /^(#{1,6})\s+(.+?)\s*#*\s*$/
-const SETEXT_MARKDOWN_HEADING_RE = /^\s*(=+|-+)\s*$/
-const FENCED_CODE_RE = /^(\s*)(`{3,}|~{3,})/
-
-function markdownHeadingTextAt(lines: string[], index: number): string | null {
-  const line = lines[index] ?? ''
-  const atx = ATX_MARKDOWN_HEADING_RE.exec(line)
-  if (atx) return atx[2]
-
-  const nextLine = lines[index + 1] ?? ''
-  if (line.trim() && SETEXT_MARKDOWN_HEADING_RE.test(nextLine) && !ATX_MARKDOWN_HEADING_RE.test(line)) {
-    return line.trim()
-  }
-
-  return null
-}
-
 function splitMarkdownPreviewChunks(content: string): MarkdownPreviewChunk[] {
   const lines = content.split('\n')
-  const headingStarts: Array<{ index: number, text: string }> = []
-  let fenceMarker: string | null = null
-
-  for (let index = 0; index < lines.length; index++) {
-    const line = lines[index]
-    const fence = FENCED_CODE_RE.exec(line)
-    if (fence) {
-      const marker = fence[2][0]
-      if (fenceMarker === marker) {
-        fenceMarker = null
-      } else if (!fenceMarker) {
-        fenceMarker = marker
-      }
-    }
-    if (fenceMarker) continue
-
-    const text = markdownHeadingTextAt(lines, index)
-    if (text) headingStarts.push({ index, text })
+  const model = {
+    getLineCount: () => lines.length,
+    getLineContent: (lineNumber: number) => lines[lineNumber - 1] ?? '',
   }
+  const nextChunkId = createHeadingIdTracker()
+  const headingStarts = parseDocumentHeadings(model, 6).map((heading) => ({
+    index: heading.line - 1,
+    chunkId: nextChunkId(heading.text),
+  }))
 
   if (headingStarts.length === 0) return [{ content, chunkId: null }]
 
-  const nextChunkId = createHeadingIdTracker()
   const chunks: MarkdownPreviewChunk[] = []
   const firstHeading = headingStarts[0]
   if (firstHeading.index > 0) {
@@ -1212,7 +1154,7 @@ function splitMarkdownPreviewChunks(content: string): MarkdownPreviewChunk[] {
     const end = headingStarts[index + 1]?.index ?? lines.length
     chunks.push({
       content: lines.slice(start.index, end).join('\n'),
-      chunkId: nextChunkId(start.text),
+      chunkId: start.chunkId,
     })
   }
 
@@ -1249,7 +1191,10 @@ function MarkdownPreview({
       if (event.key === 'Escape') usePreviewSelectionStore.getState().clearSelection()
     }
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      usePreviewSelectionStore.getState().clearSelection()
+    }
   }, [])
 
   const handleMouseOver = useCallback((event: MouseEvent<HTMLDivElement>) => {
@@ -1380,11 +1325,16 @@ function MarkdownPreview({
             </ReactMarkdown>
           )
           if (!chunk.chunkId) return <div key={`preview-chunk-${index}`} className="space-y-3">{markdown}</div>
+          const isActive = activeChunkId === chunk.chunkId
+          const isPinned = pinnedChunkId === chunk.chunkId
+          const isCaution = cautionChunks.has(chunk.chunkId)
           const chunkClasses = [
             'cate-preview-chunk space-y-3 rounded border-l-2 border-transparent px-3 py-1 transition-colors',
-            activeChunkId === chunk.chunkId ? 'cate-preview-chunk-active border-teal-400 bg-teal-500/10' : '',
-            pinnedChunkId === chunk.chunkId ? 'cate-preview-chunk-pinned ring-1 ring-teal-400/50' : '',
-            cautionChunks.has(chunk.chunkId) ? 'cate-preview-chunk-caution border-orange-400 bg-orange-500/10 ring-orange-400/60' : '',
+            isActive ? 'cate-preview-chunk-active' : '',
+            isActive && !isCaution ? 'border-teal-400 bg-teal-500/10' : '',
+            isPinned ? 'cate-preview-chunk-pinned' : '',
+            isPinned && !isCaution ? 'ring-1 ring-teal-400/50' : '',
+            isCaution ? 'cate-preview-chunk-caution border-orange-400 bg-orange-500/10 ring-1 ring-orange-400/60' : '',
           ].filter(Boolean).join(' ')
           return (
             <div

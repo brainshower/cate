@@ -581,6 +581,41 @@ describe('EditorPanel FlashQuery URI routing', () => {
     }
   })
 
+  it('T-I-003 MarkdownPreview chunk IDs share Outline heading enumeration for frontmatter and HTML headings', async () => {
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: [
+        '---',
+        'title: Notes',
+        '---',
+        '',
+        '<h2>Notes</h2>',
+        '',
+        'HTML body',
+        '',
+        '## Notes',
+        '',
+        'First markdown body',
+        '',
+        '## Notes',
+        '',
+        'Second markdown body',
+      ].join('\n'),
+    })
+    setElectronApi(api)
+
+    await renderEditor('flashquery://workspace-1/Docs/Preview-Shared-Heading-Ids.md')
+    fireEvent.click(screen.getByTitle('Preview markdown'))
+
+    const previewBody = await screen.findByTestId('markdown-preview-body')
+    const chunks = [...previewBody.querySelectorAll<HTMLDivElement>('div[data-chunk-id]')]
+
+    expect(chunks.map((chunk) => chunk.dataset.chunkId)).toEqual(['notes', 'notes-1', 'notes-2'])
+    expect(previewBody.querySelector('[data-chunk-id="title-notes"]')).toBeNull()
+    expect(screen.getByText('First markdown body').closest('[data-chunk-id]')?.getAttribute('data-chunk-id')).toBe('notes-1')
+    expect(screen.getByText('Second markdown body').closest('[data-chunk-id]')?.getAttribute('data-chunk-id')).toBe('notes-2')
+  })
+
   it('refreshes preview chunk wrappers on rerender and clears them when preview exits', async () => {
     const api = makeElectronApi()
     vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
@@ -608,6 +643,27 @@ describe('EditorPanel FlashQuery URI routing', () => {
 
     await waitFor(() => expect(screen.queryByTestId('markdown-preview-body')).toBeNull())
     expect(document.querySelectorAll('[data-chunk-id]')).toHaveLength(0)
+  })
+
+  it('REQ-006 clears shared preview selection when preview exits', async () => {
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: '# Selected\n\nBody',
+    })
+    setElectronApi(api)
+
+    await renderEditor('flashquery://workspace-1/Docs/Preview-Selection-Cleanup.md')
+    fireEvent.click(screen.getByTitle('Preview markdown'))
+    await screen.findByTestId('markdown-preview-body')
+
+    act(() => usePreviewSelectionStore.getState().selectSection('selected'))
+    expect(usePreviewSelectionStore.getState().activeChunkId).toBe('selected')
+
+    fireEvent.click(screen.getByTitle('Show source'))
+
+    await waitFor(() => expect(screen.queryByTestId('markdown-preview-body')).toBeNull())
+    expect(usePreviewSelectionStore.getState().activeChunkId).toBeNull()
+    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBeNull()
   })
 
   it('highlights a source heading line through the active editor registry callback', async () => {
@@ -685,7 +741,7 @@ describe('EditorPanel FlashQuery URI routing', () => {
     expect((await screen.findByRole('heading', { name: 'Bold Link Code!', level: 1 })).id).toBe('bold-link-code')
   })
 
-  it('T-I-028, T-I-029, and T-I-030 preview scrolls smoothly, flashes blue, and dispatches no Graph Explorer event', async () => {
+  it('T-I-028, T-I-029, and T-I-030 preview scrolls smoothly, selects the chunk, and dispatches no Graph Explorer event', async () => {
     const scrollIntoView = vi.fn()
     const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
     Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
@@ -702,7 +758,6 @@ describe('EditorPanel FlashQuery URI routing', () => {
     fireEvent.click(screen.getByTitle('Preview markdown'))
     const target = await screen.findByRole('heading', { name: 'Target Heading', level: 2 })
     await waitFor(() => expect(getActiveEditorSnapshot(workspaceId).markdownPreview).toBe(true))
-    vi.useFakeTimers()
 
     expect(() => getActiveEditorSnapshot(workspaceId).scrollPreviewToHeading?.('Missing Heading')).not.toThrow()
     act(() => {
@@ -710,12 +765,14 @@ describe('EditorPanel FlashQuery URI routing', () => {
     })
 
     expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' })
-    expect(target.classList.contains('cate-preview-target-heading')).toBe(true)
-    expect(target.style.backgroundColor).toBe('rgba(59, 130, 246, 0.24)')
-    expect(target.style.outline).toBe('1px solid rgba(96, 165, 250, 0.55)')
-    act(() => vi.advanceTimersByTime(5000))
-    expect(target.classList.contains('cate-preview-target-heading')).toBe(true)
-    expect(target.style.backgroundColor).toBe('rgba(59, 130, 246, 0.24)')
+    expect(target.classList.contains('cate-preview-target-heading')).toBe(false)
+    expect(target.style.backgroundColor).toBe('')
+    expect(target.style.outline).toBe('')
+    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('target-heading')
+    await waitFor(() => {
+      expect(screen.getByTestId('markdown-preview-body').querySelector('[data-chunk-id="target-heading"]')?.getAttribute('class') ?? '')
+        .toContain('cate-preview-chunk-pinned')
+    })
     expect(dispatchSpy).not.toHaveBeenCalledWith(expect.objectContaining({ type: `preview-section${'-select'}` }))
   })
 
@@ -735,7 +792,7 @@ describe('EditorPanel FlashQuery URI routing', () => {
     fireEvent.click(screen.getByTitle('Preview markdown'))
     const headings = await screen.findAllByRole('heading', { name: 'Intro' })
     await waitFor(() => expect(getActiveEditorSnapshot(workspaceId).markdownPreview).toBe(true))
-    vi.useFakeTimers()
+    const previewBody = screen.getByTestId('markdown-preview-body')
 
     act(() => {
       getActiveEditorSnapshot(workspaceId).scrollPreviewToHeading?.('Intro', 1)
@@ -743,18 +800,16 @@ describe('EditorPanel FlashQuery URI routing', () => {
 
     expect(headings.map((heading) => heading.id)).toEqual(['intro', 'intro-1'])
     expect(scrollIntoView).toHaveBeenCalledTimes(1)
-    expect(headings[0].classList.contains('cate-preview-target-heading')).toBe(false)
-    expect(headings[0].classList.contains('cate-preview-target-heading')).toBe(false)
-    expect(headings[1].classList.contains('cate-preview-target-heading')).toBe(true)
-    expect(headings[1].style.backgroundColor).toBe('rgba(59, 130, 246, 0.24)')
-    act(() => vi.advanceTimersByTime(5000))
-    expect(headings[1].classList.contains('cate-preview-target-heading')).toBe(true)
+    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('intro-1')
+    await waitFor(() => expect(previewBody.querySelector('[data-chunk-id="intro-1"]')?.getAttribute('class') ?? '').toContain('cate-preview-chunk-pinned'))
+    expect(previewBody.querySelector('[data-chunk-id="intro"]')?.getAttribute('class') ?? '').not.toContain('cate-preview-chunk-pinned')
 
     act(() => {
       getActiveEditorSnapshot(workspaceId).scrollPreviewToHeading?.('Intro', 0)
     })
-    expect(headings[0].classList.contains('cate-preview-target-heading')).toBe(true)
-    expect(headings[1].classList.contains('cate-preview-target-heading')).toBe(false)
+    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('intro')
+    await waitFor(() => expect(previewBody.querySelector('[data-chunk-id="intro"]')?.getAttribute('class') ?? '').toContain('cate-preview-chunk-pinned'))
+    expect(previewBody.querySelector('[data-chunk-id="intro-1"]')?.getAttribute('class') ?? '').not.toContain('cate-preview-chunk-pinned')
   })
 
   it('T-I-004 and T-I-031 resolves nested preview targets to the enclosing chunk on hover', async () => {
@@ -802,7 +857,7 @@ describe('EditorPanel FlashQuery URI routing', () => {
   it('T-I-006 and T-I-008 applies active, pinned, and caution classes to chunk wrappers', async () => {
     const api = makeElectronApi()
     vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
-      body: '# Active Section\n\nActive body\n\n## Pinned Section\n\nPinned body\n\n## Risk Section\n\nRisk body',
+      body: '# Active Section\n\nActive body\n\n## Pinned Section\n\nPinned body\n\n## Risk Section\n\nRisk body\n\n## Selected Risk\n\nSelected risk body',
     })
     setElectronApi(api)
 
@@ -813,17 +868,30 @@ describe('EditorPanel FlashQuery URI routing', () => {
     act(() => {
       usePreviewSelectionStore.getState().setPinnedChunkId('pinned-section')
       usePreviewSelectionStore.getState().setHoveredChunkId('active-section')
-      usePreviewSelectionStore.getState().setCautionChunkIds(['risk-section'])
+      usePreviewSelectionStore.getState().setCautionChunkIds(['risk-section', 'selected-risk'])
     })
 
     const active = previewBody.querySelector('[data-chunk-id="active-section"]')!
     const pinned = previewBody.querySelector('[data-chunk-id="pinned-section"]')!
     const caution = previewBody.querySelector('[data-chunk-id="risk-section"]')!
+    const selectedCaution = previewBody.querySelector('[data-chunk-id="selected-risk"]')!
 
     expect(active.className).toContain('cate-preview-chunk-active')
     expect(pinned.className).toContain('cate-preview-chunk-pinned')
     expect(caution.className).toContain('cate-preview-chunk-caution')
     expect(caution.getAttribute('data-caution')).toBe('true')
+
+    act(() => usePreviewSelectionStore.getState().selectSection('selected-risk'))
+
+    expect(selectedCaution.className).toContain('cate-preview-chunk-active')
+    expect(selectedCaution.className).toContain('cate-preview-chunk-pinned')
+    expect(selectedCaution.className).toContain('cate-preview-chunk-caution')
+    expect(selectedCaution.className).toContain('border-orange-400')
+    expect(selectedCaution.className).toContain('bg-orange-500/10')
+    expect(selectedCaution.className).toContain('ring-orange-400/60')
+    expect(selectedCaution.className).not.toContain('border-teal-400')
+    expect(selectedCaution.className).not.toContain('bg-teal-500/10')
+    expect(selectedCaution.className).not.toContain('ring-teal-400/50')
   })
 
   it('T-I-007 leaves embeddings-only fixtures without caution decoration', async () => {

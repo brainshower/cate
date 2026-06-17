@@ -13,13 +13,17 @@ vi.mock('../stores/appStore', () => ({
 }))
 
 vi.mock('../stores/previewSelectionStore', () => {
+  let state = { activeChunkId: null as string | null }
   const usePreviewSelectionStore = Object.assign(
-    <T,>(selector: (state: { activeChunkId: string | null }) => T) => selector({ activeChunkId: null }),
+    <T,>(selector: (state: { activeChunkId: string | null }) => T) => selector(state),
     {
       getState: () => ({
-        activeChunkId: null,
+        activeChunkId: state.activeChunkId,
         clearSelection: () => {},
       }),
+      setState: (next: { activeChunkId?: string | null }) => {
+        state = { ...state, activeChunkId: next.activeChunkId ?? null }
+      },
     },
   )
 
@@ -238,5 +242,22 @@ describe('PANEL_REGISTRY semantic-connections entry', () => {
 
     expect(visibleText.filter((text) => text === 'Connections')).toHaveLength(0)
     expect(visibleText.join(' ')).toContain('Whole document')
+  })
+
+  it('REQ-023 keeps selected scope neutral instead of exposing raw chunk slugs', async () => {
+    const { usePreviewSelectionStore } = await import('../stores/previewSelectionStore')
+    const module = await import('./SemanticConnectionsPanel')
+    usePreviewSelectionStore.setState({
+      hoveredChunkId: null,
+      pinnedChunkId: 'my-heading-slug',
+      activeChunkId: 'my-heading-slug',
+      cautionChunkIds: [],
+    })
+
+    const element = module.default({ panelId: 'semantic-1', workspaceId: 'workspace-1' })
+    const text = collectText(element).join(' ')
+
+    expect(text).toContain('One section selected')
+    expect(text).not.toContain('my-heading-slug')
   })
 })

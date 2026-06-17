@@ -17,7 +17,7 @@ export default function SemanticConnectionsPanel({ panelId }: SemanticConnection
           className="min-w-0 truncate text-left text-xs text-secondary hover:text-primary"
           onClick={() => usePreviewSelectionStore.getState().clearSelection()}
         >
-          {activeChunkId ? `Section ${activeChunkId}` : 'Whole document'}
+          {activeChunkId ? 'One section selected' : 'Whole document'}
         </button>
       </div>
       <div className="flex min-h-0 flex-1 flex-col justify-center px-4 text-sm text-secondary">
