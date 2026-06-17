@@ -201,6 +201,7 @@ test('T-E-008 keyboard user tabs through scope, config, card, expand, open, and 
 
     const panel = page.getByTestId('semantic-connections-panel')
     await expect(panel).toContainText('One section selected')
+    await panel.hover()
     const configButton = page.getByRole('button', { name: 'Configure semantic connections' })
     await configButton.focus()
     await expect(configButton).toBeFocused()
@@ -220,7 +221,12 @@ test('T-E-008 keyboard user tabs through scope, config, card, expand, open, and 
     await expect(panel).toContainText('Expanded design body stays reachable after preview pinning.')
     await page.keyboard.press('Tab')
     await expect(panel.getByRole('button', { name: 'Open Design Deep Dive Design Brief' })).toBeFocused()
-    await panel.getByRole('button', { name: 'Current semantic connection scope' }).focus()
+    await page.keyboard.press('Shift+Tab')
+    await expect(panel.getByRole('button', { name: 'Collapse Design Deep Dive Design Brief' })).toBeFocused()
+    await page.keyboard.press('Shift+Tab')
+    await expect(panel.getByLabel('Top N connections')).toBeFocused()
+    await page.keyboard.press('Shift+Tab')
+    await expect(panel.getByRole('button', { name: 'Current semantic connection scope' })).toBeFocused()
     await page.keyboard.press('Escape')
     await expect(panel).toContainText('Whole document')
   } finally {

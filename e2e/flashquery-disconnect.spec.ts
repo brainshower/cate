@@ -25,7 +25,8 @@ test('T-E-007 REQ-020 disconnect and retry shows disconnected state and recovers
     const page = launched.mainWindow
     await configure(page, server.baseUrl, workspaceRoot)
     await page.evaluate(() => window.__cateE2E!.createFlashQueryVault({ x: 260, y: 180 }))
-    await expect(page.getByText('Welcome').first()).toBeVisible()
+    const welcomeRow = page.getByRole('treeitem', { name: /Welcome/ }).first()
+    await expect(welcomeRow).toBeVisible()
     await expect(page.getByText('Live').first()).toBeVisible()
 
     server.setAvailable(false)
@@ -40,7 +41,8 @@ test('T-E-007 REQ-020 disconnect and retry shows disconnected state and recovers
     server.setAvailable(true)
     await page.getByRole('button', { name: 'Retry' }).click()
     await expect(page.getByText('Live').first()).toBeVisible()
-    await expect(page.getByText('Welcome').first()).toBeVisible()
+    await expect(disconnectedChip).toBeHidden()
+    await expect(page.getByText("Can't reach FlashQuery.")).toBeHidden()
   } finally {
     if (app) await closeApp(app)
     await server.close()
