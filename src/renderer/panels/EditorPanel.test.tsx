@@ -981,6 +981,38 @@ describe('EditorPanel FlashQuery URI routing', () => {
     fireEvent.click(screen.getByTestId('markdown-preview-body'))
     expect(usePreviewSelectionStore.getState().pinnedChunkId).toBeNull()
   })
+
+  it('REQ-007 keeps a pinned scope when Escape is owned by another editing surface', async () => {
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: '# First Section\n\nFirst body',
+    })
+    setElectronApi(api)
+
+    await renderEditor('flashquery://workspace-1/Docs/Preview-Escape-Scope.md')
+    fireEvent.click(screen.getByTitle('Preview markdown'))
+    await screen.findByText('First body')
+
+    act(() => usePreviewSelectionStore.getState().selectSection('first-section'))
+    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('first-section')
+
+    // Escape while a terminal owns focus must NOT clear the pinned scope.
+    const terminal = document.createElement('div')
+    terminal.className = 'xterm'
+    const terminalInput = document.createElement('textarea')
+    terminal.appendChild(terminalInput)
+    document.body.appendChild(terminal)
+    terminalInput.focus()
+    fireEvent.keyDown(terminalInput, { key: 'Escape' })
+    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('first-section')
+
+    // Escape with no foreign editing surface focused still clears (pin-then-Esc).
+    terminalInput.blur()
+    fireEvent.keyDown(screen.getByTestId('markdown-preview-body'), { key: 'Escape' })
+    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBeNull()
+
+    terminal.remove()
+  })
 })
 
 describe('EditorPanel FlashQuery save and dirty behavior', () => {

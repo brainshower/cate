@@ -1225,8 +1225,24 @@ function MarkdownPreview({
   }
   const previewChunks = useMemo(() => splitMarkdownPreviewChunks(content), [content])
   useEffect(() => {
+    // Escape clears the pinned/active preview selection (REQ-007, REQ-037).
+    // A window listener is required because preview chunks are non-focusable
+    // divs, so after a click-pin focus stays on document.body — a listener
+    // scoped to the preview element would miss that common case. To avoid
+    // clearing a pinned scope from an unrelated Escape elsewhere in the app,
+    // skip Escape that is owned by another editing surface (terminal, Monaco
+    // editor, or a text field) that is not the preview or the SC inspector.
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') usePreviewSelectionStore.getState().clearSelection()
+      if (event.key !== 'Escape') return
+      const active = document.activeElement as HTMLElement | null
+      const ownedElsewhere =
+        !!active &&
+        active !== document.body &&
+        !active.closest('[data-testid="markdown-preview-body"]') &&
+        !active.closest('[data-testid="semantic-connections-panel"]') &&
+        !!active.closest('.xterm, .monaco-editor, input, textarea, select, [contenteditable="true"]')
+      if (ownedElsewhere) return
+      usePreviewSelectionStore.getState().clearSelection()
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => {
