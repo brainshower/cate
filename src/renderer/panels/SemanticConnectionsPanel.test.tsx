@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearActiveEditorRegistryForTests,
   registerActiveEditor,
+  updateActiveEditorModel,
   updateActiveEditorPreview,
   type ActiveEditorLike,
   type ActiveEditorModelLike,
@@ -16,6 +17,17 @@ function model(text: string): ActiveEditorModelLike {
   return {
     getLineCount: () => lines.length,
     getLineContent: (lineNumber) => lines[lineNumber - 1] ?? '',
+  }
+}
+
+function mutableModel(text: string): ActiveEditorModelLike & { setText: (nextText: string) => void } {
+  let currentText = text
+  return {
+    setText: (nextText) => {
+      currentText = nextText
+    },
+    getLineCount: () => currentText.split('\n').length,
+    getLineContent: (lineNumber) => currentText.split('\n')[lineNumber - 1] ?? '',
   }
 }
 
@@ -297,6 +309,96 @@ describe('SemanticConnectionsPanel', () => {
 
     expect(await screen.findByText('Alpha Notes')).toBeTruthy()
     expect(screen.getByText('Based on last indexed version')).toBeTruthy()
+  })
+
+  it('T-I-020 and T-I-042 keeps cached cards visible as stale after material content changes until fresh data arrives', async () => {
+    const activeModel = mutableModel('# Plan\n\n## Scope\nBody')
+    const fresh = deferred<SemanticConnectionsResult>()
+    const asyncProvider: SemanticConnectionsProvider = {
+      loadDocumentConnections: vi.fn()
+        .mockResolvedValueOnce(embeddingsOnlyResult)
+        .mockReturnValueOnce(fresh.promise),
+    }
+
+    act(() => {
+      registerActiveEditor('workspace-1', 'editor-1', editor(activeModel))
+      updateActiveEditorPreview('workspace-1', 'editor-1', { markdownPreview: true })
+    })
+    render(
+      <SemanticConnectionsPanel
+        panelId="sc-1"
+        workspaceId="workspace-1"
+        sourceEditorPanelId="editor-1"
+        sourceFilePath="/workspace/Plan.md"
+        provider={asyncProvider}
+      />,
+    )
+
+    expect(await screen.findByText('Alpha Notes')).toBeTruthy()
+
+    act(() => {
+      activeModel.setText('# Plan\n\n## Scope\nChanged body')
+      updateActiveEditorModel('workspace-1', 'editor-1')
+    })
+
+    expect(await screen.findByText('Alpha Notes')).toBeTruthy()
+    expect(screen.getByText('Based on last indexed version')).toBeTruthy()
+    expect(screen.getByText('Refreshing...')).toBeTruthy()
+
+    await act(async () => {
+      fresh.resolve({
+        ...embeddingsOnlyResult,
+        overall: [{
+          ...embeddingsOnlyResult.overall[1],
+          id: 'fresh-content',
+          target: { ...embeddingsOnlyResult.overall[1].target, title: 'Fresh Content' },
+        }],
+      })
+    })
+
+    expect(await screen.findByText('Fresh Content')).toBeTruthy()
+    expect(screen.queryByText('Alpha Notes')).toBeNull()
+    expect(screen.queryByText('Based on last indexed version')).toBeNull()
+    expect(asyncProvider.loadDocumentConnections).toHaveBeenCalledTimes(2)
+  })
+
+  it('T-I-024 omits unmapped per-section rows and retains diagnostics as debug data', async () => {
+    renderPanel({
+      ...embeddingsOnlyResult,
+      overall: [
+        embeddingsOnlyResult.overall[0],
+        {
+          ...embeddingsOnlyResult.overall[1],
+          id: 'unmapped',
+          target: {
+            ...embeddingsOnlyResult.overall[1].target,
+            title: 'Unmapped Whole Document',
+            chunkId: 'flashquery-uuid-without-preview-match',
+          },
+        },
+      ],
+      byChunkId: {
+        scope: [embeddingsOnlyResult.overall[0]],
+      },
+      diagnostics: ['Unable to map FlashQuery chunk flashquery-uuid-without-preview-match'],
+    }, { activeChunkId: 'scope' })
+
+    expect(await screen.findByText('Alpha Notes')).toBeTruthy()
+    expect(screen.queryByText('Unmapped Whole Document')).toBeNull()
+    expect(screen.getByTestId('semantic-connections-panel').dataset.semanticDiagnosticsCount).toBe('1')
+  })
+
+  it('T-I-042 reuses successful cached results for the same editor document and content hash', async () => {
+    const cachedProvider: SemanticConnectionsProvider = {
+      loadDocumentConnections: vi.fn().mockResolvedValue(embeddingsOnlyResult),
+    }
+
+    renderPanelWithProvider(cachedProvider)
+    expect(await screen.findByText('Alpha Notes')).toBeTruthy()
+
+    act(() => usePreviewSelectionStore.getState().selectSection('scope'))
+
+    await waitFor(() => expect(cachedProvider.loadDocumentConnections).toHaveBeenCalledTimes(1))
   })
 
   it('T-I-021, T-I-022, and T-I-023 renders recoverable provider error states', async () => {
