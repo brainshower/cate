@@ -12,6 +12,9 @@ export interface FlashQueryStubCounts {
 export interface FlashQueryStubDocument {
   body: string
   frontmatter?: Record<string, unknown>
+  snippet?: string
+  score?: number
+  matched_chunks?: Array<Record<string, unknown>>
 }
 
 export interface FlashQueryStubMemory {
@@ -131,6 +134,9 @@ function searchResults(
         entity_type: 'document' as const,
         identifier: path,
         path,
+        ...(document.score !== undefined ? { score: document.score } : {}),
+        ...(document.snippet !== undefined ? { snippet: document.snippet } : {}),
+        ...(document.matched_chunks ? { matched_chunks: document.matched_chunks } : {}),
         ...(titleOverride === null
           ? {}
           : { title: titleOverride ?? path.split('/').at(-1)?.replace(/\.md$/i, '') ?? path }),

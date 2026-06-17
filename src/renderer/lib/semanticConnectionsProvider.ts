@@ -3,6 +3,8 @@ import {
   parseDocumentHeadings,
   type DocumentHeading,
 } from './parseDocumentHeadings'
+import { parseVaultUri } from '../../shared/flashqueryUri'
+import type { FlashQueryDocumentSearchResult, FlashQuerySearchParams, FlashQuerySearchResponse } from '../../shared/types'
 import type {
   SemanticConnection,
   SemanticConnectionDirection,
@@ -59,6 +61,11 @@ export interface BuildSemanticConnectionsResultInput {
   mode: SemanticConnectionMode
   connections: readonly FlashQuerySemanticConnection[]
 }
+
+type FlashQuerySearchFn = (
+  workspaceId: string,
+  params: FlashQuerySearchParams,
+) => Promise<FlashQuerySearchResponse>
 
 interface PreviewChunkHeading {
   heading: DocumentHeading
@@ -175,7 +182,7 @@ function toPanelConnection(
       chunkId: entry.previewChunkId ?? target.flashqueryChunkId,
       snippet: target.snippet,
       body: target.body,
-      inDocument: Boolean(entry.previewChunkId),
+      inDocument: false,
       documentId: target.documentId,
       headingPath: target.headingPath,
     },
@@ -252,6 +259,85 @@ export function createCachedSemanticConnectionsProvider(
   }
 }
 
-// Phase 25 intentionally stops at this Cate-side adapter boundary. A real
-// FlashQuery server-side "connections for document/chunk" API is a backend
-// dependency for a later phase, not implemented in Cate here.
+function sourceVaultPath(documentPath: string): string {
+  return parseVaultUri(documentPath)?.vaultPath ?? documentPath
+}
+
+function headingFromPath(value: string | undefined): string | undefined {
+  if (!value) return undefined
+  const parts = value.split('>').map((part) => part.trim()).filter(Boolean)
+  return parts.at(-1)
+}
+
+function headingPathFrom(value: string | undefined): string[] | undefined {
+  if (!value) return undefined
+  const parts = value.split('>').map((part) => part.trim()).filter(Boolean)
+  return parts.length > 0 ? parts : undefined
+}
+
+function snippetFrom(content: string | undefined, fallback: string | undefined): string {
+  const value = (content ?? fallback ?? '').replace(/\s+/g, ' ').trim()
+  return value.length > 240 ? `${value.slice(0, 237)}...` : value
+}
+
+function connectionsFromDocument(doc: FlashQueryDocumentSearchResult): FlashQuerySemanticConnection[] {
+  const chunks = doc.matched_chunks?.length
+    ? doc.matched_chunks
+    : [{
+        chunk_id: doc.fullPath,
+        content: doc.snippet,
+        score: doc.score,
+      }]
+
+  return chunks.map((chunk, index) => {
+    const headingPath = headingPathFrom(chunk.heading_path ?? chunk.breadcrumb)
+    return {
+      id: `${doc.fullPath}#${chunk.chunk_id || index}`,
+      score: chunk.score ?? doc.score ?? 0,
+      target: {
+        flashqueryChunkId: chunk.chunk_id || `${doc.fullPath}#${index}`,
+        documentPath: doc.fullPath,
+        documentTitle: doc.title ?? doc.filename,
+        headingPath,
+        headingText: headingFromPath(chunk.heading_path ?? chunk.breadcrumb),
+        snippet: snippetFrom(chunk.content, doc.snippet),
+        body: chunk.content,
+      },
+    }
+  })
+}
+
+export function createFlashQuerySemanticConnectionsProvider(
+  search: FlashQuerySearchFn = (workspaceId, params) => window.electronAPI.flashquerySearch(workspaceId, params),
+): SemanticConnectionsProvider {
+  return createCachedSemanticConnectionsProvider({
+    async loadDocumentConnections(input) {
+      const query = input.markdown.trim()
+      if (!query) return buildSemanticConnectionsResult({ markdown: input.markdown, mode: 'embeddings-only', connections: [] })
+
+      const sourcePath = sourceVaultPath(input.documentPath)
+      const response = await search(input.workspaceId, {
+        query,
+        mode: 'semantic',
+        entity_types: ['documents'],
+        limit: 12,
+        limit_chunks_per_result: 5,
+        ...(input.embeddingNames?.length ? { embedding_names: input.embeddingNames } : {}),
+      })
+
+      if (response.error) {
+        throw new Error(response.error)
+      }
+
+      const connections = response.documents
+        .filter((doc) => doc.fullPath !== sourcePath)
+        .flatMap((doc) => connectionsFromDocument(doc))
+
+      return buildSemanticConnectionsResult({
+        markdown: input.markdown,
+        mode: 'embeddings-only',
+        connections,
+      })
+    },
+  })
+}

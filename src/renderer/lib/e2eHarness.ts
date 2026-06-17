@@ -6,7 +6,7 @@
 // the UI for setup is brittle; reaching into stores is reliable.
 
 import { useAppStore, type PanelPlacement } from '../stores/appStore'
-import { getOrCreateCanvasStoreForPanel } from '../stores/canvasStore'
+import { getAllCanvasStores, getOrCreateCanvasStoreForPanel, useCanvasStore } from '../stores/canvasStore'
 import { useDockStore } from '../stores/dockStore'
 import { useDragStore } from '../drag/store'
 import { useUIStore } from '../stores/uiStore'
@@ -18,6 +18,7 @@ import * as monaco from 'monaco-editor'
 import { terminalRegistry } from './terminalRegistry'
 import { handleAgentEvent, useAgentStore } from '../../agent/renderer/agentStore'
 import type { SemanticConnectionsProvider, SemanticConnectionsResult } from './semanticConnections'
+import { createTransferSnapshot } from './panelTransfer'
 
 type SemanticConnectionsScenario = 'default' | 'empty' | 'stale'
 
@@ -50,6 +51,7 @@ declare global {
       setSemanticConnectionsScenario(scenario: SemanticConnectionsScenario): void
       semanticConnectionsProvider(): SemanticConnectionsProvider
       setSemanticConnectionsSource(panelId: string, sourceEditorPanelId: string): void
+      detachPanelToDockWindow(panelId: string): Promise<number | null>
       chooseNextContextMenuAction(action: string | null): void
       lastContextMenuItems(): NativeContextMenuItem[]
       panelLocation(panelId: string): string | null
@@ -205,6 +207,20 @@ export function installE2EHarness(): void {
           : workspace,
       ),
     }))
+  }
+
+  const detachPanelToDockWindow = async (panelId: string): Promise<number | null> => {
+    const workspaceId = selectedWorkspaceId()
+    const workspace = useAppStore.getState().workspaces.find((ws) => ws.id === workspaceId)
+    const panel = workspace?.panels[panelId]
+    if (!panel) return null
+    const snapshot = createTransferSnapshot(
+      panel,
+      { type: 'dock', zone: 'center', stackId: 'e2e-detach' },
+      { origin: { x: 120, y: 120 }, size: { width: 900, height: 700 } },
+      { resolveChildPanel: (childPanelId) => workspace.panels[childPanelId] },
+    )
+    return window.electronAPI.dragDetach(snapshot, workspaceId)
   }
 
   // The Canvas component stamps data-canvas-panel-id on its root — use the
@@ -374,7 +390,9 @@ export function installE2EHarness(): void {
 
   const panelLocation = (panelId: string): string | null => {
     return useDockStore.getState().getPanelLocation(panelId)?.type ?? (
-      nodes().some((node) => node.panelId === panelId) ? 'canvas' : null
+      [useCanvasStore, ...getAllCanvasStores()].some((canvasStore) =>
+        Boolean(canvasStore.getState().nodeForPanel(panelId))
+      ) ? 'canvas' : null
     )
   }
 
@@ -516,6 +534,7 @@ export function installE2EHarness(): void {
     setSemanticConnectionsScenario,
     semanticConnectionsProvider,
     setSemanticConnectionsSource,
+    detachPanelToDockWindow,
     chooseNextContextMenuAction,
     lastContextMenuItems,
     panelLocation,

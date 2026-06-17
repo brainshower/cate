@@ -202,6 +202,7 @@ export function getPanelDef(type: PanelType | string): RendererPanelDefinition {
 export function renderPanelComponent(
   panel: { type: PanelType; id: string; filePath?: string; url?: string; sourceEditorPanelId?: string },
   ctx: { workspaceId: string; nodeId: string; zoomLevel?: number },
+  injectedProps: Record<string, unknown> = {},
 ): React.ReactElement | null {
   const def = PANEL_REGISTRY[panel.type]
   if (!def) return null
@@ -222,6 +223,7 @@ export function renderPanelComponent(
     workspaceId: ctx.workspaceId,
     nodeId: ctx.nodeId,
     ...extras,
+    ...injectedProps,
   }
   return React.createElement(Component, props)
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   buildSemanticConnectionsResult,
+  createFlashQuerySemanticConnectionsProvider,
   createCachedSemanticConnectionsProvider,
   mapFlashQueryChunksToPreview,
   type FlashQuerySemanticConnection,
@@ -180,5 +181,72 @@ describe('semantic connections provider boundary', () => {
     expect(second).toBe(first)
     expect(third).not.toBe(first)
     expect(third.overall.map((connection) => connection.id)).toEqual(['conn-2'])
+  })
+
+  it('loads embeddings-only connections from FlashQuery semantic search results', async () => {
+    const search = vi.fn().mockResolvedValue({
+      documents: [
+        {
+          filename: 'Source.md',
+          fullPath: 'Docs/Source.md',
+          title: 'Source',
+          score: 0.99,
+          matched_chunks: [
+            {
+              chunk_id: 'source-chunk',
+              heading_path: 'Source > Summary',
+              content: 'Self match should not be shown.',
+              score: 0.99,
+            },
+          ],
+        },
+        {
+          filename: 'Neighbor.md',
+          fullPath: 'Docs/Neighbor.md',
+          title: 'Neighbor',
+          score: 0.88,
+          matched_chunks: [
+            {
+              chunk_id: 'neighbor-chunk',
+              heading_path: 'Neighbor > Design',
+              content: 'Neighbor chunk body that should become a snippet.',
+              score: 0.88,
+            },
+          ],
+        },
+      ],
+      memories: [],
+      total_documents: 2,
+      total_memories: 0,
+    })
+    const provider = createFlashQuerySemanticConnectionsProvider(search)
+
+    const result = await provider.loadDocumentConnections({
+      workspaceId: 'workspace-1',
+      editorPanelId: 'editor-1',
+      documentPath: 'flashquery://workspace-1/Docs/Source.md',
+      markdown: '# Source\n\nCurrent document body',
+      contentHash: 'hash-source',
+    })
+
+    expect(search).toHaveBeenCalledWith('workspace-1', expect.objectContaining({
+      query: '# Source\n\nCurrent document body',
+      mode: 'semantic',
+      entity_types: ['documents'],
+      limit: 12,
+    }))
+    expect(result.mode).toBe('embeddings-only')
+    expect(result.overall).toHaveLength(1)
+    expect(result.overall[0]).toMatchObject({
+      id: 'Docs/Neighbor.md#neighbor-chunk',
+      score: 0.88,
+      target: {
+        title: 'Neighbor',
+        path: 'Docs/Neighbor.md',
+        heading: 'Design',
+        chunkId: 'neighbor-chunk',
+        snippet: 'Neighbor chunk body that should become a snippet.',
+      },
+    })
   })
 })

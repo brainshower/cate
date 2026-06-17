@@ -17,6 +17,8 @@ import { applyTheme } from '../lib/themeManager'
 import { applyCanvasChildPanels } from '../lib/applyCanvasChildPanels'
 import { VaultBadge } from '../components/VaultBadge'
 import { FlashQueryEditorTitleActions } from '../components/FlashQueryEditorTitleActions'
+import { createEditorPanelState } from '../lib/editorPanelFactory'
+import { createTransferSnapshot } from '../lib/panelTransfer'
 
 interface PanelWindowShellProps {
   panelType?: string
@@ -153,6 +155,22 @@ export default function PanelWindowShell({ panelType, panelId, workspaceId }: Pa
     window.close()
   }, [])
 
+  const createEditorForOpen = useCallback((targetWorkspaceId: string, filePath: string): string => {
+    const editorPanel = createEditorPanelState(filePath)
+    const snapshot = createTransferSnapshot(
+      editorPanel,
+      { type: 'dock', zone: 'center', stackId: 'detached-open' },
+      { origin: { x: 120, y: 120 }, size: { width: 900, height: 700 } },
+    )
+    const resolvedWorkspaceId = targetWorkspaceId || workspaceId
+    if (resolvedWorkspaceId) {
+      void window.electronAPI.dragDetach(snapshot, resolvedWorkspaceId)
+    } else {
+      void window.electronAPI.panelTransfer(snapshot)
+    }
+    return editorPanel.id
+  }, [workspaceId])
+
   /** Double-click title bar → dock panel back into main window */
   const handleTitleDoubleClick = useCallback(() => {
     window.electronAPI.panelWindowDockBack()
@@ -233,7 +251,7 @@ export default function PanelWindowShell({ panelType, panelId, workspaceId }: Pa
       {/* Panel content */}
       <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
         <Suspense fallback={<div className="w-full h-full bg-surface-4 flex items-center justify-center text-muted text-sm">Loading...</div>}>
-          <PanelContent panel={displayPanel} workspaceId={workspaceId ?? ''} />
+          <PanelContent panel={displayPanel} workspaceId={workspaceId ?? ''} createEditorForOpen={createEditorForOpen} />
         </Suspense>
       </div>
     </div>
@@ -244,8 +262,16 @@ export default function PanelWindowShell({ panelType, panelId, workspaceId }: Pa
 // Panel content renderer
 // -----------------------------------------------------------------------------
 
-function PanelContent({ panel, workspaceId }: { panel: PanelState; workspaceId: string }) {
-  const content = renderPanelComponent(panel, { workspaceId, nodeId: '' })
+function PanelContent({
+  panel,
+  workspaceId,
+  createEditorForOpen,
+}: {
+  panel: PanelState
+  workspaceId: string
+  createEditorForOpen: (workspaceId: string, filePath: string, options?: { sourceEditorPanelId?: string }) => string
+}) {
+  const content = renderPanelComponent(panel, { workspaceId, nodeId: '' }, { createEditorForOpen })
   if (!content) return <div className="w-full h-full flex items-center justify-center text-muted">Unknown panel type</div>
   return content
 }

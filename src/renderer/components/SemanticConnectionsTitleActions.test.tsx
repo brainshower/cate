@@ -10,7 +10,7 @@ describe('SemanticConnectionsTitleActions', () => {
     vi.restoreAllMocks()
   })
 
-  it('T-I-030 renders the live header count and toggles the panel config state', () => {
+  it('T-I-030 toggles panel config state without rendering the connection count in title chrome', () => {
     const toggleConfig = vi.fn()
     useSemanticConnectionsChromeStore.getState().setPanelChrome('sc-1', {
       connectionCount: 2,
@@ -21,7 +21,7 @@ describe('SemanticConnectionsTitleActions', () => {
 
     render(<SemanticConnectionsTitleActions panelId="sc-1" />)
 
-    expect(screen.getByLabelText('Connection count: 2 connections').textContent).toBe('2')
+    expect(screen.queryByLabelText('Connection count: 2 connections')).toBeNull()
     expect(screen.getByTestId('semantic-config-indicator')).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: 'Configure semantic connections' }))

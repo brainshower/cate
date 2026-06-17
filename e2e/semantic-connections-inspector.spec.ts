@@ -3,16 +3,17 @@ import { mkdtemp, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { closeApp, dragMouse, launchApp } from './fixtures/electron-app'
+import { startFlashQueryStubServer } from './fixtures/flashquery-server'
 import type { ElectronApplication } from 'playwright'
 
 const markdown = '# Overview\n\nOpening context.\n\n## Design Brief\n\nDesign content.\n\n## Runtime Notes\n\nRuntime content.\n'
-type DockPlacement = { target: 'dock'; zone: 'left' | 'right' | 'bottom' | 'center' }
+type PreviewPlacement = { target: 'dock'; zone: 'left' | 'right' | 'bottom' | 'center' } | { target: 'canvas' }
 
 async function openPreview(
   page: Page,
   workspaceRoot: string,
   fileName = 'semantic.md',
-  placement?: DockPlacement,
+  placement?: PreviewPlacement,
 ): Promise<{
   filePath: string
   editorPanelId: string
@@ -40,6 +41,137 @@ async function launchWithWorkspace(): Promise<{
   const launched = await launchApp()
   return { app: launched.electronApp, page: launched.mainWindow, workspaceRoot }
 }
+
+async function configureFlashQuery(page: Page, serverUrl: string, workspaceRoot: string): Promise<string> {
+  const workspaceId = await page.evaluate(async (rootPath) => {
+    return window.__cateE2E!.ensureWorkspaceRoot(rootPath)
+  }, workspaceRoot)
+  await page.evaluate((id) => window.__cateE2E!.openFlashQueryConnectionDialog(id), workspaceId)
+  await page.getByLabel('FlashQuery URL').fill(serverUrl)
+  await page.getByRole('textbox', { name: 'Bearer token' }).fill('semantic-open-token')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('dialog', { name: 'FlashQuery Connection' })).toBeHidden()
+  return workspaceId
+}
+
+async function openDesignCompanionFromSemanticCard(page: Page): Promise<string> {
+  await clickDesignCompanionOpen(page)
+
+  const editorPanelId = await page.waitForFunction(() => {
+    return window.__cateE2E!.editorPanelIdsForPath('Docs/Design.md')[0] ?? null
+  }).then((handle) => handle.jsonValue() as Promise<string>)
+
+  await page.evaluate((panelId) => window.__cateE2E!.activatePanel(panelId), editorPanelId)
+  return editorPanelId
+}
+
+async function clickDesignCompanionOpen(page: Page): Promise<void> {
+  const panel = page.getByTestId('semantic-connections-panel')
+  await expect(panel).toBeVisible()
+  await expect(panel).toContainText('Design Companion')
+
+  const card = panel.locator('article').filter({ hasText: 'Design Companion' }).first()
+  await card.getByRole('button', { name: 'Open Design Companion Design Brief' }).evaluate((button) => {
+    ;(button as HTMLButtonElement).click()
+  })
+}
+
+for (const placementMode of ['dock', 'canvas'] as const) {
+  test(`semantic connection open icon opens referenced vault document editor from ${placementMode} mode`, async () => {
+    const server = await startFlashQueryStubServer({ expectedBearerToken: 'semantic-open-token' })
+    server.seedDocuments({
+      'Docs/Design.md': '# Design Companion\n\nOpened through semantic graph card.',
+    })
+    let app: ElectronApplication | null = null
+    try {
+      const launched = await launchWithWorkspace()
+      app = launched.app
+      const { page, workspaceRoot } = launched
+      await configureFlashQuery(page, server.baseUrl, workspaceRoot)
+      const { editorPanelId: sourceEditorPanelId } = await openPreview(
+        page,
+        workspaceRoot,
+        'semantic.md',
+        placementMode === 'canvas' ? { target: 'canvas' } : undefined,
+      )
+      await page.evaluate(() => window.__cateE2E!.setSemanticConnectionsScenario('default'))
+
+      const semanticPanelId = await page.evaluate((mode) => {
+        return window.__cateE2E!.createSemanticConnections(
+          { x: 360, y: 180 },
+          mode === 'canvas' ? { target: 'canvas' } : { target: 'dock', zone: 'right' },
+        )
+      }, placementMode)
+      if (placementMode === 'canvas') {
+        await page.evaluate(({ panel, editor }) => {
+          window.__cateE2E!.setSemanticConnectionsSource(panel, editor)
+        }, { panel: semanticPanelId, editor: sourceEditorPanelId })
+      }
+
+      const editorPanelId = await openDesignCompanionFromSemanticCard(page)
+      await expect.poll(() => page.evaluate((panelId) => {
+        return window.__cateE2E!.editorText(panelId)
+      }, editorPanelId)).toContain('Opened through semantic graph card.')
+      await expect.poll(() => page.evaluate((panelId) => {
+        return window.__cateE2E!.panelLocation(panelId)
+      }, editorPanelId)).toBe(placementMode === 'canvas' ? 'canvas' : 'dock')
+      expect(server.lastGetArgs()).toMatchObject({ identifiers: 'Docs/Design.md' })
+    } finally {
+      if (app) await closeApp(app)
+      await server.close()
+    }
+  })
+}
+
+test('semantic connection open icon opens referenced document editor from a detached canvas dock window', async () => {
+  const server = await startFlashQueryStubServer({ expectedBearerToken: 'semantic-open-token' })
+  server.seedDocuments({
+    'Docs/Design.md': {
+      body: `${markdown}\n\nOpened through semantic graph card.`,
+      matched_chunks: [{
+        chunk_id: 'design-brief',
+        content: 'Opened through semantic graph card.',
+        score: 0.91,
+        heading_path: 'Design Brief',
+      }],
+    },
+  })
+  server.setDocumentTitles({ 'Docs/Design.md': 'Design Companion' })
+  let app: ElectronApplication | null = null
+  try {
+    const launched = await launchWithWorkspace()
+    app = launched.app
+    const { page, workspaceRoot } = launched
+    await configureFlashQuery(page, server.baseUrl, workspaceRoot)
+    const { editorPanelId: sourceEditorPanelId } = await openPreview(page, workspaceRoot, 'semantic.md', { target: 'canvas' })
+    const semanticPanelId = await page.evaluate(() => {
+      return window.__cateE2E!.createSemanticConnections({ x: 600, y: 180 }, { target: 'canvas' })
+    })
+    await page.evaluate(({ panel, editor }) => {
+      window.__cateE2E!.setSemanticConnectionsSource(panel, editor)
+    }, { panel: semanticPanelId, editor: sourceEditorPanelId })
+    const canvasPanelId = await page.evaluate(() => window.__cateE2E!.activeCanvasPanelId())
+    expect(canvasPanelId).not.toBeNull()
+
+    const initialWindowCount = app.windows().length
+    await page.evaluate((panelId) => window.__cateE2E!.detachPanelToDockWindow(panelId), canvasPanelId)
+    await expect.poll(() => app!.windows().length).toBeGreaterThan(initialWindowCount)
+    const detached = app.windows().find((candidate) => candidate !== page && candidate.url().includes('type=dock'))
+    expect(detached).toBeTruthy()
+    await detached!.waitForLoadState('domcontentloaded')
+
+    const nodeCountBeforeOpen = await detached!.locator('[data-node-id]').count()
+    const editorCountBeforeOpen = await detached!.locator('.monaco-editor').count()
+    await clickDesignCompanionOpen(detached!)
+    await expect.poll(() => server.lastGetArgs()?.identifiers).toBe('Docs/Design.md')
+    await expect.poll(() => detached!.locator('[data-node-id]').count()).toBeGreaterThan(nodeCountBeforeOpen)
+    await expect.poll(() => detached!.locator('.monaco-editor').count()).toBeGreaterThan(editorCountBeforeOpen)
+    expect(server.lastGetArgs()).toMatchObject({ identifiers: 'Docs/Design.md' })
+  } finally {
+    if (app) await closeApp(app)
+    await server.close()
+  }
+})
 
 test('T-E-001 T-E-003 opens Semantic Connections in main right dock with embeddings-only cards and no typed controls', async () => {
   let app: ElectronApplication | null = null

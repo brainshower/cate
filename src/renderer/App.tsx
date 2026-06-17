@@ -5,8 +5,9 @@
 
 import React, { useEffect, useRef, useState, useCallback, Suspense } from 'react'
 import log from './lib/logger'
-import { useAppStore, useSelectedWorkspace, setupWorkspaceSync } from './stores/appStore'
-import { useCanvasStore, getOrCreateCanvasStoreForPanel } from './stores/canvasStore'
+import { useAppStore, useSelectedWorkspace, setupWorkspaceSync, getWorkspaceCanvasStore } from './stores/appStore'
+import type { PanelPlacement } from './stores/appStore'
+import { useCanvasStore, getOrCreateCanvasStoreForPanel, getAllCanvasStores } from './stores/canvasStore'
 import { CanvasStoreProvider } from './stores/CanvasStoreContext'
 import { setCanvasOperations } from './stores/appStore'
 import { createCanvasOps } from './lib/canvasBridge'
@@ -460,6 +461,33 @@ function MainApp() {
   // ---------------------------------------------------------------------------
   // Render panel content (used both in dock zones and inside canvas nodes)
   // ---------------------------------------------------------------------------
+  const createEditorForOpen = useCallback((workspaceId: string, filePath: string, options?: { sourceEditorPanelId?: string }): string => {
+    let placement: PanelPlacement = { target: 'dock', zone: 'center' }
+    const sourcePanelId = options?.sourceEditorPanelId
+    const candidateStores = [
+      useCanvasStore,
+      getWorkspaceCanvasStore(workspaceId),
+      ...getAllCanvasStores(),
+    ].filter((canvasStore): canvasStore is NonNullable<typeof canvasStore> => Boolean(canvasStore))
+    if (sourcePanelId) {
+      for (const canvasStore of candidateStores) {
+        const canvasState = canvasStore.getState()
+        const nodeId = canvasState.nodeForPanel(sourcePanelId)
+        const node = nodeId ? canvasState.nodes[nodeId] : undefined
+        if (!node) continue
+        placement = {
+          target: 'canvas',
+          position: {
+            x: node.origin.x + node.size.width + 40,
+            y: node.origin.y,
+          },
+        }
+        break
+      }
+    }
+    return useAppStore.getState().createEditor(workspaceId, filePath, undefined, placement)
+  }, [])
+
   const renderPanelContent = useCallback(
     (panelId: string, nodeId: string, zoom: number) => {
       if (!currentWorkspace) return null
@@ -469,7 +497,9 @@ function MainApp() {
       // Canvas panels should not be nested on another canvas — they only live in dock zones
       if (panel.type === 'canvas') return null
 
-      const content = renderPanelComponent(panel, { workspaceId: selectedWorkspaceId, nodeId, zoomLevel: zoom })
+      const content = renderPanelComponent(panel, { workspaceId: selectedWorkspaceId, nodeId, zoomLevel: zoom }, {
+        createEditorForOpen,
+      })
       if (!content) return null
 
       return (
@@ -478,7 +508,7 @@ function MainApp() {
         </Suspense>
       )
     },
-    [currentWorkspace, selectedWorkspaceId],
+    [currentWorkspace, selectedWorkspaceId, createEditorForOpen],
   )
 
   /** Render a panel for use inside a dock zone (no canvas node wrapper) */

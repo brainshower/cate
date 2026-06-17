@@ -1,3 +1,4 @@
+import { ArrowSquareOut } from '@phosphor-icons/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SemanticConnectionsPanelProps } from './types'
 import {
@@ -9,6 +10,8 @@ import {
   type SemanticConnectionsProvider,
   type SemanticConnectionsResult,
 } from '../lib/semanticConnections'
+import { createFlashQuerySemanticConnectionsProvider } from '../lib/semanticConnectionsProvider'
+import { buildVaultUri, parseVaultUri } from '../../shared/flashqueryUri'
 import {
   getActiveEditorSnapshot,
   getEditorSnapshotForPath,
@@ -16,6 +19,7 @@ import {
   subscribeActiveEditor,
   type ActiveEditorSnapshot,
 } from '../lib/activeEditorRegistry'
+import { openFileAsPanel } from '../lib/fileRouting'
 import { usePreviewSelectionStore } from '../stores/previewSelectionStore'
 import { useSemanticConnectionsChromeStore } from '../stores/semanticConnectionsChromeStore'
 
@@ -28,13 +32,15 @@ const emptyResult: SemanticConnectionsResult = {
   diagnostics: [],
 }
 
+const flashQueryProvider = createFlashQuerySemanticConnectionsProvider()
+
 const defaultProvider: SemanticConnectionsProvider = {
   async loadDocumentConnections(input) {
     const e2eProvider = typeof window !== 'undefined'
       ? window.__cateE2E?.semanticConnectionsProvider?.()
       : undefined
     if (e2eProvider) return e2eProvider.loadDocumentConnections(input)
-    return emptyResult
+    return flashQueryProvider.loadDocumentConnections(input)
   },
 }
 
@@ -111,10 +117,6 @@ function issueFromError(error: unknown): Exclude<LoadIssue, null> {
   return 'adapter-error'
 }
 
-function scoreText(score: number): string {
-  return `${Math.round(score * 100)}% match`
-}
-
 function countLabel(count: number): string {
   return `${count} ${count === 1 ? 'connection' : 'connections'}`
 }
@@ -138,6 +140,20 @@ function normalizeTopN(value: string, connectionCount: number): number {
 
 function hasOpenMetadata(connection: SemanticConnection): boolean {
   return Boolean(connection.target.path?.trim() && connection.target.heading?.trim() && connection.target.chunkId?.trim())
+}
+
+function isAbsoluteLocalPath(path: string): boolean {
+  return path.startsWith('/') || /^[A-Za-z]:[\\/]/.test(path)
+}
+
+function hasUriScheme(path: string): boolean {
+  return /^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(path)
+}
+
+function editorPathForTarget(workspaceId: string, sourceDocumentPath: string | undefined, targetPath: string): string {
+  if (parseVaultUri(targetPath) || hasUriScheme(targetPath) || isAbsoluteLocalPath(targetPath)) return targetPath
+  const sourceVaultUri = sourceDocumentPath ? parseVaultUri(sourceDocumentPath) : null
+  return buildVaultUri(sourceVaultUri?.workspaceId ?? workspaceId, targetPath)
 }
 
 function StateMessage({
@@ -169,18 +185,16 @@ function StateMessage({
 }
 
 function ScorePie({ score }: { score: number }) {
-  const label = scoreText(score)
+  const label = `Cosine similarity ${Math.round(score * 100)}%`
   const degrees = Math.max(0, Math.min(1, score)) * 360
   return (
-    <div className="flex shrink-0 items-center gap-2">
-      <div
-        aria-label={label}
-        className="grid h-11 w-11 place-items-center rounded-full border border-teal-400/30 text-[10px] font-semibold text-teal-100"
-        style={{ background: `conic-gradient(rgb(45 212 191) ${degrees}deg, rgba(148, 163, 184, 0.18) 0deg)` }}
-      >
-        <span className="rounded-full bg-surface-2 px-1">{Math.round(score * 100)}%</span>
-      </div>
-      <span className="text-xs text-muted">{label}</span>
+    <div
+      aria-label={label}
+      title={label}
+      className="h-11 w-11 shrink-0 rounded-full border border-teal-400/30"
+      style={{ background: `conic-gradient(rgb(45 212 191) ${degrees}deg, rgba(148, 163, 184, 0.18) 0deg)` }}
+    >
+      <div className="m-[9px] h-[24px] w-[24px] rounded-full bg-surface" />
     </div>
   )
 }
@@ -202,7 +216,7 @@ function ConnectionCard({
   return (
     <article
       data-testid={`semantic-connection-card-${connection.id}`}
-      className="w-full rounded-md border border-subtle bg-surface px-3 py-3 shadow-sm"
+      className="group w-full rounded-md border border-subtle bg-surface px-3 py-3 shadow-sm"
     >
       <div className="flex min-w-0 items-start justify-between gap-3">
         <button
@@ -219,25 +233,23 @@ function ConnectionCard({
           disabled={!connection.target.body}
         >
           <span className="block truncate text-sm font-medium text-primary">{connection.target.title}</span>
-          {heading && <span className="mt-0.5 block truncate text-xs text-secondary">{heading}</span>}
-          <span className="mt-0.5 block truncate text-[11px] text-muted" title={connection.target.path}>
-            {connection.target.path}
-          </span>
+          {heading && <span className="mt-0.5 block truncate text-[13.5px] font-medium text-primary opacity-90">{heading}</span>}
         </button>
-        <div className="flex items-start gap-2">
-          <ScorePie score={connection.score} />
+        <div className="flex shrink-0 items-center gap-3">
           <button
             type="button"
-            className="rounded border border-subtle px-2 py-1 text-xs text-secondary hover:bg-hover hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
+            className="grid h-7 w-7 place-items-center rounded text-secondary opacity-0 transition-opacity hover:bg-hover hover:text-primary focus-visible:opacity-100 group-hover:opacity-100 disabled:pointer-events-none disabled:opacity-0"
             aria-label={openLabel}
+            title={openLabel}
             disabled={!openEnabled}
             onClick={(event) => {
               event.stopPropagation()
               if (openEnabled) onOpen(connection)
             }}
           >
-            Open
+            <ArrowSquareOut size={16} weight="bold" />
           </button>
+          <ScorePie score={connection.score} />
         </div>
       </div>
       {typedLabel && (
@@ -259,7 +271,6 @@ export default function SemanticConnectionsPanel({
   sourceFilePath,
   provider = defaultProvider,
   createEditorForOpen,
-  setEditorPreviewForOpen,
 }: SemanticConnectionsPanelProps) {
   const activeChunkId = usePreviewSelectionStore((state) => state.activeChunkId)
   const [snapshot, setSnapshot] = useState<ActiveEditorSnapshot>(() =>
@@ -273,7 +284,6 @@ export default function SemanticConnectionsPanel({
   const [sortMode, setSortMode] = useState<SemanticConnectionSortMode>('similarity')
   const [activeRelFilters, setActiveRelFilters] = useState<ReadonlySet<string>>(() => new Set())
   const [topN, setTopN] = useState<number>(Infinity)
-  const [pendingOpen, setPendingOpen] = useState<{ panelId: string; path: string; heading: string; chunkId: string } | null>(null)
   const requestRef = useRef(0)
   const resultCacheRef = useRef(new Map<string, SemanticConnectionsResult>())
   const latestResultRef = useRef(new Map<string, { hash: string; result: SemanticConnectionsResult }>())
@@ -311,7 +321,8 @@ export default function SemanticConnectionsPanel({
     const heading = target.heading!
     const chunkId = target.chunkId
     const path = target.path
-    const sameDocument = target.inDocument || path === documentPath
+    const editorPath = editorPathForTarget(workspaceId, documentPath, path)
+    const sameDocument = target.inDocument || path === documentPath || editorPath === documentPath
 
     if (sameDocument) {
       snapshot.scrollPreviewToHeading?.(heading)
@@ -319,35 +330,20 @@ export default function SemanticConnectionsPanel({
       return
     }
 
-    const registered = getEditorSnapshotForPath(workspaceId, path)
-    if (openRegisteredPreview(registered, heading, chunkId)) return
-
-    if (createEditorForOpen) {
-      const panelId = createEditorForOpen(workspaceId, path)
-      setEditorPreviewForOpen?.(workspaceId, panelId, true)
-      setPendingOpen({ panelId, path, heading, chunkId })
+    const registered = getEditorSnapshotForPath(workspaceId, editorPath)
+    if (registered.panelId) {
+      if (!openRegisteredPreview(registered, heading, chunkId)) registered.editor?.focus()
       return
     }
 
-    void import('../stores/appStore').then(({ useAppStore }) => {
-      const panelId = useAppStore.getState().createEditor(workspaceId, path)
-      useAppStore.getState().setPanelMarkdownPreview(workspaceId, panelId, true)
-      setPendingOpen({ panelId, path, heading, chunkId })
-    })
-  }, [createEditorForOpen, documentPath, openRegisteredPreview, setEditorPreviewForOpen, snapshot, workspaceId])
-
-  useEffect(() => {
-    if (!pendingOpen) return
-    const tryOpen = () => {
-      const byPanel = getEditorSnapshotForPanel(workspaceId, pendingOpen.panelId)
-      const byPath = byPanel.panelId ? byPanel : getEditorSnapshotForPath(workspaceId, pendingOpen.path)
-      if (openRegisteredPreview(byPath, pendingOpen.heading, pendingOpen.chunkId)) {
-        setPendingOpen(null)
-      }
+    const sourcePanelId = snapshot.panelId ?? sourceEditorPanelId
+    if (createEditorForOpen) {
+      createEditorForOpen(workspaceId, editorPath, { sourceEditorPanelId: sourcePanelId ?? undefined })
+      return
     }
-    tryOpen()
-    return subscribeActiveEditor(workspaceId, tryOpen)
-  }, [openRegisteredPreview, pendingOpen, workspaceId])
+
+    openFileAsPanel(workspaceId, editorPath, undefined, { target: 'dock', zone: 'center' })
+  }, [createEditorForOpen, documentPath, openRegisteredPreview, snapshot, sourceEditorPanelId, workspaceId])
 
   useEffect(() => {
     if (precondition || !snapshot.panelId || !documentPath) return
@@ -412,6 +408,7 @@ export default function SemanticConnectionsPanel({
   const hiddenCount = Math.max(0, sortedConnections.length - visibleConnections.length)
   const configActive = topN !== Infinity || activeRelFilters.size > 0
   const sliderValue = topN === Infinity ? String(Math.max(1, sortedConnections.length)) : String(displayLimit(topN, sortedConnections.length))
+  const scopedCountLabel = countLabel(scopedConnections.length)
 
   useEffect(() => {
     if (topN !== Infinity && sortedConnections.length > 0 && topN >= sortedConnections.length) setTopN(Infinity)
@@ -460,16 +457,29 @@ export default function SemanticConnectionsPanel({
         }
       }}
     >
-      <div className="flex h-9 shrink-0 items-center gap-2 border-b border-subtle px-3">
+      <div className="flex h-10 shrink-0 items-center gap-2 border-b border-subtle px-3">
         <span className="text-[11px] font-medium uppercase tracking-normal text-muted">Scope</span>
         <button
           type="button"
-          className="min-w-0 truncate text-left text-xs text-secondary hover:text-primary"
-          aria-label="Current semantic connection scope"
+          className={`rounded border px-2 py-1 text-xs font-medium ${activeChunkId ? 'border-subtle text-secondary hover:text-primary' : 'border-teal-400/50 bg-teal-400/10 text-teal-100'}`}
+          aria-pressed={!activeChunkId}
+          aria-label="Show whole document semantic connections"
           onClick={() => usePreviewSelectionStore.getState().clearSelection()}
         >
-          {activeChunkId ? 'One section selected' : 'Whole document'}
+          Whole Document
         </button>
+        <button
+          type="button"
+          className={`rounded border px-2 py-1 text-xs font-medium ${activeChunkId ? 'border-teal-400/50 bg-teal-400/10 text-teal-100' : 'border-subtle text-secondary'}`}
+          aria-pressed={Boolean(activeChunkId)}
+          aria-label="Show selected section semantic connections"
+          disabled={!activeChunkId}
+        >
+          Selection
+        </button>
+        <span className="ml-auto font-mono text-sm font-semibold text-teal-200" aria-label={`Connection count: ${scopedCountLabel}`}>
+          {scopedConnections.length}
+        </span>
       </div>
 
       {precondition === 'no-editor' && (

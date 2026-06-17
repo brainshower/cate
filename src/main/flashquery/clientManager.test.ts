@@ -1192,6 +1192,71 @@ describe('FlashQueryClientManager', () => {
     })
   })
 
+  it('preserves semantic matched chunk metadata for document search results', async () => {
+    const callTool = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({
+        results: [
+          {
+            entity_type: 'document',
+            path: 'Docs/Neighbor.md',
+            title: 'Neighbor',
+            score: 0.88,
+            matched_chunks: [
+              {
+                chunk_id: 'chunk-1',
+                heading_path: 'Neighbor > Design',
+                breadcrumb: 'Neighbor > Design',
+                content: 'Chunk content',
+                score: 0.88,
+              },
+            ],
+          },
+        ],
+        total: 1,
+      }) }],
+    })
+    workspaceMock.workspaces = [workspaceInfo()]
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
+    await expect(manager.search('workspace-1', {
+      query: 'design',
+      mode: 'semantic',
+      entity_types: ['documents'],
+      limit: 12,
+      limit_chunks_per_result: 5,
+      embedding_names: ['primary'],
+    })).resolves.toEqual({
+      documents: [{
+        filename: 'Neighbor.md',
+        fullPath: 'Docs/Neighbor.md',
+        title: 'Neighbor',
+        score: 0.88,
+        matched_chunks: [{
+          chunk_id: 'chunk-1',
+          heading_path: 'Neighbor > Design',
+          breadcrumb: 'Neighbor > Design',
+          content: 'Chunk content',
+          score: 0.88,
+        }],
+      }],
+      memories: [],
+      total_documents: 1,
+      total_memories: 0,
+    })
+
+    expect(callTool).toHaveBeenCalledWith({
+      name: 'search',
+      arguments: expect.objectContaining({
+        query: 'design',
+        mode: 'semantic',
+        entity_types: ['documents'],
+        limit: 12,
+        limit_chunks_per_result: 5,
+        embedding_names: ['primary'],
+      }),
+    })
+  })
+
   it('T-U-005 returns a safe empty response for empty semantic searches without calling MCP', async () => {
     const callTool = vi.fn()
     workspaceMock.workspaces = [workspaceInfo()]

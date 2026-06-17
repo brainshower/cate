@@ -225,6 +225,16 @@ export interface FlashQuerySearchParams {
   mode?: FlashQuerySearchMode
   entity_types?: FlashQuerySearchEntityType[]
   limit?: number
+  limit_chunks_per_result?: number
+  embedding_names?: string[]
+}
+
+export interface FlashQueryMatchedChunk {
+  chunk_id: string
+  heading_path?: string
+  breadcrumb?: string
+  content?: string
+  score?: number
 }
 
 export interface FlashQueryDocumentSearchResult {
@@ -232,6 +242,8 @@ export interface FlashQueryDocumentSearchResult {
   fullPath: string
   title?: string
   snippet?: string
+  score?: number
+  matched_chunks?: FlashQueryMatchedChunk[]
 }
 
 export interface FlashQueryMemorySearchResult {

@@ -20,6 +20,7 @@ import { isDockEmpty } from './dockEmpty'
 import { shouldCloseDockWindow } from './shouldCloseDockWindow'
 import { useSettingsStore } from '../stores/settingsStore'
 import { applyTheme } from '../lib/themeManager'
+import { createEditorPanelState } from '../lib/editorPanelFactory'
 
 import { renderPanelComponent, PANEL_REGISTRY } from '../panels/registry'
 const CanvasPanel = PANEL_REGISTRY.canvas.Component
@@ -271,12 +272,41 @@ export default function DockWindowShell({ workspaceId: initialWorkspaceId }: Doc
   }, [dockStore, panels])
 
   // Render panel content inside canvas nodes (used by CanvasPanel's renderPanelContent)
+  const createEditorForOpen = useCallback((_: string, filePath: string, options?: { sourceEditorPanelId?: string }): string => {
+    const panel = createEditorPanelState(filePath)
+    setPanels((prev) => {
+      const next = { ...prev, [panel.id]: panel }
+      panelsRef.current = next
+      return next
+    })
+    if (options?.sourceEditorPanelId) {
+      for (const candidate of Object.values(panelsRef.current)) {
+        if (candidate.type !== 'canvas') continue
+        const canvasStore = getOrCreateCanvasStoreForPanel(candidate.id)
+        const canvasState = canvasStore.getState()
+        const sourceNodeId = canvasState.nodeForPanel(options.sourceEditorPanelId)
+        const sourceNode = sourceNodeId ? canvasState.nodes[sourceNodeId] : undefined
+        if (!sourceNode) continue
+        const nodeId = canvasState.addNode(panel.id, 'editor', {
+          x: sourceNode.origin.x + sourceNode.size.width + 40,
+          y: sourceNode.origin.y,
+        })
+        canvasState.focusAndCenter(nodeId)
+        return panel.id
+      }
+    }
+    dockStore.getState().dockPanel(panel.id, 'center')
+    return panel.id
+  }, [dockStore])
+
   const renderPanelContent = useCallback(
     (panelId: string, nodeId: string, zoom: number) => {
       const panel = panels[panelId]
       if (!panel) return null
 
-      const content = renderPanelComponent(panel, { workspaceId: wsId, nodeId, zoomLevel: zoom })
+      const content = renderPanelComponent(panel, { workspaceId: wsId, nodeId, zoomLevel: zoom }, {
+        createEditorForOpen,
+      })
       if (!content) return null
 
       return (
@@ -285,7 +315,7 @@ export default function DockWindowShell({ workspaceId: initialWorkspaceId }: Doc
         </Suspense>
       )
     },
-    [panels, wsId],
+    [panels, wsId, createEditorForOpen],
   )
 
   // Render panel content for dock zones

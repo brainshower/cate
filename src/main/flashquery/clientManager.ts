@@ -699,6 +699,10 @@ export class FlashQueryClientManager {
       entity_types: entityTypes,
       limit,
       include_archived: true,
+      ...(Number.isFinite(params.limit_chunks_per_result) && Number.isInteger(params.limit_chunks_per_result) && params.limit_chunks_per_result! > 0
+        ? { limit_chunks_per_result: params.limit_chunks_per_result }
+        : {}),
+      ...(params.embedding_names?.length ? { embedding_names: params.embedding_names } : {}),
       ...(query.trim().length === 0 ? { list_all: true } : {}),
     }
   }
@@ -743,11 +747,29 @@ export class FlashQueryClientManager {
     const path = this.normalizePath(this.firstString(entry.fullPath, entry.vaultPath, entry.path, entry.identifier, entry.filename))
     if (!path) return []
     const snippet = this.firstString(entry.content_preview, entry.snippet)
+    const matchedChunks = this.arrayFrom(entry.matched_chunks)
+      .flatMap((chunk) => this.normalizeMatchedChunk(chunk))
     return [{
       filename: this.filenameFromPath(path),
       fullPath: path,
       ...(typeof entry.title === 'string' ? { title: entry.title } : {}),
       ...(snippet ? { snippet } : {}),
+      ...(typeof entry.score === 'number' && Number.isFinite(entry.score) ? { score: entry.score } : {}),
+      ...(matchedChunks.length > 0 ? { matched_chunks: matchedChunks } : {}),
+    }]
+  }
+
+  private normalizeMatchedChunk(entry: unknown) {
+    if (!this.isPlainObject(entry)) return []
+    const chunkId = this.firstString(entry.chunk_id, entry.id)
+    if (!chunkId) return []
+    const score = typeof entry.score === 'number' && Number.isFinite(entry.score) ? entry.score : undefined
+    return [{
+      chunk_id: chunkId,
+      ...(typeof entry.heading_path === 'string' ? { heading_path: entry.heading_path } : {}),
+      ...(typeof entry.breadcrumb === 'string' ? { breadcrumb: entry.breadcrumb } : {}),
+      ...(typeof entry.content === 'string' ? { content: entry.content } : {}),
+      ...(score === undefined ? {} : { score }),
     }]
   }
 

@@ -347,6 +347,22 @@ function validateSearchParams(value: unknown): FlashQuerySearchParams {
     }
     params.limit = limit
   }
+  if (value.limit_chunks_per_result !== undefined) {
+    const limit = value.limit_chunks_per_result
+    if (typeof limit !== 'number' || !Number.isFinite(limit) || !Number.isInteger(limit) || limit <= 0) {
+      throw new Error('search limit_chunks_per_result must be a positive integer')
+    }
+    params.limit_chunks_per_result = limit
+  }
+  if (value.embedding_names !== undefined) {
+    if (!Array.isArray(value.embedding_names)) throw new Error('search embedding_names must be an array')
+    for (const embeddingName of value.embedding_names) {
+      if (typeof embeddingName !== 'string' || embeddingName.trim().length === 0) {
+        throw new Error('search embedding_names must contain only non-empty strings')
+      }
+    }
+    params.embedding_names = value.embedding_names
+  }
   if ((params.mode ?? 'mixed') === 'semantic' && (params.query ?? '').trim().length === 0) {
     throw new Error('Type a query to search semantically.')
   }

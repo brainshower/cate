@@ -1,5 +1,14 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const openRoutingMock = vi.hoisted(() => ({
+  openFileAsPanel: vi.fn(() => 'opened-panel'),
+}))
+
+vi.mock('../lib/fileRouting', () => ({
+  openFileAsPanel: openRoutingMock.openFileAsPanel,
+}))
+
 import {
   clearActiveEditorRegistryForTests,
   getActiveEditorSnapshot,
@@ -141,6 +150,7 @@ describe('SemanticConnectionsPanel', () => {
   beforeEach(() => {
     clearActiveEditorRegistryForTests()
     clearPreviewSelectionForTests()
+    openRoutingMock.openFileAsPanel.mockClear()
   })
 
   afterEach(() => {
@@ -156,8 +166,11 @@ describe('SemanticConnectionsPanel', () => {
 
     expect(await screen.findByText('Alpha Notes')).toBeTruthy()
     expect(screen.getByText('Beta Plan')).toBeTruthy()
-    expect(screen.getByText('Whole document')).toBeTruthy()
-    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.connectionCount).toBe(2)
+    expect(screen.getByRole('button', { name: 'Show whole document semantic connections' }).textContent).toBe('Whole Document')
+    expect((screen.getByRole('button', { name: 'Show selected section semantic connections' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByLabelText('Connection count: 2 connections').textContent).toBe('2')
+    expect(screen.queryByText('Docs/Alpha.md')).toBeNull()
+    await waitFor(() => expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.connectionCount).toBe(2))
     expect(screen.queryByText('Sort by nature')).toBeNull()
     expect(screen.queryByText('Nature filters')).toBeNull()
     expect(screen.queryByText('Depends on')).toBeNull()
@@ -224,12 +237,13 @@ describe('SemanticConnectionsPanel', () => {
     expect(within(card).getAllByText('The launch checklist keeps adapter rollout narrow.', { exact: false })).toHaveLength(1)
   })
 
-  it('T-I-013 exposes score pie text equivalents for assistive tech', async () => {
+  it('T-I-013 exposes cosine tooltip equivalents without visible score text', async () => {
     renderPanel(embeddingsOnlyResult)
 
-    expect(await screen.findByLabelText('87% match')).toBeTruthy()
-    expect(screen.getByText('87% match')).toBeTruthy()
-    expect(screen.getByLabelText('64% match')).toBeTruthy()
+    expect(await screen.findByLabelText('Cosine similarity 87%')).toBeTruthy()
+    expect(screen.queryByText('87% match')).toBeNull()
+    expect(screen.getByLabelText('Cosine similarity 64%')).toBeTruthy()
+    expect(screen.queryByText('64% match')).toBeNull()
   })
 
   it('T-I-014, T-I-015, and T-I-016 blocks unsupported, source-mode, and no-editor preconditions without provider calls', () => {
@@ -318,7 +332,9 @@ describe('SemanticConnectionsPanel', () => {
     renderPanel({ ...embeddingsOnlyResult, overall: embeddingsOnlyResult.overall, byChunkId: { scope: [] } }, { activeChunkId: 'scope' })
 
     expect(await screen.findByText('No connections exist for this section')).toBeTruthy()
-    expect(screen.getByText('One section selected')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Show whole document semantic connections' }).getAttribute('aria-pressed')).toBe('false')
+    expect(screen.getByRole('button', { name: 'Show selected section semantic connections' }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByLabelText('Connection count: 0 connections').textContent).toBe('0')
     expect(usePreviewSelectionStore.getState().activeChunkId).toBe('scope')
   })
 
@@ -593,7 +609,7 @@ describe('SemanticConnectionsPanel', () => {
     expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('details')
   })
 
-  it('REQ-036 creates a preview editor for cross-document targets when no registered editor is available', async () => {
+  it('REQ-036 creates an editor for cross-document targets when no registered editor is available', async () => {
     const createEditor = vi.fn().mockReturnValue('created-editor')
     const setPanelMarkdownPreview = vi.fn()
     readyEditor('/workspace/Plan.md')
@@ -625,9 +641,45 @@ describe('SemanticConnectionsPanel', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Open Created Details' }))
 
-    expect(createEditor).toHaveBeenCalledWith('workspace-1', '/workspace/Created.md')
-    expect(setPanelMarkdownPreview).toHaveBeenCalledWith('workspace-1', 'created-editor', true)
+    expect(createEditor).toHaveBeenCalledWith('workspace-1', '/workspace/Created.md', { sourceEditorPanelId: 'editor-1' })
+    expect(setPanelMarkdownPreview).not.toHaveBeenCalled()
     expect(getActiveEditorSnapshot('workspace-1').panelId).toBe('editor-1')
+  })
+
+  it('REQ-036 opens unregistered cross-document targets in the center dock by default', async () => {
+    readyEditor('/workspace/Plan.md')
+    render(
+      <SemanticConnectionsPanel
+        panelId="sc-1"
+        workspaceId="workspace-1"
+        sourceEditorPanelId="editor-1"
+        sourceFilePath="/workspace/Plan.md"
+        provider={provider({
+          ...embeddingsOnlyResult,
+          overall: [{
+            ...embeddingsOnlyResult.overall[0],
+            id: 'default-open-doc',
+            target: {
+              ...embeddingsOnlyResult.overall[0].target,
+              title: 'Default Open',
+              path: 'Docs/Default.md',
+              heading: 'Details',
+              chunkId: 'details',
+              inDocument: false,
+            },
+          }],
+        })}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Open Default Open Details' }))
+
+    await waitFor(() => {
+      expect(openRoutingMock.openFileAsPanel).toHaveBeenCalledWith('workspace-1', 'flashquery://workspace-1/Docs/Default.md', undefined, {
+        target: 'dock',
+        zone: 'center',
+      })
+    })
   })
 
   it('REQ-036 disables Open when target path, heading, or chunk metadata is incomplete', async () => {
