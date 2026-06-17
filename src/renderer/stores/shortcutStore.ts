@@ -11,17 +11,6 @@ import { DEFAULT_SHORTCUTS, SHORTCUT_ACTIONS } from '../../shared/types'
 // Modifier state
 // -----------------------------------------------------------------------------
 
-interface ModifierState {
-  command: boolean
-  shift: boolean
-  option: boolean
-  control: boolean
-}
-
-// -----------------------------------------------------------------------------
-// Store interface
-// -----------------------------------------------------------------------------
-
 interface ShortcutStoreState {
   shortcuts: Record<ShortcutAction, StoredShortcut>
 }
@@ -68,6 +57,10 @@ function normaliseKey(e: KeyboardEvent): string {
   }
 }
 
+function isMacPlatform(): boolean {
+  return typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform)
+}
+
 // -----------------------------------------------------------------------------
 // Store
 // -----------------------------------------------------------------------------
@@ -97,21 +90,22 @@ export const useShortcutStore = create<ShortcutStore>((set, get) => ({
   matchEvent(e: KeyboardEvent): ShortcutAction | null {
     const { shortcuts } = get()
     const eventKey = normaliseKey(e)
-    const eventMods: ModifierState = {
-      command: e.metaKey,
-      shift: e.shiftKey,
-      option: e.altKey,
-      control: e.ctrlKey,
-    }
+    const isMac = isMacPlatform()
 
     for (const action of SHORTCUT_ACTIONS) {
       const stored = shortcuts[action]
+      const commandMatches = stored.command
+        ? (isMac ? e.metaKey : e.ctrlKey || e.metaKey)
+        : (isMac ? !e.metaKey : !e.metaKey)
+      const controlMatches = !isMac && stored.command && !stored.control
+        ? true
+        : stored.control === e.ctrlKey
       if (
         stored.key === eventKey &&
-        stored.command === eventMods.command &&
-        stored.shift === eventMods.shift &&
-        stored.option === eventMods.option &&
-        stored.control === eventMods.control
+        commandMatches &&
+        stored.shift === e.shiftKey &&
+        stored.option === e.altKey &&
+        controlMatches
       ) {
         return action
       }
