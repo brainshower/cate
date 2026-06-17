@@ -6,7 +6,7 @@
 - ✅ **v1.1 Release Readiness + Provenance Closeout** — Phases 8-13 (shipped 2026-06-02) — [archive](milestones/v1.1-ROADMAP.md)
 - ✅ **v1.2 FlashQuery Milestone 2** — Phases 14-21 (completed 2026-06-06) — [archive](milestones/v1.2-ROADMAP.md)
 - ✅ **v1.3 Document Outline** — Phases 22-23 (shipped 2026-06-16) — [archive](milestones/v1.3-ROADMAP.md)
-- ▶ **v1.4 Semantic Connections Inspector** — Phases 24-25 (planned)
+- ✅ **v1.4 Semantic Connections Inspector** — Phases 24-25 (completed 2026-06-17)
 
 ## Phases
 
@@ -40,7 +40,7 @@ See archived roadmap for full phase details: [milestones/v1.3-ROADMAP.md](milest
 
 ## Current Status
 
-Active milestone: v1.4 Semantic Connections Inspector. Build the Cate-side embeddings-only Semantic Connections Inspector in two GSD phases, preserving the seven source implementation phases from the requirements document as grouped sub-slices.
+Active milestone: v1.4 Semantic Connections Inspector. Cate-side embeddings-only Semantic Connections Inspector implementation and closeout validation are complete across two GSD phases, preserving the seven source implementation phases from the requirements document as grouped sub-slices.
 
 ### Phase 24: SC Inspector Foundation, Docking, Preview Chunks, and Selection
 
@@ -77,7 +77,7 @@ Active milestone: v1.4 Semantic Connections Inspector. Build the Cate-side embed
 
 **Goal:** Implement source requirement phases 4-7: the full SC Inspector UI and exception states, Outline bidirectional sync, Cate-side adapter boundary and mapping/cache behavior, deep-link/open behavior, accessibility, E2E coverage, and manual acceptance polish.
 
-**GSD progress:** In progress — 2 of 4 plan summaries complete (`25-01` and `25-02`).
+**GSD progress:** Complete — 4 of 4 plan summaries complete (`25-01`, `25-02`, `25-03`, and `25-04`).
 
 **Source phases included:**
 

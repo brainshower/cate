@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Semantic Connections Inspector
-status: in_progress
-stopped_at: Completed 25-02-PLAN.md
-last_updated: "2026-06-17T03:08:43Z"
-last_activity: 2026-06-17 — Completed Plan 25-02 semantic provider boundary
+status: complete
+stopped_at: Completed 25-04-PLAN.md
+last_updated: "2026-06-17T03:47:36Z"
+last_activity: 2026-06-17 — Completed Plan 25-04 E2E and acceptance polish
 progress:
   total_phases: 2
   completed_phases: 0
@@ -26,19 +26,19 @@ See: `.planning/PROJECT.md` (updated 2026-06-16 for v1.4 Semantic Connections In
 ## Current Position
 
 Phase: 25 — Inspector UI, Adapter Boundary, Outline Sync, E2E, and Acceptance Polish
-Plan: 02 of 04 completed in current phase wave
-Status: Phase 25 in progress; adapter boundary complete, ready for Outline/open behavior
-Last activity: 2026-06-17 — Completed Plan 25-02 semantic provider boundary
+Plan: 04 of 04 completed in current phase wave
+Status: Phase 25 complete; E2E, manual acceptance, and closeout validation passed
+Last activity: 2026-06-17 — Completed Plan 25-04 E2E and acceptance polish
 
 ## Session Continuity
 
-Last session: 2026-06-17T03:08:43Z
-Stopped At: Completed 25-02-PLAN.md
+Last session: 2026-06-17T03:47:36Z
+Stopped At: Completed 25-04-PLAN.md
 Resume File: None
 
 ## Next Up
 
-Continue Phase 25 with Plan 25-03: Outline sync and card open/deep-link behavior.
+Phase 25 is complete. Next step is verification/ship workflow for v1.4 Semantic Connections Inspector.
 
 Phase 24 bundles the first three source implementation phases from the Semantic Connections Inspector requirements:
 
@@ -113,7 +113,8 @@ Items acknowledged and deferred at milestone close on 2026-06-16:
 | 24-sc-inspector-foundation-docking-preview-chunks-and-selection | 02 | 10min | 2 | 3 |
 | 24-sc-inspector-foundation-docking-preview-chunks-and-selection | 04 | 18min | 3 | 10 |
 | 25-inspector-ui-adapter-boundary-outline-sync-e2e-and-acceptance-polish | 02 | 6min | 2 | 4 |
+| 25-inspector-ui-adapter-boundary-outline-sync-e2e-and-acceptance-polish | 04 | 19m 34s | 3 | 9 |
 
 ## Operator Next Steps
 
-- Continue with Phase 25 Plan 25-03 after the completed 25-01 and 25-02 summaries.
+- Run verification/ship workflow for v1.4 Semantic Connections Inspector.

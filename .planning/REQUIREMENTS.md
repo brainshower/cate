@@ -38,9 +38,9 @@ Build the Cate-side Semantic Connections Inspector as an embeddings-only Markdow
 - [x] **REQ-007:** Preview hover and click-pin semantics use `activeChunkId = hoveredChunkId || pinnedChunkId`, including clear-on-Esc, empty-space click, and whole-document affordance.
 - [x] **REQ-008:** Preview text selection, links, and existing preview interactions remain normal; pinning uses click-level semantics, not drag/mousedown semantics.
 - [x] **REQ-009:** Preview, Outline, and SC panel share a React/Zustand selection surface; production code does not use a browser `CustomEvent` bridge.
-- [ ] **REQ-010:** Clicking an Outline heading while preview mode is active scrolls preview and pins the matching chunk; source-mode Outline behavior remains unchanged.
-- [ ] **REQ-011:** Outline highlights shared selection when present and falls back to cursor-derived active-heading behavior otherwise.
-- [ ] **REQ-012:** Outline matches chunk IDs to headings by slug first and preview DOM fallback second.
+- [x] **REQ-010:** Clicking an Outline heading while preview mode is active scrolls preview and pins the matching chunk; source-mode Outline behavior remains unchanged.
+- [x] **REQ-011:** Outline highlights shared selection when present and falls back to cursor-derived active-heading behavior otherwise.
+- [x] **REQ-012:** Outline matches chunk IDs to headings by slug first and preview DOM fallback second.
 
 ### Preview Decorations
 
@@ -50,7 +50,7 @@ Build the Cate-side Semantic Connections Inspector as an embeddings-only Markdow
 ### SC Inspector Data Model
 
 - [x] **REQ-015:** Cate defines shared semantic connection types that support embeddings-only launch and future typed-edge mode.
-- [ ] **REQ-016:** Embeddings-only data renders as a first-class similarity browser with score-descending cards and no typed-edge controls.
+- [x] **REQ-016:** Embeddings-only data renders as a first-class similarity browser with score-descending cards and no typed-edge controls.
 - [x] **REQ-017:** Sparse mixed typed/untyped data is supported without assuming every connection has `rel` or `dir`.
 - [x] **REQ-018:** Pure utility functions cover edge labels, display ordering, document-wide rel availability, and caution flags.
 
@@ -63,16 +63,16 @@ Build the Cate-side Semantic Connections Inspector as an embeddings-only Markdow
 
 ### SC Inspector UI Behavior
 
-- [ ] **REQ-023:** The body renders the scope row, optional caution banner, optional config panel, and scrollable full-width card list per the design brief.
-- [ ] **REQ-024:** Cards support accessible expansion, score display, and open action behavior.
-- [ ] **REQ-025:** Top-N config supports Max/default behavior and an active config indicator.
-- [ ] **REQ-026:** Typed-edge sort/filter controls are absent, not disabled, when document results contain no typed relationship data.
+- [x] **REQ-023:** The body renders the scope row, optional caution banner, optional config panel, and scrollable full-width card list per the design brief.
+- [x] **REQ-024:** Cards support accessible expansion, score display, and open action behavior.
+- [x] **REQ-025:** Top-N config supports Max/default behavior and an active config indicator.
+- [x] **REQ-026:** Typed-edge sort/filter controls are absent, not disabled, when document results contain no typed relationship data.
 
 ### Exception States
 
-- [ ] **REQ-027:** Unsupported file types show a static not-available state and do not call the adapter.
-- [ ] **REQ-028:** Source-mode and no-editor preconditions show guidance and transition automatically when resolved.
-- [ ] **REQ-029:** Successful empty results show whole-document or section empty messages without diagnosing root cause to the user.
+- [x] **REQ-027:** Unsupported file types show a static not-available state and do not call the adapter.
+- [x] **REQ-028:** Source-mode and no-editor preconditions show guidance and transition automatically when resolved.
+- [x] **REQ-029:** Successful empty results show whole-document or section empty messages without diagnosing root cause to the user.
 - [x] **REQ-030:** Stale embeddings keep showing last available connections and may show a subtle stale indicator.
 - [x] **REQ-031:** FlashQuery unavailable and no-vault-connected states are recoverable and do not block preview or Outline.
 - [x] **REQ-032:** Adapter timeout, thrown errors, and malformed data produce recoverable error states.
@@ -85,11 +85,11 @@ Build the Cate-side Semantic Connections Inspector as an embeddings-only Markdow
 
 ### Deep-Linking
 
-- [ ] **REQ-036:** Card open actions route to same-document or cross-document target headings/chunks when metadata is sufficient, and fail safely when not.
+- [x] **REQ-036:** Card open actions route to same-document or cross-document target headings/chunks when metadata is sufficient, and fail safely when not.
 
 ### Accessibility and Keyboard
 
-- [ ] **REQ-037:** The Inspector is keyboard navigable and screen-reader usable, including standard button semantics, focus behavior, and Esc-to-clear-pin.
+- [x] **REQ-037:** The Inspector is keyboard navigable and screen-reader usable, including standard button semantics, focus behavior, and Esc-to-clear-pin.
 
 ## Test Requirements
 
