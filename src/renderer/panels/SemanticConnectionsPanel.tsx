@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SemanticConnectionsPanelProps } from './types'
 import {
   arrangeForDisplay,
@@ -11,6 +11,7 @@ import {
 } from '../lib/semanticConnections'
 import {
   getActiveEditorSnapshot,
+  getEditorSnapshotForPath,
   getEditorSnapshotForPanel,
   subscribeActiveEditor,
   type ActiveEditorSnapshot,
@@ -111,6 +112,10 @@ function normalizeTopN(value: string, connectionCount: number): number {
   return Math.min(connectionCount, Math.max(1, numeric))
 }
 
+function hasOpenMetadata(connection: SemanticConnection): boolean {
+  return Boolean(connection.target.path?.trim() && connection.target.heading?.trim() && connection.target.chunkId?.trim())
+}
+
 function StateMessage({
   title,
   detail,
@@ -156,12 +161,19 @@ function ScorePie({ score }: { score: number }) {
   )
 }
 
-function ConnectionCard({ connection }: { connection: SemanticConnection }) {
+function ConnectionCard({
+  connection,
+  onOpen,
+}: {
+  connection: SemanticConnection
+  onOpen: (connection: SemanticConnection) => void
+}) {
   const [expanded, setExpanded] = useState(false)
   const typedLabel = connection.rel ? scEdgeLabel(connection.rel, connection.dir) : null
   const heading = connection.target.heading
   const expandLabel = `${expanded ? 'Collapse' : 'Expand'} ${connection.target.title}${heading ? ` ${heading}` : ''}`
   const openLabel = `Open ${connection.target.title}${heading ? ` ${heading}` : ''}`
+  const openEnabled = hasOpenMetadata(connection)
 
   return (
     <article
@@ -187,9 +199,13 @@ function ConnectionCard({ connection }: { connection: SemanticConnection }) {
           <ScorePie score={connection.score} />
           <button
             type="button"
-            className="rounded border border-subtle px-2 py-1 text-xs text-secondary hover:bg-hover hover:text-primary"
+            className="rounded border border-subtle px-2 py-1 text-xs text-secondary hover:bg-hover hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
             aria-label={openLabel}
-            onClick={(event) => event.stopPropagation()}
+            disabled={!openEnabled}
+            onClick={(event) => {
+              event.stopPropagation()
+              if (openEnabled) onOpen(connection)
+            }}
           >
             Open
           </button>
@@ -213,6 +229,8 @@ export default function SemanticConnectionsPanel({
   sourceEditorPanelId,
   sourceFilePath,
   provider = defaultProvider,
+  createEditorForOpen,
+  setEditorPreviewForOpen,
 }: SemanticConnectionsPanelProps) {
   const activeChunkId = usePreviewSelectionStore((state) => state.activeChunkId)
   const [snapshot, setSnapshot] = useState<ActiveEditorSnapshot>(() =>
@@ -225,9 +243,19 @@ export default function SemanticConnectionsPanel({
   const [configOpen, setConfigOpen] = useState(false)
   const [sortMode, setSortMode] = useState<SemanticConnectionSortMode>('similarity')
   const [topN, setTopN] = useState<number>(Infinity)
+  const [pendingOpen, setPendingOpen] = useState<{ panelId: string; path: string; heading: string; chunkId: string } | null>(null)
   const requestRef = useRef(0)
   const resultCacheRef = useRef(new Map<string, SemanticConnectionsResult>())
   const latestResultRef = useRef(new Map<string, { hash: string; result: SemanticConnectionsResult }>())
+
+  const markdown = useMemo(() => markdownFromSnapshot(snapshot), [snapshot])
+  const markdownHash = useMemo(() => contentHash(markdown), [markdown])
+  const documentPath = sourceFilePath ?? snapshot.filePath ?? (snapshot.panelId ? `${snapshot.panelId}.md` : undefined)
+  const precondition =
+    !snapshot.panelId ? 'no-editor'
+      : !isMarkdownPath(documentPath) ? 'unsupported'
+        : !snapshot.markdownPreview ? 'source'
+          : null
 
   useEffect(() => {
     const refresh = () => {
@@ -239,14 +267,57 @@ export default function SemanticConnectionsPanel({
     return subscribeActiveEditor(workspaceId, refresh)
   }, [sourceEditorPanelId, workspaceId])
 
-  const markdown = useMemo(() => markdownFromSnapshot(snapshot), [snapshot])
-  const markdownHash = useMemo(() => contentHash(markdown), [markdown])
-  const documentPath = sourceFilePath ?? snapshot.filePath ?? (snapshot.panelId ? `${snapshot.panelId}.md` : undefined)
-  const precondition =
-    !snapshot.panelId ? 'no-editor'
-      : !isMarkdownPath(documentPath) ? 'unsupported'
-        : !snapshot.markdownPreview ? 'source'
-          : null
+  const openRegisteredPreview = useCallback((targetSnapshot: ActiveEditorSnapshot, heading: string, chunkId: string): boolean => {
+    if (!targetSnapshot.panelId || !targetSnapshot.markdownPreview || !targetSnapshot.scrollPreviewToHeading) return false
+    targetSnapshot.scrollPreviewToHeading(heading)
+    usePreviewSelectionStore.getState().selectSection(chunkId)
+    targetSnapshot.editor?.focus()
+    return true
+  }, [])
+
+  const handleOpenConnection = useCallback((connection: SemanticConnection) => {
+    if (!hasOpenMetadata(connection)) return
+    const { target } = connection
+    const heading = target.heading!
+    const chunkId = target.chunkId
+    const path = target.path
+    const sameDocument = target.inDocument || path === documentPath
+
+    if (sameDocument) {
+      snapshot.scrollPreviewToHeading?.(heading)
+      usePreviewSelectionStore.getState().selectSection(chunkId)
+      return
+    }
+
+    const registered = getEditorSnapshotForPath(workspaceId, path)
+    if (openRegisteredPreview(registered, heading, chunkId)) return
+
+    if (createEditorForOpen) {
+      const panelId = createEditorForOpen(workspaceId, path)
+      setEditorPreviewForOpen?.(workspaceId, panelId, true)
+      setPendingOpen({ panelId, path, heading, chunkId })
+      return
+    }
+
+    void import('../stores/appStore').then(({ useAppStore }) => {
+      const panelId = useAppStore.getState().createEditor(workspaceId, path)
+      useAppStore.getState().setPanelMarkdownPreview(workspaceId, panelId, true)
+      setPendingOpen({ panelId, path, heading, chunkId })
+    })
+  }, [createEditorForOpen, documentPath, openRegisteredPreview, setEditorPreviewForOpen, snapshot, workspaceId])
+
+  useEffect(() => {
+    if (!pendingOpen) return
+    const tryOpen = () => {
+      const byPanel = getEditorSnapshotForPanel(workspaceId, pendingOpen.panelId)
+      const byPath = byPanel.panelId ? byPanel : getEditorSnapshotForPath(workspaceId, pendingOpen.path)
+      if (openRegisteredPreview(byPath, pendingOpen.heading, pendingOpen.chunkId)) {
+        setPendingOpen(null)
+      }
+    }
+    tryOpen()
+    return subscribeActiveEditor(workspaceId, tryOpen)
+  }, [openRegisteredPreview, pendingOpen, workspaceId])
 
   useEffect(() => {
     if (precondition || !snapshot.panelId || !documentPath) return
@@ -471,7 +542,7 @@ export default function SemanticConnectionsPanel({
               )}
               <div className="flex min-h-0 flex-col gap-3">
                 {visibleConnections.map((connection) => (
-                  <ConnectionCard key={connection.id} connection={connection} />
+                  <ConnectionCard key={connection.id} connection={connection} onOpen={handleOpenConnection} />
                 ))}
               </div>
             </div>

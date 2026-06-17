@@ -149,6 +149,11 @@ export function getEditorSnapshotForPanel(workspaceId: string, panelId: string):
   return snapshotFromEntry(entry)
 }
 
+export function getEditorSnapshotForPath(workspaceId: string, filePath: string): ActiveEditorSnapshot {
+  const entry = [...(entries.get(workspaceId)?.values() ?? [])].find((candidate) => candidate.filePath === filePath) ?? null
+  return snapshotFromEntry(entry)
+}
+
 function snapshotFromEntry(entry: ActiveEditorEntry | null): ActiveEditorSnapshot {
   if (!entry || entry.editor.isDisposed?.()) {
     return { panelId: null, editor: null, model: null, markdownPreview: false }

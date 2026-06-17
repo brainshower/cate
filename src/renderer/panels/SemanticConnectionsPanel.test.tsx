@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearActiveEditorRegistryForTests,
+  getActiveEditorSnapshot,
   registerActiveEditor,
   updateActiveEditorModel,
   updateActiveEditorPreview,
@@ -45,7 +46,7 @@ function editor(activeModel: ActiveEditorModelLike | null): ActiveEditorLike {
 function readyEditor(filePath = '/workspace/Plan.md') {
   act(() => {
     registerActiveEditor('workspace-1', 'editor-1', editor(model('# Plan\n\n## Scope\nBody')))
-    updateActiveEditorPreview('workspace-1', 'editor-1', { markdownPreview: true })
+    updateActiveEditorPreview('workspace-1', 'editor-1', { markdownPreview: true, filePath })
   })
   return filePath
 }
@@ -143,6 +144,7 @@ describe('SemanticConnectionsPanel', () => {
 
   afterEach(() => {
     cleanup()
+    vi.restoreAllMocks()
     clearActiveEditorRegistryForTests()
     clearPreviewSelectionForTests()
   })
@@ -470,6 +472,146 @@ describe('SemanticConnectionsPanel', () => {
 
     expect(await screen.findByText('Fresh Second')).toBeTruthy()
     expect(screen.queryByText('Stale First')).toBeNull()
+  })
+
+  it('REQ-036 opens a same-document target by scrolling preview and pinning the target chunk', async () => {
+    const scrollPreviewToHeading = vi.fn()
+    readyEditor('/workspace/Plan.md')
+    act(() => {
+      updateActiveEditorPreview('workspace-1', 'editor-1', {
+        markdownPreview: true,
+        filePath: '/workspace/Plan.md',
+        scrollPreviewToHeading,
+      })
+    })
+    render(
+      <SemanticConnectionsPanel
+        panelId="sc-1"
+        workspaceId="workspace-1"
+        sourceEditorPanelId="editor-1"
+        sourceFilePath="/workspace/Plan.md"
+        provider={provider({
+          ...embeddingsOnlyResult,
+          overall: [{
+            ...embeddingsOnlyResult.overall[0],
+            id: 'same-doc',
+            target: {
+              ...embeddingsOnlyResult.overall[0].target,
+              title: 'Plan',
+              path: '/workspace/Plan.md',
+              heading: 'Scope',
+              chunkId: 'scope',
+              inDocument: true,
+            },
+          }],
+        })}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Open Plan Scope' }))
+
+    expect(scrollPreviewToHeading).toHaveBeenCalledWith('Scope')
+    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('scope')
+  })
+
+  it('REQ-036 opens a cross-document target through a registered preview editor when available', async () => {
+    const targetScroll = vi.fn()
+    const targetEditor = editor(model('# Target\n\n## Details'))
+    readyEditor('/workspace/Plan.md')
+    act(() => {
+      registerActiveEditor('workspace-1', 'editor-target', targetEditor)
+      updateActiveEditorPreview('workspace-1', 'editor-target', {
+        markdownPreview: true,
+        filePath: '/workspace/Target.md',
+        scrollPreviewToHeading: targetScroll,
+      })
+      registerActiveEditor('workspace-1', 'editor-1', editor(model('# Plan')))
+    })
+    render(
+      <SemanticConnectionsPanel
+        panelId="sc-1"
+        workspaceId="workspace-1"
+        sourceEditorPanelId="editor-1"
+        sourceFilePath="/workspace/Plan.md"
+        provider={provider({
+          ...embeddingsOnlyResult,
+          overall: [{
+            ...embeddingsOnlyResult.overall[0],
+            id: 'cross-doc',
+            target: {
+              ...embeddingsOnlyResult.overall[0].target,
+              title: 'Target',
+              path: '/workspace/Target.md',
+              heading: 'Details',
+              chunkId: 'details',
+              inDocument: false,
+            },
+          }],
+        })}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Open Target Details' }))
+
+    expect(targetScroll).toHaveBeenCalledWith('Details')
+    expect(targetEditor.focus).toHaveBeenCalled()
+    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('details')
+  })
+
+  it('REQ-036 creates a preview editor for cross-document targets when no registered editor is available', async () => {
+    const createEditor = vi.fn().mockReturnValue('created-editor')
+    const setPanelMarkdownPreview = vi.fn()
+    readyEditor('/workspace/Plan.md')
+    render(
+      <SemanticConnectionsPanel
+        panelId="sc-1"
+        workspaceId="workspace-1"
+        sourceEditorPanelId="editor-1"
+        sourceFilePath="/workspace/Plan.md"
+        createEditorForOpen={createEditor}
+        setEditorPreviewForOpen={setPanelMarkdownPreview}
+        provider={provider({
+          ...embeddingsOnlyResult,
+          overall: [{
+            ...embeddingsOnlyResult.overall[0],
+            id: 'create-doc',
+            target: {
+              ...embeddingsOnlyResult.overall[0].target,
+              title: 'Created',
+              path: '/workspace/Created.md',
+              heading: 'Details',
+              chunkId: 'details',
+              inDocument: false,
+            },
+          }],
+        })}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Open Created Details' }))
+
+    expect(createEditor).toHaveBeenCalledWith('workspace-1', '/workspace/Created.md')
+    expect(setPanelMarkdownPreview).toHaveBeenCalledWith('workspace-1', 'created-editor', true)
+    expect(getActiveEditorSnapshot('workspace-1').panelId).toBe('editor-1')
+  })
+
+  it('REQ-036 disables Open when target path, heading, or chunk metadata is incomplete', async () => {
+    renderPanel({
+      ...embeddingsOnlyResult,
+      overall: [
+        {
+          ...embeddingsOnlyResult.overall[0],
+          id: 'missing-heading',
+          target: {
+            ...embeddingsOnlyResult.overall[0].target,
+            heading: undefined,
+          },
+        },
+      ],
+    })
+
+    const open = await screen.findByRole('button', { name: 'Open Alpha Notes' }) as HTMLButtonElement
+    expect(open.disabled).toBe(true)
   })
 })
 

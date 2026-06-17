@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearActiveEditorRegistryForTests,
   getActiveEditorSnapshot,
+  getEditorSnapshotForPath,
   getEditorSnapshotForPanel,
   registerActiveEditor,
   subscribeActiveEditor,
@@ -78,6 +79,22 @@ describe('activeEditorRegistry', () => {
     expect(getEditorSnapshotForPanel('workspace-1', 'panel-1')).toMatchObject({
       panelId: 'panel-1',
       editor: first,
+    })
+  })
+
+  it('returns a snapshot for a registered editor file path', () => {
+    const first = editor(model())
+    const second = editor(model())
+
+    registerActiveEditor('workspace-1', 'panel-1', first)
+    updateActiveEditorPreview('workspace-1', 'panel-1', { markdownPreview: true, filePath: '/workspace/First.md' })
+    registerActiveEditor('workspace-1', 'panel-2', second)
+    updateActiveEditorPreview('workspace-1', 'panel-2', { markdownPreview: true, filePath: '/workspace/Second.md' })
+
+    expect(getEditorSnapshotForPath('workspace-1', '/workspace/First.md')).toMatchObject({
+      panelId: 'panel-1',
+      editor: first,
+      filePath: '/workspace/First.md',
     })
   })
 
