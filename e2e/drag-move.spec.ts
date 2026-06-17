@@ -130,7 +130,7 @@ test('tiny drag inside dead zone does not move the node', async () => {
   expect(after!.y).toBeCloseTo(before!.y, 1)
 })
 
-test('Cmd+Z restores position after a drag', async () => {
+test('primary shortcut + Z restores position after a drag', async () => {
   const nodeId = await seedTerminal(page, { x: 400, y: 300 })
   const before = await getNodeOrigin(page, nodeId)
   const grab = await titleBarCentre(page, nodeId)
@@ -138,7 +138,7 @@ test('Cmd+Z restores position after a drag', async () => {
   await page.waitForTimeout(150)
   const moved = await getNodeOrigin(page, nodeId)
   expect(moved!.x - before!.x).toBeCloseTo(200, -1)
-  await page.keyboard.press('Meta+Z')
+  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+Z' : 'Control+Z')
   await page.waitForTimeout(200)
   const restored = await getNodeOrigin(page, nodeId)
   expect(restored!.x).toBeCloseTo(before!.x, 0)

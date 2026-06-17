@@ -95,7 +95,7 @@ export const useShortcutStore = create<ShortcutStore>((set, get) => ({
     for (const action of SHORTCUT_ACTIONS) {
       const stored = shortcuts[action]
       const commandMatches = stored.command
-        ? (isMac ? e.metaKey : e.ctrlKey || e.metaKey)
+        ? (isMac ? e.metaKey : e.ctrlKey)
         : (isMac ? !e.metaKey : !e.metaKey)
       const controlMatches = !isMac && stored.command && !stored.control
         ? true
