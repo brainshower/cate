@@ -77,6 +77,8 @@ Active milestone: v1.4 Semantic Connections Inspector. Build the Cate-side embed
 
 **Goal:** Implement source requirement phases 4-7: the full SC Inspector UI and exception states, Outline bidirectional sync, Cate-side adapter boundary and mapping/cache behavior, deep-link/open behavior, accessibility, E2E coverage, and manual acceptance polish.
 
+**GSD progress:** In progress — 2 of 4 plan summaries complete (`25-01` and `25-02`).
+
 **Source phases included:**
 
 - Requirements Section 6.4 Phase 4: SC Inspector UI with Mock/Adapter Data

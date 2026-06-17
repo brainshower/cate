@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Semantic Connections Inspector
 status: in_progress
-stopped_at: Completed 24-04-PLAN.md
-last_updated: "2026-06-16T21:20:01Z"
-last_activity: 2026-06-16 — Completed Plan 24-04 shared preview selection
+stopped_at: Completed 25-02-PLAN.md
+last_updated: "2026-06-17T03:08:43Z"
+last_activity: 2026-06-17 — Completed Plan 25-02 semantic provider boundary
 progress:
   total_phases: 2
   completed_phases: 0
@@ -25,20 +25,20 @@ See: `.planning/PROJECT.md` (updated 2026-06-16 for v1.4 Semantic Connections In
 
 ## Current Position
 
-Phase: 24 — SC Inspector Foundation, Docking, Preview Chunks, and Selection
-Plan: 04 of 04 completed in current phase wave
-Status: Phase 24 complete; ready for Phase 25
-Last activity: 2026-06-16 — Completed Plan 24-04 shared preview selection
+Phase: 25 — Inspector UI, Adapter Boundary, Outline Sync, E2E, and Acceptance Polish
+Plan: 02 of 04 completed in current phase wave
+Status: Phase 25 in progress; adapter boundary complete, ready for Outline/open behavior
+Last activity: 2026-06-17 — Completed Plan 25-02 semantic provider boundary
 
 ## Session Continuity
 
-Last session: 2026-06-16T21:20:01Z
-Stopped At: Completed 24-04-PLAN.md
+Last session: 2026-06-17T03:08:43Z
+Stopped At: Completed 25-02-PLAN.md
 Resume File: None
 
 ## Next Up
 
-Plan and execute Phase 25: Inspector UI, Adapter Boundary, Outline Sync, E2E, and Acceptance Polish.
+Continue Phase 25 with Plan 25-03: Outline sync and card open/deep-link behavior.
 
 Phase 24 bundles the first three source implementation phases from the Semantic Connections Inspector requirements:
 
@@ -73,6 +73,9 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table.
 | 2026-06-16 | The 10% dock ratio floor remains secondary to panel-specific pixel minimums. | Satisfies REQ-035 while preserving the existing ratio-floor safety behavior. |
 | 2026-06-16 | Plan 24-04 uses a dedicated renderer-local Zustand store for preview hover/pin selection instead of CustomEvent preview bridges. | Gives Preview, Outline, and the SC shell one shared selection surface for Phase 25. |
 | 2026-06-16 | Plan 24-04 keeps Outline matching slug-based for the foundation; full two-pass DOM fallback remains Phase 25 scope. | Satisfies initial Outline awareness without pulling the final matching algorithm into the foundation phase. |
+| 2026-06-17 | Plan 25-02 keeps the real FlashQuery server-side connection query API out of Cate. | Cate now defines and consumes a renderer-local provider boundary while leaving backend query implementation to a later FlashQuery phase. |
+| 2026-06-17 | Plan 25-02 maps FlashQuery UUID chunks through heading path and source-line metadata, not preview ID equality. | FlashQuery chunk UUIDs and Cate preview chunk IDs are separate namespaces. |
+| 2026-06-17 | Plan 25-02 exposes mapping diagnostics as developer-facing data attributes and result diagnostics. | Partial mapping failures should not become user-facing adapter errors when mapped data can still render. |
 
 ## Deferred Items
 
@@ -109,7 +112,8 @@ Items acknowledged and deferred at milestone close on 2026-06-16:
 |---|---:|---:|---:|---:|
 | 24-sc-inspector-foundation-docking-preview-chunks-and-selection | 02 | 10min | 2 | 3 |
 | 24-sc-inspector-foundation-docking-preview-chunks-and-selection | 04 | 18min | 3 | 10 |
+| 25-inspector-ui-adapter-boundary-outline-sync-e2e-and-acceptance-polish | 02 | 6min | 2 | 4 |
 
 ## Operator Next Steps
 
-- Continue with Phase 25 after the completed 24-01 through 24-04 summaries.
+- Continue with Phase 25 Plan 25-03 after the completed 25-01 and 25-02 summaries.

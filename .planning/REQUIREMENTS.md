@@ -56,10 +56,10 @@ Build the Cate-side Semantic Connections Inspector as an embeddings-only Markdow
 
 ### Data Fetching Interface Contract
 
-- [ ] **REQ-019:** Cate depends on a local semantic-connections provider/adapter interface rather than UI calls to low-level FlashQuery helpers.
-- [ ] **REQ-020:** Cate maps FlashQuery UUID chunk identities and heading metadata to preview slug-derived chunk IDs, reporting diagnostics instead of crashing on unmapped chunks.
-- [ ] **REQ-021:** Document connections load eagerly when Markdown preview is active and the SC panel is open or opened, with cache invalidation on material content change.
-- [ ] **REQ-022:** FlashQuery backend connection-query implementation remains out of scope except for documentation or fixtures explicitly needed by Cate tests.
+- [x] **REQ-019:** Cate depends on a local semantic-connections provider/adapter interface rather than UI calls to low-level FlashQuery helpers.
+- [x] **REQ-020:** Cate maps FlashQuery UUID chunk identities and heading metadata to preview slug-derived chunk IDs, reporting diagnostics instead of crashing on unmapped chunks.
+- [x] **REQ-021:** Document connections load eagerly when Markdown preview is active and the SC panel is open or opened, with cache invalidation on material content change.
+- [x] **REQ-022:** FlashQuery backend connection-query implementation remains out of scope except for documentation or fixtures explicitly needed by Cate tests.
 
 ### SC Inspector UI Behavior
 
@@ -73,11 +73,11 @@ Build the Cate-side Semantic Connections Inspector as an embeddings-only Markdow
 - [ ] **REQ-027:** Unsupported file types show a static not-available state and do not call the adapter.
 - [ ] **REQ-028:** Source-mode and no-editor preconditions show guidance and transition automatically when resolved.
 - [ ] **REQ-029:** Successful empty results show whole-document or section empty messages without diagnosing root cause to the user.
-- [ ] **REQ-030:** Stale embeddings keep showing last available connections and may show a subtle stale indicator.
-- [ ] **REQ-031:** FlashQuery unavailable and no-vault-connected states are recoverable and do not block preview or Outline.
-- [ ] **REQ-032:** Adapter timeout, thrown errors, and malformed data produce recoverable error states.
-- [ ] **REQ-033:** Partial chunk mapping failures render mapped data and record diagnostics for developer inspection.
-- [ ] **REQ-034:** Loading state is visually distinct, non-blocking, and superseded safely by newer scope requests.
+- [x] **REQ-030:** Stale embeddings keep showing last available connections and may show a subtle stale indicator.
+- [x] **REQ-031:** FlashQuery unavailable and no-vault-connected states are recoverable and do not block preview or Outline.
+- [x] **REQ-032:** Adapter timeout, thrown errors, and malformed data produce recoverable error states.
+- [x] **REQ-033:** Partial chunk mapping failures render mapped data and record diagnostics for developer inspection.
+- [x] **REQ-034:** Loading state is visually distinct, non-blocking, and superseded safely by newer scope requests.
 
 ### Dock Minimum Size Fix
 
