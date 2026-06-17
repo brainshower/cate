@@ -47,6 +47,43 @@ export interface SemanticConnectionBuckets {
   byChunkId?: Record<string, readonly SemanticConnection[]>
 }
 
+export type SemanticConnectionMode = 'embeddings-only' | 'mixed' | 'typed'
+
+export interface SemanticConnectionsTargetMapEntry {
+  flashqueryChunkId?: string
+  previewChunkId: string | null
+  documentId?: string
+  documentPath: string
+  documentTitle: string
+  headingPath?: string[]
+  headingText?: string
+  sourceStartLine?: number
+  sourceEndLine?: number
+}
+
+export interface SemanticConnectionsResult {
+  mode: SemanticConnectionMode
+  overall: readonly SemanticConnection[]
+  byChunkId: Record<string, readonly SemanticConnection[]>
+  chunkOrder: string[]
+  chunkMap: Record<string, SemanticConnectionsTargetMapEntry>
+  diagnostics: string[]
+  stale?: boolean
+}
+
+export interface SemanticConnectionsProviderInput {
+  workspaceId: string
+  editorPanelId: string
+  documentPath: string
+  markdown: string
+  contentHash?: string
+  scopeChunkId?: string | null
+}
+
+export interface SemanticConnectionsProvider {
+  loadDocumentConnections: (input: SemanticConnectionsProviderInput) => Promise<SemanticConnectionsResult>
+}
+
 export interface SemanticConnectionCautionFlags {
   warn: number
   caution: number

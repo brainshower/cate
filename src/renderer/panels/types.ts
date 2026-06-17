@@ -4,6 +4,7 @@
 
 import type { PanelType } from '../../shared/types'
 import { PANEL_DEFINITIONS } from '../../shared/panels'
+import type { SemanticConnectionsProvider } from '../lib/semanticConnections'
 
 // -----------------------------------------------------------------------------
 // Base panel props
@@ -35,7 +36,11 @@ export interface OutlinePanelProps extends PanelProps {
   sourceEditorPanelId?: string
 }
 
-export interface SemanticConnectionsPanelProps extends PanelProps {}
+export interface SemanticConnectionsPanelProps extends PanelProps {
+  sourceEditorPanelId?: string
+  sourceFilePath?: string
+  provider?: SemanticConnectionsProvider
+}
 
 // -----------------------------------------------------------------------------
 // Panel display helpers
