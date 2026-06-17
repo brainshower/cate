@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearActiveEditorRegistryForTests,
@@ -42,6 +42,16 @@ function provider(result: SemanticConnectionsResult): SemanticConnectionsProvide
   return {
     loadDocumentConnections: vi.fn().mockResolvedValue(result),
   }
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (error: unknown) => void
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve
+    reject = promiseReject
+  })
+  return { promise, resolve, reject }
 }
 
 const embeddingsOnlyResult: SemanticConnectionsResult = {
@@ -191,4 +201,185 @@ describe('SemanticConnectionsPanel', () => {
     expect(screen.getByText('87% match')).toBeTruthy()
     expect(screen.getByLabelText('64% match')).toBeTruthy()
   })
+
+  it('T-I-014, T-I-015, and T-I-016 blocks unsupported, source-mode, and no-editor preconditions without provider calls', () => {
+    const blockedProvider: SemanticConnectionsProvider = { loadDocumentConnections: vi.fn() }
+
+    act(() => {
+      registerActiveEditor('workspace-1', 'editor-json', editor(model('{ "name": "Cate" }')))
+      updateActiveEditorPreview('workspace-1', 'editor-json', { markdownPreview: true })
+    })
+    render(
+      <SemanticConnectionsPanel
+        panelId="sc-1"
+        workspaceId="workspace-1"
+        sourceEditorPanelId="editor-json"
+        sourceFilePath="/workspace/data.json"
+        provider={blockedProvider}
+      />,
+    )
+    expect(screen.getByText('Connections are not available for this file type')).toBeTruthy()
+    expect(blockedProvider.loadDocumentConnections).not.toHaveBeenCalled()
+    cleanup()
+    clearActiveEditorRegistryForTests()
+
+    act(() => {
+      registerActiveEditor('workspace-1', 'editor-1', editor(model('# Plan')))
+      updateActiveEditorPreview('workspace-1', 'editor-1', { markdownPreview: false })
+    })
+    render(
+      <SemanticConnectionsPanel
+        panelId="sc-1"
+        workspaceId="workspace-1"
+        sourceEditorPanelId="editor-1"
+        sourceFilePath="/workspace/Plan.md"
+        provider={blockedProvider}
+      />,
+    )
+    expect(screen.getByText('Switch to Preview')).toBeTruthy()
+    expect(blockedProvider.loadDocumentConnections).not.toHaveBeenCalled()
+    cleanup()
+    clearActiveEditorRegistryForTests()
+
+    render(<SemanticConnectionsPanel panelId="sc-1" workspaceId="workspace-1" provider={blockedProvider} />)
+    expect(screen.getByText('Open a document')).toBeTruthy()
+    expect(blockedProvider.loadDocumentConnections).not.toHaveBeenCalled()
+  })
+
+  it('T-I-017 recovers from source guidance when preview becomes active', async () => {
+    const gate = deferred<SemanticConnectionsResult>()
+    const asyncProvider: SemanticConnectionsProvider = { loadDocumentConnections: vi.fn().mockReturnValue(gate.promise) }
+
+    act(() => {
+      registerActiveEditor('workspace-1', 'editor-1', editor(model('# Plan')))
+      updateActiveEditorPreview('workspace-1', 'editor-1', { markdownPreview: false })
+    })
+    render(
+      <SemanticConnectionsPanel
+        panelId="sc-1"
+        workspaceId="workspace-1"
+        sourceEditorPanelId="editor-1"
+        sourceFilePath="/workspace/Plan.md"
+        provider={asyncProvider}
+      />,
+    )
+
+    expect(screen.getByText('Switch to Preview')).toBeTruthy()
+
+    act(() => updateActiveEditorPreview('workspace-1', 'editor-1', { markdownPreview: true }))
+
+    expect(await screen.findByText('Loading connections')).toBeTruthy()
+    expect(asyncProvider.loadDocumentConnections).toHaveBeenCalledTimes(1)
+
+    await act(async () => gate.resolve(embeddingsOnlyResult))
+
+    expect(await screen.findByText('Alpha Notes')).toBeTruthy()
+  })
+
+  it('T-I-018 and T-I-019 renders whole-document and section empty states without clearing selection', async () => {
+    renderPanel({ ...embeddingsOnlyResult, overall: [], byChunkId: { scope: [] } })
+
+    expect(await screen.findByText('No connections exist for this document')).toBeTruthy()
+    expect(screen.getByText('0 connections')).toBeTruthy()
+    cleanup()
+    clearActiveEditorRegistryForTests()
+    clearPreviewSelectionForTests()
+
+    renderPanel({ ...embeddingsOnlyResult, overall: embeddingsOnlyResult.overall, byChunkId: { scope: [] } }, { activeChunkId: 'scope' })
+
+    expect(await screen.findByText('No connections exist for this section')).toBeTruthy()
+    expect(screen.getByText('One section selected')).toBeTruthy()
+    expect(usePreviewSelectionStore.getState().activeChunkId).toBe('scope')
+  })
+
+  it('T-I-020 keeps stale connections visible with a subtle stale indicator', async () => {
+    renderPanel({ ...embeddingsOnlyResult, stale: true })
+
+    expect(await screen.findByText('Alpha Notes')).toBeTruthy()
+    expect(screen.getByText('Based on last indexed version')).toBeTruthy()
+  })
+
+  it('T-I-021, T-I-022, and T-I-023 renders recoverable provider error states', async () => {
+    const unavailable: SemanticConnectionsProvider = {
+      loadDocumentConnections: vi.fn().mockRejectedValue(Object.assign(new Error('service down'), { code: 'FLASHQUERY_UNAVAILABLE' })),
+    }
+    renderPanelWithProvider(unavailable)
+    expect(await screen.findByText('Unable to reach FlashQuery')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Retry connections' })).toBeTruthy()
+    cleanup()
+    clearActiveEditorRegistryForTests()
+    clearPreviewSelectionForTests()
+
+    const noVault: SemanticConnectionsProvider = {
+      loadDocumentConnections: vi.fn().mockRejectedValue(Object.assign(new Error('no vault'), { code: 'NO_VAULT_CONNECTED' })),
+    }
+    renderPanelWithProvider(noVault)
+    expect(await screen.findByText('No vault connected to this workspace')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Reload connections' })).toBeTruthy()
+    cleanup()
+    clearActiveEditorRegistryForTests()
+    clearPreviewSelectionForTests()
+
+    const malformed: SemanticConnectionsProvider = {
+      loadDocumentConnections: vi.fn().mockResolvedValue({ overall: null } as unknown as SemanticConnectionsResult),
+    }
+    renderPanelWithProvider(malformed)
+    expect(await screen.findByText('Unable to load semantic connections')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Retry connections' })).toBeTruthy()
+  })
+
+  it('T-I-025 and T-I-026 shows loading and supersedes stale in-flight requests', async () => {
+    const first = deferred<SemanticConnectionsResult>()
+    const second = deferred<SemanticConnectionsResult>()
+    const asyncProvider: SemanticConnectionsProvider = {
+      loadDocumentConnections: vi.fn()
+        .mockReturnValueOnce(first.promise)
+        .mockReturnValueOnce(second.promise),
+    }
+
+    renderPanelWithProvider(asyncProvider)
+
+    expect(await screen.findByText('Loading connections')).toBeTruthy()
+    expect(screen.getByTestId('semantic-connections-panel').className).toContain('overflow-hidden')
+
+    act(() => usePreviewSelectionStore.getState().selectSection('scope'))
+    await waitFor(() => expect(asyncProvider.loadDocumentConnections).toHaveBeenCalledTimes(2))
+
+    await act(async () => {
+      first.resolve({
+        ...embeddingsOnlyResult,
+        overall: [{
+          ...embeddingsOnlyResult.overall[0],
+          id: 'stale-first',
+          target: { ...embeddingsOnlyResult.overall[0].target, title: 'Stale First' },
+        }],
+      })
+      second.resolve({
+        ...embeddingsOnlyResult,
+        byChunkId: {
+          scope: [{
+            ...embeddingsOnlyResult.overall[1],
+            id: 'fresh-second',
+            target: { ...embeddingsOnlyResult.overall[1].target, title: 'Fresh Second' },
+          }],
+        },
+      })
+    })
+
+    expect(await screen.findByText('Fresh Second')).toBeTruthy()
+    expect(screen.queryByText('Stale First')).toBeNull()
+  })
 })
+
+function renderPanelWithProvider(activeProvider: SemanticConnectionsProvider) {
+  const filePath = readyEditor()
+  return render(
+    <SemanticConnectionsPanel
+      panelId="sc-1"
+      workspaceId="workspace-1"
+      sourceEditorPanelId="editor-1"
+      sourceFilePath={filePath}
+      provider={activeProvider}
+    />,
+  )
+}

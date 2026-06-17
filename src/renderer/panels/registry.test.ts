@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { Graph, ListBullets, MagnifyingGlass, Vault } from '@phosphor-icons/react'
+import React from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 
 const createFlashQueryVault = vi.fn()
 const createFlashQueryVaultSearch = vi.fn()
@@ -237,11 +239,10 @@ describe('PANEL_REGISTRY semantic-connections entry', () => {
 
   it('T-I-030 renders the body without a duplicate Connections title row', async () => {
     const module = await import('./SemanticConnectionsPanel')
-    const element = module.default({ panelId: 'semantic-1', workspaceId: 'workspace-1' })
-    const visibleText = collectText(element)
+    const html = renderToStaticMarkup(React.createElement(module.default, { panelId: 'semantic-1', workspaceId: 'workspace-1' }))
 
-    expect(visibleText.filter((text) => text === 'Connections')).toHaveLength(0)
-    expect(visibleText.join(' ')).toContain('Whole document')
+    expect(html).not.toContain('>Connections<')
+    expect(html).toContain('Whole document')
   })
 
   it('REQ-023 keeps selected scope neutral instead of exposing raw chunk slugs', async () => {
@@ -254,10 +255,9 @@ describe('PANEL_REGISTRY semantic-connections entry', () => {
       cautionChunkIds: [],
     })
 
-    const element = module.default({ panelId: 'semantic-1', workspaceId: 'workspace-1' })
-    const text = collectText(element).join(' ')
+    const html = renderToStaticMarkup(React.createElement(module.default, { panelId: 'semantic-1', workspaceId: 'workspace-1' }))
 
-    expect(text).toContain('One section selected')
-    expect(text).not.toContain('my-heading-slug')
+    expect(html).toContain('One section selected')
+    expect(html).not.toContain('my-heading-slug')
   })
 })

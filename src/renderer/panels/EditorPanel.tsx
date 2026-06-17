@@ -1020,6 +1020,7 @@ export default function EditorPanel({
   useEffect(() => {
     updateActiveEditorPreview(workspaceId, panelId, {
       markdownPreview: markdownPreview && isMarkdown,
+      filePath,
       scrollPreviewToHeading,
       highlightSourceLine,
     })

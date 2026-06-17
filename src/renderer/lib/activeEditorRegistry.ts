@@ -25,6 +25,7 @@ export interface ActiveEditorEntry {
   panelId: string
   editor: ActiveEditorLike
   model: ActiveEditorModelLike | null
+  filePath?: string
   markdownPreview: boolean
   scrollPreviewToHeading?: (headingText: string, occurrenceIndex?: number) => void
   highlightSourceLine?: (lineNumber: number) => void
@@ -34,6 +35,7 @@ export interface ActiveEditorSnapshot {
   panelId: string | null
   editor: ActiveEditorLike | null
   model: ActiveEditorModelLike | null
+  filePath?: string
   markdownPreview: boolean
   scrollPreviewToHeading?: (headingText: string, occurrenceIndex?: number) => void
   highlightSourceLine?: (lineNumber: number) => void
@@ -70,6 +72,7 @@ export function registerActiveEditor(workspaceId: string, panelId: string, edito
     panelId,
     editor,
     model: safeModel(editor),
+    filePath: previous?.filePath,
     markdownPreview: previous?.markdownPreview ?? false,
     scrollPreviewToHeading: previous?.scrollPreviewToHeading,
     highlightSourceLine: previous?.highlightSourceLine,
@@ -90,6 +93,7 @@ export function updateActiveEditorPreview(
   panelId: string,
   preview: {
     markdownPreview: boolean
+    filePath?: string
     scrollPreviewToHeading?: (headingText: string, occurrenceIndex?: number) => void
     highlightSourceLine?: (lineNumber: number) => void
   },
@@ -97,6 +101,7 @@ export function updateActiveEditorPreview(
   const entry = entries.get(workspaceId)?.get(panelId)
   if (!entry) return
   entry.markdownPreview = preview.markdownPreview
+  entry.filePath = preview.filePath
   entry.scrollPreviewToHeading = preview.scrollPreviewToHeading
   entry.highlightSourceLine = preview.highlightSourceLine
   notify(workspaceId)
@@ -136,6 +141,7 @@ function snapshotFromEntry(entry: ActiveEditorEntry | null): ActiveEditorSnapsho
     panelId: entry.panelId,
     editor: entry.editor,
     model,
+    filePath: entry.filePath,
     markdownPreview: entry.markdownPreview,
     scrollPreviewToHeading: entry.scrollPreviewToHeading,
     highlightSourceLine: entry.highlightSourceLine,

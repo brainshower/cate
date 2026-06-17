@@ -32,6 +32,8 @@ const defaultProvider: SemanticConnectionsProvider = {
   },
 }
 
+type LoadIssue = 'flashquery-unavailable' | 'no-vault' | 'adapter-error' | 'malformed' | null
+
 function markdownFromSnapshot(snapshot: ActiveEditorSnapshot): string {
   const model = snapshot.model
   if (!model) return ''
@@ -52,6 +54,28 @@ function contentHash(value: string): string {
 
 function isMarkdownPath(path: string | undefined): boolean {
   return !path || /\.mdx?$/i.test(path)
+}
+
+function isSemanticConnectionsResult(value: unknown): value is SemanticConnectionsResult {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Partial<SemanticConnectionsResult>
+  return Array.isArray(candidate.overall)
+    && Boolean(candidate.byChunkId)
+    && typeof candidate.byChunkId === 'object'
+    && Array.isArray(candidate.chunkOrder)
+    && Boolean(candidate.chunkMap)
+    && typeof candidate.chunkMap === 'object'
+    && Array.isArray(candidate.diagnostics)
+}
+
+function issueFromError(error: unknown): Exclude<LoadIssue, null> {
+  const code = typeof error === 'object' && error && 'code' in error ? String((error as { code?: unknown }).code) : ''
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase()
+  if (code === 'NO_VAULT_CONNECTED' || message.includes('no vault')) return 'no-vault'
+  if (code === 'FLASHQUERY_UNAVAILABLE' || message.includes('unavailable') || message.includes('service down')) {
+    return 'flashquery-unavailable'
+  }
+  return 'adapter-error'
 }
 
 function scoreText(score: number): string {
@@ -188,6 +212,7 @@ export default function SemanticConnectionsPanel({
   )
   const [result, setResult] = useState<SemanticConnectionsResult | null>(null)
   const [loading, setLoading] = useState(false)
+  const [loadIssue, setLoadIssue] = useState<LoadIssue>(null)
   const [loadKey, setLoadKey] = useState(0)
   const [configOpen, setConfigOpen] = useState(false)
   const [sortMode, setSortMode] = useState<SemanticConnectionSortMode>('similarity')
@@ -205,7 +230,7 @@ export default function SemanticConnectionsPanel({
   }, [sourceEditorPanelId, workspaceId])
 
   const markdown = useMemo(() => markdownFromSnapshot(snapshot), [snapshot])
-  const documentPath = sourceFilePath ?? (snapshot.panelId ? `${snapshot.panelId}.md` : undefined)
+  const documentPath = sourceFilePath ?? snapshot.filePath ?? (snapshot.panelId ? `${snapshot.panelId}.md` : undefined)
   const precondition =
     !snapshot.panelId ? 'no-editor'
       : !isMarkdownPath(documentPath) ? 'unsupported'
@@ -217,6 +242,7 @@ export default function SemanticConnectionsPanel({
     const requestId = requestRef.current + 1
     requestRef.current = requestId
     setLoading(true)
+    setLoadIssue(null)
     provider.loadDocumentConnections({
       workspaceId,
       editorPanelId: snapshot.panelId,
@@ -226,10 +252,17 @@ export default function SemanticConnectionsPanel({
       scopeChunkId: activeChunkId,
     }).then((nextResult) => {
       if (requestRef.current !== requestId) return
+      if (!isSemanticConnectionsResult(nextResult)) {
+        setResult(null)
+        setLoadIssue('malformed')
+        return
+      }
       setResult(nextResult)
-    }).catch(() => {
+      setLoadIssue(null)
+    }).catch((error) => {
       if (requestRef.current !== requestId) return
-      setResult(emptyResult)
+      setResult(null)
+      setLoadIssue(issueFromError(error))
     }).finally(() => {
       if (requestRef.current === requestId) setLoading(false)
     })
@@ -355,7 +388,31 @@ export default function SemanticConnectionsPanel({
             <StateMessage title="Loading connections" detail="Finding semantic neighbors for the active Markdown preview." />
           )}
 
-          {!loading && sortedConnections.length === 0 && (
+          {!loading && loadIssue === 'flashquery-unavailable' && (
+            <StateMessage
+              title="Unable to reach FlashQuery"
+              detail="FlashQuery is unavailable. Check the workspace connection and retry."
+              action={{ label: 'Retry connections', onClick: () => setLoadKey((value) => value + 1) }}
+            />
+          )}
+
+          {!loading && loadIssue === 'no-vault' && (
+            <StateMessage
+              title="No vault connected to this workspace"
+              detail="Connect a FlashQuery vault to this workspace to inspect semantic connections."
+              action={{ label: 'Reload connections', onClick: () => setLoadKey((value) => value + 1) }}
+            />
+          )}
+
+          {!loading && (loadIssue === 'adapter-error' || loadIssue === 'malformed') && (
+            <StateMessage
+              title="Unable to load semantic connections"
+              detail="The connection data could not be loaded. Retry after the adapter recovers."
+              action={{ label: 'Retry connections', onClick: () => setLoadKey((value) => value + 1) }}
+            />
+          )}
+
+          {!loading && !loadIssue && sortedConnections.length === 0 && (
             <StateMessage
               title={activeChunkId ? 'No connections exist for this section' : 'No connections exist for this document'}
               detail="No matching semantic connections are available yet."
@@ -363,7 +420,7 @@ export default function SemanticConnectionsPanel({
             />
           )}
 
-          {sortedConnections.length > 0 && (
+          {!loadIssue && sortedConnections.length > 0 && (
             <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-3">
               <div className="flex shrink-0 items-center justify-between text-xs text-muted">
                 <span>
@@ -373,6 +430,11 @@ export default function SemanticConnectionsPanel({
                 </span>
                 {loading && <span>Refreshing...</span>}
               </div>
+              {result?.stale && (
+                <p className="shrink-0 rounded border border-amber-400/20 bg-amber-400/10 px-2 py-1 text-xs text-amber-100">
+                  Based on last indexed version
+                </p>
+              )}
               {hiddenCount > 0 && (
                 <p className="shrink-0 text-xs text-muted">
                   {hiddenCount} additional {hiddenCount === 1 ? 'connection' : 'connections'} hidden by Top-N
