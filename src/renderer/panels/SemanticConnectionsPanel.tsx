@@ -52,6 +52,14 @@ function contentHash(value: string): string {
   return String(hash)
 }
 
+function cacheKey(workspaceId: string, editorPanelId: string, documentPath: string, hash: string): string {
+  return [workspaceId, editorPanelId, documentPath, hash].join('\u001f')
+}
+
+function documentCacheKey(workspaceId: string, editorPanelId: string, documentPath: string): string {
+  return [workspaceId, editorPanelId, documentPath].join('\u001f')
+}
+
 function isMarkdownPath(path: string | undefined): boolean {
   return !path || /\.mdx?$/i.test(path)
 }
@@ -218,6 +226,8 @@ export default function SemanticConnectionsPanel({
   const [sortMode, setSortMode] = useState<SemanticConnectionSortMode>('similarity')
   const [topN, setTopN] = useState<number>(Infinity)
   const requestRef = useRef(0)
+  const resultCacheRef = useRef(new Map<string, SemanticConnectionsResult>())
+  const latestResultRef = useRef(new Map<string, { hash: string; result: SemanticConnectionsResult }>())
 
   useEffect(() => {
     const refresh = () => {
@@ -230,6 +240,7 @@ export default function SemanticConnectionsPanel({
   }, [sourceEditorPanelId, workspaceId])
 
   const markdown = useMemo(() => markdownFromSnapshot(snapshot), [snapshot])
+  const markdownHash = useMemo(() => contentHash(markdown), [markdown])
   const documentPath = sourceFilePath ?? snapshot.filePath ?? (snapshot.panelId ? `${snapshot.panelId}.md` : undefined)
   const precondition =
     !snapshot.panelId ? 'no-editor'
@@ -239,6 +250,21 @@ export default function SemanticConnectionsPanel({
 
   useEffect(() => {
     if (precondition || !snapshot.panelId || !documentPath) return
+    const key = cacheKey(workspaceId, snapshot.panelId, documentPath, markdownHash)
+    const docKey = documentCacheKey(workspaceId, snapshot.panelId, documentPath)
+    const cached = loadKey === 0 ? resultCacheRef.current.get(key) : undefined
+    if (cached) {
+      setResult(cached)
+      setLoading(false)
+      setLoadIssue(null)
+      return
+    }
+
+    const latest = latestResultRef.current.get(docKey)
+    if (latest && latest.hash !== markdownHash) {
+      setResult({ ...latest.result, stale: true })
+    }
+
     const requestId = requestRef.current + 1
     requestRef.current = requestId
     setLoading(true)
@@ -248,7 +274,7 @@ export default function SemanticConnectionsPanel({
       editorPanelId: snapshot.panelId,
       documentPath,
       markdown,
-      contentHash: contentHash(markdown),
+      contentHash: markdownHash,
       scopeChunkId: activeChunkId,
     }).then((nextResult) => {
       if (requestRef.current !== requestId) return
@@ -257,6 +283,8 @@ export default function SemanticConnectionsPanel({
         setLoadIssue('malformed')
         return
       }
+      resultCacheRef.current.set(key, nextResult)
+      latestResultRef.current.set(docKey, { hash: markdownHash, result: nextResult })
       setResult(nextResult)
       setLoadIssue(null)
     }).catch((error) => {
@@ -266,7 +294,7 @@ export default function SemanticConnectionsPanel({
     }).finally(() => {
       if (requestRef.current === requestId) setLoading(false)
     })
-  }, [activeChunkId, documentPath, loadKey, markdown, precondition, provider, snapshot.panelId, workspaceId])
+  }, [activeChunkId, documentPath, loadKey, markdown, markdownHash, precondition, provider, snapshot.panelId, workspaceId])
 
   const allRels = useMemo(() => getAllRels(result ?? emptyResult), [result])
   const hasTypedControls = allRels.length > 0
@@ -289,6 +317,7 @@ export default function SemanticConnectionsPanel({
       className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-surface-2 text-primary"
       data-panel-id={panelId}
       data-testid="semantic-connections-panel"
+      data-semantic-diagnostics-count={result?.diagnostics.length ? String(result.diagnostics.length) : undefined}
     >
       <div className="flex h-9 shrink-0 items-center gap-2 border-b border-subtle px-3">
         <span className="text-[11px] font-medium uppercase tracking-normal text-muted">Scope</span>
