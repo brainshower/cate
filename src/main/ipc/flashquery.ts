@@ -3,6 +3,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import {
   FLASHQUERY_CREATE_DOCUMENT,
+  FLASHQUERY_DOCUMENT_CONNECTIONS,
   FLASHQUERY_GET_DOCUMENT,
   FLASHQUERY_LIST_VAULT_INDEX,
   FLASHQUERY_LIST_VAULT,
@@ -19,6 +20,8 @@ import {
 import type {
   FlashQueryConnection,
   FlashQueryDirectoryAction,
+  FlashQueryDocumentConnectionsParams,
+  FlashQueryDocumentConnectionsResponse,
   FlashQueryGetDocumentOptions,
   FlashQueryProbeResult,
   FlashQuerySearchParams,
@@ -491,6 +494,33 @@ async function search(workspaceId: string, params: unknown): Promise<FlashQueryS
   }
 }
 
+function validateDocumentConnectionsParams(value: unknown): FlashQueryDocumentConnectionsParams {
+  if (!value || typeof value !== 'object') throw new Error('Document connections params must be an object')
+  const input = value as Partial<FlashQueryDocumentConnectionsParams>
+  return {
+    identifier: requireNonEmptyString(input.identifier, 'identifier'),
+    ...(typeof input.limit === 'number' ? { limit: input.limit } : {}),
+    ...(typeof input.limit_per_chunk === 'number' ? { limit_per_chunk: input.limit_per_chunk } : {}),
+    ...(Array.isArray(input.embedding_names) ? { embedding_names: requireStringArray(input.embedding_names, 'embedding_names') } : {}),
+  }
+}
+
+async function documentConnections(workspaceId: string, params: unknown): Promise<FlashQueryDocumentConnectionsResponse> {
+  try {
+    return await flashQueryClientManager.documentConnections(
+      requireNonEmptyString(workspaceId, 'workspaceId'),
+      validateDocumentConnectionsParams(params),
+    )
+  } catch (error) {
+    return {
+      source: { document_id: '', path: '' },
+      overall: [],
+      source_chunks: [],
+      error: error instanceof Error ? error.message : String(error),
+    }
+  }
+}
+
 async function listVaultIndex(workspaceId: string): Promise<FlashQueryVaultIndexEntry[]> {
   requireNonEmptyString(workspaceId, 'workspaceId')
   return flashQueryClientManager.listVaultIndex(workspaceId)
@@ -536,6 +566,9 @@ export function registerHandlers(): void {
   })
   ipcMain.handle(FLASHQUERY_SEARCH, async (_event, workspaceId: string, params: unknown) => {
     return search(workspaceId, params)
+  })
+  ipcMain.handle(FLASHQUERY_DOCUMENT_CONNECTIONS, async (_event, workspaceId: string, params: unknown) => {
+    return documentConnections(workspaceId, params)
   })
   ipcMain.handle(FLASHQUERY_LIST_VAULT_INDEX, async (_event, workspaceId: string) => {
     return listVaultIndex(workspaceId)

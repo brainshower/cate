@@ -4,7 +4,15 @@ import {
   type DocumentHeading,
 } from './parseDocumentHeadings'
 import { parseVaultUri } from '../../shared/flashqueryUri'
-import type { FlashQueryDocumentSearchResult, FlashQuerySearchParams, FlashQuerySearchResponse } from '../../shared/types'
+import type {
+  FlashQueryDocumentConnection,
+  FlashQueryDocumentConnectionsParams,
+  FlashQueryDocumentConnectionsResponse,
+  FlashQueryDocumentSearchResult,
+  FlashQuerySearchParams,
+  FlashQuerySearchResponse,
+  FlashQuerySourceChunkConnections,
+} from '../../shared/types'
 import type {
   SemanticConnection,
   SemanticConnectionDirection,
@@ -67,10 +75,31 @@ type FlashQuerySearchFn = (
   params: FlashQuerySearchParams,
 ) => Promise<FlashQuerySearchResponse>
 
+type FlashQueryDocumentConnectionsFn = (
+  workspaceId: string,
+  params: FlashQueryDocumentConnectionsParams,
+) => Promise<FlashQueryDocumentConnectionsResponse>
+
+const DOCUMENT_CONNECTIONS_AGGREGATE_LIMIT = 200
+const DOCUMENT_CONNECTIONS_LIMIT_PER_CHUNK = 5
+
 interface PreviewChunkHeading {
   heading: DocumentHeading
   previewChunkId: string
   headingPath: string[]
+}
+
+interface SourcePreviewChunk extends PreviewChunkHeading {
+  markdown: string
+  sourceStartLine: number
+  sourceEndLine: number
+}
+
+interface BuildScopedSemanticConnectionsResultInput {
+  markdown: string
+  mode: SemanticConnectionMode
+  overallConnections: readonly FlashQuerySemanticConnection[]
+  byPreviewChunkId: Record<string, readonly FlashQuerySemanticConnection[]>
 }
 
 function markdownModel(markdown: string) {
@@ -99,6 +128,25 @@ function previewHeadingsFromMarkdown(markdown: string): PreviewChunkHeading[] {
       headingPath: stack.map((entry) => entry.text),
     }
   })
+}
+
+function sourcePreviewChunksFromMarkdown(markdown: string): SourcePreviewChunk[] {
+  const headings = previewHeadingsFromMarkdown(markdown)
+  if (headings.length === 0) return []
+
+  const lines = markdown.split('\n')
+  return headings.map((entry, index) => {
+    const nextSiblingOrAncestor = headings.slice(index + 1).find((candidate) =>
+      candidate.heading.level <= entry.heading.level)
+    const sourceStartLine = entry.heading.line
+    const sourceEndLine = (nextSiblingOrAncestor?.heading.line ?? (lines.length + 1)) - 1
+    return {
+      ...entry,
+      sourceStartLine,
+      sourceEndLine,
+      markdown: lines.slice(sourceStartLine - 1, sourceEndLine).join('\n').trim(),
+    }
+  }).filter((chunk) => chunk.markdown.length > 0)
 }
 
 function findPreviewHeading(
@@ -192,6 +240,35 @@ function toPanelConnection(
   return panelConnection
 }
 
+function toUnscopedPanelConnection(connection: FlashQuerySemanticConnection): SemanticConnection {
+  return toPanelConnection(connection, mappingEntry(connection.target, null))
+}
+
+function dedupeConnections(connections: readonly SemanticConnection[]): SemanticConnection[] {
+  const seen = new Set<string>()
+  const deduped: SemanticConnection[] = []
+  for (const connection of connections) {
+    const key = connection.id
+    if (seen.has(key)) continue
+    seen.add(connection.id)
+    deduped.push(connection)
+  }
+  return deduped
+}
+
+function dedupeBestConnections(connections: readonly SemanticConnection[]): SemanticConnection[] {
+  const byId = new Map<string, SemanticConnection>()
+  for (const connection of connections) {
+    const existing = byId.get(connection.id)
+    if (!existing || connection.score > existing.score) byId.set(connection.id, connection)
+  }
+  return [...byId.values()].sort((left, right) => {
+    const scoreDelta = right.score - left.score
+    if (scoreDelta !== 0) return scoreDelta
+    return left.id.localeCompare(right.id)
+  })
+}
+
 export function buildSemanticConnectionsResult(input: BuildSemanticConnectionsResultInput): SemanticConnectionsResult {
   const mapping = mapFlashQueryChunksToPreview({
     markdown: input.markdown,
@@ -219,6 +296,121 @@ export function buildSemanticConnectionsResult(input: BuildSemanticConnectionsRe
     chunkOrder: mapping.chunkOrder,
     chunkMap: mapping.chunkMap,
     diagnostics: mapping.diagnostics,
+  }
+}
+
+function buildScopedSemanticConnectionsResult(input: BuildScopedSemanticConnectionsResultInput): SemanticConnectionsResult {
+  const sourceChunks = sourcePreviewChunksFromMarkdown(input.markdown)
+  const byChunkId: Record<string, SemanticConnection[]> = Object.fromEntries(
+    sourceChunks.map((chunk) => [chunk.previewChunkId, []]),
+  )
+  const chunkMap: Record<string, SemanticConnectionsTargetMapEntry> = Object.fromEntries(
+    sourceChunks.map((chunk) => [
+      chunk.previewChunkId,
+      {
+        previewChunkId: chunk.previewChunkId,
+        documentPath: '',
+        documentTitle: '',
+        headingPath: chunk.headingPath,
+        headingText: chunk.heading.text,
+        sourceStartLine: chunk.sourceStartLine,
+        sourceEndLine: chunk.sourceEndLine,
+      },
+    ]),
+  )
+
+  for (const [previewChunkId, connections] of Object.entries(input.byPreviewChunkId)) {
+    byChunkId[previewChunkId] = dedupeConnections(connections.map(toUnscopedPanelConnection))
+  }
+
+  return {
+    mode: input.mode,
+    overall: dedupeConnections(input.overallConnections.map(toUnscopedPanelConnection)),
+    byChunkId,
+    chunkOrder: sourceChunks.map((chunk) => chunk.previewChunkId),
+    chunkMap,
+    diagnostics: [],
+  }
+}
+
+function targetFromConnection(connection: FlashQueryDocumentConnection): FlashQuerySemanticConnectionTarget {
+  const headingPath = headingPathFrom(connection.target.heading_path)
+  return {
+    flashqueryChunkId: connection.target.chunk_id,
+    documentId: connection.target.document_id,
+    documentPath: connection.target.path,
+    documentTitle: connection.target.title,
+    headingPath,
+    headingText: headingFromPath(connection.target.heading_path),
+    snippet: snippetFrom(connection.target.content, undefined),
+    body: connection.target.content,
+  }
+}
+
+function toSemanticConnection(connection: FlashQueryDocumentConnection): SemanticConnection {
+  return toUnscopedPanelConnection({
+    id: connection.id,
+    score: connection.score,
+    target: targetFromConnection(connection),
+  })
+}
+
+function sourcePreviewChunkId(
+  sourceChunk: FlashQuerySourceChunkConnections,
+  markdown: string,
+): string | null {
+  const headingPath = headingPathFrom(sourceChunk.heading_path ?? sourceChunk.breadcrumb)
+  const headingText = headingFromPath(sourceChunk.heading_path ?? sourceChunk.breadcrumb)
+  const mappingTarget: FlashQuerySemanticConnectionTarget = {
+    flashqueryChunkId: sourceChunk.chunk_id,
+    documentPath: '',
+    documentTitle: '',
+    headingPath,
+    headingText,
+    snippet: '',
+  }
+  const previewHeading = findPreviewHeading(mappingTarget, previewHeadingsFromMarkdown(markdown), new Set())
+  return previewHeading?.previewChunkId ?? null
+}
+
+function buildConnectionsResultFromDocumentConnections(
+  markdown: string,
+  response: FlashQueryDocumentConnectionsResponse,
+): SemanticConnectionsResult {
+  if (response.error) throw new Error(response.error)
+
+  const sourceChunks = sourcePreviewChunksFromMarkdown(markdown)
+  const byChunkId: Record<string, SemanticConnection[]> = Object.fromEntries(
+    sourceChunks.map((chunk) => [chunk.previewChunkId, []]),
+  )
+  const chunkMap: Record<string, SemanticConnectionsTargetMapEntry> = Object.fromEntries(
+    sourceChunks.map((chunk) => [
+      chunk.previewChunkId,
+      {
+        previewChunkId: chunk.previewChunkId,
+        documentPath: response.source.path,
+        documentTitle: response.source.title ?? response.source.path,
+        headingPath: chunk.headingPath,
+        headingText: chunk.heading.text,
+        sourceStartLine: chunk.sourceStartLine,
+        sourceEndLine: chunk.sourceEndLine,
+      },
+    ]),
+  )
+
+  for (const sourceChunk of response.source_chunks) {
+    const previewChunkId = sourcePreviewChunkId(sourceChunk, markdown)
+    if (!previewChunkId) continue
+    byChunkId[previewChunkId] = dedupeBestConnections(sourceChunk.connections.map(toSemanticConnection))
+  }
+
+  return {
+    mode: 'embeddings-only',
+    overall: dedupeBestConnections(response.overall.map(toSemanticConnection)),
+    byChunkId,
+    chunkOrder: sourceChunks.map((chunk) => chunk.previewChunkId),
+    chunkMap,
+    diagnostics: [],
   }
 }
 
@@ -307,8 +499,19 @@ function connectionsFromDocument(doc: FlashQueryDocumentSearchResult): FlashQuer
   })
 }
 
+function connectionsFromResponse(response: FlashQuerySearchResponse, sourcePath: string): FlashQuerySemanticConnection[] {
+  if (response.error) {
+    throw new Error(response.error)
+  }
+
+  return response.documents
+    .filter((doc) => doc.fullPath !== sourcePath)
+    .flatMap((doc) => connectionsFromDocument(doc))
+}
+
 export function createFlashQuerySemanticConnectionsProvider(
   search: FlashQuerySearchFn = (workspaceId, params) => window.electronAPI.flashquerySearch(workspaceId, params),
+  documentConnections?: FlashQueryDocumentConnectionsFn,
 ): SemanticConnectionsProvider {
   return createCachedSemanticConnectionsProvider({
     async loadDocumentConnections(input) {
@@ -316,27 +519,46 @@ export function createFlashQuerySemanticConnectionsProvider(
       if (!query) return buildSemanticConnectionsResult({ markdown: input.markdown, mode: 'embeddings-only', connections: [] })
 
       const sourcePath = sourceVaultPath(input.documentPath)
-      const response = await search(input.workspaceId, {
-        query,
+      const loadDocumentConnections = documentConnections
+        ?? (typeof window === 'undefined' ? undefined : window.electronAPI.flashqueryDocumentConnections)
+      if (loadDocumentConnections) {
+        const response = await loadDocumentConnections(input.workspaceId, {
+          identifier: sourcePath,
+          limit: DOCUMENT_CONNECTIONS_AGGREGATE_LIMIT,
+          limit_per_chunk: DOCUMENT_CONNECTIONS_LIMIT_PER_CHUNK,
+          ...(input.embeddingNames?.length ? { embedding_names: input.embeddingNames } : {}),
+        })
+        return buildConnectionsResultFromDocumentConnections(input.markdown, response)
+      }
+
+      const searchParams = {
         mode: 'semantic',
         entity_types: ['documents'],
         limit: 12,
         limit_chunks_per_result: 5,
         ...(input.embeddingNames?.length ? { embedding_names: input.embeddingNames } : {}),
+      } satisfies Omit<FlashQuerySearchParams, 'query'>
+
+      const response = await search(input.workspaceId, {
+        query,
+        ...searchParams,
       })
+      const overallConnections = connectionsFromResponse(response, sourcePath)
+      const sourceChunks = sourcePreviewChunksFromMarkdown(input.markdown)
 
-      if (response.error) {
-        throw new Error(response.error)
-      }
+      const sectionResults = await Promise.all(sourceChunks.map(async (chunk) => {
+        const sectionResponse = await search(input.workspaceId, {
+          query: chunk.markdown,
+          ...searchParams,
+        })
+        return [chunk.previewChunkId, connectionsFromResponse(sectionResponse, sourcePath)] as const
+      }))
 
-      const connections = response.documents
-        .filter((doc) => doc.fullPath !== sourcePath)
-        .flatMap((doc) => connectionsFromDocument(doc))
-
-      return buildSemanticConnectionsResult({
+      return buildScopedSemanticConnectionsResult({
         markdown: input.markdown,
         mode: 'embeddings-only',
-        connections,
+        overallConnections,
+        byPreviewChunkId: Object.fromEntries(sectionResults),
       })
     },
   })

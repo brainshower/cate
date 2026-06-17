@@ -12,6 +12,7 @@ const FLASHQUERY_CHANNEL_VALUES = new Set([
   'flashquery:moveDocument',
   'flashquery:removeDocument',
   'flashquery:search',
+  'flashquery:documentConnections',
   'flashquery:list-vault-index',
   'flashquery:retry',
   'flashquery:status',

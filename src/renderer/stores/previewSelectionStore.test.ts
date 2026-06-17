@@ -78,4 +78,21 @@ describe('previewSelectionStore', () => {
     })
     expect(usePreviewSelectionStore.getState().activeChunkId).toBeNull()
   })
+
+  it('keeps connected chunk markers isolated by editor scope and independent of selection clearing', () => {
+    const store = usePreviewSelectionStore.getState()
+
+    store.setConnectedChunkIds(['scope'], 'editor-one')
+    store.setConnectedChunkIds(['details'], 'editor-two')
+    store.selectSection('scope', 'editor-one')
+    store.clearSelection('editor-one')
+
+    expect(usePreviewSelectionStore.getState().getScope('editor-one')).toMatchObject({
+      activeChunkId: null,
+      connectedChunkIds: ['scope'],
+    })
+    expect(usePreviewSelectionStore.getState().getScope('editor-two')).toMatchObject({
+      connectedChunkIds: ['details'],
+    })
+  })
 })

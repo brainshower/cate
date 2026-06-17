@@ -192,6 +192,7 @@ import {
   AUTH_SAVE_API_KEY,
   AUTH_DELETE,
   FLASHQUERY_CREATE_DOCUMENT,
+  FLASHQUERY_DOCUMENT_CONNECTIONS,
   FLASHQUERY_GET_DOCUMENT,
   FLASHQUERY_LIST_VAULT_INDEX,
   FLASHQUERY_LIST_VAULT,
@@ -1054,6 +1055,10 @@ const electronAPI = {
 
   flashquerySearch(workspaceId: string, params: unknown): Promise<unknown> {
     return ipcRenderer.invoke(FLASHQUERY_SEARCH, workspaceId, params)
+  },
+
+  flashqueryDocumentConnections(workspaceId: string, params: unknown): Promise<unknown> {
+    return ipcRenderer.invoke(FLASHQUERY_DOCUMENT_CONNECTIONS, workspaceId, params)
   },
 
   flashqueryListVaultIndex(workspaceId: string): Promise<unknown[]> {

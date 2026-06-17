@@ -1215,8 +1215,10 @@ function MarkdownPreview({
   const activeChunkId = usePreviewSelectionStore((s) => s.getScope(selectionScopeId).activeChunkId)
   const pinnedChunkId = usePreviewSelectionStore((s) => s.getScope(selectionScopeId).pinnedChunkId)
   const cautionChunkIds = usePreviewSelectionStore((s) => s.getScope(selectionScopeId).cautionChunkIds)
+  const connectedChunkIds = usePreviewSelectionStore((s) => s.getScope(selectionScopeId).connectedChunkIds)
   const pointerDownRef = useRef<{ chunkId: string | null, x: number, y: number } | null>(null)
   const cautionChunks = useMemo(() => new Set(cautionChunkIds), [cautionChunkIds])
+  const connectedChunks = useMemo(() => new Set(connectedChunkIds), [connectedChunkIds])
   const baseSize = Number.isFinite(previewFontSize) ? Math.min(Math.max(Math.round(previewFontSize), 8), 40) : 14
   const sizes = {
     body: baseSize,
@@ -1387,6 +1389,7 @@ function MarkdownPreview({
           const isActive = activeChunkId === chunk.chunkId
           const isPinned = pinnedChunkId === chunk.chunkId
           const isCaution = cautionChunks.has(chunk.chunkId)
+          const hasConnections = connectedChunks.has(chunk.chunkId)
           const chunkClasses = [
             'cate-preview-chunk space-y-3 rounded border-l-2 border-transparent px-3 py-1 transition-colors',
             isActive ? 'cate-preview-chunk-active' : '',
@@ -1400,7 +1403,9 @@ function MarkdownPreview({
               key={chunk.chunkId}
               data-chunk-id={chunk.chunkId}
               data-caution={cautionChunks.has(chunk.chunkId) ? 'true' : undefined}
+              data-connected={hasConnections ? 'true' : undefined}
               className={chunkClasses}
+              style={hasConnections && !isActive && !isCaution ? { borderLeftColor: '#2dd4bf4d', borderLeftWidth: 1 } : undefined}
             >
               {markdown}
             </div>

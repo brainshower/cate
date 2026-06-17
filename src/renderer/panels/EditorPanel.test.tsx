@@ -959,6 +959,31 @@ describe('EditorPanel FlashQuery URI routing', () => {
     expect(selectedCaution.className).not.toContain('ring-teal-400/50')
   })
 
+  it('marks preview chunks with connection cards using a subtle left border', async () => {
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: '# Connected Section\n\nConnected body\n\n## Empty Section\n\nEmpty body',
+    })
+    setElectronApi(api)
+
+    await renderEditor('flashquery://workspace-1/Docs/Preview-Connected.md')
+    fireEvent.click(screen.getByTitle('Preview markdown'))
+    const previewBody = await screen.findByTestId('markdown-preview-body')
+
+    act(() => {
+      usePreviewSelectionStore.getState().setConnectedChunkIds(['connected-section'], panelId)
+    })
+
+    const connected = previewBody.querySelector<HTMLElement>('[data-chunk-id="connected-section"]')!
+    const empty = previewBody.querySelector<HTMLElement>('[data-chunk-id="empty-section"]')!
+
+    expect(connected.getAttribute('data-connected')).toBe('true')
+    expect(connected.style.borderLeftColor).toBe('rgba(45, 212, 191, 0.3)')
+    expect(connected.style.borderLeftWidth).toBe('1px')
+    expect(empty.getAttribute('data-connected')).toBeNull()
+    expect(empty.style.borderLeftColor).toBe('')
+  })
+
   it('T-I-007 leaves embeddings-only fixtures without caution decoration', async () => {
     const api = makeElectronApi()
     vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({

@@ -5,11 +5,13 @@ export interface PreviewSelectionState {
   pinnedChunkId: string | null
   activeChunkId: string | null
   cautionChunkIds: string[]
+  connectedChunkIds: string[]
   scopes: Record<string, PreviewSelectionScope>
   getScope: (scopeId?: string | null) => PreviewSelectionScope
   setHoveredChunkId: (chunkId: string | null, scopeId?: string | null) => void
   setPinnedChunkId: (chunkId: string | null, scopeId?: string | null) => void
   setCautionChunkIds: (chunkIds: string[], scopeId?: string | null) => void
+  setConnectedChunkIds: (chunkIds: string[], scopeId?: string | null) => void
   selectSection: (chunkId: string, scopeId?: string | null) => void
   clearSelection: (scopeId?: string | null) => void
 }
@@ -19,6 +21,7 @@ export interface PreviewSelectionScope {
   pinnedChunkId: string | null
   activeChunkId: string | null
   cautionChunkIds: string[]
+  connectedChunkIds: string[]
 }
 
 const DEFAULT_SCOPE_ID = '__global__'
@@ -27,6 +30,7 @@ const EMPTY_SCOPE: PreviewSelectionScope = {
   pinnedChunkId: null,
   activeChunkId: null,
   cautionChunkIds: [],
+  connectedChunkIds: [],
 }
 
 function activeChunkId(hoveredChunkId: string | null, pinnedChunkId: string | null): string | null {
@@ -46,6 +50,7 @@ export const usePreviewSelectionStore = create<PreviewSelectionState>((set, get)
   pinnedChunkId: null,
   activeChunkId: null,
   cautionChunkIds: [],
+  connectedChunkIds: [],
   scopes: {},
   getScope: (scopeId): PreviewSelectionScope => {
     const state = get()
@@ -55,6 +60,7 @@ export const usePreviewSelectionStore = create<PreviewSelectionState>((set, get)
         pinnedChunkId: state.pinnedChunkId,
         activeChunkId: state.activeChunkId,
         cautionChunkIds: state.cautionChunkIds,
+        connectedChunkIds: state.connectedChunkIds,
       }
     }
     return state.scopes[scopeKey(scopeId)] ?? EMPTY_SCOPE
@@ -67,6 +73,7 @@ export const usePreviewSelectionStore = create<PreviewSelectionState>((set, get)
           pinnedChunkId: state.pinnedChunkId,
           activeChunkId: state.activeChunkId,
           cautionChunkIds: state.cautionChunkIds,
+          connectedChunkIds: state.connectedChunkIds,
         }
       : state.scopes[key] ?? emptyScope()
     const next = {
@@ -85,6 +92,7 @@ export const usePreviewSelectionStore = create<PreviewSelectionState>((set, get)
           pinnedChunkId: state.pinnedChunkId,
           activeChunkId: state.activeChunkId,
           cautionChunkIds: state.cautionChunkIds,
+          connectedChunkIds: state.connectedChunkIds,
         }
       : state.scopes[key] ?? emptyScope()
     const next = {
@@ -104,11 +112,20 @@ export const usePreviewSelectionStore = create<PreviewSelectionState>((set, get)
     }
     return { scopes: { ...state.scopes, [key]: next } }
   }),
+  setConnectedChunkIds: (connectedChunkIds, scopeId) => set((state) => {
+    const key = scopeKey(scopeId)
+    if (key === DEFAULT_SCOPE_ID) return { connectedChunkIds }
+    const next = {
+      ...(state.scopes[key] ?? emptyScope()),
+      connectedChunkIds,
+    }
+    return { scopes: { ...state.scopes, [key]: next } }
+  }),
   selectSection: (chunkId, scopeId) => set((state) => {
     const key = scopeKey(scopeId)
     const next = {
       ...(key === DEFAULT_SCOPE_ID
-        ? { cautionChunkIds: state.cautionChunkIds }
+        ? { cautionChunkIds: state.cautionChunkIds, connectedChunkIds: state.connectedChunkIds }
         : state.scopes[key] ?? emptyScope()),
       hoveredChunkId: null,
       pinnedChunkId: chunkId,
@@ -144,6 +161,7 @@ export function clearPreviewSelectionForTests(): void {
     pinnedChunkId: null,
     activeChunkId: null,
     cautionChunkIds: [],
+    connectedChunkIds: [],
     scopes: {},
   })
 }

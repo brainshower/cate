@@ -397,6 +397,11 @@ export default function SemanticConnectionsPanel({
   const allRels = useMemo(() => getAllRels(result ?? emptyResult), [result])
   const hasTypedControls = allRels.length > 0
   const scopedConnections = useMemo(() => resultConnections(result ?? emptyResult, activeChunkId), [activeChunkId, result])
+  const connectedChunkIds = useMemo(() => (
+    Object.entries((result ?? emptyResult).byChunkId)
+      .filter(([, connections]) => connections.length > 0)
+      .map(([chunkId]) => chunkId)
+  ), [result])
   const filteredConnections = useMemo(() => {
     if (!hasTypedControls || activeRelFilters.size === 0) return scopedConnections
     return scopedConnections.filter((connection) => connection.rel && activeRelFilters.has(connection.rel))
@@ -422,6 +427,13 @@ export default function SemanticConnectionsPanel({
       return next.size === current.size ? current : next
     })
   }, [allRels])
+
+  useEffect(() => {
+    usePreviewSelectionStore.getState().setConnectedChunkIds(connectedChunkIds, selectionScopeId)
+    return () => {
+      usePreviewSelectionStore.getState().setConnectedChunkIds([], selectionScopeId)
+    }
+  }, [connectedChunkIds, selectionScopeId])
 
   const toggleConfig = useCallback(() => setConfigOpen((value) => !value), [])
 

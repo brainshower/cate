@@ -261,6 +261,46 @@ export interface FlashQuerySearchResponse {
   error?: string
 }
 
+export interface FlashQueryDocumentConnectionTarget {
+  chunk_id: string
+  document_id?: string
+  path: string
+  title: string
+  heading_path?: string
+  content?: string
+}
+
+export interface FlashQueryDocumentConnection {
+  id: string
+  score: number
+  target: FlashQueryDocumentConnectionTarget
+}
+
+export interface FlashQuerySourceChunkConnections {
+  chunk_id: string
+  heading_path?: string
+  breadcrumb?: string
+  connections: FlashQueryDocumentConnection[]
+}
+
+export interface FlashQueryDocumentConnectionsParams {
+  identifier: string
+  limit?: number
+  limit_per_chunk?: number
+  embedding_names?: string[]
+}
+
+export interface FlashQueryDocumentConnectionsResponse {
+  source: {
+    document_id: string
+    path: string
+    title?: string
+  }
+  overall: FlashQueryDocumentConnection[]
+  source_chunks: FlashQuerySourceChunkConnections[]
+  error?: string
+}
+
 export interface FlashQueryVaultIndexEntry {
   filename: string
   fullPath: string

@@ -4,6 +4,8 @@ import type {
   FlashQueryConnection,
   FlashQueryDirectoryAction,
   FlashQueryDocumentBody,
+  FlashQueryDocumentConnectionsParams,
+  FlashQueryDocumentConnectionsResponse,
   FlashQueryDocumentPart,
   FlashQueryDocumentSearchResult,
   FlashQueryFrontmatter,
@@ -323,6 +325,27 @@ export class FlashQueryClientManager {
       const latestState = this.workspaceStates.get(workspaceId)
       const latestConnection = latestState?.connection ?? connection ?? this.getConfiguredConnection(workspaceId)
       return this.emptySearchResponse(this.errorToSafeMessage(error, latestConnection, latestState?.token))
+    }
+  }
+
+  async documentConnections(workspaceId: string, params: FlashQueryDocumentConnectionsParams): Promise<FlashQueryDocumentConnectionsResponse> {
+    const state = this.workspaceStates.get(workspaceId)
+    const connection = state?.connection ?? this.getConfiguredConnection(workspaceId)
+    try {
+      const args = this.normalizeDocumentConnectionsArgs(params)
+      if (!connection && !state?.connection) {
+        return this.emptyDocumentConnectionsResponse('No FlashQuery connection is configured for this workspace')
+      }
+      const client = await this.requireMcpClient(workspaceId)
+      const payload = await this.callJsonTool(client, 'get_document', args)
+      if (this.isErrorEnvelope(payload)) {
+        return this.emptyDocumentConnectionsResponse(this.errorEnvelopeMessage(payload))
+      }
+      return this.normalizeDocumentConnectionsResponse(payload)
+    } catch (error) {
+      const latestState = this.workspaceStates.get(workspaceId)
+      const latestConnection = latestState?.connection ?? connection ?? this.getConfiguredConnection(workspaceId)
+      return this.emptyDocumentConnectionsResponse(this.errorToSafeMessage(error, latestConnection, latestState?.token))
     }
   }
 
@@ -718,6 +741,24 @@ export class FlashQueryClientManager {
     return normalized.length > 0 ? normalized : ['documents', 'memories']
   }
 
+  private normalizeDocumentConnectionsArgs(params: FlashQueryDocumentConnectionsParams): Record<string, unknown> {
+    const identifier = typeof params.identifier === 'string' ? params.identifier.trim() : ''
+    if (!identifier) throw new Error('Document identifier is required.')
+    const limit = Number.isFinite(params.limit) && Number.isInteger(params.limit) && params.limit! > 0 ? params.limit! : 50
+    const limitPerChunk = Number.isFinite(params.limit_per_chunk) && Number.isInteger(params.limit_per_chunk) && params.limit_per_chunk! > 0
+      ? params.limit_per_chunk!
+      : 5
+    return {
+      identifiers: identifier,
+      include: ['connections'],
+      connections: {
+        limit,
+        limit_per_chunk: limitPerChunk,
+        ...(params.embedding_names?.length ? { embedding_names: params.embedding_names } : {}),
+      },
+    }
+  }
+
   private normalizeSearchResponse(payload: Record<string, unknown>): FlashQuerySearchResponse {
     const results = this.arrayFrom(payload.results)
     const documentEntries = results.length > 0
@@ -740,6 +781,62 @@ export class FlashQueryClientManager {
 
   private emptySearchResponse(error: string): FlashQuerySearchResponse {
     return { documents: [], memories: [], total_documents: 0, total_memories: 0, error }
+  }
+
+  private emptyDocumentConnectionsResponse(error: string): FlashQueryDocumentConnectionsResponse {
+    return {
+      source: { document_id: '', path: '' },
+      overall: [],
+      source_chunks: [],
+      error,
+    }
+  }
+
+  private normalizeDocumentConnectionsResponse(payload: Record<string, unknown>): FlashQueryDocumentConnectionsResponse {
+    const connectionsPayload = this.isPlainObject(payload.connections) ? payload.connections : payload
+    return {
+      source: {
+        document_id: this.firstString(payload.fq_id, payload.document_id, payload.id) ?? '',
+        path: this.normalizePath(this.firstString(payload.path, payload.identifier)) ?? '',
+        ...(typeof payload.title === 'string' ? { title: payload.title } : {}),
+      },
+      overall: this.arrayFrom(connectionsPayload.overall).flatMap((entry) => this.normalizeDocumentConnection(entry)),
+      source_chunks: this.arrayFrom(connectionsPayload.source_chunks).flatMap((entry) => {
+        if (!this.isPlainObject(entry)) return []
+        const chunkId = this.firstString(entry.chunk_id, entry.id)
+        if (!chunkId) return []
+        return [{
+          chunk_id: chunkId,
+          ...(typeof entry.heading_path === 'string' ? { heading_path: entry.heading_path } : {}),
+          ...(typeof entry.breadcrumb === 'string' ? { breadcrumb: entry.breadcrumb } : {}),
+          connections: this.arrayFrom(entry.connections).flatMap((connection) => this.normalizeDocumentConnection(connection)),
+        }]
+      }),
+    }
+  }
+
+  private normalizeDocumentConnection(entry: unknown) {
+    if (!this.isPlainObject(entry)) return []
+    const target = this.isPlainObject(entry.target) ? entry.target : null
+    if (!target) return []
+    const id = this.firstString(entry.id)
+    const chunkId = this.firstString(target.chunk_id, target.id)
+    const path = this.normalizePath(this.firstString(target.path, target.document_path))
+    const title = this.firstString(target.title, target.document_title, path)
+    const score = typeof entry.score === 'number' && Number.isFinite(entry.score) ? entry.score : undefined
+    if (!id || !chunkId || !path || !title || score === undefined) return []
+    return [{
+      id,
+      score,
+      target: {
+        chunk_id: chunkId,
+        ...(typeof target.document_id === 'string' ? { document_id: target.document_id } : {}),
+        path,
+        title,
+        ...(typeof target.heading_path === 'string' ? { heading_path: target.heading_path } : {}),
+        ...(typeof target.content === 'string' ? { content: target.content } : {}),
+      },
+    }]
   }
 
   private normalizeDocumentSearchResult(entry: unknown): FlashQueryDocumentSearchResult[] {

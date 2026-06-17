@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   FLASHQUERY_CREATE_DOCUMENT,
+  FLASHQUERY_DOCUMENT_CONNECTIONS,
   FLASHQUERY_GET_DOCUMENT,
   FLASHQUERY_LIST_VAULT_INDEX,
   FLASHQUERY_LIST_VAULT,
@@ -37,6 +38,7 @@ const mocks = vi.hoisted(() => ({
   managerInstances: [] as Array<{
     connect: ReturnType<typeof vi.fn>
     dispose: ReturnType<typeof vi.fn>
+    documentConnections: ReturnType<typeof vi.fn>
     listVault: ReturnType<typeof vi.fn>
     getDocument: ReturnType<typeof vi.fn>
     listVaultIndex: ReturnType<typeof vi.fn>
@@ -84,6 +86,7 @@ vi.mock('../flashquery/clientManager', () => {
   class MockFlashQueryClientManager {
     connect = vi.fn().mockResolvedValue({ workspaceId: 'workspace-1', status: 'live' })
     dispose = vi.fn()
+    documentConnections = vi.fn()
     listVault = vi.fn()
     getDocument = vi.fn()
     listVaultIndex = vi.fn()
@@ -158,7 +161,7 @@ describe('FlashQuery IPC handlers', () => {
 
     registerHandlers()
 
-    expect(mocks.handle).toHaveBeenCalledTimes(12)
+    expect(mocks.handle).toHaveBeenCalledTimes(13)
     expect(mocks.handle.mock.calls.map(([channel]) => channel)).toEqual([
       FLASHQUERY_SET_CONNECTION,
       FLASHQUERY_PROBE,
@@ -170,10 +173,12 @@ describe('FlashQuery IPC handlers', () => {
       FLASHQUERY_MOVE_DOCUMENT,
       FLASHQUERY_REMOVE_DOCUMENT,
       FLASHQUERY_SEARCH,
+      FLASHQUERY_DOCUMENT_CONNECTIONS,
       FLASHQUERY_LIST_VAULT_INDEX,
       FLASHQUERY_RETRY,
     ])
     expect(mocks.handle.mock.calls.map(([, handler]) => handler)).toEqual([
+      expect.any(Function),
       expect.any(Function),
       expect.any(Function),
       expect.any(Function),
@@ -196,7 +201,7 @@ describe('FlashQuery IPC handlers', () => {
     registerHandlers()
     registerHandlers()
 
-    expect(mocks.handle).toHaveBeenCalledTimes(12)
+    expect(mocks.handle).toHaveBeenCalledTimes(13)
   })
 
   it('declares the exact Phase 3 FlashQuery channel strings', () => {
@@ -210,6 +215,7 @@ describe('FlashQuery IPC handlers', () => {
     expect(FLASHQUERY_MOVE_DOCUMENT).toBe('flashquery:moveDocument')
     expect(FLASHQUERY_REMOVE_DOCUMENT).toBe('flashquery:removeDocument')
     expect(FLASHQUERY_SEARCH).toBe('flashquery:search')
+    expect(FLASHQUERY_DOCUMENT_CONNECTIONS).toBe('flashquery:documentConnections')
     expect(FLASHQUERY_LIST_VAULT_INDEX).toBe('flashquery:list-vault-index')
     expect(FLASHQUERY_RETRY).toBe('flashquery:retry')
     expect(FLASHQUERY_STATUS).toBe('flashquery:status')
@@ -693,6 +699,32 @@ describe('FlashQuery IPC handlers', () => {
       limit: 25,
     })
     expect(mocks.managerInstances[0].search).toHaveBeenCalledTimes(1)
+  })
+
+  it('delegates document connection requests to the FlashQuery manager', async () => {
+    const handler = await registeredHandler<(_event: unknown, workspaceId: string, params: unknown) => Promise<unknown>>(FLASHQUERY_DOCUMENT_CONNECTIONS)
+    mocks.managerInstances[0].documentConnections.mockResolvedValueOnce({
+      source: { document_id: 'doc-1', path: 'Docs/Plan.md' },
+      overall: [],
+      source_chunks: [],
+    })
+
+    await expect(handler({}, 'workspace-1', {
+      identifier: 'Docs/Plan.md',
+      limit: 40,
+      limit_per_chunk: 5,
+      embedding_names: ['primary'],
+    })).resolves.toEqual({
+      source: { document_id: 'doc-1', path: 'Docs/Plan.md' },
+      overall: [],
+      source_chunks: [],
+    })
+    expect(mocks.managerInstances[0].documentConnections).toHaveBeenCalledWith('workspace-1', {
+      identifier: 'Docs/Plan.md',
+      limit: 40,
+      limit_per_chunk: 5,
+      embedding_names: ['primary'],
+    })
   })
 
   it('T-U-006 registers vault-index IPC and delegates valid workspace IDs to manager', async () => {

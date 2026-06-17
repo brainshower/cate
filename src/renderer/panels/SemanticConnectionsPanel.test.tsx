@@ -176,6 +176,22 @@ describe('SemanticConnectionsPanel', () => {
     expect(screen.queryByText('Depends on')).toBeNull()
   })
 
+  it('publishes preview chunk markers only for sections with non-empty connection lists', async () => {
+    renderPanel({
+      ...embeddingsOnlyResult,
+      byChunkId: {
+        scope: [embeddingsOnlyResult.overall[0]],
+        details: [],
+      },
+      chunkOrder: ['scope', 'details'],
+    })
+
+    await screen.findByText('Alpha Notes')
+    await waitFor(() => {
+      expect(usePreviewSelectionStore.getState().getScope('editor-1').connectedChunkIds).toEqual(['scope'])
+    })
+  })
+
   it('T-I-010 renders typed banners only for typed cards in sparse mixed data', async () => {
     renderPanel(mixedResult)
 

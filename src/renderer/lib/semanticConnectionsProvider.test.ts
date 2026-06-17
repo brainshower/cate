@@ -6,6 +6,7 @@ import {
   mapFlashQueryChunksToPreview,
   type FlashQuerySemanticConnection,
 } from './semanticConnectionsProvider'
+import type { FlashQueryDocumentConnectionsResponse } from '../../shared/types'
 
 const markdown = [
   '# Plan',
@@ -248,5 +249,159 @@ describe('semantic connections provider boundary', () => {
         snippet: 'Neighbor chunk body that should become a snippet.',
       },
     })
+  })
+
+  it('loads whole-document connections as deduped source-chunk outbound links without a text search', async () => {
+    const search = vi.fn()
+    const connections = vi.fn().mockResolvedValue({
+      source: { document_id: 'source-doc', path: 'Docs/Source.md', title: 'Source' },
+      overall: [
+        {
+          id: 'Docs/Beta.md#beta-chunk',
+          score: 0.94,
+          target: {
+            chunk_id: 'beta-chunk',
+            document_id: 'doc-beta',
+            path: 'Docs/Beta.md',
+            title: 'Beta',
+            heading_path: 'Beta > Strong',
+            content: 'Best duplicate target.',
+          },
+        },
+        {
+          id: 'Docs/Alpha.md#alpha-chunk',
+          score: 0.81,
+          target: {
+            chunk_id: 'alpha-chunk',
+            document_id: 'doc-alpha',
+            path: 'Docs/Alpha.md',
+            title: 'Alpha',
+            heading_path: 'Alpha > Idea',
+            content: 'Alpha target.',
+          },
+        },
+      ],
+      source_chunks: [
+        {
+          chunk_id: 'source-root',
+          heading_path: 'Source',
+          connections: [{
+            id: 'Docs/Beta.md#beta-chunk',
+            score: 0.72,
+            target: {
+              chunk_id: 'beta-chunk',
+              document_id: 'doc-beta',
+              path: 'Docs/Beta.md',
+              title: 'Beta',
+              heading_path: 'Beta > Weak',
+              content: 'Weak duplicate target.',
+            },
+          }],
+        },
+        {
+          chunk_id: 'source-scope',
+          heading_path: 'Source > Scope',
+          connections: [{
+            id: 'Docs/Beta.md#beta-chunk',
+            score: 0.94,
+            target: {
+              chunk_id: 'beta-chunk',
+              document_id: 'doc-beta',
+              path: 'Docs/Beta.md',
+              title: 'Beta',
+              heading_path: 'Beta > Strong',
+              content: 'Best duplicate target.',
+            },
+          },
+          {
+            id: 'Docs/Alpha.md#alpha-chunk',
+            score: 0.81,
+            target: {
+              chunk_id: 'alpha-chunk',
+              document_id: 'doc-alpha',
+              path: 'Docs/Alpha.md',
+              title: 'Alpha',
+              heading_path: 'Alpha > Idea',
+              content: 'Alpha target.',
+            },
+          }],
+        },
+      ],
+    } satisfies FlashQueryDocumentConnectionsResponse)
+    const provider = createFlashQuerySemanticConnectionsProvider(search, connections)
+
+    const result = await provider.loadDocumentConnections({
+      workspaceId: 'workspace-1',
+      editorPanelId: 'editor-1',
+      documentPath: 'flashquery://workspace-1/Docs/Source.md',
+      markdown: '# Source\n\nIntro\n\n## Scope\n\nScope body',
+      contentHash: 'hash-source',
+    })
+
+    expect(search).not.toHaveBeenCalled()
+    expect(connections).toHaveBeenCalledWith('workspace-1', {
+      identifier: 'Docs/Source.md',
+      limit: 200,
+      limit_per_chunk: 5,
+    })
+    expect(result.overall.map((connection) => connection.id)).toEqual([
+      'Docs/Beta.md#beta-chunk',
+      'Docs/Alpha.md#alpha-chunk',
+    ])
+    expect(result.byChunkId.source.map((connection) => connection.id)).toEqual(['Docs/Beta.md#beta-chunk'])
+    expect(result.byChunkId.scope.map((connection) => connection.id)).toEqual([
+      'Docs/Beta.md#beta-chunk',
+      'Docs/Alpha.md#alpha-chunk',
+    ])
+    expect(result.byChunkId.scope[0]).toMatchObject({
+      score: 0.94,
+      target: {
+        title: 'Beta',
+        heading: 'Strong',
+      },
+    })
+  })
+
+  it('treats enabled but ungenerated document embeddings as an empty graph', async () => {
+    const search = vi.fn()
+    const connections = vi.fn().mockResolvedValue({
+      source: { document_id: 'source-doc', path: 'Docs/Source.md', title: 'Source' },
+      overall: [],
+      source_chunks: [],
+    } satisfies FlashQueryDocumentConnectionsResponse)
+    const provider = createFlashQuerySemanticConnectionsProvider(search, connections)
+
+    const result = await provider.loadDocumentConnections({
+      workspaceId: 'workspace-1',
+      editorPanelId: 'editor-1',
+      documentPath: 'flashquery://workspace-1/Docs/Source.md',
+      markdown: '# Source\n\nIntro\n\n## Waiting\n\nEmbeddings have not finished yet.',
+      contentHash: 'hash-source-empty',
+    })
+
+    expect(search).not.toHaveBeenCalled()
+    expect(result.overall).toEqual([])
+    expect(result.chunkOrder).toEqual(['source', 'waiting'])
+    expect(result.byChunkId).toEqual({ source: [], waiting: [] })
+  })
+
+  it('surfaces unavailable document connections as an error instead of an empty graph', async () => {
+    const search = vi.fn()
+    const connections = vi.fn().mockResolvedValue({
+      source: { document_id: '', path: '' },
+      overall: [],
+      source_chunks: [],
+      error: 'Document connections are unavailable because no embeddings are configured in flashquery.yml',
+    } satisfies FlashQueryDocumentConnectionsResponse)
+    const provider = createFlashQuerySemanticConnectionsProvider(search, connections)
+
+    await expect(provider.loadDocumentConnections({
+      workspaceId: 'workspace-1',
+      editorPanelId: 'editor-1',
+      documentPath: 'flashquery://workspace-1/Docs/Source.md',
+      markdown: '# Source\n\nIntro',
+      contentHash: 'hash-source-error',
+    })).rejects.toThrow('Document connections are unavailable')
+    expect(search).not.toHaveBeenCalled()
   })
 })

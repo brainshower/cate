@@ -1257,6 +1257,123 @@ describe('FlashQueryClientManager', () => {
     })
   })
 
+  it('loads document connections through get_document include connections', async () => {
+    const callTool = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({
+        identifier: 'Docs/Plan.md',
+        path: 'Docs/Plan.md',
+        title: 'Plan',
+        fq_id: 'doc-1',
+        connections: {
+          overall: [{
+            id: 'Docs/Other.md#chunk-2',
+            score: 0.94,
+            target: {
+              chunk_id: 'chunk-2',
+              document_id: 'doc-2',
+              path: 'Docs/Other.md',
+              title: 'Other',
+              heading_path: 'Section',
+              content: 'Other content',
+            },
+          }],
+          source_chunks: [{
+            chunk_id: 'source-1',
+            heading_path: 'Intro',
+            breadcrumb: 'Intro',
+            connections: [{
+              id: 'Docs/Other.md#chunk-2',
+              score: 0.94,
+              target: {
+                chunk_id: 'chunk-2',
+                document_id: 'doc-2',
+                path: 'Docs/Other.md',
+                title: 'Other',
+              },
+            }],
+          }],
+        },
+      }) }],
+    })
+    workspaceMock.workspaces = [workspaceInfo()]
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
+    await expect(manager.documentConnections('workspace-1', {
+      identifier: 'Docs/Plan.md',
+      limit: 40,
+      limit_per_chunk: 5,
+      embedding_names: ['primary'],
+    })).resolves.toMatchObject({
+      source: { document_id: 'doc-1', path: 'Docs/Plan.md', title: 'Plan' },
+      overall: [{
+        id: 'Docs/Other.md#chunk-2',
+        score: 0.94,
+        target: {
+          chunk_id: 'chunk-2',
+          document_id: 'doc-2',
+          path: 'Docs/Other.md',
+          title: 'Other',
+          heading_path: 'Section',
+          content: 'Other content',
+        },
+      }],
+      source_chunks: [{
+        chunk_id: 'source-1',
+        heading_path: 'Intro',
+        breadcrumb: 'Intro',
+      }],
+    })
+
+    expect(callTool).toHaveBeenCalledWith({
+      name: 'get_document',
+      arguments: {
+        identifiers: 'Docs/Plan.md',
+        include: ['connections'],
+        connections: {
+          limit: 40,
+          limit_per_chunk: 5,
+          embedding_names: ['primary'],
+        },
+      },
+    })
+    expect(callTool).not.toHaveBeenCalledWith(expect.objectContaining({ name: 'get_document_connections' }))
+  })
+
+  it('preserves get_document connection expected errors as local connection errors', async () => {
+    const callTool = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({
+        error: 'unsupported',
+        message: 'Document connections are unavailable because no embeddings are configured in flashquery.yml',
+        identifier: 'connections',
+        details: { reason: 'embeddings_not_configured' },
+      }) }],
+      isError: false,
+    })
+    workspaceMock.workspaces = [workspaceInfo()]
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
+    await expect(manager.documentConnections('workspace-1', {
+      identifier: 'Docs/Plan.md',
+    })).resolves.toEqual({
+      source: { document_id: '', path: '' },
+      overall: [],
+      source_chunks: [],
+      error: 'Document connections are unavailable because no embeddings are configured in flashquery.yml',
+    })
+
+    expect(callTool).toHaveBeenCalledWith({
+      name: 'get_document',
+      arguments: {
+        identifiers: 'Docs/Plan.md',
+        include: ['connections'],
+        connections: {
+          limit: 50,
+          limit_per_chunk: 5,
+        },
+      },
+    })
+  })
+
   it('T-U-005 returns a safe empty response for empty semantic searches without calling MCP', async () => {
     const callTool = vi.fn()
     workspaceMock.workspaces = [workspaceInfo()]
