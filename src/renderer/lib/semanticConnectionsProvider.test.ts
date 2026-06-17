@@ -79,10 +79,10 @@ describe('semantic connections provider boundary', () => {
       targets: flashqueryConnections.map((connection) => connection.target),
     })
 
-    expect(mapped.chunkMap['11111111-1111-4111-8111-111111111111']?.previewChunkId).toBe('scope')
-    expect(mapped.chunkMap['22222222-2222-4222-8222-222222222222']?.previewChunkId).toBe('details')
-    expect(mapped.chunkMap['33333333-3333-4333-8333-333333333333']?.previewChunkId).toBe('scope-1')
-    expect(mapped.chunkMap.scope).toBeUndefined()
+    expect(mapped.chunkMap.scope?.flashqueryChunkId).toBe('11111111-1111-4111-8111-111111111111')
+    expect(mapped.chunkMap.details?.flashqueryChunkId).toBe('22222222-2222-4222-8222-222222222222')
+    expect(mapped.chunkMap['scope-1']?.flashqueryChunkId).toBe('33333333-3333-4333-8333-333333333333')
+    expect(mapped.chunkMapByFlashQueryId['22222222-2222-4222-8222-222222222222']?.previewChunkId).toBe('details')
     expect(mapped.diagnostics).toEqual([])
   })
 
@@ -101,7 +101,8 @@ describe('semantic connections provider boundary', () => {
       ],
     })
 
-    expect(mapped.chunkMap['44444444-4444-4444-8444-444444444444']?.previewChunkId).toBeNull()
+    expect(mapped.chunkMap['44444444-4444-4444-8444-444444444444']).toBeUndefined()
+    expect(mapped.chunkMapByFlashQueryId['44444444-4444-4444-8444-444444444444']?.previewChunkId).toBeNull()
     expect(mapped.diagnostics).toHaveLength(1)
     expect(mapped.diagnostics[0]).toContain('44444444-4444-4444-8444-444444444444')
   })
@@ -122,7 +123,8 @@ describe('semantic connections provider boundary', () => {
     expect(result.byChunkId.scope.map((connection) => connection.id)).toEqual(['conn-1'])
     expect(result.byChunkId.details.map((connection) => connection.id)).toEqual(['conn-2'])
     expect(result.byChunkId['scope-1'].map((connection) => connection.id)).toEqual(['conn-3'])
-    expect(result.chunkMap['11111111-1111-4111-8111-111111111111']).toMatchObject({
+    expect(result.chunkMap.scope).toMatchObject({
+      flashqueryChunkId: '11111111-1111-4111-8111-111111111111',
       previewChunkId: 'scope',
       headingPath: ['Plan', 'Scope'],
     })
@@ -160,8 +162,10 @@ describe('semantic connections provider boundary', () => {
       workspaceId: 'workspace-1',
       editorPanelId: 'editor-1',
       documentPath: '/workspace/Plan.md',
+      documentId: 'doc-1',
       markdown,
       contentHash: 'hash-a',
+      embeddingNames: ['text-embedding-3-small'],
     }
 
     const first = await cached.loadDocumentConnections(baseInput)

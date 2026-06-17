@@ -10,6 +10,7 @@ import {
   type ActiveEditorModelLike,
 } from '../lib/activeEditorRegistry'
 import { clearPreviewSelectionForTests, usePreviewSelectionStore } from '../stores/previewSelectionStore'
+import { clearSemanticConnectionsChromeForTests, useSemanticConnectionsChromeStore } from '../stores/semanticConnectionsChromeStore'
 import type { SemanticConnectionsProvider, SemanticConnectionsResult } from '../lib/semanticConnections'
 import SemanticConnectionsPanel from './SemanticConnectionsPanel'
 
@@ -147,6 +148,7 @@ describe('SemanticConnectionsPanel', () => {
     vi.restoreAllMocks()
     clearActiveEditorRegistryForTests()
     clearPreviewSelectionForTests()
+    clearSemanticConnectionsChromeForTests()
   })
 
   it('T-I-009 renders embeddings-only cards and hides nature sort/filter controls', async () => {
@@ -155,7 +157,7 @@ describe('SemanticConnectionsPanel', () => {
     expect(await screen.findByText('Alpha Notes')).toBeTruthy()
     expect(screen.getByText('Beta Plan')).toBeTruthy()
     expect(screen.getByText('Whole document')).toBeTruthy()
-    expect(screen.getByText('2 connections')).toBeTruthy()
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.connectionCount).toBe(2)
     expect(screen.queryByText('Sort by nature')).toBeNull()
     expect(screen.queryByText('Nature filters')).toBeNull()
     expect(screen.queryByText('Depends on')).toBeNull()
@@ -170,29 +172,43 @@ describe('SemanticConnectionsPanel', () => {
     expect(within(typed).getByText('Depends on')).toBeTruthy()
     expect(within(untyped).queryByText('Depends on')).toBeNull()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Configure semantic connections' }))
+    act(() => useSemanticConnectionsChromeStore.getState().panels['sc-1']?.toggleConfig())
 
     expect(screen.getByText('Sort by nature')).toBeTruthy()
     expect(screen.getByText('Nature filters')).toBeTruthy()
+  })
+
+  it('T-I-010 filters typed connections by selected nature and marks config active', async () => {
+    renderPanel(mixedResult)
+
+    expect(await screen.findByText('Alpha Notes')).toBeTruthy()
+    expect(screen.getByText('Beta Plan')).toBeTruthy()
+
+    act(() => useSemanticConnectionsChromeStore.getState().panels['sc-1']?.toggleConfig())
+    fireEvent.click(screen.getByRole('button', { name: 'Depends on' }))
+
+    expect(screen.getByText('Alpha Notes')).toBeTruthy()
+    expect(screen.queryByText('Beta Plan')).toBeNull()
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.configActive).toBe(true)
   })
 
   it('T-I-011 renders Top-N Max and finite counts with the config indicator only when active', async () => {
     renderPanel(embeddingsOnlyResult)
 
     expect(await screen.findByText('Showing all 2 connections')).toBeTruthy()
-    expect(screen.getByTestId('semantic-config-indicator').textContent).toBe('Default')
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.configActive).toBe(false)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Configure semantic connections' }))
+    act(() => useSemanticConnectionsChromeStore.getState().panels['sc-1']?.toggleConfig())
     fireEvent.change(screen.getByLabelText('Top N connections'), { target: { value: '1' } })
 
     expect(screen.getByText('Showing 1 of 2 connections')).toBeTruthy()
     expect(screen.getByText('1 additional connection hidden by Top-N')).toBeTruthy()
-    expect(screen.getByTestId('semantic-config-indicator').textContent).toBe('Active')
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.configActive).toBe(true)
 
     fireEvent.change(screen.getByLabelText('Top N connections'), { target: { value: '2' } })
 
     expect(screen.getByText('Showing all 2 connections')).toBeTruthy()
-    expect(screen.getByTestId('semantic-config-indicator').textContent).toBe('Default')
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.configActive).toBe(false)
   })
 
   it('T-I-012 expands a card by hiding snippet and showing body without duplicated text', async () => {
@@ -294,7 +310,7 @@ describe('SemanticConnectionsPanel', () => {
     renderPanel({ ...embeddingsOnlyResult, overall: [], byChunkId: { scope: [] } })
 
     expect(await screen.findByText('No connections exist for this document')).toBeTruthy()
-    expect(screen.getByText('0 connections')).toBeTruthy()
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.connectionCount).toBe(0)
     cleanup()
     clearActiveEditorRegistryForTests()
     clearPreviewSelectionForTests()
@@ -430,6 +446,25 @@ describe('SemanticConnectionsPanel', () => {
     renderPanelWithProvider(malformed)
     expect(await screen.findByText('Unable to load semantic connections')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Retry connections' })).toBeTruthy()
+  })
+
+  it('T-I-023 and T-I-043 reject element-level malformed connections before card render', async () => {
+    const malformed: SemanticConnectionsProvider = {
+      loadDocumentConnections: vi.fn().mockResolvedValue({
+        mode: 'embeddings-only',
+        overall: [{ id: 'broken', score: 0.9 }],
+        byChunkId: {},
+        chunkOrder: [],
+        chunkMap: {},
+        diagnostics: [],
+      } as unknown as SemanticConnectionsResult),
+    }
+
+    renderPanelWithProvider(malformed)
+
+    expect(await screen.findByText('Unable to load semantic connections')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Retry connections' })).toBeTruthy()
+    expect(screen.queryByTestId('semantic-connection-card-broken')).toBeNull()
   })
 
   it('T-I-025 and T-I-026 shows loading and supersedes stale in-flight requests', async () => {
@@ -612,6 +647,28 @@ describe('SemanticConnectionsPanel', () => {
 
     const open = await screen.findByRole('button', { name: 'Open Alpha Notes' }) as HTMLButtonElement
     expect(open.disabled).toBe(true)
+  })
+
+  it('REQ-037 preserves a pinned selection when Escape occurs outside the panel or preview', async () => {
+    renderPanel({
+      ...embeddingsOnlyResult,
+      byChunkId: { scope: [embeddingsOnlyResult.overall[0]] },
+    }, { activeChunkId: 'scope' })
+
+    expect(await screen.findByText('Alpha Notes')).toBeTruthy()
+    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('scope')
+
+    const unrelated = document.createElement('button')
+    unrelated.textContent = 'Unrelated'
+    document.body.appendChild(unrelated)
+    unrelated.focus()
+    fireEvent.keyDown(unrelated, { key: 'Escape' })
+
+    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBe('scope')
+
+    fireEvent.keyDown(screen.getByTestId('semantic-connections-panel'), { key: 'Escape' })
+
+    expect(usePreviewSelectionStore.getState().pinnedChunkId).toBeNull()
   })
 })
 

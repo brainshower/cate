@@ -17,6 +17,7 @@ import {
   type ActiveEditorSnapshot,
 } from '../lib/activeEditorRegistry'
 import { usePreviewSelectionStore } from '../stores/previewSelectionStore'
+import { useSemanticConnectionsChromeStore } from '../stores/semanticConnectionsChromeStore'
 
 const emptyResult: SemanticConnectionsResult = {
   mode: 'embeddings-only',
@@ -72,13 +73,32 @@ function isMarkdownPath(path: string | undefined): boolean {
 function isSemanticConnectionsResult(value: unknown): value is SemanticConnectionsResult {
   if (!value || typeof value !== 'object') return false
   const candidate = value as Partial<SemanticConnectionsResult>
-  return Array.isArray(candidate.overall)
+  return (candidate.mode === 'embeddings-only' || candidate.mode === 'mixed' || candidate.mode === 'typed')
+    && Array.isArray(candidate.overall)
+    && candidate.overall.every(isSemanticConnection)
     && Boolean(candidate.byChunkId)
     && typeof candidate.byChunkId === 'object'
+    && Object.values(candidate.byChunkId).every((connections) => Array.isArray(connections) && connections.every(isSemanticConnection))
     && Array.isArray(candidate.chunkOrder)
+    && candidate.chunkOrder.every((chunkId) => typeof chunkId === 'string')
     && Boolean(candidate.chunkMap)
     && typeof candidate.chunkMap === 'object'
     && Array.isArray(candidate.diagnostics)
+    && candidate.diagnostics.every((diagnostic) => typeof diagnostic === 'string')
+}
+
+function isSemanticConnection(value: unknown): value is SemanticConnection {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Partial<SemanticConnection>
+  const target = candidate.target as Partial<SemanticConnection['target']> | undefined
+  return typeof candidate.id === 'string'
+    && typeof candidate.score === 'number'
+    && Number.isFinite(candidate.score)
+    && Boolean(target)
+    && typeof target?.title === 'string'
+    && typeof target.path === 'string'
+    && typeof target.chunkId === 'string'
+    && typeof target.snippet === 'string'
 }
 
 function issueFromError(error: unknown): Exclude<LoadIssue, null> {
@@ -251,6 +271,7 @@ export default function SemanticConnectionsPanel({
   const [loadKey, setLoadKey] = useState(0)
   const [configOpen, setConfigOpen] = useState(false)
   const [sortMode, setSortMode] = useState<SemanticConnectionSortMode>('similarity')
+  const [activeRelFilters, setActiveRelFilters] = useState<ReadonlySet<string>>(() => new Set())
   const [topN, setTopN] = useState<number>(Infinity)
   const [pendingOpen, setPendingOpen] = useState<{ panelId: string; path: string; heading: string; chunkId: string } | null>(null)
   const requestRef = useRef(0)
@@ -379,13 +400,17 @@ export default function SemanticConnectionsPanel({
   const allRels = useMemo(() => getAllRels(result ?? emptyResult), [result])
   const hasTypedControls = allRels.length > 0
   const scopedConnections = useMemo(() => resultConnections(result ?? emptyResult, activeChunkId), [activeChunkId, result])
+  const filteredConnections = useMemo(() => {
+    if (!hasTypedControls || activeRelFilters.size === 0) return scopedConnections
+    return scopedConnections.filter((connection) => connection.rel && activeRelFilters.has(connection.rel))
+  }, [activeRelFilters, hasTypedControls, scopedConnections])
   const sortedConnections = useMemo(() => (
-    arrangeForDisplay(scopedConnections, hasTypedControls ? sortMode : 'similarity')
-  ), [hasTypedControls, scopedConnections, sortMode])
+    arrangeForDisplay(filteredConnections, hasTypedControls ? sortMode : 'similarity')
+  ), [filteredConnections, hasTypedControls, sortMode])
   const limit = displayLimit(topN, sortedConnections.length)
   const visibleConnections = sortedConnections.slice(0, limit)
   const hiddenCount = Math.max(0, sortedConnections.length - visibleConnections.length)
-  const configActive = topN !== Infinity
+  const configActive = topN !== Infinity || activeRelFilters.size > 0
   const sliderValue = topN === Infinity ? String(Math.max(1, sortedConnections.length)) : String(displayLimit(topN, sortedConnections.length))
 
   useEffect(() => {
@@ -393,19 +418,34 @@ export default function SemanticConnectionsPanel({
   }, [sortedConnections.length, topN])
 
   useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') usePreviewSelectionStore.getState().clearSelection()
-    }
-    window.addEventListener('keydown', handleEscape, true)
-    window.addEventListener('keyup', handleEscape, true)
-    document.addEventListener('keydown', handleEscape, true)
-    document.addEventListener('keyup', handleEscape, true)
+    setActiveRelFilters((current) => {
+      const allowed = new Set<string>(allRels)
+      const next = new Set([...current].filter((rel) => allowed.has(rel)))
+      return next.size === current.size ? current : next
+    })
+  }, [allRels])
+
+  const toggleConfig = useCallback(() => setConfigOpen((value) => !value), [])
+
+  useEffect(() => {
+    useSemanticConnectionsChromeStore.getState().setPanelChrome(panelId, {
+      connectionCount: scopedConnections.length,
+      configOpen,
+      configActive,
+      toggleConfig,
+    })
     return () => {
-      window.removeEventListener('keydown', handleEscape, true)
-      window.removeEventListener('keyup', handleEscape, true)
-      document.removeEventListener('keydown', handleEscape, true)
-      document.removeEventListener('keyup', handleEscape, true)
+      useSemanticConnectionsChromeStore.getState().clearPanelChrome(panelId)
     }
+  }, [configActive, configOpen, panelId, scopedConnections.length, toggleConfig])
+
+  const toggleRelFilter = useCallback((rel: string) => {
+    setActiveRelFilters((current) => {
+      const next = new Set(current)
+      if (next.has(rel)) next.delete(rel)
+      else next.add(rel)
+      return next
+    })
   }, [])
 
   return (
@@ -430,20 +470,6 @@ export default function SemanticConnectionsPanel({
         >
           {activeChunkId ? 'One section selected' : 'Whole document'}
         </button>
-        <span className="ml-auto rounded border border-subtle px-1.5 py-0.5 text-[11px] text-muted">
-          {countLabel(scopedConnections.length)}
-        </span>
-        <button
-          type="button"
-          className="rounded border border-subtle px-2 py-1 text-[11px] text-secondary hover:bg-hover hover:text-primary"
-          aria-label="Configure semantic connections"
-          onClick={() => setConfigOpen((value) => !value)}
-        >
-          Config
-        </button>
-        <span data-testid="semantic-config-indicator" className="text-[11px] text-muted">
-          {configActive ? 'Active' : 'Default'}
-        </span>
       </div>
 
       {precondition === 'no-editor' && (
@@ -503,9 +529,15 @@ export default function SemanticConnectionsPanel({
                       <p className="text-xs font-medium text-primary">Nature filters</p>
                       <div className="flex flex-wrap gap-1">
                         {allRels.map((rel) => (
-                          <span key={rel} className="rounded border border-subtle px-2 py-0.5 text-[11px] text-secondary">
+                          <button
+                            key={rel}
+                            type="button"
+                            aria-pressed={activeRelFilters.has(rel)}
+                            className={`rounded border px-2 py-0.5 text-[11px] ${activeRelFilters.has(rel) ? 'border-teal-400/50 text-teal-100' : 'border-subtle text-secondary'}`}
+                            onClick={() => toggleRelFilter(rel)}
+                          >
                             {scEdgeLabel(rel)}
-                          </span>
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -568,7 +600,7 @@ export default function SemanticConnectionsPanel({
               )}
               {hiddenCount > 0 && (
                 <p className="shrink-0 text-xs text-muted">
-                  {hiddenCount} additional {hiddenCount === 1 ? 'connection' : 'connections'} hidden by Top-N
+                  {hiddenCount} additional {hiddenCount === 1 ? 'connection' : 'connections'} hidden by {activeRelFilters.size > 0 ? 'filters or Top-N' : 'Top-N'}
                 </p>
               )}
               <div className="flex min-h-0 flex-col gap-3">

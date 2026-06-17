@@ -50,6 +50,7 @@ export interface SemanticConnectionsMappingInput {
 export interface SemanticConnectionsMappingResult {
   chunkOrder: string[]
   chunkMap: Record<string, SemanticConnectionsTargetMapEntry>
+  chunkMapByFlashQueryId: Record<string, SemanticConnectionsTargetMapEntry>
   diagnostics: string[]
 }
 
@@ -133,6 +134,7 @@ export function mapFlashQueryChunksToPreview(input: SemanticConnectionsMappingIn
   const previewHeadings = previewHeadingsFromMarkdown(input.markdown)
   const usedPreviewIds = new Set<string>()
   const chunkMap: Record<string, SemanticConnectionsTargetMapEntry> = {}
+  const chunkMapByFlashQueryId: Record<string, SemanticConnectionsTargetMapEntry> = {}
   const diagnostics: string[] = []
 
   for (const target of input.targets) {
@@ -145,12 +147,15 @@ export function mapFlashQueryChunksToPreview(input: SemanticConnectionsMappingIn
         + `${target.headingPath?.length ? ` at ${target.headingPath.join(' > ')}` : ''}`,
       )
     }
-    chunkMap[target.flashqueryChunkId] = mappingEntry(target, previewHeading)
+    const entry = mappingEntry(target, previewHeading)
+    chunkMapByFlashQueryId[target.flashqueryChunkId] = entry
+    if (entry.previewChunkId) chunkMap[entry.previewChunkId] = entry
   }
 
   return {
     chunkOrder: previewHeadings.map((heading) => heading.previewChunkId),
     chunkMap,
+    chunkMapByFlashQueryId,
     diagnostics,
   }
 }
@@ -191,7 +196,7 @@ export function buildSemanticConnectionsResult(input: BuildSemanticConnectionsRe
   const overall: SemanticConnection[] = []
 
   for (const connection of input.connections) {
-    const entry = mapping.chunkMap[connection.target.flashqueryChunkId]
+    const entry = mapping.chunkMapByFlashQueryId[connection.target.flashqueryChunkId]
     if (!entry) continue
     const panelConnection = toPanelConnection(connection, entry)
     overall.push(panelConnection)
@@ -215,7 +220,9 @@ function cacheKey(input: SemanticConnectionsProviderInput): string {
     input.workspaceId,
     input.editorPanelId,
     input.documentPath,
+    input.documentId ?? '',
     input.contentHash ?? input.markdown,
+    input.embeddingNames?.join(',') ?? '',
   ].join('\u001f')
 }
 

@@ -74,9 +74,12 @@ export interface SemanticConnectionsResult {
 export interface SemanticConnectionsProviderInput {
   workspaceId: string
   editorPanelId: string
+  documentId?: string
   documentPath: string
   markdown: string
   contentHash?: string
+  embeddingNames?: string[]
+  /** Optional UI scope hint; providers may ignore it and return document-wide results. */
   scopeChunkId?: string | null
 }
 
