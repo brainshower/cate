@@ -28,6 +28,7 @@ vi.mock('monaco-editor', () => {
   }
   type MockEditor = {
     model: MockModel | null
+    position: { lineNumber: number; column: number }
     focusListeners: Listener[]
     changeListeners: Listener[]
     decorationCollections: Array<{
@@ -36,6 +37,7 @@ vi.mock('monaco-editor', () => {
     }>
     getValue: () => string
     getModel: () => MockModel | null
+    getPosition: () => { lineNumber: number; column: number }
     setModel: (model: MockModel) => void
     onDidFocusEditorText: (listener: Listener) => { dispose: () => void }
     onDidChangeModelContent: (listener: Listener) => { dispose: () => void }
@@ -76,11 +78,13 @@ vi.mock('monaco-editor', () => {
   const makeEditor = (): MockEditor => {
     const editor: MockEditor = {
       model: null,
+      position: { lineNumber: 1, column: 1 },
       focusListeners: [],
       changeListeners: [],
       decorationCollections: [],
       getValue: () => editor.model?.getValue() ?? '',
       getModel: () => editor.model,
+      getPosition: () => editor.position,
       setModel: (model) => { editor.model = model },
       onDidFocusEditorText: (listener) => {
         editor.focusListeners.push(listener)
@@ -99,7 +103,7 @@ vi.mock('monaco-editor', () => {
         return collection
       }),
       revealLineInCenter: vi.fn(),
-      setPosition: vi.fn(),
+      setPosition: vi.fn((position) => { editor.position = position }),
       focus: vi.fn(),
       updateOptions: vi.fn(),
       layout: vi.fn(),
@@ -863,6 +867,45 @@ describe('EditorPanel FlashQuery URI routing', () => {
         .toContain('cate-preview-chunk-pinned')
     })
     expect(dispatchSpy).not.toHaveBeenCalledWith(expect.objectContaining({ type: `preview-section${'-select'}` }))
+  })
+
+  it('keeps the current source section visible when switching from source to preview', async () => {
+    const scrollIntoView = vi.fn()
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoView,
+    })
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: '# Intro\n\nIntro body\n\n## Target Section\n\nTarget body',
+    })
+    setElectronApi(api)
+
+    await renderEditor('flashquery://workspace-1/Docs/Source-To-Preview.md')
+    monacoMock().latestEditor().setPosition({ lineNumber: 7, column: 1 })
+    fireEvent.click(screen.getByTitle('Preview markdown'))
+
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' }))
+    expect(usePreviewSelectionStore.getState().getScope(panelId).pinnedChunkId).toBe('target-section')
+  })
+
+  it('reveals the selected preview section when switching back to source', async () => {
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: '# First Section\n\nFirst body\n\n## Second Section\n\nSecond body',
+    })
+    setElectronApi(api)
+
+    await renderEditor('flashquery://workspace-1/Docs/Preview-To-Source.md')
+    fireEvent.click(screen.getByTitle('Preview markdown'))
+    await screen.findByText('Second body')
+    act(() => usePreviewSelectionStore.getState().selectSection('second-section', panelId))
+
+    fireEvent.click(screen.getByTitle('Show source'))
+
+    expect(monacoMock().latestEditor().revealLineInCenter).toHaveBeenCalledWith(5)
+    expect(monacoMock().latestEditor().setPosition).toHaveBeenCalledWith({ lineNumber: 5, column: 1 })
+    expect(monacoMock().latestEditor().focus).toHaveBeenCalled()
   })
 
   it('T-I-024 and T-I-026 preview scroll can target duplicate heading occurrences by suffix id', async () => {

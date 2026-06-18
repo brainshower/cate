@@ -737,13 +737,17 @@ describe('SemanticConnectionsPanel', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Open Created Details' }))
 
-    expect(createEditor).toHaveBeenCalledWith('workspace-1', '/workspace/Created.md', { sourceEditorPanelId: 'editor-1' })
+    expect(createEditor).toHaveBeenCalledWith('workspace-1', '/workspace/Created.md', {
+      sourceEditorPanelId: 'editor-1',
+      markdownPreview: true,
+    })
     expect(takePendingReveal('created-editor')).toEqual({ headingText: 'Details' })
-    expect(setPanelMarkdownPreview).not.toHaveBeenCalled()
+    expect(setPanelMarkdownPreview).toHaveBeenCalledWith('workspace-1', 'created-editor', true)
     expect(getActiveEditorSnapshot('workspace-1').panelId).toBe('editor-1')
   })
 
   it('REQ-036 opens unregistered cross-document targets in the center dock by default', async () => {
+    const setPanelMarkdownPreview = vi.fn()
     readyEditor('/workspace/Plan.md')
     render(
       <SemanticConnectionsPanel
@@ -751,6 +755,7 @@ describe('SemanticConnectionsPanel', () => {
         workspaceId="workspace-1"
         sourceEditorPanelId="editor-1"
         sourceFilePath="/workspace/Plan.md"
+        setEditorPreviewForOpen={setPanelMarkdownPreview}
         provider={provider({
           ...embeddingsOnlyResult,
           overall: [{
@@ -777,6 +782,7 @@ describe('SemanticConnectionsPanel', () => {
         zone: 'center',
       })
     })
+    expect(setPanelMarkdownPreview).toHaveBeenCalledWith('workspace-1', 'opened-panel', true)
     expect(takePendingReveal('opened-panel')).toEqual({ headingText: 'Details' })
   })
 

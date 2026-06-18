@@ -40,7 +40,7 @@ export interface SemanticConnectionsPanelProps extends PanelProps {
   sourceEditorPanelId?: string
   sourceFilePath?: string
   provider?: SemanticConnectionsProvider
-  createEditorForOpen?: (workspaceId: string, filePath: string, options?: { sourceEditorPanelId?: string }) => string
+  createEditorForOpen?: (workspaceId: string, filePath: string, options?: { sourceEditorPanelId?: string; markdownPreview?: boolean }) => string
   setEditorPreviewForOpen?: (workspaceId: string, panelId: string, preview: boolean) => void
 }
 

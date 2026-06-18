@@ -461,7 +461,7 @@ function MainApp() {
   // ---------------------------------------------------------------------------
   // Render panel content (used both in dock zones and inside canvas nodes)
   // ---------------------------------------------------------------------------
-  const createEditorForOpen = useCallback((workspaceId: string, filePath: string, options?: { sourceEditorPanelId?: string }): string => {
+  const createEditorForOpen = useCallback((workspaceId: string, filePath: string, options?: { sourceEditorPanelId?: string; markdownPreview?: boolean }): string => {
     let placement: PanelPlacement = { target: 'dock', zone: 'center' }
     const sourcePanelId = options?.sourceEditorPanelId
     const candidateStores = [
@@ -485,7 +485,13 @@ function MainApp() {
         break
       }
     }
-    return useAppStore.getState().createEditor(workspaceId, filePath, undefined, placement)
+    const panelId = useAppStore.getState().createEditor(workspaceId, filePath, undefined, placement)
+    if (options?.markdownPreview) useAppStore.getState().setPanelMarkdownPreview(workspaceId, panelId, true)
+    return panelId
+  }, [])
+
+  const setEditorPreviewForOpen = useCallback((workspaceId: string, panelId: string, preview: boolean) => {
+    useAppStore.getState().setPanelMarkdownPreview(workspaceId, panelId, preview)
   }, [])
 
   const renderPanelContent = useCallback(
@@ -499,6 +505,7 @@ function MainApp() {
 
       const content = renderPanelComponent(panel, { workspaceId: selectedWorkspaceId, nodeId, zoomLevel: zoom }, {
         createEditorForOpen,
+        setEditorPreviewForOpen,
       })
       if (!content) return null
 
@@ -508,7 +515,7 @@ function MainApp() {
         </Suspense>
       )
     },
-    [currentWorkspace, selectedWorkspaceId, createEditorForOpen],
+    [currentWorkspace, selectedWorkspaceId, createEditorForOpen, setEditorPreviewForOpen],
   )
 
   /** Render a panel for use inside a dock zone (no canvas node wrapper) */

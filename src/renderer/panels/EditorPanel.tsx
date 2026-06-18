@@ -70,6 +70,45 @@ if (typeof window !== 'undefined') {
   )
 }
 
+interface PendingPreviewScroll {
+  headingText: string
+  occurrenceIndex: number
+}
+
+function headingOccurrenceIndex(headings: readonly { text: string }[], targetIndex: number): number {
+  const target = headings[targetIndex]
+  if (!target) return 0
+  let occurrence = 0
+  for (let index = 0; index < targetIndex; index++) {
+    if (headings[index].text === target.text) occurrence++
+  }
+  return occurrence
+}
+
+function headingForSourceLine(model: { getLineCount: () => number; getLineContent: (lineNumber: number) => string } | null, lineNumber: number): PendingPreviewScroll | null {
+  if (!model || lineNumber < 1) return null
+  const headings = parseDocumentHeadings(model, 6)
+  let targetIndex = -1
+  for (let index = 0; index < headings.length; index++) {
+    if (headings[index].line > lineNumber) break
+    targetIndex = index
+  }
+  if (targetIndex < 0) return null
+  return {
+    headingText: headings[targetIndex].text,
+    occurrenceIndex: headingOccurrenceIndex(headings, targetIndex),
+  }
+}
+
+function headingLineForPreviewChunk(model: { getLineCount: () => number; getLineContent: (lineNumber: number) => string } | null, chunkId: string | null): number | null {
+  if (!model || !chunkId) return null
+  const nextChunkId = createHeadingIdTracker()
+  for (const heading of parseDocumentHeadings(model, 6)) {
+    if (nextChunkId(heading.text) === chunkId) return heading.line
+  }
+  return null
+}
+
 function createMonacoWorker(url: URL, label: string): Worker {
   return new Worker(url, {
     type: 'module',
@@ -372,6 +411,7 @@ export default function EditorPanel({
   const outlineHighlightDecorationsRef = useRef<monaco.editor.IEditorDecorationsCollection | null>(null)
   const outlineHighlightTimerRef = useRef<number | null>(null)
   const outlineHighlightApplyTimerRef = useRef<number | null>(null)
+  const pendingPreviewScrollRef = useRef<PendingPreviewScroll | null>(null)
   const markdownPreviewActiveRef = useRef(false)
   const isDirtyRef = useRef(false)
   const filePathRef = useRef(filePath)
@@ -422,7 +462,7 @@ export default function EditorPanel({
       ?? headings.find((element) => element.id === baseId || element.id.startsWith(`${baseId}-`))
     if (!heading) return
 
-    heading.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    heading.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
     const chunkId = heading.closest<HTMLElement>('[data-chunk-id]')?.dataset.chunkId
     if (chunkId) usePreviewSelectionStore.getState().selectSection(chunkId, panelId)
   }, [panelId])
@@ -434,6 +474,34 @@ export default function EditorPanel({
     const heading = headings[occurrenceIndex] ?? null
     return heading?.closest<HTMLElement>('[data-chunk-id]')?.dataset.chunkId ?? null
   }, [])
+  const revealSourceHeadingForChunk = useCallback((chunkId: string | null): boolean => {
+    const editor = editorRef.current
+    const model = editor?.getModel()
+    if (!editor || !model || model.isDisposed()) return false
+    const line = headingLineForPreviewChunk(model, chunkId)
+    if (!line) return false
+    editor.revealLineInCenter(line)
+    editor.setPosition({ lineNumber: line, column: 1 })
+    editor.focus()
+    return true
+  }, [])
+  const toggleMarkdownPreview = useCallback(() => {
+    if (!markdownPreview) {
+      const editor = editorRef.current
+      const model = editor?.getModel()
+      const lineNumber = editor?.getPosition?.()?.lineNumber ?? 1
+      pendingPreviewScrollRef.current = model && !model.isDisposed() && lineNumber > 1
+        ? headingForSourceLine(model, lineNumber)
+        : null
+      setMarkdownPreview(true)
+      return
+    }
+
+    const scope = usePreviewSelectionStore.getState().getScope(panelId)
+    const selectedChunkId = scope.pinnedChunkId ?? scope.activeChunkId
+    setMarkdownPreview(false)
+    revealSourceHeadingForChunk(selectedChunkId)
+  }, [markdownPreview, panelId, revealSourceHeadingForChunk, setMarkdownPreview])
   const highlightSourceLine = useCallback((lineNumber: number) => {
     const editor = editorRef.current
     const model = editor?.getModel()
@@ -839,9 +907,20 @@ export default function EditorPanel({
       if (!reveal) return
       try {
         const model = editor.getModel()
-        const headingLine = reveal.headingText && model && !model.isDisposed()
-          ? parseDocumentHeadings(model, 6).find((heading) => heading.text === reveal.headingText)?.line
-          : undefined
+        const headings = reveal.headingText && model && !model.isDisposed()
+          ? parseDocumentHeadings(model, 6)
+          : []
+        const headingIndex = reveal.headingText
+          ? headings.findIndex((heading) => heading.text === reveal.headingText)
+          : -1
+        if (headingIndex >= 0 && markdownPreviewActiveRef.current) {
+          pendingPreviewScrollRef.current = {
+            headingText: headings[headingIndex].text,
+            occurrenceIndex: headingOccurrenceIndex(headings, headingIndex),
+          }
+          return
+        }
+        const headingLine = headingIndex >= 0 ? headings[headingIndex].line : undefined
         const line = headingLine ?? reveal.line
         if (!line) return
         editor.revealLineInCenter(line)
@@ -872,6 +951,7 @@ export default function EditorPanel({
         retainModel(filePath)
         modelRetained = true
         editor.setModel(cached)
+        if (markdownPreviewActiveRef.current) setMarkdownContent(cached.getValue())
         updateActiveEditorModel(workspaceId, panelId)
         applyPendingReveal()
       } else {
@@ -897,6 +977,7 @@ export default function EditorPanel({
             retainModel(filePath)
             modelRetained = true
             editor.setModel(model)
+            if (markdownPreviewActiveRef.current) setMarkdownContent(model.getValue())
             updateActiveEditorModel(workspaceId, panelId)
             applyPendingReveal()
           })
@@ -1051,6 +1132,14 @@ export default function EditorPanel({
   }, [markdownPreview, isMarkdown, filePath])
 
   useEffect(() => {
+    if (!markdownPreview || !isMarkdown || !markdownContent) return
+    const pending = pendingPreviewScrollRef.current
+    if (!pending) return
+    pendingPreviewScrollRef.current = null
+    scrollPreviewToHeading(pending.headingText, pending.occurrenceIndex)
+  }, [isMarkdown, markdownContent, markdownPreview, scrollPreviewToHeading])
+
+  useEffect(() => {
     updateActiveEditorPreview(workspaceId, panelId, {
       markdownPreview: markdownPreview && isMarkdown,
       filePath,
@@ -1106,7 +1195,7 @@ export default function EditorPanel({
           </button>
           {isMarkdown && (
             <button
-              onClick={() => setMarkdownPreview(!markdownPreview)}
+              onClick={toggleMarkdownPreview}
               className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
                 markdownPreview
                   ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'

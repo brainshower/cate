@@ -155,8 +155,11 @@ export default function PanelWindowShell({ panelType, panelId, workspaceId }: Pa
     window.close()
   }, [])
 
-  const createEditorForOpen = useCallback((targetWorkspaceId: string, filePath: string): string => {
-    const editorPanel = createEditorPanelState(filePath)
+  const createEditorForOpen = useCallback((targetWorkspaceId: string, filePath: string, options?: { sourceEditorPanelId?: string; markdownPreview?: boolean }): string => {
+    const editorPanel = {
+      ...createEditorPanelState(filePath),
+      ...(options?.markdownPreview ? { markdownPreview: true } : {}),
+    }
     const snapshot = createTransferSnapshot(
       editorPanel,
       { type: 'dock', zone: 'center', stackId: 'detached-open' },
@@ -170,6 +173,11 @@ export default function PanelWindowShell({ panelType, panelId, workspaceId }: Pa
     }
     return editorPanel.id
   }, [workspaceId])
+
+  const setEditorPreviewForOpen = useCallback((_targetWorkspaceId: string, _panelId: string, _preview: boolean) => {
+    // Detached windows create a new transferred editor snapshot in createEditorForOpen.
+    // The snapshot already carries markdownPreview when requested.
+  }, [])
 
   /** Double-click title bar → dock panel back into main window */
   const handleTitleDoubleClick = useCallback(() => {
@@ -251,7 +259,12 @@ export default function PanelWindowShell({ panelType, panelId, workspaceId }: Pa
       {/* Panel content */}
       <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
         <Suspense fallback={<div className="w-full h-full bg-surface-4 flex items-center justify-center text-muted text-sm">Loading...</div>}>
-          <PanelContent panel={displayPanel} workspaceId={workspaceId ?? ''} createEditorForOpen={createEditorForOpen} />
+          <PanelContent
+            panel={displayPanel}
+            workspaceId={workspaceId ?? ''}
+            createEditorForOpen={createEditorForOpen}
+            setEditorPreviewForOpen={setEditorPreviewForOpen}
+          />
         </Suspense>
       </div>
     </div>
@@ -266,12 +279,14 @@ function PanelContent({
   panel,
   workspaceId,
   createEditorForOpen,
+  setEditorPreviewForOpen,
 }: {
   panel: PanelState
   workspaceId: string
-  createEditorForOpen: (workspaceId: string, filePath: string, options?: { sourceEditorPanelId?: string }) => string
+  createEditorForOpen: (workspaceId: string, filePath: string, options?: { sourceEditorPanelId?: string; markdownPreview?: boolean }) => string
+  setEditorPreviewForOpen: (workspaceId: string, panelId: string, preview: boolean) => void
 }) {
-  const content = renderPanelComponent(panel, { workspaceId, nodeId: '' }, { createEditorForOpen })
+  const content = renderPanelComponent(panel, { workspaceId, nodeId: '' }, { createEditorForOpen, setEditorPreviewForOpen })
   if (!content) return <div className="w-full h-full flex items-center justify-center text-muted">Unknown panel type</div>
   return content
 }

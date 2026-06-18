@@ -272,8 +272,11 @@ export default function DockWindowShell({ workspaceId: initialWorkspaceId }: Doc
   }, [dockStore, panels])
 
   // Render panel content inside canvas nodes (used by CanvasPanel's renderPanelContent)
-  const createEditorForOpen = useCallback((_: string, filePath: string, options?: { sourceEditorPanelId?: string }): string => {
-    const panel = createEditorPanelState(filePath)
+  const createEditorForOpen = useCallback((_: string, filePath: string, options?: { sourceEditorPanelId?: string; markdownPreview?: boolean }): string => {
+    const panel = {
+      ...createEditorPanelState(filePath),
+      ...(options?.markdownPreview ? { markdownPreview: true } : {}),
+    }
     setPanels((prev) => {
       const next = { ...prev, [panel.id]: panel }
       panelsRef.current = next
@@ -299,6 +302,16 @@ export default function DockWindowShell({ workspaceId: initialWorkspaceId }: Doc
     return panel.id
   }, [dockStore])
 
+  const setEditorPreviewForOpen = useCallback((_: string, panelId: string, preview: boolean) => {
+    setPanels((prev) => {
+      const panel = prev[panelId]
+      if (!panel || panel.type !== 'editor') return prev
+      const next = { ...prev, [panelId]: { ...panel, markdownPreview: preview } }
+      panelsRef.current = next
+      return next
+    })
+  }, [])
+
   const renderPanelContent = useCallback(
     (panelId: string, nodeId: string, zoom: number) => {
       const panel = panels[panelId]
@@ -306,6 +319,7 @@ export default function DockWindowShell({ workspaceId: initialWorkspaceId }: Doc
 
       const content = renderPanelComponent(panel, { workspaceId: wsId, nodeId, zoomLevel: zoom }, {
         createEditorForOpen,
+        setEditorPreviewForOpen,
       })
       if (!content) return null
 
@@ -315,7 +329,7 @@ export default function DockWindowShell({ workspaceId: initialWorkspaceId }: Doc
         </Suspense>
       )
     },
-    [panels, wsId, createEditorForOpen],
+    [panels, wsId, createEditorForOpen, setEditorPreviewForOpen],
   )
 
   // Render panel content for dock zones

@@ -307,6 +307,7 @@ export default function SemanticConnectionsPanel({
   sourceFilePath,
   provider = defaultProvider,
   createEditorForOpen,
+  setEditorPreviewForOpen,
 }: SemanticConnectionsPanelProps) {
   const [snapshot, setSnapshot] = useState<ActiveEditorSnapshot>(() =>
     sourceEditorPanelId ? getEditorSnapshotForPanel(workspaceId, sourceEditorPanelId) : getActiveEditorSnapshot(workspaceId),
@@ -377,14 +378,19 @@ export default function SemanticConnectionsPanel({
 
     const sourcePanelId = snapshot.panelId ?? sourceEditorPanelId
     if (createEditorForOpen) {
-      const targetPanelId = createEditorForOpen(workspaceId, editorPath, { sourceEditorPanelId: sourcePanelId ?? undefined })
+      const targetPanelId = createEditorForOpen(workspaceId, editorPath, {
+        sourceEditorPanelId: sourcePanelId ?? undefined,
+        markdownPreview: true,
+      })
+      setEditorPreviewForOpen?.(workspaceId, targetPanelId, true)
       setPendingReveal(targetPanelId, { headingText: heading })
       return
     }
 
     const targetPanelId = openFileAsPanel(workspaceId, editorPath, undefined, { target: 'dock', zone: 'center' })
+    setEditorPreviewForOpen?.(workspaceId, targetPanelId, true)
     setPendingReveal(targetPanelId, { headingText: heading })
-  }, [createEditorForOpen, documentPath, openRegisteredPreview, selectionScopeId, snapshot, sourceEditorPanelId, workspaceId])
+  }, [createEditorForOpen, documentPath, openRegisteredPreview, selectionScopeId, setEditorPreviewForOpen, snapshot, sourceEditorPanelId, workspaceId])
 
   useEffect(() => {
     if (precondition || !snapshot.panelId || !documentPath) return
