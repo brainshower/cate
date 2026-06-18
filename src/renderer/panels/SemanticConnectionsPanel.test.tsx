@@ -21,6 +21,7 @@ import {
 import { clearPreviewSelectionForTests, usePreviewSelectionStore } from '../stores/previewSelectionStore'
 import { clearSemanticConnectionsChromeForTests, useSemanticConnectionsChromeStore } from '../stores/semanticConnectionsChromeStore'
 import type { SemanticConnectionsProvider, SemanticConnectionsResult } from '../lib/semanticConnections'
+import { takePendingReveal } from '../lib/editorReveal'
 import SemanticConnectionsPanel from './SemanticConnectionsPanel'
 
 function model(text: string): ActiveEditorModelLike {
@@ -168,6 +169,8 @@ describe('SemanticConnectionsPanel', () => {
     expect(screen.getByText('Beta Plan')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Show whole document semantic connections' }).textContent).toBe('Whole Document')
     expect((screen.getByRole('button', { name: 'Show selected section semantic connections' }) as HTMLButtonElement).disabled).toBe(true)
+    const configButton = screen.getByRole('button', { name: 'Configure semantic connections' })
+    expect(configButton.compareDocumentPosition(screen.getByLabelText('Connection count: 2 connections')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(screen.getByLabelText('Connection count: 2 connections').textContent).toBe('2')
     expect(screen.queryByText('Docs/Alpha.md')).toBeNull()
     await waitFor(() => expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.connectionCount).toBe(2))
@@ -225,13 +228,18 @@ describe('SemanticConnectionsPanel', () => {
     renderPanel(embeddingsOnlyResult)
 
     expect(await screen.findByText('Showing all 2 connections')).toBeTruthy()
+    const configButton = screen.getByRole('button', { name: 'Configure semantic connections' })
+    expect(configButton.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByTestId('semantic-config-indicator')).toBeNull()
     expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.configActive).toBe(false)
 
-    act(() => useSemanticConnectionsChromeStore.getState().panels['sc-1']?.toggleConfig())
+    fireEvent.click(configButton)
+    expect(configButton.getAttribute('aria-expanded')).toBe('true')
     fireEvent.change(screen.getByLabelText('Top N connections'), { target: { value: '1' } })
 
     expect(screen.getByText('Showing 1 of 2 connections')).toBeTruthy()
     expect(screen.getByText('1 additional connection hidden by Top-N')).toBeTruthy()
+    expect(screen.getByTestId('semantic-config-indicator')).toBeTruthy()
     expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.configActive).toBe(true)
 
     fireEvent.change(screen.getByLabelText('Top N connections'), { target: { value: '2' } })
@@ -251,6 +259,36 @@ describe('SemanticConnectionsPanel', () => {
     expect(within(card).queryByText('The launch checklist keeps adapter rollout narrow.')).toBeNull()
     expect(within(card).getByText('It also records the fallback state.', { exact: false })).toBeTruthy()
     expect(within(card).getAllByText('The launch checklist keeps adapter rollout narrow.', { exact: false })).toHaveLength(1)
+  })
+
+  it('renders connection snippets and expanded bodies as plain text without Markdown syntax', async () => {
+    renderPanel({
+      ...embeddingsOnlyResult,
+      overall: [{
+        ...embeddingsOnlyResult.overall[0],
+        id: 'markdown-text',
+        target: {
+          ...embeddingsOnlyResult.overall[0].target,
+          snippet: 'See **bold** [reference](https://example.com) and `code`.',
+          body: [
+            '## Heading',
+            '',
+            '- First **item** with [link](https://example.com)',
+            '- Second `item`',
+          ].join('\n'),
+        },
+      }],
+    })
+
+    const card = await screen.findByTestId('semantic-connection-card-markdown-text')
+    expect(within(card).getByText('See bold reference and code.')).toBeTruthy()
+    expect(within(card).queryByText(/https:\/\/example\.com/)).toBeNull()
+    expect(within(card).queryByText(/\*\*/)).toBeNull()
+
+    fireEvent.click(within(card).getByRole('button', { name: 'Expand Alpha Notes Launch checklist' }))
+
+    expect(within(card).getByText('Heading First item with link Second item')).toBeTruthy()
+    expect(within(card).queryByText(/`item`/)).toBeNull()
   })
 
   it('T-I-013 exposes cosine tooltip equivalents without visible score text', async () => {
@@ -625,6 +663,48 @@ describe('SemanticConnectionsPanel', () => {
     expect(usePreviewSelectionStore.getState().getScope('editor-target').pinnedChunkId).toBe('details')
   })
 
+  it('REQ-036 reveals a cross-document target heading in an already registered source editor', async () => {
+    const targetEditor = editor(model('# Target\n\n## Details\n\nBody'))
+    readyEditor('/workspace/Plan.md')
+    act(() => {
+      registerActiveEditor('workspace-1', 'editor-target', targetEditor)
+      updateActiveEditorPreview('workspace-1', 'editor-target', {
+        markdownPreview: false,
+        filePath: '/workspace/Target.md',
+      })
+      registerActiveEditor('workspace-1', 'editor-1', editor(model('# Plan')))
+    })
+    render(
+      <SemanticConnectionsPanel
+        panelId="sc-1"
+        workspaceId="workspace-1"
+        sourceEditorPanelId="editor-1"
+        sourceFilePath="/workspace/Plan.md"
+        provider={provider({
+          ...embeddingsOnlyResult,
+          overall: [{
+            ...embeddingsOnlyResult.overall[0],
+            id: 'cross-source-doc',
+            target: {
+              ...embeddingsOnlyResult.overall[0].target,
+              title: 'Target',
+              path: '/workspace/Target.md',
+              heading: 'Details',
+              chunkId: 'details',
+              inDocument: false,
+            },
+          }],
+        })}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Open Target Details' }))
+
+    expect(targetEditor.revealLineInCenter).toHaveBeenCalledWith(3)
+    expect(targetEditor.setPosition).toHaveBeenCalledWith({ lineNumber: 3, column: 1 })
+    expect(targetEditor.focus).toHaveBeenCalled()
+  })
+
   it('REQ-036 creates an editor for cross-document targets when no registered editor is available', async () => {
     const createEditor = vi.fn().mockReturnValue('created-editor')
     const setPanelMarkdownPreview = vi.fn()
@@ -658,6 +738,7 @@ describe('SemanticConnectionsPanel', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Open Created Details' }))
 
     expect(createEditor).toHaveBeenCalledWith('workspace-1', '/workspace/Created.md', { sourceEditorPanelId: 'editor-1' })
+    expect(takePendingReveal('created-editor')).toEqual({ headingText: 'Details' })
     expect(setPanelMarkdownPreview).not.toHaveBeenCalled()
     expect(getActiveEditorSnapshot('workspace-1').panelId).toBe('editor-1')
   })
@@ -696,6 +777,7 @@ describe('SemanticConnectionsPanel', () => {
         zone: 'center',
       })
     })
+    expect(takePendingReveal('opened-panel')).toEqual({ headingText: 'Details' })
   })
 
   it('REQ-036 disables Open when target path, heading, or chunk metadata is incomplete', async () => {

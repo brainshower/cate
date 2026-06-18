@@ -10,9 +10,11 @@
 
 export interface EditorReveal {
   /** 1-based line to reveal. */
-  line: number
+  line?: number
   /** 1-based column; defaults to 1 when consumed. */
   column?: number
+  /** Markdown heading text to resolve to a line after the target model loads. */
+  headingText?: string
 }
 
 const pending = new Map<string, EditorReveal>()

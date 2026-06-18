@@ -832,14 +832,20 @@ export default function EditorPanel({
     editorRef.current = editor
     registerActiveEditor(workspaceId, panelId, editor)
 
-    // Jump to a line/column requested by a terminal file-link click (one-shot).
-    // Runs after the model is set so the reveal targets real content.
+    // Jump to a line/column or Markdown heading requested by another panel
+    // (one-shot). Runs after the model is set so the reveal targets real content.
     const applyPendingReveal = () => {
       const reveal = takePendingReveal(panelId)
       if (!reveal) return
       try {
-        editor.revealLineInCenter(reveal.line)
-        editor.setPosition({ lineNumber: reveal.line, column: reveal.column ?? 1 })
+        const model = editor.getModel()
+        const headingLine = reveal.headingText && model && !model.isDisposed()
+          ? parseDocumentHeadings(model, 6).find((heading) => heading.text === reveal.headingText)?.line
+          : undefined
+        const line = headingLine ?? reveal.line
+        if (!line) return
+        editor.revealLineInCenter(line)
+        editor.setPosition({ lineNumber: line, column: reveal.column ?? 1 })
         editor.focus()
       } catch { /* ignore reveal failures (e.g. line beyond EOF) */ }
     }

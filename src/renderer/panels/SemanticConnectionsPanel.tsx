@@ -1,4 +1,4 @@
-import { ArrowSquareOut } from '@phosphor-icons/react'
+import { ArrowSquareOut, SlidersHorizontal } from '@phosphor-icons/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SemanticConnectionsPanelProps } from './types'
 import {
@@ -19,7 +19,9 @@ import {
   subscribeActiveEditor,
   type ActiveEditorSnapshot,
 } from '../lib/activeEditorRegistry'
+import { setPendingReveal } from '../lib/editorReveal'
 import { openFileAsPanel } from '../lib/fileRouting'
+import { parseDocumentHeadings } from '../lib/parseDocumentHeadings'
 import { usePreviewSelectionStore } from '../stores/previewSelectionStore'
 import { useSemanticConnectionsChromeStore } from '../stores/semanticConnectionsChromeStore'
 
@@ -121,6 +123,26 @@ function countLabel(count: number): string {
   return `${count} ${count === 1 ? 'connection' : 'connections'}`
 }
 
+function plainTextFromMarkdown(markdown: string): string {
+  return markdown
+    .replace(/\r\n?/g, '\n')
+    .replace(/```[\s\S]*?```/g, (block) => block.replace(/^```[^\n]*\n?|\n?```$/g, ' '))
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/\[([^\]]+)\]\[[^\]]*\]/g, '$1')
+    .replace(/<((?:https?|mailto):[^>]+)>/g, '$1')
+    .replace(/^\s{0,3}#{1,6}\s+/gm, '')
+    .replace(/^\s{0,3}>\s?/gm, '')
+    .replace(/^\s*[-*+]\s+/gm, '')
+    .replace(/^\s*\d+[.)]\s+/gm, '')
+    .replace(/^\s*[-*_]{3,}\s*$/gm, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/[*_~]+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function resultConnections(result: SemanticConnectionsResult, activeChunkId: string | null): readonly SemanticConnection[] {
   if (activeChunkId) return result.byChunkId[activeChunkId] ?? []
   return result.overall
@@ -140,6 +162,18 @@ function normalizeTopN(value: string, connectionCount: number): number {
 
 function hasOpenMetadata(connection: SemanticConnection): boolean {
   return Boolean(connection.target.path?.trim() && connection.target.heading?.trim() && connection.target.chunkId?.trim())
+}
+
+function revealHeadingInSourceEditor(snapshot: ActiveEditorSnapshot, heading: string): boolean {
+  const editor = snapshot.editor
+  const model = snapshot.model
+  if (!editor || !model) return false
+  const target = parseDocumentHeadings(model, 6).find((entry) => entry.text === heading)
+  if (!target) return false
+  editor.revealLineInCenter(target.line)
+  editor.setPosition({ lineNumber: target.line, column: 1 })
+  editor.focus()
+  return true
 }
 
 function isAbsoluteLocalPath(path: string): boolean {
@@ -212,6 +246,8 @@ function ConnectionCard({
   const expandLabel = `${expanded ? 'Collapse' : 'Expand'} ${connection.target.title}${heading ? ` ${heading}` : ''}`
   const openLabel = `Open ${connection.target.title}${heading ? ` ${heading}` : ''}`
   const openEnabled = hasOpenMetadata(connection)
+  const rawDisplayText = expanded && connection.target.body ? connection.target.body : connection.target.snippet
+  const displayText = plainTextFromMarkdown(rawDisplayText) || rawDisplayText
 
   return (
     <article
@@ -258,7 +294,7 @@ function ConnectionCard({
         </div>
       )}
       <p className="mt-3 text-sm leading-relaxed text-secondary">
-        {expanded && connection.target.body ? connection.target.body : connection.target.snippet}
+        {displayText}
       </p>
     </article>
   )
@@ -333,17 +369,21 @@ export default function SemanticConnectionsPanel({
 
     const registered = getEditorSnapshotForPath(workspaceId, editorPath)
     if (registered.panelId) {
-      if (!openRegisteredPreview(registered, heading, chunkId)) registered.editor?.focus()
+      if (!openRegisteredPreview(registered, heading, chunkId) && !revealHeadingInSourceEditor(registered, heading)) {
+        registered.editor?.focus()
+      }
       return
     }
 
     const sourcePanelId = snapshot.panelId ?? sourceEditorPanelId
     if (createEditorForOpen) {
-      createEditorForOpen(workspaceId, editorPath, { sourceEditorPanelId: sourcePanelId ?? undefined })
+      const targetPanelId = createEditorForOpen(workspaceId, editorPath, { sourceEditorPanelId: sourcePanelId ?? undefined })
+      setPendingReveal(targetPanelId, { headingText: heading })
       return
     }
 
-    openFileAsPanel(workspaceId, editorPath, undefined, { target: 'dock', zone: 'center' })
+    const targetPanelId = openFileAsPanel(workspaceId, editorPath, undefined, { target: 'dock', zone: 'center' })
+    setPendingReveal(targetPanelId, { headingText: heading })
   }, [createEditorForOpen, documentPath, openRegisteredPreview, selectionScopeId, snapshot, sourceEditorPanelId, workspaceId])
 
   useEffect(() => {
@@ -490,7 +530,23 @@ export default function SemanticConnectionsPanel({
         >
           Selection
         </button>
-        <span className="ml-auto font-mono text-sm font-semibold text-teal-200" aria-label={`Connection count: ${scopedCountLabel}`}>
+        <button
+          type="button"
+          className="relative ml-auto flex h-[22px] w-[22px] items-center justify-center rounded text-secondary hover:bg-hover hover:text-primary"
+          aria-label="Configure semantic connections"
+          aria-expanded={configOpen}
+          title="Configure semantic connections"
+          onClick={toggleConfig}
+        >
+          <SlidersHorizontal size={14} />
+          {configActive && (
+            <span
+              data-testid="semantic-config-indicator"
+              className="absolute right-0 top-0 h-1.5 w-1.5 rounded-full bg-teal-300"
+            />
+          )}
+        </button>
+        <span className="font-mono text-sm font-semibold text-teal-200" aria-label={`Connection count: ${scopedCountLabel}`}>
           {scopedConnections.length}
         </span>
       </div>

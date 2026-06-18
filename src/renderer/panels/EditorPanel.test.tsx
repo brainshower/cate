@@ -20,6 +20,7 @@ vi.mock('monaco-editor', () => {
     disposed: boolean
     getValue: () => string
     getLineCount: () => number
+    getLineContent: (lineNumber: number) => string
     getLineMaxColumn: (lineNumber: number) => number
     setValue: (value: string) => void
     isDisposed: () => boolean
@@ -39,6 +40,9 @@ vi.mock('monaco-editor', () => {
     onDidFocusEditorText: (listener: Listener) => { dispose: () => void }
     onDidChangeModelContent: (listener: Listener) => { dispose: () => void }
     createDecorationsCollection: ReturnType<typeof vi.fn>
+    revealLineInCenter: ReturnType<typeof vi.fn>
+    setPosition: ReturnType<typeof vi.fn>
+    focus: ReturnType<typeof vi.fn>
     updateOptions: ReturnType<typeof vi.fn>
     layout: ReturnType<typeof vi.fn>
     dispose: ReturnType<typeof vi.fn>
@@ -59,6 +63,7 @@ vi.mock('monaco-editor', () => {
       disposed: false,
       getValue: () => model.value,
       getLineCount: () => model.value.split('\n').length,
+      getLineContent: (lineNumber) => model.value.split('\n')[lineNumber - 1] ?? '',
       getLineMaxColumn: (lineNumber) => (model.value.split('\n')[lineNumber - 1]?.length ?? 0) + 1,
       setValue: (next) => { model.value = next },
       isDisposed: () => model.disposed,
@@ -93,6 +98,9 @@ vi.mock('monaco-editor', () => {
         editor.decorationCollections.push(collection)
         return collection
       }),
+      revealLineInCenter: vi.fn(),
+      setPosition: vi.fn(),
+      focus: vi.fn(),
       updateOptions: vi.fn(),
       layout: vi.fn(),
       dispose: vi.fn(),
@@ -189,6 +197,7 @@ import { useDockStore } from '../stores/dockStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { clearActiveEditorRegistryForTests, getActiveEditorSnapshot } from '../lib/activeEditorRegistry'
 import { confirmCloseDirtyPanels } from '../lib/confirmCloseDirty'
+import { setPendingReveal } from '../lib/editorReveal'
 import { clearPreviewSelectionForTests, usePreviewSelectionStore } from '../stores/previewSelectionStore'
 import type { FlashQueryStatusBroadcastPayload, FlashQueryWriteResult, PanelState } from '../../shared/types'
 
@@ -773,6 +782,21 @@ describe('EditorPanel FlashQuery URI routing', () => {
     act(() => vi.advanceTimersByTime(2200))
 
     expect(collection.clear).toHaveBeenCalled()
+  })
+
+  it('reveals a pending Markdown heading after the editor model loads', async () => {
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: '# One\n\n## Target Section\n\nBody',
+    })
+    setElectronApi(api)
+
+    setPendingReveal(panelId, { headingText: 'Target Section' })
+    await renderEditor('flashquery://workspace-1/Docs/Pending-Reveal.md')
+    await waitFor(() => expect(monacoMock().latestEditor().revealLineInCenter).toHaveBeenCalledWith(3))
+
+    expect(monacoMock().latestEditor().setPosition).toHaveBeenCalledWith({ lineNumber: 3, column: 1 })
+    expect(monacoMock().latestEditor().focus).toHaveBeenCalled()
   })
 
   it('T-I-023 and T-I-024 MarkdownPreview renders deterministic IDs for h1-h6 and duplicate headings', async () => {

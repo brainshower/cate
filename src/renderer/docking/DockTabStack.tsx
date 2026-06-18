@@ -16,7 +16,6 @@ import { useDockTabActions, useAcceptsPanelType } from './useDockTabActions'
 import { useDockTabDrag } from './useDockTabDrag'
 import { PANEL_DEFINITIONS } from '../../shared/panels'
 import { FlashQueryEditorTitleActions } from '../components/FlashQueryEditorTitleActions'
-import { SemanticConnectionsTitleActions } from '../components/SemanticConnectionsTitleActions'
 
 // Human-readable labels for each panel type, used in tooltips and the split menu.
 const PANEL_TYPE_LABELS: Record<PanelType, string> = Object.fromEntries(
@@ -299,17 +298,6 @@ export default function DockTabStack({ stack, zone: zoneProp, renderPanel, getPa
               workspaceId={effectiveWorkspaceId}
               compact={compact}
             />
-          </div>
-        )}
-
-        {activePanel?.type === 'semantic-connections' && (
-          <div
-            className={`flex items-center self-center ${compact ? 'px-0.5 gap-0.5' : 'px-1 gap-1'}`}
-            data-testid="semantic-connections-title-action-row"
-            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-            onMouseDown={(e) => e.stopPropagation()}
-          >
-            <SemanticConnectionsTitleActions panelId={activePanel.id} compact={compact} />
           </div>
         )}
 
