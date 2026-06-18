@@ -85,6 +85,7 @@ export interface SemanticConnectionsProviderInput {
 
 export interface SemanticConnectionsProvider {
   loadDocumentConnections: (input: SemanticConnectionsProviderInput) => Promise<SemanticConnectionsResult>
+  invalidateDocumentConnections?: (input: SemanticConnectionsProviderInput) => void
 }
 
 export interface SemanticConnectionCautionFlags {

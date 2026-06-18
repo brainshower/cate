@@ -43,6 +43,7 @@ import { getActiveTheme, subscribeTheme } from '../lib/themeManager'
 import type { FlashQueryConnectionStatus, Theme } from '../../shared/types'
 import { takePendingReveal } from '../lib/editorReveal'
 import { parseVaultUri } from '../../shared/flashqueryUri'
+import { preloadSemanticConnections } from '../lib/semanticConnectionsPreload'
 import {
   frontmatterToYaml,
   parseFrontmatterYaml,
@@ -547,6 +548,23 @@ export default function EditorPanel({
   const isMarkdown = !!filePath && /\.mdx?$/i.test(filePath) && !isFlashQueryFrontmatter
   markdownPreviewActiveRef.current = markdownPreview && isMarkdown
   const canvasApi = useCanvasStoreApi()
+  const warmSemanticConnections = useCallback((targetPath: string, markdown: string, options: { invalidate?: boolean } = {}) => {
+    if (!flashQueryConnection || flashQueryStatus === 'disconnected') return
+    const targetVaultUri = parseVaultUri(targetPath)
+    if (targetVaultUri?.part === 'frontmatter' || !/\.mdx?$/i.test(targetPath)) return
+    const pending = preloadSemanticConnections({
+      workspaceId,
+      editorPanelId: panelId,
+      documentPath: targetPath,
+      markdown,
+      invalidate: options.invalidate,
+    })
+    if (pending) {
+      void pending.catch((error) => {
+        log.debug('[EditorPanel] Semantic connections preload skipped/failed:', error)
+      })
+    }
+  }, [flashQueryConnection, flashQueryStatus, panelId, workspaceId])
   const toggleOutline = useCallback(() => {
     if (associatedOutlinePanelId) {
       useAppStore.getState().closePanel(workspaceId, associatedOutlinePanelId)
@@ -745,6 +763,7 @@ export default function EditorPanel({
         include: ['body'],
       })
       model?.setValue(result.body)
+      warmSemanticConnections(targetPath, result.body, { invalidate: true })
       if (viewState) restoreViewState?.call(editor, viewState)
       markClean(targetPath)
       return true
@@ -956,6 +975,7 @@ export default function EditorPanel({
         modelRetained = true
         editor.setModel(cached)
         if (markdownPreviewActiveRef.current) setMarkdownContent(cached.getValue())
+        warmSemanticConnections(filePath, cached.getValue())
         updateActiveEditorModel(workspaceId, panelId)
         applyPendingReveal()
       } else {
@@ -982,6 +1002,7 @@ export default function EditorPanel({
             modelRetained = true
             editor.setModel(model)
             if (markdownPreviewActiveRef.current) setMarkdownContent(model.getValue())
+            warmSemanticConnections(filePath, model.getValue())
             updateActiveEditorModel(workspaceId, panelId)
             applyPendingReveal()
           })

@@ -184,6 +184,38 @@ describe('semantic connections provider boundary', () => {
     expect(third.overall.map((connection) => connection.id)).toEqual(['conn-2'])
   })
 
+  it('invalidates a cached document connection result on explicit reload', async () => {
+    const backend = {
+      loadDocumentConnections: vi.fn()
+        .mockResolvedValueOnce(buildSemanticConnectionsResult({
+          markdown,
+          mode: 'embeddings-only',
+          connections: [flashqueryConnections[0]],
+        }))
+        .mockResolvedValueOnce(buildSemanticConnectionsResult({
+          markdown,
+          mode: 'embeddings-only',
+          connections: [flashqueryConnections[1]],
+        })),
+    }
+    const cached = createCachedSemanticConnectionsProvider(backend)
+    const input = {
+      workspaceId: 'workspace-1',
+      editorPanelId: 'editor-1',
+      documentPath: '/workspace/Plan.md',
+      markdown,
+      contentHash: 'same-body-hash',
+    }
+
+    const first = await cached.loadDocumentConnections(input)
+    cached.invalidateDocumentConnections?.(input)
+    const second = await cached.loadDocumentConnections(input)
+
+    expect(backend.loadDocumentConnections).toHaveBeenCalledTimes(2)
+    expect(first.overall.map((connection) => connection.id)).toEqual(['conn-1'])
+    expect(second.overall.map((connection) => connection.id)).toEqual(['conn-2'])
+  })
+
   it('loads embeddings-only connections from FlashQuery semantic search results', async () => {
     const search = vi.fn().mockResolvedValue({
       documents: [

@@ -1,8 +1,8 @@
 ---
-status: investigating
+status: resolved
 trigger: "FlashQuery connection shows disconnected in Cate left sidebar even though FlashQuery is connected; vault explorer is hidden behind disconnected panel."
 created: 2026-06-10
-updated: 2026-06-10
+updated: 2026-06-18
 ---
 
 ## Symptoms

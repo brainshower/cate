@@ -10,7 +10,10 @@ import {
   type SemanticConnectionsProvider,
   type SemanticConnectionsResult,
 } from '../lib/semanticConnections'
-import { createFlashQuerySemanticConnectionsProvider } from '../lib/semanticConnectionsProvider'
+import {
+  getDefaultSemanticConnectionsProvider,
+  semanticConnectionsContentHash,
+} from '../lib/semanticConnectionsPreload'
 import { buildVaultUri, parseVaultUri } from '../../shared/flashqueryUri'
 import {
   getActiveEditorSnapshot,
@@ -34,15 +37,12 @@ const emptyResult: SemanticConnectionsResult = {
   diagnostics: [],
 }
 
-const flashQueryProvider = createFlashQuerySemanticConnectionsProvider()
-
 const defaultProvider: SemanticConnectionsProvider = {
   async loadDocumentConnections(input) {
-    const e2eProvider = typeof window !== 'undefined'
-      ? window.__cateE2E?.semanticConnectionsProvider?.()
-      : undefined
-    if (e2eProvider) return e2eProvider.loadDocumentConnections(input)
-    return flashQueryProvider.loadDocumentConnections(input)
+    return getDefaultSemanticConnectionsProvider().loadDocumentConnections(input)
+  },
+  invalidateDocumentConnections(input) {
+    getDefaultSemanticConnectionsProvider().invalidateDocumentConnections?.(input)
   },
 }
 
@@ -59,11 +59,7 @@ function markdownFromSnapshot(snapshot: ActiveEditorSnapshot): string {
 }
 
 function contentHash(value: string): string {
-  let hash = 0
-  for (let index = 0; index < value.length; index++) {
-    hash = ((hash << 5) - hash + value.charCodeAt(index)) | 0
-  }
-  return String(hash)
+  return semanticConnectionsContentHash(value)
 }
 
 function cacheKey(workspaceId: string, editorPanelId: string, documentPath: string, hash: string): string {
@@ -424,14 +420,16 @@ export default function SemanticConnectionsPanel({
     requestRef.current = requestId
     setLoading(true)
     setLoadIssue(null)
-    provider.loadDocumentConnections({
+    const input = {
       workspaceId,
       editorPanelId: snapshot.panelId,
       documentPath,
       markdown,
       contentHash: markdownHash,
       scopeChunkId: activeChunkId,
-    }).then((nextResult) => {
+    }
+    if (loadKey > 0) provider.invalidateDocumentConnections?.(input)
+    provider.loadDocumentConnections(input).then((nextResult) => {
       if (requestRef.current !== requestId) return
       if (!isSemanticConnectionsResult(nextResult)) {
         setResult(null)

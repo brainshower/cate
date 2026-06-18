@@ -212,6 +212,7 @@ type ElectronApiMock = Pick<
   | 'fsReadFile'
   | 'fsWriteFile'
   | 'flashqueryGetDocument'
+  | 'flashqueryDocumentConnections'
   | 'flashqueryWriteDocument'
   | 'flashqueryListVaultIndex'
   | 'gitDiff'
@@ -241,6 +242,11 @@ function makeElectronApi(writeResult: FlashQueryWriteResult = { success: true, m
       body: 'vault body',
       version_token: 'ignored-token',
       modified: 'ignored-modified',
+    })),
+    flashqueryDocumentConnections: vi.fn(() => Promise.resolve({
+      source: { document_id: 'source-doc', path: 'Docs/Plan.md', title: 'Plan' },
+      overall: [],
+      source_chunks: [],
     })),
     flashqueryWriteDocument: vi.fn(() => Promise.resolve(writeResult)),
     flashqueryListVaultIndex: vi.fn(() => Promise.resolve([])),
@@ -555,6 +561,19 @@ describe('EditorPanel FlashQuery URI routing', () => {
     expect(api.flashqueryGetDocument).toHaveBeenCalledWith('workspace-1', 'Docs/Plan.md', { include: ['body'] })
     expect(api.fsReadFile).not.toHaveBeenCalled()
     expect(monacoMock().latestEditor().getValue()).toBe('vault body')
+  })
+
+  it('preloads semantic connections after mounting a FlashQuery markdown body document', async () => {
+    const api = makeElectronApi()
+    setElectronApi(api)
+
+    await renderEditor('flashquery://workspace-1/Docs/Preload.md')
+
+    await waitFor(() => expect(api.flashqueryDocumentConnections).toHaveBeenCalledWith('workspace-1', {
+      identifier: 'Docs/Preload.md',
+      limit: 200,
+      limit_per_chunk: 5,
+    }))
   })
 
   it('T-I-080 mounts local path through fsReadFile and not flashqueryGetDocument', async () => {

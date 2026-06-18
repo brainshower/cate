@@ -1,8 +1,8 @@
 ---
-status: verifying
+status: resolved
 trigger: "Outline sidebar fields extend under Cate right toolbar in canvas-hosted Monaco Outline panel"
 created: 2026-06-15T15:36:14Z
-updated: 2026-06-15T17:19:30Z
+updated: 2026-06-18T00:00:00Z
 ---
 
 # Debug Session: Outline Sidebar Right Toolbar Overlap

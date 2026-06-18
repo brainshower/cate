@@ -1,8 +1,8 @@
 ---
-status: verifying
+status: resolved
 trigger: "Outline heading clicks navigate source/preview editor but target heading is not visibly highlighted at the right time"
 created: 2026-06-15T18:35:00Z
-updated: 2026-06-15T19:33:00Z
+updated: 2026-06-18T00:00:00Z
 ---
 
 # Debug Session: Outline Heading Target Highlight

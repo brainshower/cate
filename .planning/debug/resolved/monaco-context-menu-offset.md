@@ -1,8 +1,8 @@
 ---
-status: fixing
+status: resolved
 trigger: "Monaco editor context menu in a markdown editor on the Canvas appears down and to the right of the mouse pointer."
 created: 2026-06-10
-updated: 2026-06-10
+updated: 2026-06-18
 ---
 
 ## Symptoms

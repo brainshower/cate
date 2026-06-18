@@ -448,6 +448,9 @@ export function createCachedSemanticConnectionsProvider(
       cache.set(key, pending)
       return pending
     },
+    invalidateDocumentConnections(input) {
+      cache.delete(cacheKey(input))
+    },
   }
 }
 

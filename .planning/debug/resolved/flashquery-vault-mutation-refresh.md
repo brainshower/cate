@@ -1,8 +1,8 @@
 ---
-status: fixing
+status: resolved
 trigger: "FlashQuery vault root-level empty folder delete does not disappear, and vault mutations do not always immediately refresh list_vault results."
 created: 2026-06-10
-updated: 2026-06-10
+updated: 2026-06-18
 ---
 
 ## Symptoms
