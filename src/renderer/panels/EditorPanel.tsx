@@ -40,10 +40,14 @@ import {
   getActiveEditorPanelId,
 } from '../lib/editorSaveRegistry'
 import { getActiveTheme, subscribeTheme } from '../lib/themeManager'
-import type { FlashQueryConnectionStatus, Theme } from '../../shared/types'
+import type { FlashQueryConnectionStatus, FlashQueryDocumentConnectionsResponse, Theme } from '../../shared/types'
 import { takePendingReveal } from '../lib/editorReveal'
 import { parseVaultUri } from '../../shared/flashqueryUri'
 import { preloadSemanticConnections } from '../lib/semanticConnectionsPreload'
+import {
+  documentConnectionsParamsForPath,
+  primeCachedFlashQueryDocumentConnections,
+} from '../lib/semanticConnectionsDocumentCache'
 import {
   frontmatterToYaml,
   parseFrontmatterYaml,
@@ -565,6 +569,20 @@ export default function EditorPanel({
       })
     }
   }, [flashQueryConnection, flashQueryStatus, panelId, workspaceId])
+  const primeAndWarmSemanticConnections = useCallback((targetPath: string, markdown: string, result: { connections?: FlashQueryDocumentConnectionsResponse }, options: { invalidate?: boolean } = {}) => {
+    if (!result.connections || typeof result.connections !== 'object') return
+    try {
+      primeCachedFlashQueryDocumentConnections(
+        workspaceId,
+        documentConnectionsParamsForPath({ documentPath: targetPath }),
+        result.connections,
+      )
+    } catch (error) {
+      log.debug('[EditorPanel] Semantic connections cache prime skipped/failed:', error)
+      return
+    }
+    warmSemanticConnections(targetPath, markdown, options)
+  }, [warmSemanticConnections, workspaceId])
   const toggleOutline = useCallback(() => {
     if (associatedOutlinePanelId) {
       useAppStore.getState().closePanel(workspaceId, associatedOutlinePanelId)
@@ -760,10 +778,14 @@ export default function EditorPanel({
       const restoreViewState = (editor as unknown as { restoreViewState?: (state: unknown) => void }).restoreViewState
       const viewState = saveViewState?.call(editor)
       const result = await window.electronAPI.flashqueryGetDocument(vaultUri.workspaceId, vaultUri.vaultPath, {
-        include: ['body'],
+        include: ['body', 'connections'],
+        connections: {
+          limit: 200,
+          limit_per_chunk: 5,
+        },
       })
       model?.setValue(result.body)
-      warmSemanticConnections(targetPath, result.body, { invalidate: true })
+      primeAndWarmSemanticConnections(targetPath, result.body, result, { invalidate: true })
       if (viewState) restoreViewState?.call(editor, viewState)
       markClean(targetPath)
       return true
@@ -983,11 +1005,19 @@ export default function EditorPanel({
         const readContent = vaultUri
           ? window.electronAPI
             .flashqueryGetDocument(vaultUri.workspaceId, vaultUri.vaultPath, {
-              include: [vaultUri.part],
+              include: vaultUri.part === 'body' ? ['body', 'connections'] : [vaultUri.part],
+              ...(vaultUri.part === 'body' ? {
+                connections: {
+                  limit: 200,
+                  limit_per_chunk: 5,
+                },
+              } : {}),
             })
-            .then((result) => vaultUri.part === 'frontmatter'
-              ? frontmatterToYaml(result.frontmatter)
-              : result.body)
+            .then((result) => {
+              if (vaultUri.part === 'frontmatter') return frontmatterToYaml(result.frontmatter)
+              primeAndWarmSemanticConnections(filePath, result.body, result)
+              return result.body
+            })
           : window.electronAPI.fsReadFile(filePath)
 
         readContent
@@ -1002,7 +1032,6 @@ export default function EditorPanel({
             modelRetained = true
             editor.setModel(model)
             if (markdownPreviewActiveRef.current) setMarkdownContent(model.getValue())
-            warmSemanticConnections(filePath, model.getValue())
             updateActiveEditorModel(workspaceId, panelId)
             applyPendingReveal()
           })

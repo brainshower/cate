@@ -290,11 +290,23 @@ function validateGetDocumentOptions(value: unknown): FlashQueryGetDocumentOption
   if (include === undefined) return {}
   if (!Array.isArray(include)) throw new Error('options.include must be an array')
   for (const part of include) {
-    if (part !== 'body' && part !== 'frontmatter') {
-      throw new Error('options.include must contain only body or frontmatter')
+    if (part !== 'body' && part !== 'frontmatter' && part !== 'connections') {
+      throw new Error('options.include must contain only body, frontmatter, or connections')
     }
   }
-  return { include }
+  const connections = isPlainObject(value.connections)
+    ? validateDocumentConnectionsParams({ ...value.connections, identifier: 'placeholder' })
+    : undefined
+  return {
+    include,
+    ...(connections ? {
+      connections: {
+        ...(typeof connections.limit === 'number' ? { limit: connections.limit } : {}),
+        ...(typeof connections.limit_per_chunk === 'number' ? { limit_per_chunk: connections.limit_per_chunk } : {}),
+        ...(connections.embedding_names?.length ? { embedding_names: connections.embedding_names } : {}),
+      },
+    } : {}),
+  }
 }
 
 function validateWritePayload(value: unknown): FlashQueryWritePayload {

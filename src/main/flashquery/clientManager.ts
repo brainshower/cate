@@ -170,10 +170,14 @@ export class FlashQueryClientManager {
     try {
       const client = await this.requireMcpClient(workspaceId)
       const include = this.normalizeDocumentInclude(options)
-      const payload = await this.callJsonTool(client, 'get_document', {
+      const args: Record<string, unknown> = {
         identifiers: vaultPath,
         include,
-      })
+      }
+      if (include.includes('connections')) {
+        args.connections = this.normalizeDocumentConnectionsOptions(options?.connections)
+      }
+      const payload = await this.callJsonTool(client, 'get_document', args)
 
       if (this.isErrorEnvelope(payload)) {
         throw new Error(this.errorEnvelopeMessage(payload))
@@ -189,6 +193,7 @@ export class FlashQueryClientManager {
       return {
         body: typeof payload.body === 'string' ? payload.body : '',
         ...(this.isPlainObject(payload.frontmatter) ? { frontmatter: payload.frontmatter } : {}),
+        ...(include.includes('connections') ? { connections: this.normalizeDocumentConnectionsResponse(payload) } : {}),
         ...(typeof payload.version_token === 'string' ? { version_token: payload.version_token } : {}),
         ...(typeof payload.modified === 'string' ? { modified: payload.modified } : {}),
       }
@@ -661,7 +666,7 @@ export class FlashQueryClientManager {
     const rawInclude = options?.include ?? ['body']
     const include: FlashQueryDocumentPart[] = []
     for (const part of rawInclude) {
-      if (part !== 'body' && part !== 'frontmatter') {
+      if (part !== 'body' && part !== 'frontmatter' && part !== 'connections') {
         throw new Error(`Unsupported FlashQuery document part: ${String(part)}`)
       }
       if (!include.includes(part)) include.push(part)
@@ -744,18 +749,23 @@ export class FlashQueryClientManager {
   private normalizeDocumentConnectionsArgs(params: FlashQueryDocumentConnectionsParams): Record<string, unknown> {
     const identifier = typeof params.identifier === 'string' ? params.identifier.trim() : ''
     if (!identifier) throw new Error('Document identifier is required.')
-    const limit = Number.isFinite(params.limit) && Number.isInteger(params.limit) && params.limit! > 0 ? params.limit! : 50
-    const limitPerChunk = Number.isFinite(params.limit_per_chunk) && Number.isInteger(params.limit_per_chunk) && params.limit_per_chunk! > 0
-      ? params.limit_per_chunk!
-      : 5
+    const connections = this.normalizeDocumentConnectionsOptions(params)
     return {
       identifiers: identifier,
       include: ['connections'],
-      connections: {
-        limit,
-        limit_per_chunk: limitPerChunk,
-        ...(params.embedding_names?.length ? { embedding_names: params.embedding_names } : {}),
-      },
+      connections,
+    }
+  }
+
+  private normalizeDocumentConnectionsOptions(params: Omit<FlashQueryDocumentConnectionsParams, 'identifier'> | undefined): Record<string, unknown> {
+    const limit = Number.isFinite(params?.limit) && Number.isInteger(params!.limit) && params!.limit! > 0 ? params!.limit! : 50
+    const limitPerChunk = Number.isFinite(params?.limit_per_chunk) && Number.isInteger(params!.limit_per_chunk) && params!.limit_per_chunk! > 0
+      ? params!.limit_per_chunk!
+      : 5
+    return {
+      limit,
+      limit_per_chunk: limitPerChunk,
+      ...(params?.embedding_names?.length ? { embedding_names: params.embedding_names } : {}),
     }
   }
 

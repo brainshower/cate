@@ -204,6 +204,8 @@ import { createCanvasStore } from '../stores/canvasStore'
 import { clearActiveEditorRegistryForTests, getActiveEditorSnapshot } from '../lib/activeEditorRegistry'
 import { confirmCloseDirtyPanels } from '../lib/confirmCloseDirty'
 import { setPendingReveal } from '../lib/editorReveal'
+import { clearSemanticConnectionsDocumentCacheForTests } from '../lib/semanticConnectionsDocumentCache'
+import { preloadSemanticConnections } from '../lib/semanticConnectionsPreload'
 import { clearPreviewSelectionForTests, usePreviewSelectionStore } from '../stores/previewSelectionStore'
 import type { FlashQueryStatusBroadcastPayload, FlashQueryWriteResult, PanelState } from '../../shared/types'
 
@@ -229,6 +231,16 @@ const vaultUri = 'flashquery://workspace-1/Docs/Plan.md'
 const frontmatterUri = 'flashquery://workspace-1/Docs/Plan.md?part=frontmatter'
 const localPath = '/repo/Docs/Plan.md'
 let statusListener: ((payload: FlashQueryStatusBroadcastPayload) => void) | null = null
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (error: unknown) => void
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve
+    reject = promiseReject
+  })
+  return { promise, resolve, reject }
+}
 
 function monacoMock() {
   return (monaco as any).__mock
@@ -356,6 +368,7 @@ beforeEach(() => {
   useAgentStore.setState({ panels: {} })
   clearActiveEditorRegistryForTests()
   clearPreviewSelectionForTests()
+  clearSemanticConnectionsDocumentCacheForTests()
 })
 
 afterEach(() => {
@@ -558,22 +571,90 @@ describe('EditorPanel FlashQuery URI routing', () => {
 
     await renderEditor(vaultUri)
 
-    expect(api.flashqueryGetDocument).toHaveBeenCalledWith('workspace-1', 'Docs/Plan.md', { include: ['body'] })
+    expect(api.flashqueryGetDocument).toHaveBeenCalledWith('workspace-1', 'Docs/Plan.md', {
+      include: ['body', 'connections'],
+      connections: {
+        limit: 200,
+        limit_per_chunk: 5,
+      },
+    })
     expect(api.fsReadFile).not.toHaveBeenCalled()
     expect(monacoMock().latestEditor().getValue()).toBe('vault body')
   })
 
-  it('preloads semantic connections after mounting a FlashQuery markdown body document', async () => {
+  it('loads body and semantic connections in one FlashQuery get_document call', async () => {
     const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: 'vault body',
+      version_token: 'ignored-token',
+      modified: 'ignored-modified',
+      connections: {
+        source: { document_id: 'source-doc', path: 'Docs/Preload.md', title: 'Preload' },
+        overall: [{
+          id: 'Docs/Other.md#chunk-1',
+          score: 0.9,
+          target: {
+            chunk_id: 'chunk-1',
+            path: 'Docs/Other.md',
+            title: 'Other',
+            content: 'Other content',
+          },
+        }],
+        source_chunks: [],
+      },
+    })
     setElectronApi(api)
 
     await renderEditor('flashquery://workspace-1/Docs/Preload.md')
 
-    await waitFor(() => expect(api.flashqueryDocumentConnections).toHaveBeenCalledWith('workspace-1', {
-      identifier: 'Docs/Preload.md',
-      limit: 200,
-      limit_per_chunk: 5,
+    expect(api.flashqueryGetDocument).toHaveBeenCalledWith('workspace-1', 'Docs/Preload.md', {
+      include: ['body', 'connections'],
+      connections: {
+        limit: 200,
+        limit_per_chunk: 5,
+      },
+    })
+    expect(api.flashqueryDocumentConnections).not.toHaveBeenCalled()
+
+    const warmed = await preloadSemanticConnections({
+      workspaceId,
+      editorPanelId: panelId,
+      documentPath: 'flashquery://workspace-1/Docs/Preload.md',
+      markdown: 'vault body',
+    })
+    expect(warmed?.overall.map((connection) => connection.id)).toEqual(['Docs/Other.md#chunk-1'])
+    expect(api.flashqueryDocumentConnections).not.toHaveBeenCalled()
+  })
+
+  it('does not issue a standalone connections request while the combined FlashQuery body request is pending', async () => {
+    const api = makeElectronApi()
+    const bodyGate = deferred<{
+      body: string
+      version_token: string
+      modified: string
+    }>()
+    vi.mocked(api.flashqueryGetDocument).mockReturnValueOnce(bodyGate.promise)
+    setElectronApi(api)
+
+    seedWorkspace(makePanel('flashquery://workspace-1/Docs/Concurrent.md'))
+    render(<EditorPanel panelId={panelId} workspaceId={workspaceId} filePath="flashquery://workspace-1/Docs/Concurrent.md" />)
+
+    await waitFor(() => expect(api.flashqueryGetDocument).toHaveBeenCalledWith('workspace-1', 'Docs/Concurrent.md', {
+      include: ['body', 'connections'],
+      connections: {
+        limit: 200,
+        limit_per_chunk: 5,
+      },
     }))
+    expect(api.flashqueryDocumentConnections).not.toHaveBeenCalled()
+    expect(monacoMock().latestEditor()?.getModel()).toBeNull()
+
+    bodyGate.resolve({
+      body: '# Concurrent',
+      version_token: 'v1',
+      modified: '2026-06-18T00:00:00Z',
+    })
+    await waitFor(() => expect(monacoMock().latestEditor()?.getModel()).toBeTruthy())
   })
 
   it('T-I-080 mounts local path through fsReadFile and not flashqueryGetDocument', async () => {
@@ -1545,7 +1626,13 @@ describe('EditorPanel FlashQuery refresh behavior', () => {
     act(() => dispatchTitleAction('refresh-from-vault'))
 
     await waitFor(() => expect(monacoMock().latestEditor().getValue()).toBe('fresh body'))
-    expect(api.flashqueryGetDocument).toHaveBeenLastCalledWith('workspace-1', 'Docs/RefreshClean.md', { include: ['body'] })
+    expect(api.flashqueryGetDocument).toHaveBeenLastCalledWith('workspace-1', 'Docs/RefreshClean.md', {
+      include: ['body', 'connections'],
+      connections: {
+        limit: 200,
+        limit_per_chunk: 5,
+      },
+    })
     expect(useAppStore.getState().workspaces[0].panels[panelId].isDirty).toBe(false)
   })
 
@@ -1657,7 +1744,13 @@ describe('EditorPanel FlashQuery diff guardrails', () => {
 
     expect(monaco.editor.createDiffEditor).not.toHaveBeenCalled()
     expect(monaco.editor.create).toHaveBeenCalled()
-    expect(api.flashqueryGetDocument).toHaveBeenCalledWith('workspace-1', 'Docs/Diff-Only.md', { include: ['body'] })
+    expect(api.flashqueryGetDocument).toHaveBeenCalledWith('workspace-1', 'Docs/Diff-Only.md', {
+      include: ['body', 'connections'],
+      connections: {
+        limit: 200,
+        limit_per_chunk: 5,
+      },
+    })
     expect(api.fsReadFile).not.toHaveBeenCalled()
     expect(api.gitDiff).not.toHaveBeenCalled()
     expect(api.gitDiffStaged).not.toHaveBeenCalled()

@@ -13,6 +13,11 @@ import type {
   FlashQuerySearchResponse,
   FlashQuerySourceChunkConnections,
 } from '../../shared/types'
+import {
+  DOCUMENT_CONNECTIONS_AGGREGATE_LIMIT,
+  DOCUMENT_CONNECTIONS_LIMIT_PER_CHUNK,
+  loadCachedFlashQueryDocumentConnections,
+} from './semanticConnectionsDocumentCache'
 import type {
   SemanticConnection,
   SemanticConnectionDirection,
@@ -79,9 +84,6 @@ type FlashQueryDocumentConnectionsFn = (
   workspaceId: string,
   params: FlashQueryDocumentConnectionsParams,
 ) => Promise<FlashQueryDocumentConnectionsResponse>
-
-const DOCUMENT_CONNECTIONS_AGGREGATE_LIMIT = 200
-const DOCUMENT_CONNECTIONS_LIMIT_PER_CHUNK = 5
 
 interface PreviewChunkHeading {
   heading: DocumentHeading
@@ -523,7 +525,7 @@ export function createFlashQuerySemanticConnectionsProvider(
 
       const sourcePath = sourceVaultPath(input.documentPath)
       const loadDocumentConnections = documentConnections
-        ?? (typeof window === 'undefined' ? undefined : window.electronAPI.flashqueryDocumentConnections)
+        ?? (typeof window === 'undefined' ? undefined : loadCachedFlashQueryDocumentConnections)
       if (loadDocumentConnections) {
         const response = await loadDocumentConnections(input.workspaceId, {
           identifier: sourcePath,

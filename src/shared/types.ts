@@ -189,10 +189,11 @@ export interface FlashQueryVaultEntry {
   title?: string
 }
 
-export type FlashQueryDocumentPart = 'body' | 'frontmatter'
+export type FlashQueryDocumentPart = 'body' | 'frontmatter' | 'connections'
 
 export interface FlashQueryGetDocumentOptions {
   include?: FlashQueryDocumentPart[]
+  connections?: Omit<FlashQueryDocumentConnectionsParams, 'identifier'>
 }
 
 export type FlashQueryFrontmatter = Record<string, unknown>
@@ -200,6 +201,7 @@ export type FlashQueryFrontmatter = Record<string, unknown>
 export interface FlashQueryDocumentBody {
   body: string
   frontmatter?: FlashQueryFrontmatter
+  connections?: FlashQueryDocumentConnectionsResponse
   version_token?: string
   modified?: string
 }

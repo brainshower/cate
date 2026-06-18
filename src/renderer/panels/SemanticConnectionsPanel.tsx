@@ -354,7 +354,10 @@ export default function SemanticConnectionsPanel({
     targetSnapshot.editor?.focus()
     afterLayoutSettles(() => {
       targetSnapshot.scrollPreviewToHeading?.(heading)
-      if (targetSnapshot.panelId) usePreviewSelectionStore.getState().selectSection(chunkId, targetSnapshot.panelId)
+      const resolvedChunkId = targetSnapshot.resolvePreviewChunkIdForHeading?.(heading)
+      if (targetSnapshot.panelId && resolvedChunkId) {
+        usePreviewSelectionStore.getState().selectSection(resolvedChunkId, targetSnapshot.panelId)
+      }
     })
     return true
   }, [focusEditorForOpen, workspaceId])
@@ -370,7 +373,8 @@ export default function SemanticConnectionsPanel({
 
     if (sameDocument) {
       snapshot.scrollPreviewToHeading?.(heading)
-      usePreviewSelectionStore.getState().selectSection(chunkId, selectionScopeId)
+      const resolvedChunkId = snapshot.resolvePreviewChunkIdForHeading?.(heading)
+      if (resolvedChunkId) usePreviewSelectionStore.getState().selectSection(resolvedChunkId, selectionScopeId)
       return
     }
 

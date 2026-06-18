@@ -567,13 +567,25 @@ describe('FlashQuery IPC handlers', () => {
       frontmatter: { title: 'Plan' },
     })
 
-    await expect(handler({}, 'workspace-1', 'Plan.md', { include: ['body', 'frontmatter'] })).resolves.toEqual({
+    await expect(handler({}, 'workspace-1', 'Plan.md', {
+      include: ['body', 'frontmatter', 'connections'],
+      connections: {
+        limit: 200,
+        limit_per_chunk: 5,
+      },
+    })).resolves.toEqual({
       body: 'body',
       frontmatter: { title: 'Plan' },
     })
-    await expect(handler({}, 'workspace-1', 'Plan.md', { include: ['bad'] })).rejects.toThrow('options.include must contain only body or frontmatter')
+    await expect(handler({}, 'workspace-1', 'Plan.md', { include: ['bad'] })).rejects.toThrow('options.include must contain only body, frontmatter, or connections')
 
-    expect(mocks.managerInstances[0].getDocument).toHaveBeenCalledWith('workspace-1', 'Plan.md', { include: ['body', 'frontmatter'] })
+    expect(mocks.managerInstances[0].getDocument).toHaveBeenCalledWith('workspace-1', 'Plan.md', {
+      include: ['body', 'frontmatter', 'connections'],
+      connections: {
+        limit: 200,
+        limit_per_chunk: 5,
+      },
+    })
     expect(mocks.managerInstances[0].getDocument).toHaveBeenCalledTimes(1)
   })
 

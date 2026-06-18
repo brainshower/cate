@@ -958,6 +958,65 @@ describe('FlashQueryClientManager', () => {
     })
   })
 
+  it('loads document body and connections through one get_document call', async () => {
+    const callTool = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({
+        body: '# Body',
+        identifier: 'Docs/Plan.md',
+        path: 'Docs/Plan.md',
+        title: 'Plan',
+        fq_id: 'doc-1',
+        connections: {
+          overall: [{
+            id: 'Docs/Other.md#chunk-2',
+            score: 0.94,
+            target: {
+              chunk_id: 'chunk-2',
+              document_id: 'doc-2',
+              path: 'Docs/Other.md',
+              title: 'Other',
+              heading_path: 'Section',
+              content: 'Other content',
+            },
+          }],
+          source_chunks: [],
+        },
+      }) }],
+    })
+    workspaceMock.workspaces = [workspaceInfo()]
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
+    await expect(manager.getDocument('workspace-1', 'Docs/Plan.md', {
+      include: ['body', 'connections'],
+      connections: {
+        limit: 200,
+        limit_per_chunk: 5,
+      },
+    })).resolves.toMatchObject({
+      body: '# Body',
+      connections: {
+        source: { document_id: 'doc-1', path: 'Docs/Plan.md', title: 'Plan' },
+        overall: [{
+          id: 'Docs/Other.md#chunk-2',
+          score: 0.94,
+        }],
+        source_chunks: [],
+      },
+    })
+
+    expect(callTool).toHaveBeenCalledWith({
+      name: 'get_document',
+      arguments: {
+        identifiers: 'Docs/Plan.md',
+        include: ['body', 'connections'],
+        connections: {
+          limit: 200,
+          limit_per_chunk: 5,
+        },
+      },
+    })
+  })
+
   it('T-U-003 returns token-safe getDocument errors for missing requested parts and error envelopes', async () => {
     workspaceMock.workspaces = [workspaceInfo()]
     workspaceMock.token = 'secret-token'

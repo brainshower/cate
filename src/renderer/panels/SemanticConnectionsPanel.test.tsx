@@ -587,6 +587,7 @@ describe('SemanticConnectionsPanel', () => {
         markdownPreview: true,
         filePath: '/workspace/Plan.md',
         scrollPreviewToHeading,
+        resolvePreviewChunkIdForHeading: vi.fn(() => 'scope'),
       })
     })
     render(
@@ -629,6 +630,7 @@ describe('SemanticConnectionsPanel', () => {
         markdownPreview: true,
         filePath: '/workspace/Target.md',
         scrollPreviewToHeading: targetScroll,
+        resolvePreviewChunkIdForHeading: vi.fn(() => 'details'),
       })
       registerActiveEditor('workspace-1', 'editor-1', editor(model('# Plan')))
     })
@@ -648,7 +650,7 @@ describe('SemanticConnectionsPanel', () => {
               title: 'Target',
               path: '/workspace/Target.md',
               heading: 'Details',
-              chunkId: 'details',
+              chunkId: 'flashquery-target-chunk',
               inDocument: false,
             },
           }],
