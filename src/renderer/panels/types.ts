@@ -42,6 +42,7 @@ export interface SemanticConnectionsPanelProps extends PanelProps {
   provider?: SemanticConnectionsProvider
   createEditorForOpen?: (workspaceId: string, filePath: string, options?: { sourceEditorPanelId?: string; markdownPreview?: boolean }) => string
   setEditorPreviewForOpen?: (workspaceId: string, panelId: string, preview: boolean) => void
+  focusEditorForOpen?: (workspaceId: string, panelId: string) => boolean
 }
 
 // -----------------------------------------------------------------------------

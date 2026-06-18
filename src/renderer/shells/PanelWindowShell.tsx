@@ -179,6 +179,8 @@ export default function PanelWindowShell({ panelType, panelId, workspaceId }: Pa
     // The snapshot already carries markdownPreview when requested.
   }, [])
 
+  const focusEditorForOpen = useCallback((_targetWorkspaceId: string, _panelId: string): boolean => false, [])
+
   /** Double-click title bar → dock panel back into main window */
   const handleTitleDoubleClick = useCallback(() => {
     window.electronAPI.panelWindowDockBack()
@@ -264,6 +266,7 @@ export default function PanelWindowShell({ panelType, panelId, workspaceId }: Pa
             workspaceId={workspaceId ?? ''}
             createEditorForOpen={createEditorForOpen}
             setEditorPreviewForOpen={setEditorPreviewForOpen}
+            focusEditorForOpen={focusEditorForOpen}
           />
         </Suspense>
       </div>
@@ -280,13 +283,15 @@ function PanelContent({
   workspaceId,
   createEditorForOpen,
   setEditorPreviewForOpen,
+  focusEditorForOpen,
 }: {
   panel: PanelState
   workspaceId: string
   createEditorForOpen: (workspaceId: string, filePath: string, options?: { sourceEditorPanelId?: string; markdownPreview?: boolean }) => string
   setEditorPreviewForOpen: (workspaceId: string, panelId: string, preview: boolean) => void
+  focusEditorForOpen: (workspaceId: string, panelId: string) => boolean
 }) {
-  const content = renderPanelComponent(panel, { workspaceId, nodeId: '' }, { createEditorForOpen, setEditorPreviewForOpen })
+  const content = renderPanelComponent(panel, { workspaceId, nodeId: '' }, { createEditorForOpen, setEditorPreviewForOpen, focusEditorForOpen })
   if (!content) return <div className="w-full h-full flex items-center justify-center text-muted">Unknown panel type</div>
   return content
 }

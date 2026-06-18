@@ -656,10 +656,15 @@ describe('SemanticConnectionsPanel', () => {
       />,
     )
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Open Target Details' }))
+    const openButton = await screen.findByRole('button', { name: 'Open Target Details' })
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      callback(0)
+      return 0
+    })
+    fireEvent.click(openButton)
 
-    expect(targetScroll).toHaveBeenCalledWith('Details')
     expect(targetEditor.focus).toHaveBeenCalled()
+    expect(targetScroll).toHaveBeenCalledWith('Details')
     expect(usePreviewSelectionStore.getState().getScope('editor-target').pinnedChunkId).toBe('details')
   })
 

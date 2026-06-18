@@ -23,6 +23,7 @@ import remarkGfm from 'remark-gfm'
 import type { EditorPanelProps } from './types'
 import { useAppStore } from '../stores/appStore'
 import { useSettingsStore } from '../stores/settingsStore'
+import { useCanvasStoreApi } from '../stores/CanvasStoreContext'
 import {
   registerActiveEditor,
   unregisterActiveEditor,
@@ -412,6 +413,8 @@ export default function EditorPanel({
   const outlineHighlightTimerRef = useRef<number | null>(null)
   const outlineHighlightApplyTimerRef = useRef<number | null>(null)
   const pendingPreviewScrollRef = useRef<PendingPreviewScroll | null>(null)
+  const refocusPreviewScrollRef = useRef<PendingPreviewScroll | null>(null)
+  const refocusPreviewScrollRafRef = useRef<number | null>(null)
   const markdownPreviewActiveRef = useRef(false)
   const isDirtyRef = useRef(false)
   const filePathRef = useRef(filePath)
@@ -543,6 +546,7 @@ export default function EditorPanel({
   const isFlashQueryFrontmatter = activeVaultUri?.part === 'frontmatter'
   const isMarkdown = !!filePath && /\.mdx?$/i.test(filePath) && !isFlashQueryFrontmatter
   markdownPreviewActiveRef.current = markdownPreview && isMarkdown
+  const canvasApi = useCanvasStoreApi()
   const toggleOutline = useCallback(() => {
     if (associatedOutlinePanelId) {
       useAppStore.getState().closePanel(workspaceId, associatedOutlinePanelId)
@@ -1136,8 +1140,37 @@ export default function EditorPanel({
     const pending = pendingPreviewScrollRef.current
     if (!pending) return
     pendingPreviewScrollRef.current = null
+    refocusPreviewScrollRef.current = pending
     scrollPreviewToHeading(pending.headingText, pending.occurrenceIndex)
   }, [isMarkdown, markdownContent, markdownPreview, scrollPreviewToHeading])
+
+  useEffect(() => {
+    const unsubscribe = canvasApi.subscribe((state, previous) => {
+      if (!nodeId || state.focusEpoch === previous.focusEpoch || state.focusedNodeId !== nodeId) return
+      const pending = refocusPreviewScrollRef.current
+      if (!pending || !markdownPreviewActiveRef.current) return
+      refocusPreviewScrollRef.current = null
+
+      if (refocusPreviewScrollRafRef.current !== null) {
+        window.cancelAnimationFrame(refocusPreviewScrollRafRef.current)
+        refocusPreviewScrollRafRef.current = null
+      }
+
+      refocusPreviewScrollRafRef.current = window.requestAnimationFrame(() => {
+        refocusPreviewScrollRafRef.current = window.requestAnimationFrame(() => {
+          refocusPreviewScrollRafRef.current = null
+          scrollPreviewToHeading(pending.headingText, pending.occurrenceIndex)
+        })
+      })
+    })
+    return () => {
+      unsubscribe()
+      if (refocusPreviewScrollRafRef.current !== null) {
+        window.cancelAnimationFrame(refocusPreviewScrollRafRef.current)
+        refocusPreviewScrollRafRef.current = null
+      }
+    }
+  }, [canvasApi, nodeId, scrollPreviewToHeading])
 
   useEffect(() => {
     updateActiveEditorPreview(workspaceId, panelId, {

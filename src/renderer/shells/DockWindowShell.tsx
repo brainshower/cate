@@ -312,6 +312,28 @@ export default function DockWindowShell({ workspaceId: initialWorkspaceId }: Doc
     })
   }, [])
 
+  const focusEditorForOpen = useCallback((_: string, panelId: string): boolean => {
+    for (const candidate of Object.values(panelsRef.current)) {
+      if (candidate.type !== 'canvas') continue
+      const canvasStore = getOrCreateCanvasStoreForPanel(candidate.id)
+      const canvasState = canvasStore.getState()
+      const nodeId = canvasState.nodeForPanel(panelId)
+      if (!nodeId) continue
+      canvasState.focusAndCenter(nodeId)
+      return true
+    }
+
+    const dockState = dockStore.getState()
+    const location = dockState.panelLocations[panelId]
+    if (location?.type !== 'dock') return false
+    const layout = dockState.zones[location.zone].layout
+    const stack = layout ? findStackNode(layout, location.stackId) : null
+    const index = stack?.panelIds.indexOf(panelId) ?? -1
+    if (!stack || index < 0) return false
+    dockState.setActiveTab(stack.id, index)
+    return true
+  }, [dockStore])
+
   const renderPanelContent = useCallback(
     (panelId: string, nodeId: string, zoom: number) => {
       const panel = panels[panelId]
@@ -320,6 +342,7 @@ export default function DockWindowShell({ workspaceId: initialWorkspaceId }: Doc
       const content = renderPanelComponent(panel, { workspaceId: wsId, nodeId, zoomLevel: zoom }, {
         createEditorForOpen,
         setEditorPreviewForOpen,
+        focusEditorForOpen,
       })
       if (!content) return null
 
@@ -329,7 +352,7 @@ export default function DockWindowShell({ workspaceId: initialWorkspaceId }: Doc
         </Suspense>
       )
     },
-    [panels, wsId, createEditorForOpen, setEditorPreviewForOpen],
+    [panels, wsId, createEditorForOpen, setEditorPreviewForOpen, focusEditorForOpen],
   )
 
   // Render panel content for dock zones
@@ -506,6 +529,18 @@ function findStackForPanel(node: import('../../shared/types').DockLayoutNode, pa
   }
   for (const child of node.children) {
     const found = findStackForPanel(child, panelId)
+    if (found) return found
+  }
+  return null
+}
+
+function findStackNode(
+  node: import('../../shared/types').DockLayoutNode,
+  stackId: string,
+): import('../../shared/types').DockTabStack | null {
+  if (node.type === 'tabs') return node.id === stackId ? node : null
+  for (const child of node.children) {
+    const found = findStackNode(child, stackId)
     if (found) return found
   }
   return null

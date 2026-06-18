@@ -176,6 +176,12 @@ function revealHeadingInSourceEditor(snapshot: ActiveEditorSnapshot, heading: st
   return true
 }
 
+function afterLayoutSettles(callback: () => void): void {
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(callback)
+  })
+}
+
 function isAbsoluteLocalPath(path: string): boolean {
   return path.startsWith('/') || /^[A-Za-z]:[\\/]/.test(path)
 }
@@ -308,6 +314,7 @@ export default function SemanticConnectionsPanel({
   provider = defaultProvider,
   createEditorForOpen,
   setEditorPreviewForOpen,
+  focusEditorForOpen,
 }: SemanticConnectionsPanelProps) {
   const [snapshot, setSnapshot] = useState<ActiveEditorSnapshot>(() =>
     sourceEditorPanelId ? getEditorSnapshotForPanel(workspaceId, sourceEditorPanelId) : getActiveEditorSnapshot(workspaceId),
@@ -347,11 +354,14 @@ export default function SemanticConnectionsPanel({
 
   const openRegisteredPreview = useCallback((targetSnapshot: ActiveEditorSnapshot, heading: string, chunkId: string): boolean => {
     if (!targetSnapshot.panelId || !targetSnapshot.markdownPreview || !targetSnapshot.scrollPreviewToHeading) return false
-    targetSnapshot.scrollPreviewToHeading(heading)
-    usePreviewSelectionStore.getState().selectSection(chunkId, targetSnapshot.panelId)
+    focusEditorForOpen?.(workspaceId, targetSnapshot.panelId)
     targetSnapshot.editor?.focus()
+    afterLayoutSettles(() => {
+      targetSnapshot.scrollPreviewToHeading?.(heading)
+      if (targetSnapshot.panelId) usePreviewSelectionStore.getState().selectSection(chunkId, targetSnapshot.panelId)
+    })
     return true
-  }, [])
+  }, [focusEditorForOpen, workspaceId])
 
   const handleOpenConnection = useCallback((connection: SemanticConnection) => {
     if (!hasOpenMetadata(connection)) return
@@ -371,6 +381,7 @@ export default function SemanticConnectionsPanel({
     const registered = getEditorSnapshotForPath(workspaceId, editorPath)
     if (registered.panelId) {
       if (!openRegisteredPreview(registered, heading, chunkId) && !revealHeadingInSourceEditor(registered, heading)) {
+        focusEditorForOpen?.(workspaceId, registered.panelId)
         registered.editor?.focus()
       }
       return
@@ -390,7 +401,7 @@ export default function SemanticConnectionsPanel({
     const targetPanelId = openFileAsPanel(workspaceId, editorPath, undefined, { target: 'dock', zone: 'center' })
     setEditorPreviewForOpen?.(workspaceId, targetPanelId, true)
     setPendingReveal(targetPanelId, { headingText: heading })
-  }, [createEditorForOpen, documentPath, openRegisteredPreview, selectionScopeId, setEditorPreviewForOpen, snapshot, sourceEditorPanelId, workspaceId])
+  }, [createEditorForOpen, documentPath, focusEditorForOpen, openRegisteredPreview, selectionScopeId, setEditorPreviewForOpen, snapshot, sourceEditorPanelId, workspaceId])
 
   useEffect(() => {
     if (precondition || !snapshot.panelId || !documentPath) return

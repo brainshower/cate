@@ -494,6 +494,10 @@ function MainApp() {
     useAppStore.getState().setPanelMarkdownPreview(workspaceId, panelId, preview)
   }, [])
 
+  const focusEditorForOpen = useCallback((workspaceId: string, panelId: string): boolean => {
+    return useAppStore.getState().focusPanel(workspaceId, panelId)
+  }, [])
+
   const renderPanelContent = useCallback(
     (panelId: string, nodeId: string, zoom: number) => {
       if (!currentWorkspace) return null
@@ -506,6 +510,7 @@ function MainApp() {
       const content = renderPanelComponent(panel, { workspaceId: selectedWorkspaceId, nodeId, zoomLevel: zoom }, {
         createEditorForOpen,
         setEditorPreviewForOpen,
+        focusEditorForOpen,
       })
       if (!content) return null
 
@@ -515,7 +520,7 @@ function MainApp() {
         </Suspense>
       )
     },
-    [currentWorkspace, selectedWorkspaceId, createEditorForOpen, setEditorPreviewForOpen],
+    [currentWorkspace, selectedWorkspaceId, createEditorForOpen, setEditorPreviewForOpen, focusEditorForOpen],
   )
 
   /** Render a panel for use inside a dock zone (no canvas node wrapper) */

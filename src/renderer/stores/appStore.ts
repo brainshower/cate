@@ -339,6 +339,7 @@ interface AppStoreActions {
 
   // Panel management
   closePanel: (workspaceId: string, panelId: string) => void
+  focusPanel: (workspaceId: string, panelId: string) => boolean
   focusAssociatedSidebars: (workspaceId: string, sourceEditorPanelId: string) => void
   updatePanelTitle: (workspaceId: string, panelId: string, title: string) => void
   /** Apply a title that came from the running process (xterm OSC 0/1/2). Skips
@@ -1474,6 +1475,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
         return { ...ws, panels: remainingPanels }
       }),
     }))
+  },
+
+  focusPanel(workspaceId, panelId) {
+    return focusExistingPanel(workspaceId, panelId)
   },
 
   focusAssociatedSidebars(workspaceId, sourceEditorPanelId) {

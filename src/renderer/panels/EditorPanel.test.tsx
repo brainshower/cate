@@ -199,6 +199,8 @@ import { useAgentStore } from '../../agent/renderer/agentStore'
 import { useAppStore } from '../stores/appStore'
 import { useDockStore } from '../stores/dockStore'
 import { useSettingsStore } from '../stores/settingsStore'
+import { CanvasStoreProvider } from '../stores/CanvasStoreContext'
+import { createCanvasStore } from '../stores/canvasStore'
 import { clearActiveEditorRegistryForTests, getActiveEditorSnapshot } from '../lib/activeEditorRegistry'
 import { confirmCloseDirtyPanels } from '../lib/confirmCloseDirty'
 import { setPendingReveal } from '../lib/editorReveal'
@@ -887,6 +889,49 @@ describe('EditorPanel FlashQuery URI routing', () => {
 
     await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' }))
     expect(usePreviewSelectionStore.getState().getScope(panelId).pinnedChunkId).toBe('target-section')
+  })
+
+  it('keeps a pending preview reveal visible after the canvas node is refocused', async () => {
+    const scrollIntoView = vi.fn()
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoView,
+    })
+    const api = makeElectronApi()
+    vi.mocked(api.flashqueryGetDocument).mockResolvedValueOnce({
+      body: '# Intro\n\nIntro body\n\n## Target Section\n\nTarget body',
+    })
+    setElectronApi(api)
+
+    const canvasStore = createCanvasStore()
+    canvasStore.getState().addNode(panelId, 'editor')
+    const nodeId = canvasStore.getState().nodeForPanel(panelId)!
+    canvasStore.getState().focusNode(nodeId)
+    const panel = { ...makePanel('flashquery://workspace-1/Docs/Refocus-Reveal.md'), markdownPreview: true }
+    seedWorkspace(panel)
+    setPendingReveal(panelId, { headingText: 'Target Section' })
+
+    render(
+      <CanvasStoreProvider store={canvasStore}>
+        <EditorPanel
+          panelId={panelId}
+          workspaceId={workspaceId}
+          nodeId={nodeId}
+          filePath={panel.filePath}
+        />
+      </CanvasStoreProvider>,
+    )
+
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1))
+    expect(usePreviewSelectionStore.getState().getScope(panelId).pinnedChunkId).toBe('target-section')
+
+    act(() => {
+      canvasStore.getState().focusNode(nodeId)
+    })
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+
+    expect(scrollIntoView).toHaveBeenCalledTimes(2)
+    expect(scrollIntoView).toHaveBeenLastCalledWith({ behavior: 'smooth', block: 'start' })
   })
 
   it('reveals the selected preview section when switching back to source', async () => {
