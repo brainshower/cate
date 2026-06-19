@@ -40,7 +40,7 @@ See archived roadmap for full phase details: [milestones/v1.3-ROADMAP.md](milest
 
 ## Current Status
 
-Active milestone: v1.4 Semantic Connections Inspector. Cate-side embeddings-only Semantic Connections Inspector implementation and closeout validation are complete across two GSD phases, preserving the seven source implementation phases from the requirements document as grouped sub-slices.
+No active milestone. v1.4 Semantic Connections Inspector is complete: Cate-side embeddings-only Semantic Connections Inspector implementation and closeout validation are complete across two GSD phases, preserving the seven source implementation phases from the requirements document as grouped sub-slices.
 
 ### Phase 24: SC Inspector Foundation, Docking, Preview Chunks, and Selection
 

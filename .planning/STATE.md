@@ -8,7 +8,7 @@ last_updated: "2026-06-17T03:47:36Z"
 last_activity: 2026-06-17 — Completed Plan 25-04 E2E and acceptance polish
 progress:
   total_phases: 2
-  completed_phases: 0
+  completed_phases: 2
   total_plans: 4
   completed_plans: 4
   percent: 100
@@ -21,7 +21,7 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-16 for v1.4 Semantic Connections Inspector)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** Executing v1.4 Semantic Connections Inspector
+**Current focus:** No active milestone; v1.4 Semantic Connections Inspector is complete
 
 ## Current Position
 
