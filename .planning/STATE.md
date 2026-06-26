@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Browser Uplift
 status: executing
-stopped_at: Completed 26-07-PLAN.md
-last_updated: "2026-06-26T19:24:31.133Z"
-last_activity: 2026-06-26 -- Completed 26-07 workspace cleanup and clear-data confirmation
+stopped_at: Completed 26-08-PLAN.md
+last_updated: "2026-06-26T19:47:13Z"
+last_activity: 2026-06-26 -- Completed 26-08 crash recovery and scoped browser shortcuts
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 10
-  completed_plans: 7
-  percent: 70
+  completed_plans: 8
+  percent: 80
 ---
 
 # Project State
@@ -26,14 +26,14 @@ See: `.planning/PROJECT.md` (updated 2026-06-26 for v1.5 Browser Uplift)
 ## Current Position
 
 Phase: 26-browser-uplift
-Plan: 08 next
+Plan: 09 next
 Status: Executing
-Last activity: 2026-06-26 -- Completed 26-07 workspace cleanup and clear-data confirmation
+Last activity: 2026-06-26 -- Completed 26-08 crash recovery and scoped browser shortcuts
 
 ## Session Continuity
 
-Last session: 2026-06-26T19:24:31.115Z
-Stopped At: Completed 26-07-PLAN.md
+Last session: 2026-06-26T19:47:13Z
+Stopped At: Completed 26-08-PLAN.md
 Resume File: None
 
 ## Next Up
@@ -88,6 +88,8 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table.
 | 2026-06-26 | Plan 26-06 keeps homepage/search exclusively in the Settings-window Browser panel. | Implements REQ-008 Option A while preventing duplicate in-panel homepage/search controls. |
 | 2026-06-26 | Plan 26-07 clears browser teardown by workspaceId only. | Workspace removal and clear-data use `persist:browser-ws-${workspaceId}` and browser state helpers without touching FlashQuery state. |
 | 2026-06-26 | Plan 26-07 keeps clear-data non-reloading. | The confirmation UI reports results and leaves open webviews loaded until user reload/navigation. |
+| 2026-06-26 | Plan 26-08 forwards only four browser shortcuts from webview guests. | Cmd/Ctrl+R, L, `[`, and `]` map to reload, focus URL, back, and forward; app-management shortcuts remain outside browser forwarding. |
+| 2026-06-26 | Plan 26-08 uses E2E simulation for webview crash/shortcut automation. | Direct Chromium crashes and webview guest keyboard/history delivery were unreliable in Playwright; unit tests pin classifier and method mapping. |
 
 ## Deferred Items
 
@@ -133,6 +135,7 @@ Items acknowledged and deferred at milestone close on 2026-06-16:
 | 26-browser-uplift | 05 | 15min | 2 | 7 |
 | 26-browser-uplift | 06 | 35min | 2 | 12 |
 | 26-browser-uplift | 07 | 55min | 2 | 10 |
+| 26-browser-uplift | 08 | 85min | 2 | 10 |
 
 ## Operator Next Steps
 

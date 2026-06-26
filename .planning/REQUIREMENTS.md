@@ -32,8 +32,8 @@ Bring Cate's forked in-app browser up to the relevant upstream v1.3.2 browser ca
 ### Browser UX and Navigation Robustness
 
 - [x] **REQ-004:** Browser load-error UI appears only for top-level/main-frame failures and ignores `ERR_ABORTED` plus subresource failures.
-- [ ] **REQ-005:** Browser webview crashes show a recoverable reload overlay for non-clean renderer exits and do not show it for clean exits.
-- [ ] **REQ-006:** Focused browser panels receive only scoped browser shortcuts for reload, address focus, back, and forward while Cate app shortcuts such as new browser, close panel, and close window keep their existing meanings.
+- [x] **REQ-005:** Browser webview crashes show a recoverable reload overlay for non-clean renderer exits and do not show it for clean exits.
+- [x] **REQ-006:** Focused browser panels receive only scoped browser shortcuts for reload, address focus, back, and forward while Cate app shortcuts such as new browser, close panel, and close window keep their existing meanings.
 
 ### Bookmarks and Settings UI
 
@@ -75,8 +75,8 @@ Bring Cate's forked in-app browser up to the relevant upstream v1.3.2 browser ca
 | REQ-002 | Phase 26 | Workspace Safety and Controls | `T-U-003`, `T-U-004`, `T-I-001`, `T-E-004` | Complete in 26-07 |
 | REQ-003 | Phase 26 | Browser State and Affordances | `T-U-005`, `T-U-006`, `T-U-007`, `T-U-008`, `T-U-030`, `T-E-005`, `T-E-006` | Complete in 26-04/26-05 |
 | REQ-004 | Phase 26 | Browser Foundation | `T-U-009`, `T-U-010`, `T-U-011`, `T-E-007`, `T-E-008` | Complete in 26-02 |
-| REQ-005 | Phase 26 | Workspace Safety and Controls | `T-U-012`, `T-U-013`, `T-E-009` | Pending |
-| REQ-006 | Phase 26 | Workspace Safety and Controls | `T-U-014`, `T-U-015`, `T-U-016`, `T-E-010`, `T-E-011` | Pending |
+| REQ-005 | Phase 26 | Workspace Safety and Controls | `T-U-012`, `T-U-013`, `T-E-009` | Complete in 26-08 |
+| REQ-006 | Phase 26 | Workspace Safety and Controls | `T-U-014`, `T-U-015`, `T-U-016`, `T-E-010`, `T-E-011` | Complete in 26-08; back/forward shortcut behavior covered in T-U-016 due Playwright webview history limits |
 | REQ-007 | Phase 26 | Browser State and Affordances | `T-U-017`, `T-U-018`, `T-U-030`, `T-E-012`, `T-E-013` | Complete in 26-05 |
 | REQ-008 | Phase 26 | Browser State and Affordances | `T-U-019`, `T-U-020`, `T-U-021`, `T-U-031`, `T-E-014` | Complete in 26-06 |
 | REQ-009 | Phase 26 | Workspace Safety and Controls | `T-U-022`, `T-U-023`, `T-U-024`, `T-I-002`, `T-I-003`, `T-E-015` | Complete in 26-04/26-07 |
@@ -92,4 +92,4 @@ Bring Cate's forked in-app browser up to the relevant upstream v1.3.2 browser ca
 
 ---
 *Requirements defined: 2026-06-26*
-*Last updated: 2026-06-26 after 26-07 workspace cleanup and clear-data confirmation*
+*Last updated: 2026-06-26 after 26-08 crash recovery and scoped shortcut forwarding*
