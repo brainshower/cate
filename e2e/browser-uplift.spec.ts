@@ -141,3 +141,32 @@ test('T-E-008 main-frame navigation failure shows failed-load overlay', async ()
     await closeApp(app)
   }
 })
+
+test('T-E-016 screenshot button creates a draggable thumbnail from a local page', async () => {
+  const server = await startLocalBrowserServer((_req, res) => {
+    res.writeHead(200, { 'content-type': 'text/html' })
+    res.end(`<!doctype html>
+      <title>Cate Browser Uplift Screenshot</title>
+      <body style="background: rgb(18, 52, 86); color: white;">
+        <h1 id="loaded">screenshot ready</h1>
+      </body>`)
+  })
+  const { electronApp: app, mainWindow: page } = await launchApp()
+
+  try {
+    const panelId = await createBrowserPanel(page, server.baseUrl)
+    await expect.poll(async () => {
+      return evalBrowserPanel(page, panelId, "document.querySelector('#loaded')?.textContent")
+    }).toBe('screenshot ready')
+
+    await page.getByRole('button', { name: 'Screenshot' }).click()
+
+    const thumbnail = page.locator('img[alt="Screenshot"]')
+    await expect(thumbnail).toBeVisible()
+    await expect(thumbnail).toHaveAttribute('src', /^data:image\/png;base64,/)
+    await expect(thumbnail.locator('xpath=ancestor::*[@draggable="true"][1]')).toHaveCount(1)
+  } finally {
+    await closeApp(app)
+    await server.close()
+  }
+})
