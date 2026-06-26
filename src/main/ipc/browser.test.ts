@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
 import {
   BROWSER_BOOKMARKS_ADD,
   BROWSER_BOOKMARKS_CLEAR,
@@ -12,6 +13,8 @@ import {
   BROWSER_HISTORY_RECORD,
   BROWSER_HISTORY_REMOVE,
 } from '../../shared/ipc-channels'
+
+const BROWSER_IPC_SOURCE = readFileSync(new URL('./browser.ts', import.meta.url), 'utf8')
 
 const handlers = new Map<string, (...args: unknown[]) => unknown>()
 const send = vi.fn()
@@ -170,5 +173,12 @@ describe('registerBrowserHandlers', () => {
     expect(flashqueryCredentialsProbe).not.toHaveBeenCalled()
     expect(flashqueryClientProbe).not.toHaveBeenCalled()
     expect(flashqueryIpcProbe).not.toHaveBeenCalled()
+  })
+
+  test('T-U-028 browser IPC source does not import FlashQuery credential or client modules', () => {
+    expect(BROWSER_IPC_SOURCE).not.toMatch(/from ['"]\.\.\/flashquery\/credentials['"]/)
+    expect(BROWSER_IPC_SOURCE).not.toMatch(/from ['"]\.\.\/flashquery\/clientManager['"]/)
+    expect(BROWSER_IPC_SOURCE).not.toMatch(/from ['"]\.\/flashquery['"]/)
+    expect(BROWSER_IPC_SOURCE).not.toMatch(/flashquery/i)
   })
 })

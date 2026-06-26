@@ -471,3 +471,45 @@ test('T-E-015 clear-data requires confirmation and does not reload open browser 
     await server.close()
   }
 })
+
+test('T-E-018 browser operations preserve workspace FlashQuery connection state', async () => {
+  const server = await startLocalBrowserServer((_req, res) => {
+    res.writeHead(200, { 'content-type': 'text/html' })
+    res.end('<!doctype html><title>FlashQuery Boundary Browser Page</title><body>flashquery boundary browser page</body>')
+  })
+  const { electronApp: app, mainWindow: page } = await launchApp()
+
+  try {
+    const workspaceId = await createWorkspace(page, 'Browser FlashQuery Boundary Workspace')
+    await page.evaluate(async (id) => {
+      const result = await window.electronAPI.flashquerySetConnection(id, {
+        transport: 'http',
+        url: 'http://127.0.0.1:45678',
+      })
+      if (!result.ok) throw new Error(`Failed to seed FlashQuery connection: ${result.error.message}`)
+    }, workspaceId)
+
+    const beforeConnection = await page.evaluate((id) => {
+      return window.__cateE2E!.workspaceFlashQueryConnection(id)
+    }, workspaceId)
+
+    const panelId = await createBrowserPanel(page, server.baseUrl)
+    await expect(await waitForBrowserPartition(page, panelId)).toBe(`persist:browser-ws-${workspaceId}`)
+
+    await page.evaluate(async ({ id, url }) => {
+      await window.electronAPI.browserHistoryRecord(id, `${url}/history`, 'FlashQuery Boundary History')
+      await window.electronAPI.browserBookmarksAdd(id, `${url}/bookmark`, 'FlashQuery Boundary Bookmark')
+    }, { id: workspaceId, url: server.baseUrl })
+
+    const clearResult = await page.evaluate((id) => window.electronAPI.browserClearData(id), workspaceId)
+    expect(clearResult).toMatchObject({ ok: true, workspaceId })
+
+    const afterConnection = await page.evaluate((id) => {
+      return window.__cateE2E!.workspaceFlashQueryConnection(id)
+    }, workspaceId)
+    expect(afterConnection).toEqual(beforeConnection)
+  } finally {
+    await closeApp(app)
+    await server.close()
+  }
+})
