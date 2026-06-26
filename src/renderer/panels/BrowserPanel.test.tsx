@@ -33,6 +33,7 @@ vi.mock('../lib/portalRegistry', () => ({
 }))
 
 vi.mock('../stores/browserStore', () => ({
+  initializeBrowserStoreSubscriptions: vi.fn(),
   useBrowserStore: (selector: (state: {
     isBookmarked: (workspaceId: string, url: string) => boolean
     recordVisit: (workspaceId: string, url: string, title?: string) => Promise<unknown>

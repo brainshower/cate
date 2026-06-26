@@ -5,7 +5,7 @@
 // =============================================================================
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Globe, ArrowLeft, ArrowRight, ArrowClockwise, Camera, MagnifyingGlass } from '@phosphor-icons/react'
+import { Globe, ArrowLeft, ArrowRight, ArrowClockwise, Camera, MagnifyingGlass, Star } from '@phosphor-icons/react'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useAppStore } from '../stores/appStore'
 import { useCanvasStoreContext } from '../stores/CanvasStoreContext'
@@ -15,6 +15,7 @@ import { portalRegistry } from '../lib/portalRegistry'
 import { isUrl, normalizeUrl } from './browserUrl'
 import { browserPartitionForWorkspace } from './browserPartition'
 import { pageLoadErrorFrom } from './browserLoadError'
+import { initializeBrowserStoreSubscriptions, useBrowserStore } from '../stores/browserStore'
 
 // -----------------------------------------------------------------------------
 // Type declarations for Electron's <webview> element
@@ -50,6 +51,10 @@ export default function BrowserPanel({
   const browserSearchEngine = useSettingsStore((s) => s.browserSearchEngine)
   const updatePanelTitle = useAppStore((s) => s.updatePanelTitle)
   const updatePanelUrl = useAppStore((s) => s.updatePanelUrl)
+  const recordVisit = useBrowserStore((s) => s.recordVisit)
+  const addBookmark = useBrowserStore((s) => s.addBookmark)
+  const removeBookmark = useBrowserStore((s) => s.removeBookmark)
+  const refreshWorkspace = useBrowserStore((s) => s.refreshWorkspace)
 
   const isFocused = useCanvasStoreContext((s) => s.focusedNodeId === nodeId)
   let browserPartition: string | null = null
@@ -69,6 +74,7 @@ export default function BrowserPanel({
   const webviewRef = useRef<WebviewElement | null>(null)
   const [currentUrl, setCurrentUrl] = useState(initialUrl)
   const [inputUrl, setInputUrl] = useState(initialUrl)
+  const isCurrentPageBookmarked = useBrowserStore((s) => s.isBookmarked(workspaceId, currentUrl))
   const [canGoBack, setCanGoBack] = useState(false)
   const [canGoForward, setCanGoForward] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -163,6 +169,14 @@ export default function BrowserPanel({
     setScreenshot(null)
   }, [])
 
+  const handleToggleBookmark = useCallback(() => {
+    if (isCurrentPageBookmarked) {
+      void removeBookmark(workspaceId, currentUrl)
+    } else {
+      void addBookmark(workspaceId, currentUrl, currentUrl)
+    }
+  }, [addBookmark, currentUrl, isCurrentPageBookmarked, removeBookmark, workspaceId])
+
   const handleUrlBarKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -182,6 +196,12 @@ export default function BrowserPanel({
       webview.focus()
     })
   }, [isFocused])
+
+  useEffect(() => {
+    if (!browserPartition) return
+    initializeBrowserStoreSubscriptions()
+    void refreshWorkspace(workspaceId)
+  }, [browserPartition, refreshWorkspace, workspaceId])
 
   // -------------------------------------------------------------------------
   // Webview event listeners
@@ -204,6 +224,7 @@ export default function BrowserPanel({
       setIsLoading(false)
       setLoadError(null)
       updatePanelUrl(workspaceId, panelId, url)
+      void recordVisit(workspaceId, url, url)
     }
 
     const onDidNavigateInPage = (event: any) => {
@@ -214,12 +235,17 @@ export default function BrowserPanel({
       setCanGoBack(webview.canGoBack())
       setCanGoForward(webview.canGoForward())
       updatePanelUrl(workspaceId, panelId, url)
+      void recordVisit(workspaceId, url, url)
     }
 
     const onPageTitleUpdated = (event: any) => {
       const title = event.title ?? webview.getTitle()
       if (title) {
         updatePanelTitle(workspaceId, panelId, title)
+        const url = webview.getURL()
+        if (url && url !== 'about:blank') {
+          void recordVisit(workspaceId, url, title)
+        }
       }
     }
 
@@ -289,7 +315,7 @@ export default function BrowserPanel({
       webview.removeEventListener('will-navigate', onWillNavigate)
       webview.removeEventListener('new-window', onNewWindow)
     }
-  }, [panelId, workspaceId, updatePanelTitle, updatePanelUrl])
+  }, [panelId, recordVisit, workspaceId, updatePanelTitle, updatePanelUrl])
 
   // -------------------------------------------------------------------------
   // Render
@@ -354,6 +380,15 @@ export default function BrowserPanel({
         </div>
 
         {/* Screenshot tool */}
+        <button
+          onClick={handleToggleBookmark}
+          className={`w-7 h-7 flex items-center justify-center rounded-full border border-subtle bg-surface-5 hover:bg-hover transition-colors ${isCurrentPageBookmarked ? 'text-accent' : 'text-primary'}`}
+          title={isCurrentPageBookmarked ? 'Remove bookmark' : 'Add bookmark'}
+          aria-label={isCurrentPageBookmarked ? 'Remove bookmark' : 'Add bookmark'}
+        >
+          <Star size={13} weight={isCurrentPageBookmarked ? 'fill' : 'regular'} />
+        </button>
+
         <button
           onClick={handleScreenshot}
           className="w-7 h-7 flex items-center justify-center rounded-full border border-subtle bg-surface-5 hover:bg-hover text-primary transition-colors"
