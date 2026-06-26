@@ -107,6 +107,28 @@ export async function seedCanvasPanel(
   return page.evaluate((p) => window.__cateE2E!.createCanvasPanel(p), point)
 }
 
+export async function createWorkspace(page: Page, name: string): Promise<string> {
+  return page.evaluate((workspaceName) => window.__cateE2E!.createWorkspace(workspaceName), name)
+}
+
+export async function createBrowserPanel(page: Page, url: string): Promise<string> {
+  const panelId = await page.evaluate((targetUrl) => window.__cateE2E!.createBrowserPanel(targetUrl), url)
+  await page.waitForSelector(`webview[data-browser-panel-id="${panelId}"]`, { timeout: 10_000 })
+  return panelId
+}
+
+export async function waitForBrowserPartition(page: Page, panelId: string): Promise<string | null> {
+  const selector = `webview[data-browser-panel-id="${panelId}"]`
+  await page.waitForSelector(selector, { timeout: 10_000 })
+  return page.locator(selector).getAttribute('partition')
+}
+
+export async function evalBrowserPanel(page: Page, panelId: string, script: string): Promise<unknown> {
+  return page.evaluate(async ({ id, source }) => {
+    return window.__cateE2E!.evalBrowserPanel(id, source)
+  }, { id: panelId, source: script })
+}
+
 export async function setZoom(page: Page, zoom: number): Promise<void> {
   await page.evaluate((z) => window.__cateE2E!.setZoom(z), zoom)
   await page.waitForTimeout(80)
