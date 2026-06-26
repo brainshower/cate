@@ -52,4 +52,15 @@ describe('portalRegistry bridge preservation', () => {
     })
     expect(portalRegistry.get('panel-1')).toBeNull()
   })
+
+  it('register and unregister remain best-effort when the bridge is missing', () => {
+    const webview = webviewWithId(42)
+
+    expect(() => {
+      portalRegistry.register('panel-1', webview)
+      portalRegistry.unregister('panel-1')
+    }).not.toThrow()
+
+    expect(portalRegistry.get('panel-1')).toBeNull()
+  })
 })

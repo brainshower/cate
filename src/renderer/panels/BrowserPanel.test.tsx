@@ -1,6 +1,7 @@
 import { act, cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import BrowserPanel from './BrowserPanel'
+import { portalRegistry } from '../lib/portalRegistry'
 
 vi.mock('../stores/settingsStore', () => ({
   useSettingsStore: (selector: (state: { browserHomepage: string; browserSearchEngine: 'google' }) => unknown) =>
@@ -87,5 +88,22 @@ describe('BrowserPanel load-error handling', () => {
 
     expect(screen.getByText('Failed to load page')).toBeTruthy()
     expect(screen.getByText('ERR_NAME_NOT_RESOLVED')).toBeTruthy()
+  })
+})
+
+describe('BrowserPanel portal registration', () => {
+  it('registers the browser webview with portalRegistry on dom-ready', () => {
+    const { container } = render(
+      <BrowserPanel panelId="panel-1" workspaceId="workspace-1" nodeId="node-1" url="about:blank" />,
+    )
+
+    const webview = container.querySelector('webview')
+    expect(webview).not.toBeNull()
+
+    act(() => {
+      webview?.dispatchEvent(new Event('dom-ready'))
+    })
+
+    expect(portalRegistry.register).toHaveBeenCalledWith('panel-1', webview)
   })
 })
