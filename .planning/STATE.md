@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Browser Uplift
 status: executing
-stopped_at: Completed 26-05-PLAN.md
-last_updated: "2026-06-26T19:00:42.000Z"
-last_activity: 2026-06-26 -- Completed 26-06 browser menu, popover, and bookmarks-bar setting
+stopped_at: Completed 26-07-PLAN.md
+last_updated: "2026-06-26T19:24:31.133Z"
+last_activity: 2026-06-26 -- Completed 26-07 workspace cleanup and clear-data confirmation
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 10
-  completed_plans: 6
-  percent: 60
+  completed_plans: 7
+  percent: 70
 ---
 
 # Project State
@@ -26,14 +26,14 @@ See: `.planning/PROJECT.md` (updated 2026-06-26 for v1.5 Browser Uplift)
 ## Current Position
 
 Phase: 26-browser-uplift
-Plan: 07 next
+Plan: 08 next
 Status: Executing
-Last activity: 2026-06-26 -- Completed 26-06 browser menu, popover, and bookmarks-bar setting
+Last activity: 2026-06-26 -- Completed 26-07 workspace cleanup and clear-data confirmation
 
 ## Session Continuity
 
-Last session: 2026-06-26T19:00:42.000Z
-Stopped At: Completed 26-06-PLAN.md
+Last session: 2026-06-26T19:24:31.115Z
+Stopped At: Completed 26-07-PLAN.md
 Resume File: None
 
 ## Next Up
@@ -86,6 +86,8 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table.
 | 2026-06-26 | No upstream proxy, extraction, vault write, `cate_browser`, or FlashQuery code was added in 26-03. | Preserves Browser Uplift scope boundaries and FlashQuery isolation. |
 | 2026-06-26 | Plan 26-05 keeps BookmarksBar presentational while BrowserPanel supplies workspace-scoped bookmarks. | Prevents a global active-workspace bookmark model and keeps REQ-003/REQ-007 panel scoping explicit. |
 | 2026-06-26 | Plan 26-06 keeps homepage/search exclusively in the Settings-window Browser panel. | Implements REQ-008 Option A while preventing duplicate in-panel homepage/search controls. |
+| 2026-06-26 | Plan 26-07 clears browser teardown by workspaceId only. | Workspace removal and clear-data use `persist:browser-ws-${workspaceId}` and browser state helpers without touching FlashQuery state. |
+| 2026-06-26 | Plan 26-07 keeps clear-data non-reloading. | The confirmation UI reports results and leaves open webviews loaded until user reload/navigation. |
 
 ## Deferred Items
 
@@ -130,6 +132,7 @@ Items acknowledged and deferred at milestone close on 2026-06-16:
 | 26-browser-uplift | 04 | 12min | 2 | 10 |
 | 26-browser-uplift | 05 | 15min | 2 | 7 |
 | 26-browser-uplift | 06 | 35min | 2 | 12 |
+| 26-browser-uplift | 07 | 55min | 2 | 10 |
 
 ## Operator Next Steps
 

@@ -26,7 +26,7 @@ Bring Cate's forked in-app browser up to the relevant upstream v1.3.2 browser ca
 ### Session, State, and Workspace Scope
 
 - [x] **REQ-001:** Browser webviews use a durable per-workspace Electron partition exactly `persist:browser-ws-${workspaceId}`, never `panelId`, and fail closed rather than mounting with an empty or missing workspace ID across canvas, dock, detached panel, and detached dock mount sites.
-- [ ] **REQ-002:** Removing a workspace cleans only that workspace's browser partition plus persisted browser history/bookmarks, co-located with existing main-side workspace teardown.
+- [x] **REQ-002:** Removing a workspace cleans only that workspace's browser partition plus persisted browser history/bookmarks, co-located with existing main-side workspace teardown.
 - [x] **REQ-003:** Browser history and bookmarks persist per workspace, ignore non-recordable sentinel URLs, and are queried in the renderer by `workspaceId` rather than through one global active workspace.
 
 ### Browser UX and Navigation Robustness
@@ -39,7 +39,7 @@ Bring Cate's forked in-app browser up to the relevant upstream v1.3.2 browser ca
 
 - [x] **REQ-007:** Browser panels provide a per-workspace bookmarks bar and star toggle backed by workspace-scoped bookmark persistence.
 - [x] **REQ-008:** Browser menu/settings UI exposes bookmarks-bar controls and scoped clear-data behavior while keeping homepage/search controls in the existing Settings-window Browser panel as the single source of truth.
-- [ ] **REQ-009:** Clear browsing data requires confirmation, clears only the current workspace's browser partition/history/bookmarks, preserves other workspaces and all FlashQuery state, and does not force-reload live panels.
+- [x] **REQ-009:** Clear browsing data requires confirmation, clears only the current workspace's browser partition/history/bookmarks, preserves other workspaces and all FlashQuery state, and does not force-reload live panels.
 
 ### IPC, Contracts, and Integration Boundaries
 
@@ -72,14 +72,14 @@ Bring Cate's forked in-app browser up to the relevant upstream v1.3.2 browser ca
 | Requirement | GSD phase | Source slice | Primary test coverage | Status |
 |---|---:|---|---|---|
 | REQ-001 | Phase 26 | Browser Foundation | `T-U-001`, `T-U-002`, `T-U-029`, `T-E-001`, `T-E-002`, `T-E-003`, `T-E-020`, `T-E-021`, `T-M-001` | Complete in 26-01 |
-| REQ-002 | Phase 26 | Workspace Safety and Controls | `T-U-003`, `T-U-004`, `T-I-001`, `T-E-004` | Pending |
+| REQ-002 | Phase 26 | Workspace Safety and Controls | `T-U-003`, `T-U-004`, `T-I-001`, `T-E-004` | Complete in 26-07 |
 | REQ-003 | Phase 26 | Browser State and Affordances | `T-U-005`, `T-U-006`, `T-U-007`, `T-U-008`, `T-U-030`, `T-E-005`, `T-E-006` | Complete in 26-04/26-05 |
 | REQ-004 | Phase 26 | Browser Foundation | `T-U-009`, `T-U-010`, `T-U-011`, `T-E-007`, `T-E-008` | Complete in 26-02 |
 | REQ-005 | Phase 26 | Workspace Safety and Controls | `T-U-012`, `T-U-013`, `T-E-009` | Pending |
 | REQ-006 | Phase 26 | Workspace Safety and Controls | `T-U-014`, `T-U-015`, `T-U-016`, `T-E-010`, `T-E-011` | Pending |
 | REQ-007 | Phase 26 | Browser State and Affordances | `T-U-017`, `T-U-018`, `T-U-030`, `T-E-012`, `T-E-013` | Complete in 26-05 |
 | REQ-008 | Phase 26 | Browser State and Affordances | `T-U-019`, `T-U-020`, `T-U-021`, `T-U-031`, `T-E-014` | Complete in 26-06 |
-| REQ-009 | Phase 26 | Workspace Safety and Controls | `T-U-022`, `T-U-023`, `T-U-024`, `T-I-002`, `T-I-003`, `T-E-015` | Pending |
+| REQ-009 | Phase 26 | Workspace Safety and Controls | `T-U-022`, `T-U-023`, `T-U-024`, `T-I-002`, `T-I-003`, `T-E-015` | Complete in 26-04/26-07 |
 | REQ-010 | Phase 26 | Browser Foundation | `T-I-004`, `T-I-005`, `T-I-006`, `T-E-016` | Complete in 26-03 |
 | REQ-011 | Phase 26 | Browser Foundation | `T-U-025`, `T-U-026`, `T-E-017` | Complete in 26-02 for unit/component bridge coverage; T-E-017 deferred pending observable main bridge path |
 | REQ-012 | Phase 26 | Workspace Safety and Controls | `T-U-027`, `T-U-028`, `T-E-018`, `T-E-019` | Pending |
@@ -92,4 +92,4 @@ Bring Cate's forked in-app browser up to the relevant upstream v1.3.2 browser ca
 
 ---
 *Requirements defined: 2026-06-26*
-*Last updated: 2026-06-26 after 26-06 browser menu/settings UI*
+*Last updated: 2026-06-26 after 26-07 workspace cleanup and clear-data confirmation*
