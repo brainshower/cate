@@ -565,6 +565,19 @@ export const SEARCH_ENGINE_URLS: Record<BrowserSearchEngine, string> = {
   brave: 'https://search.brave.com/search?q=',
 }
 
+export interface BrowserHistoryEntry {
+  url: string
+  title: string
+  lastVisited: number
+  visitCount: number
+}
+
+export interface BrowserBookmark {
+  url: string
+  title: string
+  addedAt: number
+}
+
 // -----------------------------------------------------------------------------
 // Keyboard shortcuts
 // -----------------------------------------------------------------------------
