@@ -185,3 +185,18 @@ describe('BrowserPanel history and bookmark controls', () => {
     expect(removeBookmark).toHaveBeenCalledWith('workspace-1', 'https://example.test/page')
   })
 })
+
+describe('BrowserPanel menu integration', () => {
+  it('shows the browser menu without removing navigation, screenshot, star, or bookmarks behavior', () => {
+    render(
+      <BrowserPanel panelId="panel-1" workspaceId="workspace-1" nodeId="node-1" url="https://example.test/page" />,
+    )
+
+    expect(screen.getByRole('button', { name: 'Back' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Forward' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Reload' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Add bookmark' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Screenshot' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Browser menu' })).toBeTruthy()
+  })
+})
