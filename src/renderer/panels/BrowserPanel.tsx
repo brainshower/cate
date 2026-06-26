@@ -16,6 +16,7 @@ import { isUrl, normalizeUrl } from './browserUrl'
 import { browserPartitionForWorkspace } from './browserPartition'
 import { pageLoadErrorFrom } from './browserLoadError'
 import { initializeBrowserStoreSubscriptions, useBrowserStore } from '../stores/browserStore'
+import { BookmarksBar } from './BookmarksBar'
 
 // -----------------------------------------------------------------------------
 // Type declarations for Electron's <webview> element
@@ -55,6 +56,7 @@ export default function BrowserPanel({
   const addBookmark = useBrowserStore((s) => s.addBookmark)
   const removeBookmark = useBrowserStore((s) => s.removeBookmark)
   const refreshWorkspace = useBrowserStore((s) => s.refreshWorkspace)
+  const workspaceBookmarks = useBrowserStore((s) => s.bookmarksForWorkspace(workspaceId))
 
   const isFocused = useCanvasStoreContext((s) => s.focusedNodeId === nodeId)
   let browserPartition: string | null = null
@@ -73,6 +75,7 @@ export default function BrowserPanel({
 
   const webviewRef = useRef<WebviewElement | null>(null)
   const [currentUrl, setCurrentUrl] = useState(initialUrl)
+  const [currentTitle, setCurrentTitle] = useState(initialUrl)
   const [inputUrl, setInputUrl] = useState(initialUrl)
   const isCurrentPageBookmarked = useBrowserStore((s) => s.isBookmarked(workspaceId, currentUrl))
   const [canGoBack, setCanGoBack] = useState(false)
@@ -173,9 +176,9 @@ export default function BrowserPanel({
     if (isCurrentPageBookmarked) {
       void removeBookmark(workspaceId, currentUrl)
     } else {
-      void addBookmark(workspaceId, currentUrl, currentUrl)
+      void addBookmark(workspaceId, currentUrl, currentTitle || currentUrl)
     }
-  }, [addBookmark, currentUrl, isCurrentPageBookmarked, removeBookmark, workspaceId])
+  }, [addBookmark, currentTitle, currentUrl, isCurrentPageBookmarked, removeBookmark, workspaceId])
 
   const handleUrlBarKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -218,6 +221,7 @@ export default function BrowserPanel({
       // the real URL and break session restore / visibility-cull remount.
       if (url === 'about:blank') return
       setCurrentUrl(url)
+      setCurrentTitle(url)
       setInputUrl(url)
       setCanGoBack(webview.canGoBack())
       setCanGoForward(webview.canGoForward())
@@ -231,6 +235,7 @@ export default function BrowserPanel({
       const url = event.url ?? webview.getURL()
       if (url === 'about:blank') return
       setCurrentUrl(url)
+      setCurrentTitle(url)
       setInputUrl(url)
       setCanGoBack(webview.canGoBack())
       setCanGoForward(webview.canGoForward())
@@ -241,6 +246,7 @@ export default function BrowserPanel({
     const onPageTitleUpdated = (event: any) => {
       const title = event.title ?? webview.getTitle()
       if (title) {
+        setCurrentTitle(title)
         updatePanelTitle(workspaceId, panelId, title)
         const url = webview.getURL()
         if (url && url !== 'about:blank') {
@@ -397,6 +403,8 @@ export default function BrowserPanel({
           <Camera size={13} />
         </button>
       </div>
+
+      <BookmarksBar bookmarks={workspaceBookmarks} onNavigate={navigateTo} />
 
       {/* Webview + overlays container */}
       <div className="flex-1 relative">

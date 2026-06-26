@@ -40,12 +40,14 @@ vi.mock('../stores/browserStore', () => ({
     addBookmark: (workspaceId: string, url: string, title?: string) => Promise<unknown>
     removeBookmark: (workspaceId: string, url: string) => Promise<unknown>
     refreshWorkspace: (workspaceId: string) => Promise<unknown>
+    bookmarksForWorkspace: (workspaceId: string) => unknown[]
   }) => unknown) => selector({
     isBookmarked: () => isBookmarked,
     recordVisit,
     addBookmark,
     removeBookmark,
     refreshWorkspace,
+    bookmarksForWorkspace: () => [],
   }),
 }))
 

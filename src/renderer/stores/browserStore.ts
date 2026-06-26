@@ -20,6 +20,9 @@ interface BrowserStoreState {
   removeBookmark: (workspaceId: string, url: string) => Promise<void>
 }
 
+const EMPTY_HISTORY: BrowserHistoryEntry[] = []
+const EMPTY_BOOKMARKS: BrowserBookmark[] = []
+
 function emptyWorkspace(): BrowserWorkspaceState {
   return {
     history: [],
@@ -53,9 +56,9 @@ function setWorkspace(
 export const useBrowserStore = create<BrowserStoreState>((set, get) => ({
   byWorkspace: {},
 
-  historyForWorkspace: (workspaceId) => get().byWorkspace[workspaceId]?.history ?? [],
+  historyForWorkspace: (workspaceId) => get().byWorkspace[workspaceId]?.history ?? EMPTY_HISTORY,
 
-  bookmarksForWorkspace: (workspaceId) => get().byWorkspace[workspaceId]?.bookmarks ?? [],
+  bookmarksForWorkspace: (workspaceId) => get().byWorkspace[workspaceId]?.bookmarks ?? EMPTY_BOOKMARKS,
 
   isBookmarked: (workspaceId, url) => {
     const normalized = normalizeUrlForMatch(url)
