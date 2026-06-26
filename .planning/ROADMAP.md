@@ -47,9 +47,9 @@ v1.5 Browser Uplift is active. The milestone is intentionally planned as one GSD
 
 **Goal:** Implement the Browser Uplift end to end: workspace-scoped durable browser sessions, per-workspace history/bookmarks, browser affordances, main-frame/crash/shortcut robustness, modular screenshot IPC, workspace cleanup, clear-data controls, portal bridge preservation, FlashQuery isolation, and full supplied test coverage.
 
-**GSD progress:** Executing — 1/10 plans complete.
+**GSD progress:** Executing — 2/10 plans complete.
 
-**Plans:** 10 plans
+**Plans:** 2/10 plans executed
 
 Plans:
 **Wave 1**
@@ -58,7 +58,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 26-02-PLAN.md — Load-error helper and portal bridge regression.
+- [x] 26-02-PLAN.md — Load-error helper and portal bridge regression.
 
 **Wave 3** *(blocked on Wave 2 completion)*
 

@@ -31,7 +31,7 @@ Bring Cate's forked in-app browser up to the relevant upstream v1.3.2 browser ca
 
 ### Browser UX and Navigation Robustness
 
-- [ ] **REQ-004:** Browser load-error UI appears only for top-level/main-frame failures and ignores `ERR_ABORTED` plus subresource failures.
+- [x] **REQ-004:** Browser load-error UI appears only for top-level/main-frame failures and ignores `ERR_ABORTED` plus subresource failures.
 - [ ] **REQ-005:** Browser webview crashes show a recoverable reload overlay for non-clean renderer exits and do not show it for clean exits.
 - [ ] **REQ-006:** Focused browser panels receive only scoped browser shortcuts for reload, address focus, back, and forward while Cate app shortcuts such as new browser, close panel, and close window keep their existing meanings.
 
@@ -44,7 +44,7 @@ Bring Cate's forked in-app browser up to the relevant upstream v1.3.2 browser ca
 ### IPC, Contracts, and Integration Boundaries
 
 - [ ] **REQ-010:** Screenshot capture is relocated into a modular browser/capture IPC home while preserving the existing `{ filePath, dataUrl }` screenshot contract and avoiding upstream proxy/extraction handlers.
-- [ ] **REQ-011:** Fork-only portal orchestration behavior remains functional, including `portalRegistry` calls to `orchRegisterPortalWc` / main-process popup parent resolution.
+- [x] **REQ-011:** Fork-only portal orchestration behavior remains functional, including `portalRegistry` calls to `orchRegisterPortalWc` / main-process popup parent resolution.
 - [ ] **REQ-012:** Browser navigation, history, bookmarks, screenshots, and clear-data operations do not mutate or depend on FlashQuery credentials, connection metadata, vault documents, indexes, or MCP sessions.
 
 ## Future Requirements
@@ -74,14 +74,14 @@ Bring Cate's forked in-app browser up to the relevant upstream v1.3.2 browser ca
 | REQ-001 | Phase 26 | Browser Foundation | `T-U-001`, `T-U-002`, `T-U-029`, `T-E-001`, `T-E-002`, `T-E-003`, `T-E-020`, `T-E-021`, `T-M-001` | Complete in 26-01 |
 | REQ-002 | Phase 26 | Workspace Safety and Controls | `T-U-003`, `T-U-004`, `T-I-001`, `T-E-004` | Pending |
 | REQ-003 | Phase 26 | Browser State and Affordances | `T-U-005`, `T-U-006`, `T-U-007`, `T-U-008`, `T-U-030`, `T-E-005`, `T-E-006` | Pending |
-| REQ-004 | Phase 26 | Browser Foundation | `T-U-009`, `T-U-010`, `T-U-011`, `T-E-007`, `T-E-008` | Pending |
+| REQ-004 | Phase 26 | Browser Foundation | `T-U-009`, `T-U-010`, `T-U-011`, `T-E-007`, `T-E-008` | Complete in 26-02 |
 | REQ-005 | Phase 26 | Workspace Safety and Controls | `T-U-012`, `T-U-013`, `T-E-009` | Pending |
 | REQ-006 | Phase 26 | Workspace Safety and Controls | `T-U-014`, `T-U-015`, `T-U-016`, `T-E-010`, `T-E-011` | Pending |
 | REQ-007 | Phase 26 | Browser State and Affordances | `T-U-017`, `T-U-018`, `T-U-030`, `T-E-012`, `T-E-013` | Pending |
 | REQ-008 | Phase 26 | Browser State and Affordances | `T-U-019`, `T-U-020`, `T-U-021`, `T-U-031`, `T-E-014` | Pending |
 | REQ-009 | Phase 26 | Workspace Safety and Controls | `T-U-022`, `T-U-023`, `T-U-024`, `T-I-002`, `T-I-003`, `T-E-015` | Pending |
 | REQ-010 | Phase 26 | Browser Foundation | `T-I-004`, `T-I-005`, `T-I-006`, `T-E-016` | Pending |
-| REQ-011 | Phase 26 | Browser Foundation | `T-U-025`, `T-U-026`, `T-E-017` | Pending |
+| REQ-011 | Phase 26 | Browser Foundation | `T-U-025`, `T-U-026`, `T-E-017` | Complete in 26-02 for unit/component bridge coverage; T-E-017 deferred pending observable main bridge path |
 | REQ-012 | Phase 26 | Workspace Safety and Controls | `T-U-027`, `T-U-028`, `T-E-018`, `T-E-019` | Pending |
 
 **Coverage:**

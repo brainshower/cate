@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Browser Uplift
 status: executing
-stopped_at: Completed 25-04-PLAN.md
-last_updated: "2026-06-26T18:00:59Z"
-last_activity: 2026-06-26 -- Completed 26-01 workspace partition threading
+stopped_at: Completed 26-02-PLAN.md
+last_updated: "2026-06-26T18:09:55Z"
+last_activity: 2026-06-26 -- Completed 26-02 load-error helper and portal bridge regression
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 10
-  completed_plans: 1
-  percent: 10
+  completed_plans: 2
+  percent: 20
 ---
 
 # Project State
@@ -26,14 +26,14 @@ See: `.planning/PROJECT.md` (updated 2026-06-26 for v1.5 Browser Uplift)
 ## Current Position
 
 Phase: 26-browser-uplift
-Plan: 02 next
+Plan: 03 next
 Status: Executing
-Last activity: 2026-06-26 -- Completed 26-01 workspace partition threading
+Last activity: 2026-06-26 -- Completed 26-02 load-error helper and portal bridge regression
 
 ## Session Continuity
 
-Last session: 2026-06-26T18:00:59Z
-Stopped At: Completed 26-01-PLAN.md
+Last session: 2026-06-26T18:09:55Z
+Stopped At: Completed 26-02-PLAN.md
 Resume File: None
 
 ## Next Up
@@ -79,6 +79,8 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table.
 | 2026-06-26 | v1.5 uses the Browser Uplift requirements and test plan as mandatory source-of-truth docs. | The product docs define upstream browser uplift scope, FlashQuery boundaries, and full REQ/test traceability. |
 | 2026-06-26 | v1.5 executes in one GSD phase, Phase 26. | Owner requested one phase if possible; the source spec's four implementation phases are preserved as sub-slices inside one cohesive browser uplift phase. |
 | 2026-06-26 | Browser state is workspace-scoped and separate from FlashQuery state. | The shared `workspaceId` is a scoping convenience, not a shared storage or security boundary. |
+| 2026-06-26 | BrowserPanel load-error overlay is driven only by `pageLoadErrorFrom(event)`. | Keeps REQ-004 semantics testable and prevents subresource failures from hiding a successfully loaded page. |
+| 2026-06-26 | portalRegistry production code was preserved during 26-02. | The plan required bridge preservation coverage, not a wholesale upstream replacement. |
 
 ## Deferred Items
 
@@ -118,6 +120,7 @@ Items acknowledged and deferred at milestone close on 2026-06-16:
 | 25-inspector-ui-adapter-boundary-outline-sync-e2e-and-acceptance-polish | 02 | 6min | 2 | 4 |
 | 25-inspector-ui-adapter-boundary-outline-sync-e2e-and-acceptance-polish | 04 | 19m 34s | 3 | 9 |
 | 26-browser-uplift | 01 | 20min | 2 | 14 |
+| 26-browser-uplift | 02 | 30min | 2 | 7 |
 
 ## Operator Next Steps
 
