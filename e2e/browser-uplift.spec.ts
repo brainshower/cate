@@ -218,3 +218,37 @@ test('T-E-005/T-E-006 browser history and bookmarks persist by workspace and sta
     await closeApp(secondApp)
   }
 })
+
+test('T-E-012/T-E-013 bookmark bar persists bookmarks in one workspace and excludes another workspace', async () => {
+  const server = await startLocalBrowserServer((_req, res) => {
+    res.writeHead(200, { 'content-type': 'text/html' })
+    res.end('<!doctype html><title>Bookmark Persisted</title><body>bookmark bar page</body>')
+  })
+  const userDataDir = await mkdtemp(path.join(os.tmpdir(), 'cate-browser-bookmark-ui-user-data-'))
+  const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), 'cate-browser-bookmark-ui-workspace-'))
+  const { electronApp: firstApp, mainWindow: firstPage } = await launchApp({ userDataDir })
+
+  try {
+    await firstPage.evaluate((rootPath) => window.__cateE2E!.ensureWorkspaceRoot(rootPath), workspaceRoot)
+    await createBrowserPanel(firstPage, server.baseUrl)
+    await expect.poll(async () => firstPage.getByRole('button', { name: 'Add bookmark' }).count()).toBe(1)
+    await firstPage.getByRole('button', { name: 'Add bookmark' }).click()
+    await expect(firstPage.getByRole('button', { name: 'Bookmark Persisted' })).toBeVisible()
+  } finally {
+    await closeApp(firstApp)
+  }
+
+  const { electronApp: secondApp, mainWindow: secondPage } = await launchApp({ userDataDir })
+  try {
+    await secondPage.evaluate((rootPath) => window.__cateE2E!.ensureWorkspaceRoot(rootPath), workspaceRoot)
+    await createBrowserPanel(secondPage, server.baseUrl)
+    await expect(secondPage.getByRole('button', { name: 'Bookmark Persisted' })).toBeVisible()
+
+    await createWorkspace(secondPage, 'Bookmark Isolation Workspace')
+    await createBrowserPanel(secondPage, server.baseUrl)
+    await expect(secondPage.getByRole('button', { name: 'Bookmark Persisted' })).toHaveCount(0)
+  } finally {
+    await closeApp(secondApp)
+    await server.close()
+  }
+})
