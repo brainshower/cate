@@ -55,6 +55,7 @@ const SETTINGS_SCHEMA: Record<keyof AppSettings, string> = {
   autoSuspendIdleTerminals: 'boolean',
   browserHomepage: 'string',
   browserSearchEngine: 'string',
+  browserShowBookmarksBar: 'boolean',
   terminalLinkOpenTarget: 'string',
   sidebarTintOpacity: 'number',
   showFileExplorerOnLaunch: 'boolean',
@@ -63,6 +64,12 @@ const SETTINGS_SCHEMA: Record<keyof AppSettings, string> = {
   notifyOnlyWhenUnfocused: 'boolean',
   crashReportingEnabled: 'boolean',
   usageAnalyticsEnabled: 'boolean',
+}
+
+export function validateSettingValue<K extends keyof AppSettings>(key: K, value: unknown): value is AppSettings[K] {
+  const expected = SETTINGS_SCHEMA[key]
+  if (expected === 'array') return Array.isArray(value)
+  return typeof value === expected
 }
 
 // Settings that open windows react to live (via onSettingsChanged). The
@@ -75,11 +82,10 @@ function mergeValidatedSettings(target: Partial<AppSettings>, source: Record<str
   for (const key of Object.keys(SETTINGS_SCHEMA) as Array<keyof AppSettings>) {
     if (!(key in source)) continue
     const val = source[key]
-    const expected = SETTINGS_SCHEMA[key]
-    if (expected === 'array') {
-      if (!Array.isArray(val)) { log.warn('Settings schema mismatch: %s expected array, got %s', key, typeof val); continue }
-    } else {
-      if (typeof val !== expected) { log.warn('Settings schema mismatch: %s expected %s, got %s', key, expected, typeof val); continue }
+    if (!validateSettingValue(key, val)) {
+      const expected = SETTINGS_SCHEMA[key]
+      log.warn('Settings schema mismatch: %s expected %s, got %s', key, expected, typeof val)
+      continue
     }
     ;(target as Record<string, unknown>)[key as string] = val
   }
@@ -202,6 +208,9 @@ export function registerHandlers(): void {
   ipcMain.handle(
     SETTINGS_SET,
     async (_event, key: keyof AppSettings, value: unknown) => {
+      if (!validateSettingValue(key, value)) {
+        throw new Error(`Invalid setting value for ${String(key)}`)
+      }
       const store = await getStore()
       store.set(key, value as never)
       ;(settingsCache as Record<string, unknown>)[key as string] = value

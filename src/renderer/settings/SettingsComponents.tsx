@@ -37,11 +37,14 @@ export function SettingRow({ label, description, hint, children }: SettingRowPro
 interface ToggleProps {
   checked: boolean
   onChange: (value: boolean) => void
+  ariaLabel?: string
 }
 
-export function Toggle({ checked, onChange }: ToggleProps) {
+export function Toggle({ checked, onChange, ariaLabel }: ToggleProps) {
   return (
     <button
+      type="button"
+      aria-label={ariaLabel}
       onClick={() => onChange(!checked)}
       className={`relative w-9 h-5 rounded-full transition-colors ${
         checked ? 'bg-focus-blue' : 'bg-surface-6'

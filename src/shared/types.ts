@@ -1083,6 +1083,7 @@ export interface AppSettings {
   // Browser
   browserHomepage: string
   browserSearchEngine: BrowserSearchEngine
+  browserShowBookmarksBar: boolean
   /** Where a Cmd/Ctrl+clicked terminal link opens.
    *  - 'ask': prompt once, with an option to remember the choice.
    *  - 'canvas': reuse/create an in-app browser panel.
@@ -1148,6 +1149,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   // Browser
   browserHomepage: 'about:blank',
   browserSearchEngine: 'google',
+  browserShowBookmarksBar: true,
   terminalLinkOpenTarget: 'ask',
 
   // Sidebar

@@ -16,11 +16,13 @@ vi.mock('../lib/logger', () => ({
 
 afterEach(() => {
   cleanup()
+  delete (window as unknown as { electronAPI?: unknown }).electronAPI
   useSettingsStore.setState({ ...DEFAULT_SETTINGS, _loaded: false })
 })
 
 describe('BrowserSettings', () => {
   it('T-U-031 keeps homepage/search in Settings and surfaces browserShowBookmarksBar', () => {
+    delete (window as unknown as { electronAPI?: unknown }).electronAPI
     const setSetting = vi.spyOn(useSettingsStore.getState(), 'setSetting')
 
     render(<BrowserSettings />)

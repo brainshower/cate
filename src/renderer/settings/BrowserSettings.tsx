@@ -1,6 +1,6 @@
 import { useSettingsStore } from '../stores/settingsStore'
 import type { BrowserSearchEngine, TerminalLinkOpenTarget } from '../../shared/types'
-import { SettingRow, TextInput, Select } from './SettingsComponents'
+import { SettingRow, TextInput, Select, Toggle } from './SettingsComponents'
 
 export function BrowserSettings() {
   const store = useSettingsStore()
@@ -24,6 +24,13 @@ export function BrowserSettings() {
             { value: 'bing', label: 'Bing' },
             { value: 'brave', label: 'Brave' },
           ]}
+        />
+      </SettingRow>
+      <SettingRow label="Show bookmarks bar">
+        <Toggle
+          checked={store.browserShowBookmarksBar}
+          onChange={(v) => store.setSetting('browserShowBookmarksBar', v)}
+          ariaLabel="Show bookmarks bar"
         />
       </SettingRow>
       <SettingRow
