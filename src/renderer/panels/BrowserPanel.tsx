@@ -182,10 +182,6 @@ export default function BrowserPanel({
     }
   }, [addBookmark, currentTitle, currentUrl, isCurrentPageBookmarked, removeBookmark, workspaceId])
 
-  const handleClearBrowsingData = useCallback(() => {
-    // Plan 26-07 wires confirmation and IPC. This plan only exposes the scoped entry point.
-  }, [])
-
   const handleUrlBarKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -346,7 +342,7 @@ export default function BrowserPanel({
   }
 
   return (
-    <div className="flex flex-col w-full h-full">
+    <div className="flex flex-col w-full h-full" data-browser-panel-root={panelId} data-browser-workspace-id={workspaceId}>
       {/* URL bar */}
       <div className="h-10 flex items-center gap-2 px-2 bg-surface-4 border-b border-subtle shrink-0">
         {/* Navigation pill */}
@@ -409,7 +405,7 @@ export default function BrowserPanel({
           <Camera size={13} />
         </button>
 
-        <BrowserMenu onClearBrowsingData={handleClearBrowsingData} />
+        <BrowserMenu workspaceId={workspaceId} />
       </div>
 
       {browserShowBookmarksBar && (

@@ -5,10 +5,11 @@ import { useUIStore } from '../stores/uiStore'
 import { BrowserSettingsPopover } from './BrowserSettingsPopover'
 
 interface BrowserMenuProps {
-  onClearBrowsingData: () => void
+  workspaceId: string
+  onClearBrowsingData?: () => void
 }
 
-export function BrowserMenu({ onClearBrowsingData }: BrowserMenuProps) {
+export function BrowserMenu({ workspaceId, onClearBrowsingData }: BrowserMenuProps) {
   const browserShowBookmarksBar = useSettingsStore((s) => s.browserShowBookmarksBar)
   const setSetting = useSettingsStore((s) => s.setSetting)
   const openSettings = useUIStore((s) => s.openSettings)
@@ -106,7 +107,7 @@ export function BrowserMenu({ onClearBrowsingData }: BrowserMenuProps) {
       )}
 
       {popoverOpen && (
-        <BrowserSettingsPopover onClearBrowsingData={onClearBrowsingData} />
+        <BrowserSettingsPopover workspaceId={workspaceId} onClearBrowsingData={onClearBrowsingData} />
       )}
     </div>
   )

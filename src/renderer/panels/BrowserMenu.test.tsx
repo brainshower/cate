@@ -27,7 +27,7 @@ beforeEach(() => {
 
 describe('BrowserMenu', () => {
   it('T-U-019 excludes New Tab and exposes Settings/bookmarks-bar controls', async () => {
-    render(<BrowserMenu onClearBrowsingData={vi.fn()} />)
+    render(<BrowserMenu workspaceId="workspace-a" />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Browser menu' }))
 

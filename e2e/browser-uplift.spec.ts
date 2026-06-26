@@ -345,3 +345,42 @@ test('T-E-014 toggling bookmarks bar visibility persists across restart', async 
     await server.close()
   }
 })
+
+test('T-E-015 clear-data requires confirmation and does not reload open browser panel', async () => {
+  const server = await startLocalBrowserServer((_req, res) => {
+    res.writeHead(200, { 'content-type': 'text/html' })
+    res.end('<!doctype html><title>Clear Data Session</title><body>clear data session page</body>')
+  })
+  const { electronApp: app, mainWindow: page } = await launchApp()
+
+  try {
+    const activeWorkspace = await createWorkspace(page, 'Clear Data Active Workspace')
+    await page.evaluate((workspaceId) => window.__cateE2E!.selectWorkspace(workspaceId), activeWorkspace)
+    const panelId = await createBrowserPanel(page, server.baseUrl)
+    await expect(await waitForBrowserPartition(page, panelId)).toBe(`persist:browser-ws-${activeWorkspace}`)
+    await expect(page.locator(`[data-browser-panel-root="${panelId}"]`)).toHaveAttribute('data-browser-workspace-id', activeWorkspace)
+    await evalBrowserPanel(page, panelId, `
+      document.cookie = 'clearDataSession=active; Max-Age=3600; Path=/'
+      window.__cateNoReloadMarker = 'still-loaded'
+      document.cookie
+    `)
+
+    const targetPanel = page.locator(`[data-browser-panel-root="${panelId}"]`)
+    await targetPanel.getByRole('button', { name: 'Browser menu' }).click()
+    await targetPanel.getByRole('menuitem', { name: 'Clear browsing data...' }).click()
+    await targetPanel.getByRole('button', { name: 'Clear browsing data...' }).click()
+    await expect(targetPanel.getByRole('alertdialog', { name: 'Clear browsing data?' })).toBeVisible()
+
+    await targetPanel.getByRole('button', { name: 'Clear data' }).click()
+    await expect(targetPanel.getByText('Browsing data cleared')).toBeVisible()
+    await expect(await evalBrowserPanel(page, panelId, "window.__cateNoReloadMarker === 'still-loaded'")).toBe(true)
+
+    await evalBrowserPanel(page, panelId, 'location.reload()')
+    await expect.poll(async () => {
+      return evalBrowserPanel(page, panelId, "document.cookie.includes('clearDataSession=active')")
+    }).toBe(false)
+  } finally {
+    await closeApp(app)
+    await server.close()
+  }
+})

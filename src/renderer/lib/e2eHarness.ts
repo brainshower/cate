@@ -30,6 +30,7 @@ declare global {
       activeCanvasPanelId(): string | null
       selectedWorkspaceId(): string
       createWorkspace(name: string): Promise<string>
+      selectWorkspace(id: string): Promise<void>
       removeWorkspace(id: string): void
       saveSession(): Promise<void>
       ensureWorkspaceRoot(rootPath: string): Promise<string>
@@ -258,6 +259,10 @@ export function installE2EHarness(): void {
     const id = useAppStore.getState().addWorkspace(name)
     await useAppStore.getState().selectWorkspace(id)
     return id
+  }
+
+  const selectWorkspace = async (id: string): Promise<void> => {
+    await useAppStore.getState().selectWorkspace(id)
   }
 
   const removeWorkspace = (id: string): void => {
@@ -553,6 +558,7 @@ export function installE2EHarness(): void {
     activeCanvasPanelId,
     selectedWorkspaceId,
     createWorkspace,
+    selectWorkspace,
     removeWorkspace,
     saveSession,
     ensureWorkspaceRoot,

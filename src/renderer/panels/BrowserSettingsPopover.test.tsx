@@ -66,7 +66,7 @@ describe('BrowserSettingsPopover', () => {
   })
 
   it('confirmation clears the current workspace and displays success', async () => {
-    render(<BrowserSettingsPopover {...({ workspaceId: 'workspace-a' } as never)} />)
+    render(<BrowserSettingsPopover workspaceId="workspace-a" />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Clear browsing data...' }))
     fireEvent.click(screen.getByRole('button', { name: 'Clear data' }))
@@ -87,7 +87,7 @@ describe('BrowserSettingsPopover', () => {
         bookmarks: false,
       },
     })
-    render(<BrowserSettingsPopover {...({ workspaceId: 'workspace-a' } as never)} />)
+    render(<BrowserSettingsPopover workspaceId="workspace-a" />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Clear browsing data...' }))
     fireEvent.click(screen.getByRole('button', { name: 'Clear data' }))
