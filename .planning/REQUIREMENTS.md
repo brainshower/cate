@@ -38,7 +38,7 @@ Bring Cate's forked in-app browser up to the relevant upstream v1.3.2 browser ca
 ### Bookmarks and Settings UI
 
 - [x] **REQ-007:** Browser panels provide a per-workspace bookmarks bar and star toggle backed by workspace-scoped bookmark persistence.
-- [ ] **REQ-008:** Browser menu/settings UI exposes bookmarks-bar controls and scoped clear-data behavior while keeping homepage/search controls in the existing Settings-window Browser panel as the single source of truth.
+- [x] **REQ-008:** Browser menu/settings UI exposes bookmarks-bar controls and scoped clear-data behavior while keeping homepage/search controls in the existing Settings-window Browser panel as the single source of truth.
 - [ ] **REQ-009:** Clear browsing data requires confirmation, clears only the current workspace's browser partition/history/bookmarks, preserves other workspaces and all FlashQuery state, and does not force-reload live panels.
 
 ### IPC, Contracts, and Integration Boundaries
@@ -78,7 +78,7 @@ Bring Cate's forked in-app browser up to the relevant upstream v1.3.2 browser ca
 | REQ-005 | Phase 26 | Workspace Safety and Controls | `T-U-012`, `T-U-013`, `T-E-009` | Pending |
 | REQ-006 | Phase 26 | Workspace Safety and Controls | `T-U-014`, `T-U-015`, `T-U-016`, `T-E-010`, `T-E-011` | Pending |
 | REQ-007 | Phase 26 | Browser State and Affordances | `T-U-017`, `T-U-018`, `T-U-030`, `T-E-012`, `T-E-013` | Complete in 26-05 |
-| REQ-008 | Phase 26 | Browser State and Affordances | `T-U-019`, `T-U-020`, `T-U-021`, `T-U-031`, `T-E-014` | Pending |
+| REQ-008 | Phase 26 | Browser State and Affordances | `T-U-019`, `T-U-020`, `T-U-021`, `T-U-031`, `T-E-014` | Complete in 26-06 |
 | REQ-009 | Phase 26 | Workspace Safety and Controls | `T-U-022`, `T-U-023`, `T-U-024`, `T-I-002`, `T-I-003`, `T-E-015` | Pending |
 | REQ-010 | Phase 26 | Browser Foundation | `T-I-004`, `T-I-005`, `T-I-006`, `T-E-016` | Complete in 26-03 |
 | REQ-011 | Phase 26 | Browser Foundation | `T-U-025`, `T-U-026`, `T-E-017` | Complete in 26-02 for unit/component bridge coverage; T-E-017 deferred pending observable main bridge path |
@@ -92,4 +92,4 @@ Bring Cate's forked in-app browser up to the relevant upstream v1.3.2 browser ca
 
 ---
 *Requirements defined: 2026-06-26*
-*Last updated: 2026-06-26 after 26-03 capture IPC relocation*
+*Last updated: 2026-06-26 after 26-06 browser menu/settings UI*

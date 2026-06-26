@@ -4,14 +4,14 @@ milestone: v1.5
 milestone_name: Browser Uplift
 status: executing
 stopped_at: Completed 26-05-PLAN.md
-last_updated: "2026-06-26T18:49:05.170Z"
-last_activity: 2026-06-26 -- Completed 26-05 renderer browser store and bookmarks bar
+last_updated: "2026-06-26T19:00:42.000Z"
+last_activity: 2026-06-26 -- Completed 26-06 browser menu, popover, and bookmarks-bar setting
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 10
-  completed_plans: 5
-  percent: 50
+  completed_plans: 6
+  percent: 60
 ---
 
 # Project State
@@ -26,14 +26,14 @@ See: `.planning/PROJECT.md` (updated 2026-06-26 for v1.5 Browser Uplift)
 ## Current Position
 
 Phase: 26-browser-uplift
-Plan: 06 next
+Plan: 07 next
 Status: Executing
-Last activity: 2026-06-26 -- Completed 26-05 renderer browser store and bookmarks bar
+Last activity: 2026-06-26 -- Completed 26-06 browser menu, popover, and bookmarks-bar setting
 
 ## Session Continuity
 
-Last session: 2026-06-26T18:49:05.150Z
-Stopped At: Completed 26-05-PLAN.md
+Last session: 2026-06-26T19:00:42.000Z
+Stopped At: Completed 26-06-PLAN.md
 Resume File: None
 
 ## Next Up
@@ -85,6 +85,7 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table.
 | 2026-06-26 | Capture preload/API/channel names remained unchanged during 26-03. | The plan required `capturePage()`, `webviewScreenshot()`, and `nativeFileDrag()` compatibility. |
 | 2026-06-26 | No upstream proxy, extraction, vault write, `cate_browser`, or FlashQuery code was added in 26-03. | Preserves Browser Uplift scope boundaries and FlashQuery isolation. |
 | 2026-06-26 | Plan 26-05 keeps BookmarksBar presentational while BrowserPanel supplies workspace-scoped bookmarks. | Prevents a global active-workspace bookmark model and keeps REQ-003/REQ-007 panel scoping explicit. |
+| 2026-06-26 | Plan 26-06 keeps homepage/search exclusively in the Settings-window Browser panel. | Implements REQ-008 Option A while preventing duplicate in-panel homepage/search controls. |
 
 ## Deferred Items
 
@@ -128,6 +129,7 @@ Items acknowledged and deferred at milestone close on 2026-06-16:
 | 26-browser-uplift | 03 | 10min | 2 | 4 |
 | 26-browser-uplift | 04 | 12min | 2 | 10 |
 | 26-browser-uplift | 05 | 15min | 2 | 7 |
+| 26-browser-uplift | 06 | 35min | 2 | 12 |
 
 ## Operator Next Steps
 
