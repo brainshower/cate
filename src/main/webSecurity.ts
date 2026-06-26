@@ -20,6 +20,7 @@ function isOAuthUrl(url: string): boolean {
 }
 
 const configuredGuestSessions = new Set<string>()
+const browserGuestPartitions = new Set<string>()
 
 export function isTrustedAppUrl(url: string): boolean {
   if (url.startsWith('file://')) return true
@@ -74,6 +75,16 @@ function configureGuestSessionPolicies(targetSession: Session, sessionKey: strin
 function guestSessionFor(contents: WebContents, partition?: string): Session {
   if (partition) return session.fromPartition(partition)
   return contents.session
+}
+
+export async function flushBrowserGuestSessions(): Promise<void> {
+  await Promise.all([...browserGuestPartitions].map(async (partition) => {
+    try {
+      await session.fromPartition(partition).flushStorageData()
+    } catch (error) {
+      log.warn('[webview] Failed to flush browser partition %s:', partition, error)
+    }
+  }))
 }
 
 export function installWebContentsSecurity(): void {
@@ -132,6 +143,9 @@ export function installWebContentsSecurity(): void {
       params.allowpopups = 'true'
 
       const partition = typeof webPreferences.partition === 'string' ? webPreferences.partition : undefined
+      if (partition?.startsWith('persist:browser-ws-')) {
+        browserGuestPartitions.add(partition)
+      }
       const targetSession = guestSessionFor(contents, partition)
       configureGuestSessionPolicies(targetSession, partition ?? '__default__')
     })

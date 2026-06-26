@@ -61,7 +61,7 @@ export default function PanelWindowShell({ panelType, panelId, workspaceId }: Pa
         const store = getOrCreateCanvasStoreForPanel(snapshot.panel.id)
         const { nodes, regions, viewportOffset, zoomLevel, childPanels } = snapshot.canvasState
         store.getState().loadWorkspaceCanvas(nodes, viewportOffset, zoomLevel, null, regions)
-        applyCanvasChildPanels(workspaceId ?? '', childPanels ?? {})
+        if (workspaceId) applyCanvasChildPanels(workspaceId, childPanels ?? {})
       }
 
       setPanel(snapshot.panel)
@@ -263,7 +263,7 @@ export default function PanelWindowShell({ panelType, panelId, workspaceId }: Pa
         <Suspense fallback={<div className="w-full h-full bg-surface-4 flex items-center justify-center text-muted text-sm">Loading...</div>}>
           <PanelContent
             panel={displayPanel}
-            workspaceId={workspaceId ?? ''}
+            workspaceId={workspaceId}
             createEditorForOpen={createEditorForOpen}
             setEditorPreviewForOpen={setEditorPreviewForOpen}
             focusEditorForOpen={focusEditorForOpen}
@@ -286,12 +286,19 @@ function PanelContent({
   focusEditorForOpen,
 }: {
   panel: PanelState
-  workspaceId: string
+  workspaceId?: string
   createEditorForOpen: (workspaceId: string, filePath: string, options?: { sourceEditorPanelId?: string; markdownPreview?: boolean }) => string
   setEditorPreviewForOpen: (workspaceId: string, panelId: string, preview: boolean) => void
   focusEditorForOpen: (workspaceId: string, panelId: string) => boolean
 }) {
-  const content = renderPanelComponent(panel, { workspaceId, nodeId: '' }, { createEditorForOpen, setEditorPreviewForOpen, focusEditorForOpen })
+  if (panel.type === 'browser' && !workspaceId?.trim()) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-surface-4 text-muted text-sm">
+        Browser workspace unavailable
+      </div>
+    )
+  }
+  const content = renderPanelComponent(panel, { workspaceId: workspaceId ?? '', nodeId: '' }, { createEditorForOpen, setEditorPreviewForOpen, focusEditorForOpen })
   if (!content) return <div className="w-full h-full flex items-center justify-center text-muted">Unknown panel type</div>
   return content
 }

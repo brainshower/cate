@@ -842,8 +842,8 @@ const electronAPI = {
   // Panel transfer (cross-window)
   // ---------------------------------------------------------------------------
 
-  panelTransfer(snapshot: unknown, targetWindowId?: number): Promise<number | void> {
-    return ipcRenderer.invoke(PANEL_TRANSFER, snapshot, targetWindowId)
+  panelTransfer(snapshot: unknown, targetWindowId?: number, workspaceId?: string): Promise<number | void> {
+    return ipcRenderer.invoke(PANEL_TRANSFER, snapshot, targetWindowId, workspaceId)
   },
 
   panelTransferAck(ptyId?: string): Promise<void> {

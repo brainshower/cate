@@ -833,7 +833,7 @@ export async function restoreDetachedWindows(session: MultiWorkspaceSession): Pr
           sourceLocation: { type: 'canvas', canvasId: '', canvasNodeId: '' },
           terminalReplayPtyId: pw.panel.type === 'terminal' ? pw.terminalPtyId : undefined,
         }
-        const newWindowId = await window.electronAPI.panelTransfer(snapshot)
+        const newWindowId = await window.electronAPI.panelTransfer(snapshot, undefined, pw.workspaceId)
         if (typeof newWindowId === 'number') {
           // Position the new panel window to its saved bounds
           // The main process createWindow positions it, but we passed geometry in the snapshot

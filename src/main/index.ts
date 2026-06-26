@@ -47,7 +47,7 @@ import { disableRendererSandbox, disableTrustScoping } from './featureFlags'
 import { getSharedPanelDef } from '../shared/panels'
 import { startPerfMonitor, getLatestSnapshot } from './perf/perfMonitor'
 import { PERF_GET } from '../shared/ipc-channels'
-import { installWebContentsSecurity } from './webSecurity'
+import { flushBrowserGuestSessions, installWebContentsSecurity } from './webSecurity'
 import { installThemeSkill } from './installThemeSkill'
 import {
   startCrossWindowDrag,
@@ -752,7 +752,7 @@ function registerWindowAndDialogHandlers(): void {
   })
 
   // Panel transfer protocol
-  ipcMain.handle(PANEL_TRANSFER, async (event, snapshot: PanelTransferSnapshot, targetWindowId?: number) => {
+  ipcMain.handle(PANEL_TRANSFER, async (event, snapshot: PanelTransferSnapshot, targetWindowId?: number, workspaceId?: string) => {
     // Begin terminal buffering if this is a terminal transfer
     if (snapshot.terminalPtyId) {
       beginTerminalTransfer(snapshot.terminalPtyId, targetWindowId ?? -1)
@@ -774,11 +774,11 @@ function registerWindowAndDialogHandlers(): void {
         type: 'panel',
         panelType: snapshot.panel.type,
         panelId: snapshot.panel.id,
-        workspaceId: undefined,
+        workspaceId,
       })
 
       // Track panel metadata
-      setPanelWindowMeta(newWin.id, snapshot.panel, undefined)
+      setPanelWindowMeta(newWin.id, snapshot.panel, workspaceId)
 
       // Position at saved geometry if available
       if (snapshot.geometry) {
@@ -857,6 +857,9 @@ function registerWindowAndDialogHandlers(): void {
   })
 
   ipcMain.handle(DRAG_DETACH, async (_event, snapshot: PanelTransferSnapshot, workspaceId?: string) => {
+    const resolvedWorkspaceId = workspaceId?.trim()
+    if (!resolvedWorkspaceId) return null
+
     const cursor = screen.getCursorScreenPoint()
     const display = screen.getDisplayNearestPoint(cursor)
 
@@ -885,7 +888,7 @@ function registerWindowAndDialogHandlers(): void {
       type: 'dock',
       panelType: snapshot.panel.type,
       panelId: snapshot.panel.id,
-      workspaceId,
+      workspaceId: resolvedWorkspaceId,
     })
 
     // Update terminal transfer target now that we have the window ID
@@ -904,7 +907,7 @@ function registerWindowAndDialogHandlers(): void {
     const initPayload: DockWindowInitPayload = {
       panels: { [snapshot.panel.id]: snapshot.panel },
       dockState: buildSinglePanelDockState(snapshot.panel.id),
-      workspaceId: workspaceId ?? '',
+      workspaceId: resolvedWorkspaceId,
     }
 
     // Send the init payload + transfer snapshot once the window is ready
@@ -1391,8 +1394,12 @@ app.on('before-quit', (event) => {
   event.preventDefault()
 
   const proceed = () => {
-    sessionFlushed = true
-    app.quit()
+    void flushBrowserGuestSessions()
+      .catch((error) => log.warn('Browser partition flush failed before quit:', error))
+      .finally(() => {
+        sessionFlushed = true
+        app.quit()
+      })
   }
 
   // Listen for renderer ACK

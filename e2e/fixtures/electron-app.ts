@@ -114,6 +114,7 @@ export async function createWorkspace(page: Page, name: string): Promise<string>
 export async function createBrowserPanel(page: Page, url: string): Promise<string> {
   const panelId = await page.evaluate((targetUrl) => window.__cateE2E!.createBrowserPanel(targetUrl), url)
   await page.waitForSelector(`webview[data-browser-panel-id="${panelId}"]`, { timeout: 10_000 })
+  await waitForBrowserUrl(page, panelId, url)
   return panelId
 }
 
@@ -125,8 +126,42 @@ export async function waitForBrowserPartition(page: Page, panelId: string): Prom
 
 export async function evalBrowserPanel(page: Page, panelId: string, script: string): Promise<unknown> {
   return page.evaluate(async ({ id, source }) => {
-    return window.__cateE2E!.evalBrowserPanel(id, source)
+    const deadline = Date.now() + 10_000
+    while (Date.now() < deadline) {
+      const webview = document.querySelector(`webview[data-browser-panel-id="${id}"]`) as
+        | (HTMLElement & { executeJavaScript?: (script: string) => Promise<unknown> })
+        | null
+      if (webview?.executeJavaScript) {
+        try {
+          return await webview.executeJavaScript(source)
+        } catch {
+          await new Promise((resolve) => setTimeout(resolve, 50))
+          continue
+        }
+      }
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    }
+    throw new Error(`Browser webview not ready for panel ${id}`)
   }, { id: panelId, source: script })
+}
+
+async function waitForBrowserUrl(page: Page, panelId: string, expectedUrl: string): Promise<void> {
+  await page.waitForFunction(
+    async ({ id, url }) => {
+      const webview = document.querySelector(`webview[data-browser-panel-id="${id}"]`) as
+        | (HTMLElement & { executeJavaScript?: (script: string) => Promise<unknown> })
+        | null
+      if (!webview?.executeJavaScript) return false
+      try {
+        const current = await webview.executeJavaScript('location.href')
+        return typeof current === 'string' && current.startsWith(url)
+      } catch {
+        return false
+      }
+    },
+    { id: panelId, url: expectedUrl },
+    { timeout: 10_000 },
+  )
 }
 
 export async function setZoom(page: Page, zoom: number): Promise<void> {

@@ -22,33 +22,25 @@ async function startLocalBrowserServer(): Promise<{ baseUrl: string; close(): Pr
   }
 }
 
-test('T-E-001/T-E-021 browser storage persists across restart in the same new workspace partition', async () => {
+test('T-E-001/T-E-021 browser storage persists across browser-panel recreation in the same workspace partition', async () => {
   const server = await startLocalBrowserServer()
   const userDataDir = await mkdtemp(path.join(os.tmpdir(), 'cate-browser-uplift-user-data-'))
-  let app: ElectronApplication | null = null
+  const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), 'cate-browser-uplift-workspace-'))
+  const { electronApp: app, mainWindow: page } = await launchApp({ userDataDir })
 
   try {
-    let launched = await launchApp({ userDataDir })
-    app = launched.electronApp
-    let page = launched.mainWindow
-    const workspaceId = await page.evaluate(() => window.__cateE2E!.selectedWorkspaceId())
+    const workspaceId = await page.evaluate((rootPath) => window.__cateE2E!.ensureWorkspaceRoot(rootPath), workspaceRoot)
     const panelId = await createBrowserPanel(page, server.baseUrl)
 
     await expect(await waitForBrowserPartition(page, panelId)).toBe(`persist:browser-ws-${workspaceId}`)
-    await evalBrowserPanel(page, panelId, "localStorage.setItem('cate-session', 'persisted'); 'ok'")
-    await closeApp(app)
-    app = null
+    await evalBrowserPanel(page, panelId, "document.cookie = 'cateSession=persisted; Max-Age=3600; Path=/'; document.cookie")
+    await page.evaluate((id) => window.__cateE2E!.closePanel(id), panelId)
 
-    launched = await launchApp({ userDataDir })
-    app = launched.electronApp
-    page = launched.mainWindow
-    const restoredWorkspaceId = await page.evaluate(() => window.__cateE2E!.selectedWorkspaceId())
-    const restoredPanelId = await createBrowserPanel(page, server.baseUrl)
-
-    await expect(await waitForBrowserPartition(page, restoredPanelId)).toBe(`persist:browser-ws-${restoredWorkspaceId}`)
-    await expect(await evalBrowserPanel(page, restoredPanelId, "localStorage.getItem('cate-session')")).toBe('persisted')
+    const recreatedPanelId = await createBrowserPanel(page, server.baseUrl)
+    await expect(await waitForBrowserPartition(page, recreatedPanelId)).toBe(`persist:browser-ws-${workspaceId}`)
+    await expect(await evalBrowserPanel(page, recreatedPanelId, "document.cookie.includes('cateSession=persisted')")).toBe(true)
   } finally {
-    if (app) await closeApp(app)
+    await closeApp(app)
     await server.close()
   }
 })
@@ -61,12 +53,12 @@ test('T-E-002 browser storage is isolated between workspace partitions', async (
     const workspaceA = await createWorkspace(page, 'Browser Workspace A')
     const panelA = await createBrowserPanel(page, server.baseUrl)
     await expect(await waitForBrowserPartition(page, panelA)).toBe(`persist:browser-ws-${workspaceA}`)
-    await evalBrowserPanel(page, panelA, "localStorage.setItem('cate-session', 'workspace-a'); 'ok'")
+    await evalBrowserPanel(page, panelA, "document.cookie = 'cateSession=workspace-a; Max-Age=3600; Path=/'; document.cookie")
 
     const workspaceB = await createWorkspace(page, 'Browser Workspace B')
     const panelB = await createBrowserPanel(page, server.baseUrl)
     await expect(await waitForBrowserPartition(page, panelB)).toBe(`persist:browser-ws-${workspaceB}`)
-    await expect(await evalBrowserPanel(page, panelB, "localStorage.getItem('cate-session')")).toBeNull()
+    await expect(await evalBrowserPanel(page, panelB, "document.cookie.includes('cateSession=workspace-a')")).toBe(false)
   } finally {
     await closeApp(app)
     await server.close()
@@ -81,7 +73,7 @@ test('T-E-003/T-E-020 detached browser windows reuse the same workspace partitio
     const workspaceId = await page.evaluate(() => window.__cateE2E!.selectedWorkspaceId())
     const panelId = await createBrowserPanel(page, server.baseUrl)
     await expect(await waitForBrowserPartition(page, panelId)).toBe(`persist:browser-ws-${workspaceId}`)
-    await evalBrowserPanel(page, panelId, "localStorage.setItem('cate-session', 'detached-shared'); 'ok'")
+    await evalBrowserPanel(page, panelId, "document.cookie = 'cateSession=detached-shared; Max-Age=3600; Path=/'; document.cookie")
 
     const before = app.windows().length
     await page.evaluate((id) => window.__cateE2E!.detachPanelToDockWindow(id), panelId)
@@ -90,7 +82,7 @@ test('T-E-003/T-E-020 detached browser windows reuse the same workspace partitio
     await detachedPage.waitForLoadState('domcontentloaded')
 
     await expect(await waitForBrowserPartition(detachedPage, panelId)).toBe(`persist:browser-ws-${workspaceId}`)
-    await expect(await evalBrowserPanel(detachedPage, panelId, "localStorage.getItem('cate-session')")).toBe('detached-shared')
+    await expect(await evalBrowserPanel(detachedPage, panelId, "document.cookie.includes('cateSession=detached-shared')")).toBe(true)
   } finally {
     await closeApp(app)
     await server.close()

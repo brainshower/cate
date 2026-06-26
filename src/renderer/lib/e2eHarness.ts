@@ -11,6 +11,7 @@ import { useDockStore } from '../stores/dockStore'
 import { useDragStore } from '../drag/store'
 import { useUIStore } from '../stores/uiStore'
 import { saveEditor } from './editorSaveRegistry'
+import { saveSession } from './session'
 import { buildVaultUri } from '../../shared/flashqueryUri'
 import type { FlashQueryConnection, Point } from '../../shared/types'
 import type { NativeContextMenuItem } from '../../shared/electron-api'
@@ -28,11 +29,15 @@ declare global {
       ready: true
       activeCanvasPanelId(): string | null
       selectedWorkspaceId(): string
+      createWorkspace(name: string): Promise<string>
+      saveSession(): Promise<void>
       ensureWorkspaceRoot(rootPath: string): Promise<string>
       openFlashQueryConnectionDialog(workspaceId?: string): void
       workspaceFlashQueryConnection(workspaceId: string): FlashQueryConnection | undefined
       createFlashQueryVault(point: Point, placement?: PanelPlacement): string
       createFlashQueryVaultSearch(point: Point, placement?: PanelPlacement): string
+      createBrowserPanel(url: string): string
+      evalBrowserPanel(panelId: string, script: string): Promise<unknown>
       createSemanticConnections(point: Point, placement?: PanelPlacement): string
       createAgent(point: Point, placement?: PanelPlacement): string
       openFileEditor(workspaceId: string, filePath: string, placement?: PanelPlacement): string
@@ -248,6 +253,12 @@ export function installE2EHarness(): void {
 
   const selectedWorkspaceId = (): string => useAppStore.getState().selectedWorkspaceId
 
+  const createWorkspace = async (name: string): Promise<string> => {
+    const id = useAppStore.getState().addWorkspace(name)
+    await useAppStore.getState().selectWorkspace(id)
+    return id
+  }
+
   const ensureWorkspaceRoot = async (rootPath: string): Promise<string> => {
     const app = useAppStore.getState()
     let workspaceId = app.selectedWorkspaceId
@@ -275,6 +286,31 @@ export function installE2EHarness(): void {
 
   const createFlashQueryVaultSearch = (point: Point, placement?: PanelPlacement): string => {
     return useAppStore.getState().createFlashQueryVaultSearch(selectedWorkspaceId(), point, placement)
+  }
+
+  const createBrowserPanel = (url: string): string => {
+    return useAppStore.getState().createBrowser(
+      selectedWorkspaceId(),
+      url,
+      undefined,
+      { target: 'dock', zone: 'center' },
+    )
+  }
+
+  const browserWebview = (panelId: string): (HTMLElement & { executeJavaScript?: (script: string) => Promise<unknown> }) | null => {
+    return document.querySelector(`webview[data-browser-panel-id="${panelId}"]`)
+  }
+
+  const evalBrowserPanel = async (panelId: string, script: string): Promise<unknown> => {
+    const deadline = Date.now() + 10_000
+    while (Date.now() < deadline) {
+      const webview = browserWebview(panelId)
+      if (webview?.executeJavaScript) {
+        return webview.executeJavaScript(script)
+      }
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    }
+    throw new Error(`Browser webview not ready for panel ${panelId}`)
   }
 
   const createSemanticConnections = (point: Point, placement?: PanelPlacement): string => {
@@ -511,11 +547,15 @@ export function installE2EHarness(): void {
     ready: true,
     activeCanvasPanelId,
     selectedWorkspaceId,
+    createWorkspace,
+    saveSession,
     ensureWorkspaceRoot,
     openFlashQueryConnectionDialog,
     workspaceFlashQueryConnection,
     createFlashQueryVault,
     createFlashQueryVaultSearch,
+    createBrowserPanel,
+    evalBrowserPanel,
     createSemanticConnections,
     createAgent,
     openFileEditor,

@@ -383,6 +383,7 @@ export default function BrowserPanel({
         {/* Webview */}
         <webview
           ref={webviewRef as any}
+          data-browser-panel-id={panelId}
           src={webviewSrc}
           className={`w-full h-full ${loadError ? 'hidden' : ''}`}
           partition={browserPartition}
