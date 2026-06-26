@@ -169,6 +169,73 @@ test('T-E-009 simulated webview crash shows reload recovery and reload clears it
   }
 })
 
+test('T-E-010 focused browser webview handles reload, focus URL, back, and forward shortcuts', async () => {
+  let requestCount = 0
+  const server = await startLocalBrowserServer((req, res) => {
+    requestCount += 1
+    const path = req.url ?? '/'
+    res.writeHead(200, { 'content-type': 'text/html' })
+    res.end(`<!doctype html>
+      <title>${path}</title>
+      <body>
+        <a id="next" href="/next">next</a>
+        <h1 id="path">${path}</h1>
+        <script>window.__loadCount = ${requestCount}</script>
+      </body>`)
+  })
+  const { electronApp: app, mainWindow: page } = await launchApp()
+  const mod = process.platform === 'darwin' ? 'Meta' : 'Control'
+
+  try {
+    const panelId = await createBrowserPanel(page, server.baseUrl)
+    const targetPanel = page.locator(`[data-browser-panel-root="${panelId}"]`)
+    const webview = page.locator(`webview[data-browser-panel-id="${panelId}"]`)
+
+    await webview.click()
+    await page.keyboard.press(`${mod}+R`)
+    await expect.poll(async () => evalBrowserPanel(page, panelId, 'window.__loadCount')).toBe(2)
+
+    await webview.click()
+    await page.keyboard.press(`${mod}+L`)
+    await expect(targetPanel.getByPlaceholder('Enter URL or search...')).toBeFocused()
+
+    await evalBrowserPanel(page, panelId, "document.querySelector('#next').click()")
+    await expect.poll(async () => evalBrowserPanel(page, panelId, 'location.pathname')).toBe('/next')
+
+    await webview.click()
+    await page.keyboard.press(`${mod}+[`)
+    await expect.poll(async () => evalBrowserPanel(page, panelId, 'location.pathname')).toBe('/')
+
+    await webview.click()
+    await page.keyboard.press(`${mod}+]`)
+    await expect.poll(async () => evalBrowserPanel(page, panelId, 'location.pathname')).toBe('/next')
+  } finally {
+    await closeApp(app)
+    await server.close()
+  }
+})
+
+test('T-E-011 app-management shortcuts do not create browser tabs', async () => {
+  const server = await startLocalBrowserServer()
+  const { electronApp: app, mainWindow: page } = await launchApp()
+  const mod = process.platform === 'darwin' ? 'Meta' : 'Control'
+
+  try {
+    const panelId = await createBrowserPanel(page, server.baseUrl)
+    const webview = page.locator(`webview[data-browser-panel-id="${panelId}"]`)
+    await webview.click()
+
+    await page.keyboard.press(`${mod}+T`)
+    await page.keyboard.press(`${mod}+Shift+B`)
+
+    await expect(page.locator('webview[data-browser-panel-id]')).toHaveCount(1)
+    await expect(page.locator(`[data-browser-panel-root="${panelId}"]`)).toHaveCount(1)
+  } finally {
+    await closeApp(app)
+    await server.close()
+  }
+})
+
 test('T-E-016 screenshot button creates a draggable thumbnail from a local page', async () => {
   const server = await startLocalBrowserServer((_req, res) => {
     res.writeHead(200, { 'content-type': 'text/html' })

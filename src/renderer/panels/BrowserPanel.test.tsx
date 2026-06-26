@@ -10,6 +10,7 @@ const addBookmark = vi.fn()
 const removeBookmark = vi.fn()
 const refreshWorkspace = vi.fn()
 const onBrowserShortcut = vi.fn()
+let browserShortcutCallbacks: Array<(action: unknown) => void> = []
 let isBookmarked = false
 
 vi.mock('../stores/settingsStore', () => ({
@@ -68,7 +69,13 @@ beforeEach(() => {
   removeBookmark.mockClear()
   refreshWorkspace.mockClear()
   onBrowserShortcut.mockReset()
-  onBrowserShortcut.mockReturnValue(() => undefined)
+  browserShortcutCallbacks = []
+  onBrowserShortcut.mockImplementation((callback: (action: unknown) => void) => {
+    browserShortcutCallbacks.push(callback)
+    return () => {
+      browserShortcutCallbacks = browserShortcutCallbacks.filter((registered) => registered !== callback)
+    }
+  })
   isBookmarked = false
 })
 
@@ -197,6 +204,68 @@ describe('BrowserPanel crash recovery', () => {
 
     expect(reload).toHaveBeenCalled()
     expect(screen.queryByText('Page crashed')).toBeNull()
+  })
+})
+
+describe('BrowserPanel browser shortcut handling', () => {
+  it('T-U-016 maps forwarded commands to browser actions only for the focused owning webview', () => {
+    const { container } = render(
+      <>
+        <BrowserPanel panelId="panel-1" workspaceId="workspace-1" nodeId="node-1" url="https://example.test/one" />
+        <BrowserPanel panelId="panel-2" workspaceId="workspace-1" nodeId="node-2" url="https://example.test/two" />
+      </>,
+    )
+
+    const webviews = container.querySelectorAll('webview') as NodeListOf<Element & {
+      reload?: () => void
+      goBack?: () => void
+      goForward?: () => void
+    }>
+    const first = webviews[0]
+    const second = webviews[1]
+    const firstReload = vi.fn()
+    const firstBack = vi.fn()
+    const firstForward = vi.fn()
+    const secondReload = vi.fn()
+    Object.assign(first, { reload: firstReload, goBack: firstBack, goForward: firstForward })
+    Object.assign(second, { reload: secondReload })
+
+    const inputs = screen.getAllByPlaceholderText('Enter URL or search...')
+    const firstInput = inputs[0] as HTMLInputElement
+
+    act(() => {
+      first.dispatchEvent(new Event('focus'))
+      for (const callback of browserShortcutCallbacks) callback('reload')
+      for (const callback of browserShortcutCallbacks) callback('back')
+      for (const callback of browserShortcutCallbacks) callback('forward')
+      for (const callback of browserShortcutCallbacks) callback('focus-url')
+    })
+
+    expect(firstReload).toHaveBeenCalledTimes(1)
+    expect(firstBack).toHaveBeenCalledTimes(1)
+    expect(firstForward).toHaveBeenCalledTimes(1)
+    expect(secondReload).not.toHaveBeenCalled()
+    expect(document.activeElement).toBe(firstInput)
+    expect(firstInput.selectionStart).toBe(0)
+    expect(firstInput.selectionEnd).toBe(firstInput.value.length)
+  })
+
+  it('ignores unsupported forwarded browser commands', () => {
+    const { container } = render(
+      <BrowserPanel panelId="panel-1" workspaceId="workspace-1" nodeId="node-1" url="https://example.test/one" />,
+    )
+
+    const webview = container.querySelector('webview') as Element & { reload?: () => void }
+    const reload = vi.fn()
+    Object.assign(webview, { reload })
+
+    act(() => {
+      webview.dispatchEvent(new Event('focus'))
+      for (const callback of browserShortcutCallbacks) callback('new-tab')
+      for (const callback of browserShortcutCallbacks) callback('close-tab')
+    })
+
+    expect(reload).not.toHaveBeenCalled()
   })
 })
 
