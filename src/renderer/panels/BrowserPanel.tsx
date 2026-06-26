@@ -84,6 +84,7 @@ export default function BrowserPanel({
   const [canGoForward, setCanGoForward] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [crashReason, setCrashReason] = useState<string | null>(null)
   const [screenshot, setScreenshot] = useState<{ dataUrl: string; filePath: string } | null>(null)
   const screenshotTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -105,6 +106,7 @@ export default function BrowserPanel({
     }
 
     setLoadError(null)
+    setCrashReason(null)
     setIsLoading(true)
     setCurrentUrl(targetUrl)
     setInputUrl(targetUrl)
@@ -123,6 +125,8 @@ export default function BrowserPanel({
   }, [])
 
   const handleReload = useCallback(() => {
+    setCrashReason(null)
+    setLoadError(null)
     webviewRef.current?.reload()
   }, [])
 
@@ -229,6 +233,7 @@ export default function BrowserPanel({
       setCanGoForward(webview.canGoForward())
       setIsLoading(false)
       setLoadError(null)
+      setCrashReason(null)
       updatePanelUrl(workspaceId, panelId, url)
       void recordVisit(workspaceId, url, url)
     }
@@ -241,6 +246,7 @@ export default function BrowserPanel({
       setInputUrl(url)
       setCanGoBack(webview.canGoBack())
       setCanGoForward(webview.canGoForward())
+      setCrashReason(null)
       updatePanelUrl(workspaceId, panelId, url)
       void recordVisit(workspaceId, url, url)
     }
@@ -261,12 +267,14 @@ export default function BrowserPanel({
       const description = pageLoadErrorFrom(event)
       if (description === null) return
       setLoadError(description)
+      setCrashReason(null)
       setIsLoading(false)
     }
 
     const onDidStartLoading = () => {
       setIsLoading(true)
       setLoadError(null)
+      setCrashReason(null)
     }
 
     const onDidStopLoading = () => {
@@ -293,6 +301,21 @@ export default function BrowserPanel({
       }
     }
 
+    const onRenderProcessGone = (event: any) => {
+      const reason = event?.reason ?? event?.detail?.reason ?? 'crashed'
+      if (reason === 'clean-exit') return
+      setCrashReason(String(reason))
+      setLoadError(null)
+      setIsLoading(false)
+    }
+
+    const onCrashed = (event: any) => {
+      const reason = event?.reason ?? event?.detail?.reason ?? 'crashed'
+      setCrashReason(String(reason))
+      setLoadError(null)
+      setIsLoading(false)
+    }
+
     // Register with the portal registry once the guest webContents is live.
     // dom-ready is the first event for which getWebContentsId() returns a
     // stable id; we re-register on every dom-ready in case the webview was
@@ -310,6 +333,8 @@ export default function BrowserPanel({
     webview.addEventListener('did-stop-loading', onDidStopLoading)
     webview.addEventListener('will-navigate', onWillNavigate)
     webview.addEventListener('new-window', onNewWindow)
+    webview.addEventListener('render-process-gone', onRenderProcessGone)
+    webview.addEventListener('crashed', onCrashed)
 
     return () => {
       try { portalRegistry.unregister(panelId) } catch { /* ignore */ }
@@ -322,6 +347,8 @@ export default function BrowserPanel({
       webview.removeEventListener('did-stop-loading', onDidStopLoading)
       webview.removeEventListener('will-navigate', onWillNavigate)
       webview.removeEventListener('new-window', onNewWindow)
+      webview.removeEventListener('render-process-gone', onRenderProcessGone)
+      webview.removeEventListener('crashed', onCrashed)
     }
   }, [panelId, recordVisit, workspaceId, updatePanelTitle, updatePanelUrl])
 
@@ -429,12 +456,27 @@ export default function BrowserPanel({
           </div>
         )}
 
+        {crashReason && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-surface-4 text-secondary p-4 text-center z-10">
+            <Globe size={32} className="mb-2 text-muted" />
+            <p className="text-sm font-medium mb-1">Page crashed</p>
+            <p className="text-xs text-muted">The browser page stopped unexpectedly.</p>
+            <button
+              onClick={handleReload}
+              aria-label="Reload page"
+              className="mt-3 px-3 py-1 text-xs rounded bg-surface-6 hover:bg-hover text-primary"
+            >
+              Reload
+            </button>
+          </div>
+        )}
+
         {/* Webview */}
         <webview
           ref={webviewRef as any}
           data-browser-panel-id={panelId}
           src={webviewSrc}
-          className={`w-full h-full ${loadError ? 'hidden' : ''}`}
+          className={`w-full h-full ${loadError || crashReason ? 'hidden' : ''}`}
           partition={browserPartition}
         />
 
