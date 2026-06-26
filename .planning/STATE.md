@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Browser Uplift
 status: executing
-stopped_at: Completed 26-04-PLAN.md
-last_updated: "2026-06-26T18:33:42.839Z"
-last_activity: 2026-06-26 -- Completed 26-04 browser state store and IPC contracts
+stopped_at: Completed 26-05-PLAN.md
+last_updated: "2026-06-26T18:49:05.170Z"
+last_activity: 2026-06-26 -- Completed 26-05 renderer browser store and bookmarks bar
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 10
-  completed_plans: 4
-  percent: 40
+  completed_plans: 5
+  percent: 50
 ---
 
 # Project State
@@ -26,14 +26,14 @@ See: `.planning/PROJECT.md` (updated 2026-06-26 for v1.5 Browser Uplift)
 ## Current Position
 
 Phase: 26-browser-uplift
-Plan: 05 next
+Plan: 06 next
 Status: Executing
-Last activity: 2026-06-26 -- Completed 26-04 browser state store and IPC contracts
+Last activity: 2026-06-26 -- Completed 26-05 renderer browser store and bookmarks bar
 
 ## Session Continuity
 
-Last session: 2026-06-26T18:33:42.818Z
-Stopped At: Completed 26-04-PLAN.md
+Last session: 2026-06-26T18:49:05.150Z
+Stopped At: Completed 26-05-PLAN.md
 Resume File: None
 
 ## Next Up
@@ -84,6 +84,7 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table.
 | 2026-06-26 | Capture IPC lives in `src/main/ipc/capture.ts` and is registered once from the critical startup handler set. | Keeps REQ-010 capture behavior modular while preserving startup availability. |
 | 2026-06-26 | Capture preload/API/channel names remained unchanged during 26-03. | The plan required `capturePage()`, `webviewScreenshot()`, and `nativeFileDrag()` compatibility. |
 | 2026-06-26 | No upstream proxy, extraction, vault write, `cate_browser`, or FlashQuery code was added in 26-03. | Preserves Browser Uplift scope boundaries and FlashQuery isolation. |
+| 2026-06-26 | Plan 26-05 keeps BookmarksBar presentational while BrowserPanel supplies workspace-scoped bookmarks. | Prevents a global active-workspace bookmark model and keeps REQ-003/REQ-007 panel scoping explicit. |
 
 ## Deferred Items
 
@@ -126,6 +127,7 @@ Items acknowledged and deferred at milestone close on 2026-06-16:
 | 26-browser-uplift | 02 | 30min | 2 | 7 |
 | 26-browser-uplift | 03 | 10min | 2 | 4 |
 | 26-browser-uplift | 04 | 12min | 2 | 10 |
+| 26-browser-uplift | 05 | 15min | 2 | 7 |
 
 ## Operator Next Steps
 
