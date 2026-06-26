@@ -47,21 +47,51 @@ v1.5 Browser Uplift is active. The milestone is intentionally planned as one GSD
 
 **Goal:** Implement the Browser Uplift end to end: workspace-scoped durable browser sessions, per-workspace history/bookmarks, browser affordances, main-frame/crash/shortcut robustness, modular screenshot IPC, workspace cleanup, clear-data controls, portal bridge preservation, FlashQuery isolation, and full supplied test coverage.
 
-**GSD progress:** Not started.
+**GSD progress:** Planned — 10 executable waves ready for `$gsd-execute-phase 26`.
 
 **Plans:** 10 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 26-01-PLAN.md — Workspace partition threading and partition E2E.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 26-02-PLAN.md — Load-error helper and portal bridge regression.
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 26-03-PLAN.md — Capture IPC relocation and screenshot contract tests.
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 26-04-PLAN.md — Main browser state store plus browser IPC/preload contracts.
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 26-05-PLAN.md — Renderer browser store plus bookmarks bar/star.
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
 - [ ] 26-06-PLAN.md — Browser menu/popover plus settings schema/UI.
+
+**Wave 7** *(blocked on Wave 6 completion)*
+
 - [ ] 26-07-PLAN.md — Workspace cleanup plus clear-data IPC/UI.
+
+**Wave 8** *(blocked on Wave 7 completion)*
+
 - [ ] 26-08-PLAN.md — Crash overlay plus scoped shortcut forwarding.
+
+**Wave 9** *(blocked on Wave 8 completion)*
+
 - [ ] 26-09-PLAN.md — FlashQuery isolation contract tests.
+
+**Wave 10** *(blocked on Wave 9 completion)*
+
 - [ ] 26-10-PLAN.md — System verification/evidence and manual T-M-001.
+
 **Source slices included:**
 
 - Requirements Section 8.3 Phase 1: Browser Foundation

@@ -362,17 +362,15 @@ function browserShortcutFromInput(input: Electron.Input): BrowserShortcutAction 
 | A3 | One workspace-keyed history file and one workspace-keyed bookmarks file is the preferred implementation shape. [ASSUMED] | Open Questions | Planner may choose per-workspace files instead; both remain allowed by D-32. |
 | A4 | E2E harness additions can cover browser panel creation/inspection, deterministic partition/cookie checks, and optional crash simulation. [ASSUMED] | Validation Architecture | Planner may need to split harness work into earlier setup tasks if Playwright cannot introspect webviews directly. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should browser state live in one workspace-keyed file or per-workspace files?**
    - What we know: both are allowed by D-32 and the product spec. [VERIFIED: CONTEXT.md]
-   - What's unclear: operational preference for hand-editability vs cleanup simplicity.
-   - Recommendation: use one workspace-keyed history file and one workspace-keyed bookmarks file unless implementation finds cleanup/file-watch complexity; this mirrors upstream filenames while adding workspace maps. [ASSUMED]
+   - RESOLVED: use one workspace-keyed history file and one workspace-keyed bookmarks file unless implementation discovers a concrete blocker. This mirrors upstream filenames while adding workspace maps, keeps workspace cleanup deterministic, and avoids creating many small files before any migration need exists. [RESOLVED: planning decision]
 
 2. **How should `T-E-009` simulate a webview crash?**
    - What we know: deterministic crash induction is hard and D-34 allows a `CATE_E2E=1` simulation hook. [VERIFIED: CONTEXT.md]
-   - What's unclear: whether direct crash induction works reliably on all CI/local platforms.
-   - Recommendation: plan unit tests as primary coverage and add a gated E2E simulation hook only if real crash induction is unreliable. [VERIFIED: test plan]
+   - RESOLVED: implement unit tests as the primary crash-overlay proof and add a `CATE_E2E=1` gated simulation hook for `T-E-009` if direct crash induction is unreliable. The hook must be documented in verification evidence and must not affect production behavior. [RESOLVED: planning decision]
 
 ## Environment Availability
 
