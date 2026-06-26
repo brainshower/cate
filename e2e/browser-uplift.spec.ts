@@ -252,3 +252,46 @@ test('T-E-012/T-E-013 bookmark bar persists bookmarks in one workspace and exclu
     await server.close()
   }
 })
+
+test('T-E-014 toggling bookmarks bar visibility persists across restart', async () => {
+  const server = await startLocalBrowserServer((_req, res) => {
+    res.writeHead(200, { 'content-type': 'text/html' })
+    res.end('<!doctype html><title>Bookmark Visibility</title><body>bookmark visibility page</body>')
+  })
+  const userDataDir = await mkdtemp(path.join(os.tmpdir(), 'cate-browser-bookmark-visibility-user-data-'))
+  const { electronApp: firstApp, mainWindow: firstPage } = await launchApp({ userDataDir })
+
+  try {
+    await firstPage.evaluate(async () => {
+      await window.electronAPI.settingsSet('browserShowBookmarksBar', false)
+    })
+  } finally {
+    await closeApp(firstApp)
+  }
+
+  const { electronApp: secondApp, mainWindow: secondPage } = await launchApp({ userDataDir })
+  try {
+    const workspaceId = await secondPage.evaluate(() => window.__cateE2E!.selectedWorkspaceId())
+    await secondPage.evaluate(async (id) => {
+      await window.electronAPI.browserBookmarksAdd(id, 'https://example.test/hidden', 'Hidden Bookmark')
+    }, workspaceId)
+    await createBrowserPanel(secondPage, server.baseUrl)
+
+    await expect(secondPage.getByRole('button', { name: 'Hidden Bookmark' })).toHaveCount(0)
+
+    await secondPage.evaluate(async () => {
+      await window.electronAPI.settingsSet('browserShowBookmarksBar', true)
+    })
+  } finally {
+    await closeApp(secondApp)
+  }
+
+  const { electronApp: thirdApp, mainWindow: thirdPage } = await launchApp({ userDataDir })
+  try {
+    await createBrowserPanel(thirdPage, server.baseUrl)
+    await expect(thirdPage.getByRole('button', { name: 'Hidden Bookmark' })).toBeVisible()
+  } finally {
+    await closeApp(thirdApp)
+    await server.close()
+  }
+})
