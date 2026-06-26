@@ -47,14 +47,14 @@ v1.5 Browser Uplift is active. The milestone is intentionally planned as one GSD
 
 **Goal:** Implement the Browser Uplift end to end: workspace-scoped durable browser sessions, per-workspace history/bookmarks, browser affordances, main-frame/crash/shortcut robustness, modular screenshot IPC, workspace cleanup, clear-data controls, portal bridge preservation, FlashQuery isolation, and full supplied test coverage.
 
-**GSD progress:** Planned — 10 executable waves ready for `$gsd-execute-phase 26`.
+**GSD progress:** Executing — 1/10 plans complete.
 
 **Plans:** 10 plans
 
 Plans:
 **Wave 1**
 
-- [ ] 26-01-PLAN.md — Workspace partition threading and partition E2E.
+- [x] 26-01-PLAN.md — Workspace partition threading and partition E2E.
 
 **Wave 2** *(blocked on Wave 1 completion)*
 

@@ -4,14 +4,14 @@ milestone: v1.5
 milestone_name: Browser Uplift
 status: executing
 stopped_at: Completed 25-04-PLAN.md
-last_updated: "2026-06-26T17:33:15.788Z"
-last_activity: 2026-06-26 -- Phase 26 planning complete
+last_updated: "2026-06-26T18:00:59Z"
+last_activity: 2026-06-26 -- Completed 26-01 workspace partition threading
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 10
-  completed_plans: 0
-  percent: 0
+  completed_plans: 1
+  percent: 10
 ---
 
 # Project State
@@ -21,24 +21,24 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-26 for v1.5 Browser Uplift)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** Phase 26 Browser Uplift planning
+**Current focus:** Phase 26 Browser Uplift execution
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Ready to execute
-Last activity: 2026-06-26 -- Phase 26 planning complete
+Phase: 26-browser-uplift
+Plan: 02 next
+Status: Executing
+Last activity: 2026-06-26 -- Completed 26-01 workspace partition threading
 
 ## Session Continuity
 
-Last session: 2026-06-17T03:47:36Z
-Stopped At: Completed 25-04-PLAN.md
+Last session: 2026-06-26T18:00:59Z
+Stopped At: Completed 26-01-PLAN.md
 Resume File: None
 
 ## Next Up
 
-Phase 26 Browser Uplift is ready for discussion/planning.
+Phase 26 Browser Uplift execution is underway.
 
 Phase 26 bundles the supplied Browser Uplift source implementation phases into one GSD phase:
 
@@ -117,6 +117,7 @@ Items acknowledged and deferred at milestone close on 2026-06-16:
 | 24-sc-inspector-foundation-docking-preview-chunks-and-selection | 04 | 18min | 3 | 10 |
 | 25-inspector-ui-adapter-boundary-outline-sync-e2e-and-acceptance-polish | 02 | 6min | 2 | 4 |
 | 25-inspector-ui-adapter-boundary-outline-sync-e2e-and-acceptance-polish | 04 | 19m 34s | 3 | 9 |
+| 26-browser-uplift | 01 | 20min | 2 | 14 |
 
 ## Operator Next Steps
 

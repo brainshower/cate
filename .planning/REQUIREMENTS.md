@@ -25,7 +25,7 @@ Bring Cate's forked in-app browser up to the relevant upstream v1.3.2 browser ca
 
 ### Session, State, and Workspace Scope
 
-- [ ] **REQ-001:** Browser webviews use a durable per-workspace Electron partition exactly `persist:browser-ws-${workspaceId}`, never `panelId`, and fail closed rather than mounting with an empty or missing workspace ID across canvas, dock, detached panel, and detached dock mount sites.
+- [x] **REQ-001:** Browser webviews use a durable per-workspace Electron partition exactly `persist:browser-ws-${workspaceId}`, never `panelId`, and fail closed rather than mounting with an empty or missing workspace ID across canvas, dock, detached panel, and detached dock mount sites.
 - [ ] **REQ-002:** Removing a workspace cleans only that workspace's browser partition plus persisted browser history/bookmarks, co-located with existing main-side workspace teardown.
 - [ ] **REQ-003:** Browser history and bookmarks persist per workspace, ignore non-recordable sentinel URLs, and are queried in the renderer by `workspaceId` rather than through one global active workspace.
 
@@ -71,7 +71,7 @@ Bring Cate's forked in-app browser up to the relevant upstream v1.3.2 browser ca
 
 | Requirement | GSD phase | Source slice | Primary test coverage | Status |
 |---|---:|---|---|---|
-| REQ-001 | Phase 26 | Browser Foundation | `T-U-001`, `T-U-002`, `T-U-029`, `T-E-001`, `T-E-002`, `T-E-003`, `T-E-020`, `T-E-021`, `T-M-001` | Pending |
+| REQ-001 | Phase 26 | Browser Foundation | `T-U-001`, `T-U-002`, `T-U-029`, `T-E-001`, `T-E-002`, `T-E-003`, `T-E-020`, `T-E-021`, `T-M-001` | Complete in 26-01 |
 | REQ-002 | Phase 26 | Workspace Safety and Controls | `T-U-003`, `T-U-004`, `T-I-001`, `T-E-004` | Pending |
 | REQ-003 | Phase 26 | Browser State and Affordances | `T-U-005`, `T-U-006`, `T-U-007`, `T-U-008`, `T-U-030`, `T-E-005`, `T-E-006` | Pending |
 | REQ-004 | Phase 26 | Browser Foundation | `T-U-009`, `T-U-010`, `T-U-011`, `T-E-007`, `T-E-008` | Pending |
