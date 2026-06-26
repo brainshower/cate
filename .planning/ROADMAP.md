@@ -49,14 +49,19 @@ v1.5 Browser Uplift is active. The milestone is intentionally planned as one GSD
 
 **GSD progress:** Not started.
 
-**Plans:** 4 plans
+**Plans:** 10 plans
 
 Plans:
-- [ ] 26-01-PLAN.md — Browser Foundation: workspace partition threading, load-error helper, capture IPC relocation, portal bridge regression tests.
-- [ ] 26-02-PLAN.md — Browser State and Affordances: per-workspace history/bookmarks, renderer store, bookmarks bar/star, menu/popover/settings.
-- [ ] 26-03-PLAN.md — Workspace Safety and Controls: workspace cleanup, clear-data, crash overlay, shortcut forwarding, FlashQuery isolation.
-- [ ] 26-04-PLAN.md — System Verification: Browser Uplift E2E matrix, FlashQuery persistence smoke, T-M-001 manual evidence, final verification record.
-
+- [ ] 26-01-PLAN.md — Workspace partition threading and partition E2E.
+- [ ] 26-02-PLAN.md — Load-error helper and portal bridge regression.
+- [ ] 26-03-PLAN.md — Capture IPC relocation and screenshot contract tests.
+- [ ] 26-04-PLAN.md — Main browser state store plus browser IPC/preload contracts.
+- [ ] 26-05-PLAN.md — Renderer browser store plus bookmarks bar/star.
+- [ ] 26-06-PLAN.md — Browser menu/popover plus settings schema/UI.
+- [ ] 26-07-PLAN.md — Workspace cleanup plus clear-data IPC/UI.
+- [ ] 26-08-PLAN.md — Crash overlay plus scoped shortcut forwarding.
+- [ ] 26-09-PLAN.md — FlashQuery isolation contract tests.
+- [ ] 26-10-PLAN.md — System verification/evidence and manual T-M-001.
 **Source slices included:**
 
 - Requirements Section 8.3 Phase 1: Browser Foundation
