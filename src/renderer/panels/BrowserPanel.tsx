@@ -13,6 +13,7 @@ import { SEARCH_ENGINE_URLS } from '../../shared/types'
 import type { BrowserPanelProps } from './types'
 import { portalRegistry } from '../lib/portalRegistry'
 import { isUrl, normalizeUrl } from './browserUrl'
+import { browserPartitionForWorkspace } from './browserPartition'
 
 // -----------------------------------------------------------------------------
 // Type declarations for Electron's <webview> element
@@ -50,6 +51,12 @@ export default function BrowserPanel({
   const updatePanelUrl = useAppStore((s) => s.updatePanelUrl)
 
   const isFocused = useCanvasStoreContext((s) => s.focusedNodeId === nodeId)
+  let browserPartition: string | null = null
+  try {
+    browserPartition = browserPartitionForWorkspace(workspaceId)
+  } catch {
+    browserPartition = null
+  }
 
   const rawInitialUrl = url || browserHomepage || 'https://www.google.com'
   const initialUrl = rawInitialUrl.startsWith('about:') ? rawInitialUrl : normalizeUrl(rawInitialUrl)
@@ -288,6 +295,18 @@ export default function BrowserPanel({
   // Render
   // -------------------------------------------------------------------------
 
+  if (!browserPartition) {
+    return (
+      <div className="flex flex-col w-full h-full">
+        <div className="flex-1 flex flex-col items-center justify-center bg-surface-4 text-secondary p-4 text-center">
+          <Globe size={32} className="mb-2 text-muted" />
+          <p className="text-sm font-medium mb-1">Browser workspace unavailable</p>
+          <p className="text-xs text-muted">This browser panel needs a saved workspace before it can load a page.</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col w-full h-full">
       {/* URL bar */}
@@ -366,7 +385,7 @@ export default function BrowserPanel({
           ref={webviewRef as any}
           src={webviewSrc}
           className={`w-full h-full ${loadError ? 'hidden' : ''}`}
-          partition={`persist:browser-${panelId}`}
+          partition={browserPartition}
         />
 
         {/* Screenshot thumbnail */}
