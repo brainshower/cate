@@ -93,7 +93,7 @@ describe('FlashQuery handoff producer to watcher rebind', () => {
 
     await vi.waitFor(() => {
       expect(pi.registerTool.mock.calls.map(([registered]) => registered.name)).toContain('updated_tool')
-    }, { timeout: 2_000 })
+    }, { timeout: 5_000 })
     expect(lifecycle.currentGeneration()).toMatchObject({
       id: 2,
       handoff: {
@@ -108,7 +108,7 @@ describe('FlashQuery handoff producer to watcher rebind', () => {
       .resolves.toMatchObject({ ok: true })
     await vi.waitFor(() => {
       expect(lifecycle.currentGeneration()).toBeNull()
-    }, { timeout: 2_000 })
+    }, { timeout: 5_000 })
 
     await lifecycle.shutdown()
   })

@@ -25,6 +25,10 @@ vi.mock('./editorSaveRegistry', () => ({
   saveEditor: vi.fn(async () => 'saved'),
 }))
 
+vi.mock('./session', () => ({
+  saveSession: vi.fn(async () => {}),
+}))
+
 vi.mock('../../shared/flashqueryUri', () => ({
   buildVaultUri: vi.fn((workspaceId: string, vaultPath: string) => `flashquery://${workspaceId}${vaultPath}`),
 }))

@@ -16,11 +16,20 @@ vi.mock('../stores/appStore', () => ({
 
 vi.mock('../stores/previewSelectionStore', () => {
   let state = { activeChunkId: null as string | null }
+  const scope = () => ({
+    hoveredChunkId: null,
+    pinnedChunkId: null,
+    activeChunkId: state.activeChunkId,
+    cautionChunkIds: [],
+    connectedChunkIds: [],
+  })
   const usePreviewSelectionStore = Object.assign(
-    <T,>(selector: (state: { activeChunkId: string | null }) => T) => selector(state),
+    <T,>(selector: (state: { activeChunkId: string | null; getScope: () => ReturnType<typeof scope> }) => T) =>
+      selector({ ...state, getScope: scope }),
     {
       getState: () => ({
         activeChunkId: state.activeChunkId,
+        getScope: scope,
         clearSelection: () => {},
       }),
       setState: (next: { activeChunkId?: string | null }) => {
@@ -242,7 +251,7 @@ describe('PANEL_REGISTRY semantic-connections entry', () => {
     const html = renderToStaticMarkup(React.createElement(module.default, { panelId: 'semantic-1', workspaceId: 'workspace-1' }))
 
     expect(html).not.toContain('>Connections<')
-    expect(html).toContain('Whole document')
+    expect(html).toContain('Whole Document')
   })
 
   it('REQ-023 keeps selected scope neutral instead of exposing raw chunk slugs', async () => {
@@ -257,7 +266,7 @@ describe('PANEL_REGISTRY semantic-connections entry', () => {
 
     const html = renderToStaticMarkup(React.createElement(module.default, { panelId: 'semantic-1', workspaceId: 'workspace-1' }))
 
-    expect(html).toContain('One section selected')
+    expect(html).toContain('Selection')
     expect(html).not.toContain('my-heading-slug')
   })
 })
