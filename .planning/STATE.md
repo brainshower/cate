@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Browser Uplift
 status: executing
-stopped_at: Completed 26-02-PLAN.md
-last_updated: "2026-06-26T18:09:55Z"
-last_activity: 2026-06-26 -- Completed 26-02 load-error helper and portal bridge regression
+stopped_at: Completed 26-03-PLAN.md
+last_updated: "2026-06-26T18:20:21.110Z"
+last_activity: 2026-06-26 -- Completed 26-03 capture IPC relocation and screenshot contract tests
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 10
-  completed_plans: 2
-  percent: 20
+  completed_plans: 3
+  percent: 30
 ---
 
 # Project State
@@ -26,14 +26,14 @@ See: `.planning/PROJECT.md` (updated 2026-06-26 for v1.5 Browser Uplift)
 ## Current Position
 
 Phase: 26-browser-uplift
-Plan: 03 next
+Plan: 04 next
 Status: Executing
-Last activity: 2026-06-26 -- Completed 26-02 load-error helper and portal bridge regression
+Last activity: 2026-06-26 -- Completed 26-03 capture IPC relocation and screenshot contract tests
 
 ## Session Continuity
 
-Last session: 2026-06-26T18:09:55Z
-Stopped At: Completed 26-02-PLAN.md
+Last session: 2026-06-26T18:20:21.090Z
+Stopped At: Completed 26-03-PLAN.md
 Resume File: None
 
 ## Next Up
@@ -81,6 +81,9 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table.
 | 2026-06-26 | Browser state is workspace-scoped and separate from FlashQuery state. | The shared `workspaceId` is a scoping convenience, not a shared storage or security boundary. |
 | 2026-06-26 | BrowserPanel load-error overlay is driven only by `pageLoadErrorFrom(event)`. | Keeps REQ-004 semantics testable and prevents subresource failures from hiding a successfully loaded page. |
 | 2026-06-26 | portalRegistry production code was preserved during 26-02. | The plan required bridge preservation coverage, not a wholesale upstream replacement. |
+| 2026-06-26 | Capture IPC lives in `src/main/ipc/capture.ts` and is registered once from the critical startup handler set. | Keeps REQ-010 capture behavior modular while preserving startup availability. |
+| 2026-06-26 | Capture preload/API/channel names remained unchanged during 26-03. | The plan required `capturePage()`, `webviewScreenshot()`, and `nativeFileDrag()` compatibility. |
+| 2026-06-26 | No upstream proxy, extraction, vault write, `cate_browser`, or FlashQuery code was added in 26-03. | Preserves Browser Uplift scope boundaries and FlashQuery isolation. |
 
 ## Deferred Items
 
@@ -121,6 +124,7 @@ Items acknowledged and deferred at milestone close on 2026-06-16:
 | 25-inspector-ui-adapter-boundary-outline-sync-e2e-and-acceptance-polish | 04 | 19m 34s | 3 | 9 |
 | 26-browser-uplift | 01 | 20min | 2 | 14 |
 | 26-browser-uplift | 02 | 30min | 2 | 7 |
+| 26-browser-uplift | 03 | 10min | 2 | 4 |
 
 ## Operator Next Steps
 
