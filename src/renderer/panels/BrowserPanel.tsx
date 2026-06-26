@@ -10,6 +10,7 @@ import { useSettingsStore } from '../stores/settingsStore'
 import { useAppStore } from '../stores/appStore'
 import { useCanvasStoreContext } from '../stores/CanvasStoreContext'
 import { SEARCH_ENGINE_URLS } from '../../shared/types'
+import type { BrowserShortcutAction } from '../../shared/types'
 import type { BrowserPanelProps } from './types'
 import { portalRegistry } from '../lib/portalRegistry'
 import { isUrl, normalizeUrl } from './browserUrl'
@@ -76,6 +77,8 @@ export default function BrowserPanel({
   const [webviewSrc] = useState(() => initialUrl)
 
   const webviewRef = useRef<WebviewElement | null>(null)
+  const urlInputRef = useRef<HTMLInputElement | null>(null)
+  const webviewFocusedRef = useRef(false)
   const [currentUrl, setCurrentUrl] = useState(initialUrl)
   const [currentTitle, setCurrentTitle] = useState(initialUrl)
   const [inputUrl, setInputUrl] = useState(initialUrl)
@@ -128,6 +131,31 @@ export default function BrowserPanel({
     setCrashReason(null)
     setLoadError(null)
     webviewRef.current?.reload()
+  }, [])
+
+  const runBrowserAction = useCallback((action: BrowserShortcutAction) => {
+    const webview = webviewRef.current
+    if (!webview) return
+    if (!webviewFocusedRef.current && document.activeElement !== webview) return
+
+    switch (action) {
+      case 'reload':
+        setCrashReason(null)
+        setLoadError(null)
+        webview.reload()
+        break
+      case 'focus-url':
+        urlInputRef.current?.focus()
+        urlInputRef.current?.select()
+        webviewFocusedRef.current = false
+        break
+      case 'back':
+        webview.goBack()
+        break
+      case 'forward':
+        webview.goForward()
+        break
+    }
   }, [])
 
   const handleScreenshot = useCallback(async () => {
@@ -211,6 +239,12 @@ export default function BrowserPanel({
     initializeBrowserStoreSubscriptions()
     void refreshWorkspace(workspaceId)
   }, [browserPartition, refreshWorkspace, workspaceId])
+
+  useEffect(() => {
+    return window.electronAPI.onBrowserShortcut((action) => {
+      runBrowserAction(action)
+    })
+  }, [runBrowserAction])
 
   // -------------------------------------------------------------------------
   // Webview event listeners
@@ -301,6 +335,19 @@ export default function BrowserPanel({
       }
     }
 
+    const onFocus = () => {
+      webviewFocusedRef.current = true
+    }
+
+    const onBlur = () => {
+      webviewFocusedRef.current = false
+    }
+
+    const onE2EBrowserShortcut = (event: any) => {
+      if (!(window as unknown as { __cateE2E?: unknown }).__cateE2E) return
+      runBrowserAction(event?.detail)
+    }
+
     const onRenderProcessGone = (event: any) => {
       const reason = event?.reason ?? event?.detail?.reason ?? 'crashed'
       if (reason === 'clean-exit') return
@@ -335,6 +382,9 @@ export default function BrowserPanel({
     webview.addEventListener('new-window', onNewWindow)
     webview.addEventListener('render-process-gone', onRenderProcessGone)
     webview.addEventListener('crashed', onCrashed)
+    webview.addEventListener('focus', onFocus)
+    webview.addEventListener('blur', onBlur)
+    webview.addEventListener('cate-browser-shortcut', onE2EBrowserShortcut)
 
     return () => {
       try { portalRegistry.unregister(panelId) } catch { /* ignore */ }
@@ -349,8 +399,11 @@ export default function BrowserPanel({
       webview.removeEventListener('new-window', onNewWindow)
       webview.removeEventListener('render-process-gone', onRenderProcessGone)
       webview.removeEventListener('crashed', onCrashed)
+      webview.removeEventListener('focus', onFocus)
+      webview.removeEventListener('blur', onBlur)
+      webview.removeEventListener('cate-browser-shortcut', onE2EBrowserShortcut)
     }
-  }, [panelId, recordVisit, workspaceId, updatePanelTitle, updatePanelUrl])
+  }, [panelId, recordVisit, runBrowserAction, workspaceId, updatePanelTitle, updatePanelUrl])
 
   // -------------------------------------------------------------------------
   // Render
@@ -405,6 +458,7 @@ export default function BrowserPanel({
         <div className="flex-1 flex items-center h-7 rounded-full border border-subtle bg-surface-5 px-3 gap-2 focus-within:border-strong transition-colors">
           <MagnifyingGlass size={13} className="text-muted shrink-0" />
           <input
+            ref={urlInputRef}
             type="text"
             value={inputUrl}
             onChange={(e) => setInputUrl(e.target.value)}

@@ -1,4 +1,6 @@
 import { app, session, shell, type Session, type WebContents } from 'electron'
+import { BROWSER_SHORTCUT } from '../shared/ipc-channels'
+import type { BrowserShortcutAction } from '../shared/types'
 import log from './logger'
 import { disableWebviewHardening } from './featureFlags'
 
@@ -21,6 +23,31 @@ function isOAuthUrl(url: string): boolean {
 
 const configuredGuestSessions = new Set<string>()
 const browserGuestPartitions = new Set<string>()
+
+export function classifyWebviewShortcut(input: Electron.Input): BrowserShortcutAction | null {
+  if (input.type !== 'keyDown') return null
+  if (input.alt || input.shift) return null
+  if (!input.meta && !input.control) return null
+
+  const code = input.code
+  if (code === 'KeyR') return 'reload'
+  if (code === 'KeyL') return 'focus-url'
+  if (code === 'BracketLeft') return 'back'
+  if (code === 'BracketRight') return 'forward'
+
+  const key = input.key.toLowerCase()
+  if (key === 'r') return 'reload'
+  if (key === 'l') return 'focus-url'
+  if (key === '[') return 'back'
+  if (key === ']') return 'forward'
+  return null
+}
+
+function forwardBrowserShortcut(contents: WebContents, action: BrowserShortcutAction): void {
+  const hostWebContents = (contents as WebContents & { hostWebContents?: WebContents }).hostWebContents
+  if (!hostWebContents || hostWebContents.isDestroyed()) return
+  hostWebContents.send(BROWSER_SHORTCUT, action)
+}
 
 export function isTrustedAppUrl(url: string): boolean {
   if (url.startsWith('file://')) return true
@@ -90,6 +117,13 @@ export async function flushBrowserGuestSessions(): Promise<void> {
 export function installWebContentsSecurity(): void {
   app.on('web-contents-created', (_event, contents) => {
     if (contents.getType() === 'webview') {
+      contents.on('before-input-event', (event, input) => {
+        const action = classifyWebviewShortcut(input)
+        if (!action) return
+        event.preventDefault()
+        forwardBrowserShortcut(contents, action)
+      })
+
       contents.on('will-navigate', (event, url) => {
         if (isOAuthUrl(url)) {
           event.preventDefault()

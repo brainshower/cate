@@ -216,9 +216,10 @@ import {
   BROWSER_HISTORY_GET,
   BROWSER_HISTORY_RECORD,
   BROWSER_HISTORY_REMOVE,
+  BROWSER_SHORTCUT,
   PERF_GET,
 } from '../shared/ipc-channels'
-import type { AppSettings, BrowserBookmark, BrowserClearDataResult, BrowserHistoryEntry, WorkspaceMutationResult } from '../shared/types'
+import type { AppSettings, BrowserBookmark, BrowserClearDataResult, BrowserHistoryEntry, BrowserShortcutAction, WorkspaceMutationResult } from '../shared/types'
 
 let e2eNextContextMenuAction: string | null | undefined
 let e2eLastContextMenuItems: unknown[] = []
@@ -843,6 +844,14 @@ const electronAPI = {
 
   browserClearData(workspaceId: string): Promise<BrowserClearDataResult> {
     return ipcRenderer.invoke(BROWSER_CLEAR_DATA, workspaceId)
+  },
+
+  onBrowserShortcut(callback: (action: BrowserShortcutAction) => void): () => void {
+    const listener = (_event: Electron.IpcRendererEvent, action: BrowserShortcutAction): void => {
+      callback(action)
+    }
+    ipcRenderer.on(BROWSER_SHORTCUT, listener)
+    return () => { ipcRenderer.removeListener(BROWSER_SHORTCUT, listener) }
   },
 
   // ---------------------------------------------------------------------------

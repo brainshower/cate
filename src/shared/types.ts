@@ -578,6 +578,8 @@ export interface BrowserBookmark {
   addedAt: number
 }
 
+export type BrowserShortcutAction = 'reload' | 'focus-url' | 'back' | 'forward'
+
 export type BrowserClearDataResult =
   | {
       ok: true

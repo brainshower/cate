@@ -13,7 +13,7 @@ import { useUIStore } from '../stores/uiStore'
 import { saveEditor } from './editorSaveRegistry'
 import { saveSession } from './session'
 import { buildVaultUri } from '../../shared/flashqueryUri'
-import type { FlashQueryConnection, Point } from '../../shared/types'
+import type { BrowserShortcutAction, FlashQueryConnection, Point } from '../../shared/types'
 import type { NativeContextMenuItem } from '../../shared/electron-api'
 import * as monaco from 'monaco-editor'
 import { terminalRegistry } from './terminalRegistry'
@@ -40,6 +40,7 @@ declare global {
       createFlashQueryVaultSearch(point: Point, placement?: PanelPlacement): string
       createBrowserPanel(url: string): string
       simulateBrowserCrash(panelId: string, reason?: string): void
+      simulateBrowserShortcut(panelId: string, action: BrowserShortcutAction): void
       evalBrowserPanel(panelId: string, script: string): Promise<unknown>
       createSemanticConnections(point: Point, placement?: PanelPlacement): string
       createAgent(point: Point, placement?: PanelPlacement): string
@@ -318,6 +319,13 @@ export function installE2EHarness(): void {
     webview.dispatchEvent(Object.assign(new Event('render-process-gone'), { reason }))
   }
 
+  const simulateBrowserShortcut = (panelId: string, action: BrowserShortcutAction): void => {
+    const webview = browserWebview(panelId)
+    if (!webview) throw new Error(`Browser webview not found for panel ${panelId}`)
+    webview.dispatchEvent(new Event('focus'))
+    webview.dispatchEvent(new CustomEvent('cate-browser-shortcut', { detail: action }))
+  }
+
   const evalBrowserPanel = async (panelId: string, script: string): Promise<unknown> => {
     const deadline = Date.now() + 10_000
     while (Date.now() < deadline) {
@@ -575,6 +583,7 @@ export function installE2EHarness(): void {
     createFlashQueryVaultSearch,
     createBrowserPanel,
     simulateBrowserCrash,
+    simulateBrowserShortcut,
     evalBrowserPanel,
     createSemanticConnections,
     createAgent,

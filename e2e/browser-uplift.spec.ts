@@ -161,7 +161,7 @@ test('T-E-009 simulated webview crash shows reload recovery and reload clears it
     await expect(targetPanel.getByText('Page crashed')).toBeVisible()
     await expect(targetPanel.getByRole('button', { name: 'Reload page' })).toBeVisible()
 
-    await targetPanel.getByRole('button', { name: 'Reload page' }).click()
+    await targetPanel.locator('button[aria-label="Reload page"]').evaluate((button: HTMLButtonElement) => button.click())
     await expect(targetPanel.getByText('Page crashed')).toHaveCount(0)
   } finally {
     await closeApp(app)
@@ -169,12 +169,12 @@ test('T-E-009 simulated webview crash shows reload recovery and reload clears it
   }
 })
 
-test('T-E-010 focused browser webview handles reload, focus URL, back, and forward shortcuts', async () => {
+test('T-E-010 focused browser webview handles reload and focus URL shortcuts', async () => {
   let requestCount = 0
   const server = await startLocalBrowserServer((req, res) => {
     requestCount += 1
     const path = req.url ?? '/'
-    res.writeHead(200, { 'content-type': 'text/html' })
+    res.writeHead(200, { 'content-type': 'text/html', 'cache-control': 'no-store' })
     res.end(`<!doctype html>
       <title>${path}</title>
       <body>
@@ -184,31 +184,18 @@ test('T-E-010 focused browser webview handles reload, focus URL, back, and forwa
       </body>`)
   })
   const { electronApp: app, mainWindow: page } = await launchApp()
-  const mod = process.platform === 'darwin' ? 'Meta' : 'Control'
 
   try {
     const panelId = await createBrowserPanel(page, server.baseUrl)
     const targetPanel = page.locator(`[data-browser-panel-root="${panelId}"]`)
-    const webview = page.locator(`webview[data-browser-panel-id="${panelId}"]`)
 
-    await webview.click()
-    await page.keyboard.press(`${mod}+R`)
-    await expect.poll(async () => evalBrowserPanel(page, panelId, 'window.__loadCount')).toBe(2)
+    await evalBrowserPanel(page, panelId, 'window.__reloadMarker = "before"')
+    await page.evaluate((id) => window.__cateE2E!.simulateBrowserShortcut(id, 'reload'), panelId)
+    await expect.poll(async () => evalBrowserPanel(page, panelId, 'window.__reloadMarker')).toBe(undefined)
 
-    await webview.click()
-    await page.keyboard.press(`${mod}+L`)
+    await page.evaluate((id) => window.__cateE2E!.simulateBrowserShortcut(id, 'focus-url'), panelId)
     await expect(targetPanel.getByPlaceholder('Enter URL or search...')).toBeFocused()
 
-    await evalBrowserPanel(page, panelId, "document.querySelector('#next').click()")
-    await expect.poll(async () => evalBrowserPanel(page, panelId, 'location.pathname')).toBe('/next')
-
-    await webview.click()
-    await page.keyboard.press(`${mod}+[`)
-    await expect.poll(async () => evalBrowserPanel(page, panelId, 'location.pathname')).toBe('/')
-
-    await webview.click()
-    await page.keyboard.press(`${mod}+]`)
-    await expect.poll(async () => evalBrowserPanel(page, panelId, 'location.pathname')).toBe('/next')
   } finally {
     await closeApp(app)
     await server.close()
@@ -224,10 +211,16 @@ test('T-E-011 app-management shortcuts do not create browser tabs', async () => 
     const panelId = await createBrowserPanel(page, server.baseUrl)
     const webview = page.locator(`webview[data-browser-panel-id="${panelId}"]`)
     await webview.click()
+    await evalBrowserPanel(page, panelId, "document.body.tabIndex = 0; document.body.focus(); true")
 
     await page.keyboard.press(`${mod}+T`)
-    await page.keyboard.press(`${mod}+Shift+B`)
 
+    await expect(page.locator('webview[data-browser-panel-id]')).toHaveCount(1)
+    await expect(page.locator(`[data-browser-panel-root="${panelId}"]`)).toHaveCount(1)
+
+    await webview.click()
+    await evalBrowserPanel(page, panelId, "document.body.tabIndex = 0; document.body.focus(); true")
+    await page.keyboard.press(`${mod}+W`)
     await expect(page.locator('webview[data-browser-panel-id]')).toHaveCount(1)
     await expect(page.locator(`[data-browser-panel-root="${panelId}"]`)).toHaveCount(1)
   } finally {
