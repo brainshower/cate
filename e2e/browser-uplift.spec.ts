@@ -6,11 +6,13 @@ import path from 'node:path'
 import { closeApp, createBrowserPanel, createWorkspace, evalBrowserPanel, launchApp, waitForBrowserPartition } from './fixtures/electron-app'
 import type { ElectronApplication, Page } from 'playwright'
 
-async function startLocalBrowserServer(): Promise<{ baseUrl: string; close(): Promise<void> }> {
-  const server = createServer((_req, res) => {
+async function startLocalBrowserServer(
+  handler: Parameters<typeof createServer>[0] = (_req, res) => {
     res.writeHead(200, { 'content-type': 'text/html' })
     res.end('<!doctype html><title>Cate Browser Uplift</title><body>browser uplift local page</body>')
-  })
+  },
+): Promise<{ baseUrl: string; close(): Promise<void> }> {
+  const server = createServer(handler)
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
   const address = server.address()
   if (!address || typeof address === 'string') throw new Error('Failed to bind local browser server')
@@ -20,6 +22,18 @@ async function startLocalBrowserServer(): Promise<{ baseUrl: string; close(): Pr
       ;(server as Server).close((error) => error ? reject(error) : resolve())
     }),
   }
+}
+
+async function unusedLocalPort(): Promise<number> {
+  const server = createServer()
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+  const address = server.address()
+  if (!address || typeof address === 'string') throw new Error('Failed to bind local port')
+  const port = address.port
+  await new Promise<void>((resolve, reject) => {
+    server.close((error) => error ? reject(error) : resolve())
+  })
+  return port
 }
 
 test('T-E-001/T-E-021 browser storage persists across browser-panel recreation in the same workspace partition', async () => {
@@ -86,5 +100,44 @@ test('T-E-003/T-E-020 detached browser windows reuse the same workspace partitio
   } finally {
     await closeApp(app)
     await server.close()
+  }
+})
+
+test('T-E-007 page with failing subresource remains visible without failed-load overlay', async () => {
+  const missingPort = await unusedLocalPort()
+  const server = await startLocalBrowserServer((_req, res) => {
+    res.writeHead(200, { 'content-type': 'text/html' })
+    res.end(`<!doctype html>
+      <title>Cate Browser Uplift Subresource</title>
+      <body>
+        <h1 id="loaded">subresource page loaded</h1>
+        <img src="http://127.0.0.1:${missingPort}/missing.png" />
+      </body>`)
+  })
+  const { electronApp: app, mainWindow: page } = await launchApp()
+
+  try {
+    const panelId = await createBrowserPanel(page, server.baseUrl)
+
+    await expect.poll(async () => {
+      return evalBrowserPanel(page, panelId, "document.querySelector('#loaded')?.textContent")
+    }).toBe('subresource page loaded')
+    await expect(page.getByText('Failed to load page')).toHaveCount(0)
+  } finally {
+    await closeApp(app)
+    await server.close()
+  }
+})
+
+test('T-E-008 main-frame navigation failure shows failed-load overlay', async () => {
+  const missingPort = await unusedLocalPort()
+  const { electronApp: app, mainWindow: page } = await launchApp()
+
+  try {
+    await createBrowserPanel(page, `http://127.0.0.1:${missingPort}/missing`, { waitForLoad: false })
+
+    await expect(page.getByText('Failed to load page')).toBeVisible()
+  } finally {
+    await closeApp(app)
   }
 })

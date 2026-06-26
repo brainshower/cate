@@ -14,6 +14,7 @@ import type { BrowserPanelProps } from './types'
 import { portalRegistry } from '../lib/portalRegistry'
 import { isUrl, normalizeUrl } from './browserUrl'
 import { browserPartitionForWorkspace } from './browserPartition'
+import { pageLoadErrorFrom } from './browserLoadError'
 
 // -----------------------------------------------------------------------------
 // Type declarations for Electron's <webview> element
@@ -223,9 +224,8 @@ export default function BrowserPanel({
     }
 
     const onDidFailLoad = (event: any) => {
-      // errorCode -3 is a cancelled load (e.g. navigating away mid-load), ignore it
-      if (event.errorCode === -3) return
-      const description = event.errorDescription || 'Failed to load page'
+      const description = pageLoadErrorFrom(event)
+      if (description === null) return
       setLoadError(description)
       setIsLoading(false)
     }

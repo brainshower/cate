@@ -111,10 +111,16 @@ export async function createWorkspace(page: Page, name: string): Promise<string>
   return page.evaluate((workspaceName) => window.__cateE2E!.createWorkspace(workspaceName), name)
 }
 
-export async function createBrowserPanel(page: Page, url: string): Promise<string> {
+export async function createBrowserPanel(
+  page: Page,
+  url: string,
+  options: { waitForLoad?: boolean } = {},
+): Promise<string> {
   const panelId = await page.evaluate((targetUrl) => window.__cateE2E!.createBrowserPanel(targetUrl), url)
   await page.waitForSelector(`webview[data-browser-panel-id="${panelId}"]`, { timeout: 10_000 })
-  await waitForBrowserUrl(page, panelId, url)
+  if (options.waitForLoad ?? true) {
+    await waitForBrowserUrl(page, panelId, url)
+  }
   return panelId
 }
 
