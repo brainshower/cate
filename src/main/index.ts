@@ -1,8 +1,7 @@
 import log from './logger'
-import { app, BrowserWindow, ipcMain, dialog, shell, nativeImage, screen, webContents, session } from 'electron'
-import fs from 'fs'
+import { app, BrowserWindow, ipcMain, dialog, shell, nativeImage, screen, session } from 'electron'
 import path from 'path'
-import { SHELL_SHOW_IN_FOLDER, WEBVIEW_SCREENSHOT, NATIVE_FILE_DRAG, CAPTURE_PAGE, DIALOG_OPEN_FOLDER, DIALOG_SAVE_FILE, DIALOG_CONFIRM_UNSAVED, DIALOG_CONFIRM_CLOSE_CANVAS, DIALOG_CONFIRM_DELETE_REGION, DIALOG_CONFIRM_IMPORT, DIALOG_CONFIRM_RELOAD_WORKSPACE, DIALOG_TERMINAL_LINK_OPEN, APP_OPEN_PATH } from '../shared/ipc-channels'
+import { SHELL_SHOW_IN_FOLDER, DIALOG_OPEN_FOLDER, DIALOG_SAVE_FILE, DIALOG_CONFIRM_UNSAVED, DIALOG_CONFIRM_CLOSE_CANVAS, DIALOG_CONFIRM_DELETE_REGION, DIALOG_CONFIRM_IMPORT, DIALOG_CONFIRM_RELOAD_WORKSPACE, DIALOG_TERMINAL_LINK_OPEN, APP_OPEN_PATH } from '../shared/ipc-channels'
 import {
   WINDOW_SET_TITLE,
   PANEL_TRANSFER, PANEL_RECEIVE, PANEL_TRANSFER_ACK,
@@ -24,6 +23,7 @@ import { registerHandlers as registerStoreHandlers, loadSettingsSyncFromDisk, ge
 import { registerProjectStateHandlers, saveProjectStateSync, runLegacyMigrationIfNeeded } from './projectWorkspaceStore'
 import { registerHandlers as registerMenuHandlers } from './ipc/menu'
 import { registerHandlers as registerNotificationHandlers } from './ipc/notifications'
+import { registerCaptureHandlers } from './ipc/capture'
 import { registerAgentHandlers } from '../agent/main/ipcAgent'
 import { registerAuthHandlers } from '../agent/main/ipcAuth'
 import { authManager } from '../agent/main/authManager'
@@ -439,6 +439,7 @@ function registerCriticalHandlers(): void {
   registerTerminalHandlers()
   registerShellHandlers()
   registerMenuHandlers()
+  registerCaptureHandlers()
   registerWindowAndDialogHandlers()
   // Resource profiler — no-op unless CATE_PERF=1.
   startPerfMonitor()
@@ -677,68 +678,6 @@ function registerWindowAndDialogHandlers(): void {
       noLink: true,
     })
     return result.response === 0 ? 'canvas' : result.response === 1 ? 'external' : 'cancel'
-  })
-
-  // Capture page screenshot for panel previews
-  ipcMain.handle(CAPTURE_PAGE, async (event) => {
-    try {
-      const win = BrowserWindow.fromWebContents(event.sender)
-      if (!win || win.isDestroyed()) return null
-      const image = await win.webContents.capturePage()
-      return image.toDataURL()
-    } catch (error) {
-      log.error('[CAPTURE_PAGE]', error)
-      throw error instanceof Error ? error : new Error(String(error))
-    }
-  })
-
-  // Capture a webview's visible content, save to Desktop, return dataUrl + path
-  ipcMain.handle(WEBVIEW_SCREENSHOT, async (event, webContentsId: number) => {
-    try {
-      // Validate the webContentsId belongs to a webview guest of the calling window
-      const callerWin = BrowserWindow.fromWebContents(event.sender)
-      const wc = webContents.fromId(webContentsId)
-      if (!wc || wc.isDestroyed()) return null
-      // Ensure the target webContents belongs to the caller's window
-      const targetWin = BrowserWindow.fromWebContents(wc)
-      if (!callerWin || !targetWin || targetWin.id !== callerWin.id) {
-        // For webview guests, the host window should match the caller
-        const hostWc = wc.hostWebContents
-        if (!hostWc || hostWc.id !== event.sender.id) {
-          log.warn(`[webview:screenshot] Denied: webContentsId ${webContentsId} does not belong to calling window`)
-          return null
-        }
-      }
-      const image = await wc.capturePage()
-      if (image.isEmpty()) return null
-
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
-      const fileName = `screenshot-${timestamp}.png`
-      const filePath = path.join(app.getPath('desktop'), fileName)
-      await fs.promises.writeFile(filePath, image.toPNG())
-
-      return { filePath, dataUrl: image.toDataURL() }
-    } catch (error) {
-      log.error(`[${WEBVIEW_SCREENSHOT}]`, error)
-      throw error instanceof Error ? error : new Error(String(error))
-    }
-  })
-
-  // Native file drag from renderer (for screenshot thumbnails etc.)
-  ipcMain.handle(NATIVE_FILE_DRAG, async (event, filePath: string) => {
-    try {
-      const validPath = validatePath(filePath)
-      const win = BrowserWindow.fromWebContents(event.sender)
-      if (!win) return
-      // Create a small drag icon from the file
-      const iconSize = 64
-      const iconImage = nativeImage.createFromPath(validPath)
-      const icon = iconImage.isEmpty() ? nativeImage.createEmpty() : iconImage.resize({ width: iconSize })
-      event.sender.startDrag({ file: validPath, icon })
-    } catch (error) {
-      log.error('[NATIVE_FILE_DRAG]', error)
-      throw error instanceof Error ? error : new Error(String(error))
-    }
   })
 
   // Renderer-driven title sync — used so each native macOS tab shows the
