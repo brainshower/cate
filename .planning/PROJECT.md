@@ -41,20 +41,21 @@ Canonical source docs for this milestone:
 - `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Monaco Extension Testing/Outline-Chat/Document Outline Requirements.md`
 - `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Monaco Extension Testing/Outline-Chat/Document Outline Test Plan.md`
 
-## Current Milestone: v1.4 Semantic Connections Inspector
+## Current Milestone: v1.5 Browser Uplift
 
-**Goal:** Build the Cate-side Semantic Connections Inspector as an embeddings-only Markdown preview companion panel with Outline-style docking, preview chunk selection, Outline synchronization, adapter-boundary readiness, exception states, accessibility, and interleaved tests.
+**Goal:** Bring Cate's forked in-app browser up to the relevant upstream v1.3.2 browser capabilities while preserving FlashQuery isolation and workspace-scoped behavior.
 
 **Target features:**
-- First-class `semantic-connections` panel registration, dock hosting, header chrome, and panel-specific dock minimum-size enforcement.
-- Markdown preview chunk wrappers with shared hover/pin selection state, preview decorations, and Outline synchronization.
-- Semantic connection types, pure display utilities, embeddings-only and sparse typed-mode UI behavior, and Cate-side provider/adapter contract.
-- Inspector cards, Top-N config, exception/loading/stale states, safe card open behavior, keyboard accessibility, E2E coverage, and manual acceptance checks.
+- Workspace-scoped durable browser partitions, history, bookmarks, and cleanup keyed by Cate `workspaceId`.
+- Browser UX uplift: main-frame-only load errors, crash recovery, shortcut forwarding, bookmarks bar, star toggle, menu, settings popover, and scoped clear-data.
+- Modular browser IPC/capture home with screenshot behavior preserved and no upstream proxy/extraction/tabs/start-page scope.
+- FlashQuery boundary protection: existing tokens, connection metadata, vault/index state, MCP sessions, and IPC/preload contracts remain untouched by browser actions.
+- One GSD implementation phase that preserves the source spec's four internal implementation slices and lands tests with each slice.
 
 Canonical source docs for this milestone:
 
-- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Monaco Extension Testing/Graph Explorer/Semantic Connections Inspector Requirements.md`
-- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Monaco Extension Testing/Graph Explorer/Semantic Connections Inspector Test Plan.md`
+- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Browser Capture and Control/Browser Uplift - Requirements.md`
+- `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Browser Capture and Control/Browser Uplift - Test Plan.md`
 
 ## Requirements
 
@@ -83,14 +84,14 @@ Canonical source docs for this milestone:
 
 ### Active
 
-See `.planning/REQUIREMENTS.md` for the active v1.4 Semantic Connections Inspector requirements. Summary:
+See `.planning/REQUIREMENTS.md` for the active v1.5 Browser Uplift requirements. Summary:
 
-- User can open a first-class Semantic Connections Inspector beside Markdown preview and Outline in main docks and canvas-node mini-docks.
-- User can interact with heading-scoped preview chunks through hover, click-pin, Esc/whole-document clearing, and synchronized Outline/Inspector selection.
-- User can browse embeddings-only semantic similarity connections with accessible cards, Top-N config, loading/empty/error/stale states, and no typed-edge controls unless typed data exists.
-- Cate can consume a semantic-connections provider/adapter contract that maps FlashQuery chunk metadata to preview chunk IDs without implementing the FlashQuery backend query API.
-- Dock resizing respects panel-specific minimum sizes, including the SC Inspector hard width floor.
-- Implementation phases must land tests from the supplied test plan alongside each feature slice.
+- Browser panels use stable per-workspace durable Electron partitions and never fall back to panel IDs or empty workspace suffixes.
+- Browser history and bookmarks persist per workspace, with renderer store selectors keyed by `workspaceId`.
+- Browser chrome gains upstream-inspired practical affordances without adopting tabs, start page/autocomplete, proxy, or extraction behavior.
+- Clear-data and workspace removal clean only the target workspace's browser state and do not touch FlashQuery credentials, connection metadata, vaults, indexes, or MCP sessions.
+- Screenshot capture moves into a modular IPC home while preserving the existing `{ filePath, dataUrl }` contract and fork-only portal orchestration bridge.
+- Implementation must land the supplied unit, integration, E2E, and manual coverage alongside each internal source slice.
 
 ### Out of Scope
 
@@ -118,6 +119,8 @@ See `.planning/REQUIREMENTS.md` for the active v1.4 Semantic Connections Inspect
 - FlashQuery server-side implementation of a connection-query API for the Semantic Connections Inspector — v1.4 defines the Cate adapter boundary only.
 - Graph-store, typed-edge classification, typed-edge persistence, and typed graph edge UI as required runtime data.
 - Spatial Graph Explorer Map view and source-mode Monaco line decorations for semantic connections.
+- In-panel browser tabs, start page, URL autocomplete UI, per-panel proxy support, DOM/Readability/Turndown/PDF/DOCX extraction, vault writes from captured browser content, and a `cate_browser` MCP server — all deferred beyond v1.5.
+- FlashQuery server changes, FlashQuery history ingestion, and migration of old per-panel browser cookies — not included in Browser Uplift.
 
 ## Context
 
@@ -196,6 +199,11 @@ Known codebase concerns that affect ongoing work:
 | Require tests to land with the feature slices they verify | Avoids final test catch-up and keeps each feature group verified before the next slice starts | Planned — v1.4 |
 | Keep FlashQuery connection-query backend out of v1.4 | Cate can define the adapter and UI contract while backend work remains a separate FlashQuery milestone | Planned — v1.4 |
 | Launch SC Inspector as embeddings-only | FlashQuery has no typed graph edge store today; typed fields remain optional for future upgrade | Planned — v1.4 |
+| Treat Browser Uplift requirements/test plan as source of truth for v1.5 | The product docs pin upstream v1.3.2 browser capabilities, fork-specific FlashQuery boundaries, and direct REQ/test traceability. | Planned — v1.5 |
+| Execute Browser Uplift in one GSD phase | Owner requested one phase if possible; the source spec's four internal implementation phases can be preserved as sub-slices inside Phase 26. | Planned — v1.5 |
+| Keep browser state workspace-scoped and separate from FlashQuery state | The same `workspaceId` scopes browser convenience state and FlashQuery connection state, but the stores and security boundaries must remain separate. | Planned — v1.5 |
+| Exclude upstream tabs, start page/autocomplete, proxy, extraction, and browser MCP control | Browser Uplift is a durability and affordance uplift, not the broader Browser Capture and Control tier. | Planned — v1.5 |
+| Use Option A for browser popover and clear-data behavior | Homepage/search stay in the existing Settings-window browser panel; clear-data does not force-reload live webviews and takes effect on next navigation/reload. | Planned — v1.5 |
 
 ## Planning Preference
 
@@ -219,4 +227,4 @@ This document evolves at milestone boundaries and, once explicitly created, phas
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-16 for v1.4 Semantic Connections Inspector planning*
+*Last updated: 2026-06-26 for v1.5 Browser Uplift planning*

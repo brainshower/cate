@@ -1,34 +1,33 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.4
-milestone_name: Semantic Connections Inspector
-status: complete
-stopped_at: Completed 25-04-PLAN.md
-last_updated: "2026-06-17T03:47:36Z"
-last_activity: 2026-06-17 — Completed Plan 25-04 E2E and acceptance polish
+milestone: v1.5
+milestone_name: Browser Uplift
+status: planning
+last_updated: "2026-06-26T15:12:53.024Z"
+last_activity: 2026-06-26
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
-  percent: 100
+  total_phases: 1
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-06-16 for v1.4 Semantic Connections Inspector)
+See: `.planning/PROJECT.md` (updated 2026-06-26 for v1.5 Browser Uplift)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** No active milestone; v1.4 Semantic Connections Inspector is complete
+**Current focus:** Phase 26 Browser Uplift planning
 
 ## Current Position
 
-Phase: 25 — Inspector UI, Adapter Boundary, Outline Sync, E2E, and Acceptance Polish
-Plan: 04 of 04 completed in current phase wave
-Status: Phase 25 complete; E2E, manual acceptance, and closeout validation passed
-Last activity: 2026-06-17 — Completed Plan 25-04 E2E and acceptance polish
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-06-26 — Milestone v1.5 started
 
 ## Session Continuity
 
@@ -38,21 +37,21 @@ Resume File: None
 
 ## Next Up
 
-Phase 25 is complete. Next step is verification/ship workflow for v1.4 Semantic Connections Inspector.
+Phase 26 Browser Uplift is ready for discussion/planning.
 
-Phase 24 bundles the first three source implementation phases from the Semantic Connections Inspector requirements:
+Phase 26 bundles the supplied Browser Uplift source implementation phases into one GSD phase:
 
-- Types, utilities, and panel registration
-- Dock minimum size enforcement
-- Preview chunk wrapping and shared selection store
+- Browser Foundation
+- Browser State and Affordances
+- Workspace Safety and Controls
+- System Verification
 
 Tests must be implemented alongside each feature slice:
 
-- `T-U-001` through `T-U-010`
-- `T-U-013`, `T-U-014`
-- `T-I-001` through `T-I-008`
-- `T-I-027` through `T-I-035`
-- `T-E-004`
+- `T-U-001` through `T-U-031`
+- `T-I-001` through `T-I-006`
+- `T-E-001` through `T-E-021`
+- `T-M-001`
 
 ## Decisions
 
@@ -76,6 +75,9 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table.
 | 2026-06-17 | Plan 25-02 keeps the real FlashQuery server-side connection query API out of Cate. | Cate now defines and consumes a renderer-local provider boundary while leaving backend query implementation to a later FlashQuery phase. |
 | 2026-06-17 | Plan 25-02 maps FlashQuery UUID chunks through heading path and source-line metadata, not preview ID equality. | FlashQuery chunk UUIDs and Cate preview chunk IDs are separate namespaces. |
 | 2026-06-17 | Plan 25-02 exposes mapping diagnostics as developer-facing data attributes and result diagnostics. | Partial mapping failures should not become user-facing adapter errors when mapped data can still render. |
+| 2026-06-26 | v1.5 uses the Browser Uplift requirements and test plan as mandatory source-of-truth docs. | The product docs define upstream browser uplift scope, FlashQuery boundaries, and full REQ/test traceability. |
+| 2026-06-26 | v1.5 executes in one GSD phase, Phase 26. | Owner requested one phase if possible; the source spec's four implementation phases are preserved as sub-slices inside one cohesive browser uplift phase. |
+| 2026-06-26 | Browser state is workspace-scoped and separate from FlashQuery state. | The shared `workspaceId` is a scoping convenience, not a shared storage or security boundary. |
 
 ## Deferred Items
 
@@ -117,4 +119,4 @@ Items acknowledged and deferred at milestone close on 2026-06-16:
 
 ## Operator Next Steps
 
-- Run verification/ship workflow for v1.4 Semantic Connections Inspector.
+- Run `$gsd-discuss-phase 26` to clarify implementation approach, or `$gsd-plan-phase 26` to plan directly.

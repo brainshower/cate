@@ -1,5 +1,19 @@
 # Milestones
 
+## v1.4 Semantic Connections Inspector (Completed: 2026-06-17)
+
+**Phases completed:** 2 phases, 4 plans, 37 requirements
+
+**Key accomplishments:**
+
+- Registered the Semantic Connections Inspector as a first-class Cate panel with Outline-style docking in main and canvas contexts.
+- Added Markdown preview chunk wrapping, shared hover/pin selection state, preview decorations, and Outline synchronization.
+- Defined semantic connection types, display utilities, embeddings-only behavior, sparse typed-readiness, and the Cate-side provider/adapter boundary.
+- Implemented Inspector cards, Top-N config, exception/loading/stale states, safe card open behavior, keyboard accessibility, E2E coverage, and manual acceptance polish.
+- Preserved FlashQuery backend query implementation, typed graph stores, spatial map view, source-mode Monaco decorations, and Document Chat as deferred future work.
+
+---
+
 ## v1.3 Document Outline (Shipped: 2026-06-16)
 
 **Phases completed:** 2 phases, 8 plans, 22 requirements

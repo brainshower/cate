@@ -1,128 +1,95 @@
-# Requirements: v1.4 Semantic Connections Inspector
+# Requirements: v1.5 Browser Uplift
 
 ## Source Documents
 
-- Requirements: `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Monaco Extension Testing/Graph Explorer/Semantic Connections Inspector Requirements.md`
-- Test plan: `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Monaco Extension Testing/Graph Explorer/Semantic Connections Inspector Test Plan.md`
+- Requirements: `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Browser Capture and Control/Browser Uplift - Requirements.md`
+- Test plan: `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Browser Capture and Control/Browser Uplift - Test Plan.md`
 - Production codebase: `/Users/matt/Documents/Claude/Projects/Cate/cate`
-- Secondary codebase: `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery`
+- FlashQuery contract reference: `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery`
+- Upstream Cate reference: `upstream/main` at v1.3.2 / `538db77`, especially commit `edb7e79`
 
 ## Milestone Goal
 
-Build the Cate-side Semantic Connections Inspector as an embeddings-only Markdown preview companion panel, with panel hosting, preview chunk selection, Outline synchronization, UI states, adapter boundary, dock-size enforcement, E2E polish, and tests implemented alongside each feature slice.
+Bring Cate's forked in-app browser up to the relevant upstream v1.3.2 browser capabilities while preserving this fork's FlashQuery integration boundaries. Browser sessions become durable and workspace-scoped, practical browser affordances are added, screenshot capture moves into a modular IPC home, and future page capture/control hooks remain clean without implementing extraction, tabs, proxying, or MCP browser control in this tier.
 
 ## Scope Guardrails
 
-- Launch mode is embeddings-only semantic similarity. `Connection.rel` and `Connection.dir` are optional and omitted for initial runtime payloads.
-- Sort-by-nature controls, nature filters, caution banners, and caution chunk borders render only when typed relationship data exists.
-- Cate defines and consumes a local provider/adapter contract, but does not implement FlashQuery's server-side connection-query API in this milestone.
-- Source-mode Monaco line decorations, Chat panel work, graph-store persistence, typed-edge classification, typed-edge persistence, and spatial Map view are out of scope.
-- Tests from the supplied plan are part of each feature slice. Do not defer all tests to the end of a phase or milestone.
+- Browser session partitions, history, bookmarks, and clear-data behavior are scoped by Cate `workspaceId`.
+- Browser state and FlashQuery state remain separate stores even when both use the same workspace ID.
+- FlashQuery bearer tokens stay in main-process credential storage and are never copied into renderer state, browser cookies, browser partitions, history, bookmarks, screenshots, or settings.
+- Existing FlashQuery IPC channel names, preload method names, connection metadata, vault documents, indexes, and MCP sessions must remain unchanged by browser work.
+- Upstream browser features are adapted selectively. Tabs, start page/autocomplete, per-panel proxy support, DOM extraction, Readability/Turndown, PDF/DOCX extraction, browser-to-vault writes, and `cate_browser` MCP control are out of scope.
+- Tests from the supplied plan must land alongside the feature behavior they verify; do not defer all coverage to a final catch-up step.
 
 ## Active Requirements
 
-### Panel Registration and Hosting
+### Session, State, and Workspace Scope
 
-- [x] **REQ-001:** Cate registers `semantic-connections` as a first-class panel type with shared metadata, renderer registry wiring, lazy panel loading, and app-store creation.
-- [x] **REQ-002:** The Inspector docks through the existing Outline-style dock pattern in both main workspace docks and canvas-node mini-docks.
-- [x] **REQ-003:** The panel body does not duplicate dock header chrome; SC-specific count and config controls appear only in the active dock header.
+- [ ] **REQ-001:** Browser webviews use a durable per-workspace Electron partition exactly `persist:browser-ws-${workspaceId}`, never `panelId`, and fail closed rather than mounting with an empty or missing workspace ID across canvas, dock, detached panel, and detached dock mount sites.
+- [ ] **REQ-002:** Removing a workspace cleans only that workspace's browser partition plus persisted browser history/bookmarks, co-located with existing main-side workspace teardown.
+- [ ] **REQ-003:** Browser history and bookmarks persist per workspace, ignore non-recordable sentinel URLs, and are queried in the renderer by `workspaceId` rather than through one global active workspace.
 
-### Markdown Preview Chunk Addressability
+### Browser UX and Navigation Robustness
 
-- [x] **REQ-004:** Markdown preview wraps each heading-scoped region in a stable `div[data-chunk-id]` covering the heading and body until the next heading.
-- [x] **REQ-005:** Preview chunk IDs reuse Cate's existing `slugifyHeading` and `createHeadingIdTracker` behavior.
-- [x] **REQ-006:** Chunk wrappers, handlers, and decorations refresh across preview rerenders and are cleared when preview mode exits.
+- [ ] **REQ-004:** Browser load-error UI appears only for top-level/main-frame failures and ignores `ERR_ABORTED` plus subresource failures.
+- [ ] **REQ-005:** Browser webview crashes show a recoverable reload overlay for non-clean renderer exits and do not show it for clean exits.
+- [ ] **REQ-006:** Focused browser panels receive only scoped browser shortcuts for reload, address focus, back, and forward while Cate app shortcuts such as new browser, close panel, and close window keep their existing meanings.
 
-### Preview Interaction and Selection Sync
+### Bookmarks and Settings UI
 
-- [x] **REQ-007:** Preview hover and click-pin semantics use `activeChunkId = hoveredChunkId || pinnedChunkId`, including clear-on-Esc, empty-space click, and whole-document affordance.
-- [x] **REQ-008:** Preview text selection, links, and existing preview interactions remain normal; pinning uses click-level semantics, not drag/mousedown semantics.
-- [x] **REQ-009:** Preview, Outline, and SC panel share a React/Zustand selection surface; production code does not use a browser `CustomEvent` bridge.
-- [x] **REQ-010:** Clicking an Outline heading while preview mode is active scrolls preview and pins the matching chunk; source-mode Outline behavior remains unchanged.
-- [x] **REQ-011:** Outline highlights shared selection when present and falls back to cursor-derived active-heading behavior otherwise.
-- [x] **REQ-012:** Outline matches chunk IDs to headings by slug first and preview DOM fallback second.
+- [ ] **REQ-007:** Browser panels provide a per-workspace bookmarks bar and star toggle backed by workspace-scoped bookmark persistence.
+- [ ] **REQ-008:** Browser menu/settings UI exposes bookmarks-bar controls and scoped clear-data behavior while keeping homepage/search controls in the existing Settings-window Browser panel as the single source of truth.
+- [ ] **REQ-009:** Clear browsing data requires confirmation, clears only the current workspace's browser partition/history/bookmarks, preserves other workspaces and all FlashQuery state, and does not force-reload live panels.
 
-### Preview Decorations
+### IPC, Contracts, and Integration Boundaries
 
-- [x] **REQ-013:** Active and pinned preview chunks render teal selection treatment through CSS classes on `[data-chunk-id]` wrappers.
-- [x] **REQ-014:** Orange caution decorations render only from typed warn/caution edge data; embeddings-only mode shows no caution treatment.
-
-### SC Inspector Data Model
-
-- [x] **REQ-015:** Cate defines shared semantic connection types that support embeddings-only launch and future typed-edge mode.
-- [x] **REQ-016:** Embeddings-only data renders as a first-class similarity browser with score-descending cards and no typed-edge controls.
-- [x] **REQ-017:** Sparse mixed typed/untyped data is supported without assuming every connection has `rel` or `dir`.
-- [x] **REQ-018:** Pure utility functions cover edge labels, display ordering, document-wide rel availability, and caution flags.
-
-### Data Fetching Interface Contract
-
-- [x] **REQ-019:** Cate depends on a local semantic-connections provider/adapter interface rather than UI calls to low-level FlashQuery helpers.
-- [x] **REQ-020:** Cate maps FlashQuery UUID chunk identities and heading metadata to preview slug-derived chunk IDs, reporting diagnostics instead of crashing on unmapped chunks.
-- [x] **REQ-021:** Document connections load eagerly when Markdown preview is active and the SC panel is open or opened, with cache invalidation on material content change.
-- [x] **REQ-022:** FlashQuery backend connection-query implementation remains out of scope except for documentation or fixtures explicitly needed by Cate tests.
-
-### SC Inspector UI Behavior
-
-- [x] **REQ-023:** The body renders the scope row, optional caution banner, optional config panel, and scrollable full-width card list per the design brief.
-- [x] **REQ-024:** Cards support accessible expansion, score display, and open action behavior.
-- [x] **REQ-025:** Top-N config supports Max/default behavior and an active config indicator.
-- [x] **REQ-026:** Typed-edge sort/filter controls are absent, not disabled, when document results contain no typed relationship data.
-
-### Exception States
-
-- [x] **REQ-027:** Unsupported file types show a static not-available state and do not call the adapter.
-- [x] **REQ-028:** Source-mode and no-editor preconditions show guidance and transition automatically when resolved.
-- [x] **REQ-029:** Successful empty results show whole-document or section empty messages without diagnosing root cause to the user.
-- [x] **REQ-030:** Stale embeddings keep showing last available connections and may show a subtle stale indicator.
-- [x] **REQ-031:** FlashQuery unavailable and no-vault-connected states are recoverable and do not block preview or Outline.
-- [x] **REQ-032:** Adapter timeout, thrown errors, and malformed data produce recoverable error states.
-- [x] **REQ-033:** Partial chunk mapping failures render mapped data and record diagnostics for developer inspection.
-- [x] **REQ-034:** Loading state is visually distinct, non-blocking, and superseded safely by newer scope requests.
-
-### Dock Minimum Size Fix
-
-- [x] **REQ-035:** `DockSplitContainer` enforces panel-specific minimum sizes from descendant panel definitions while preserving clamped adjacent resize transfer.
-
-### Deep-Linking
-
-- [x] **REQ-036:** Card open actions route to same-document or cross-document target headings/chunks when metadata is sufficient, and fail safely when not.
-
-### Accessibility and Keyboard
-
-- [x] **REQ-037:** The Inspector is keyboard navigable and screen-reader usable, including standard button semantics, focus behavior, and Esc-to-clear-pin.
-
-## Test Requirements
-
-Every implementation plan in this milestone must identify and land the relevant test IDs from the supplied test plan in the same work slice as the feature behavior:
-
-- Unit tests: `T-U-001` through `T-U-014`
-- Component/integration tests: `T-I-001` through `T-I-043`
-- End-to-end tests: `T-E-001` through `T-E-010`
-- Manual acceptance checks: `T-M-001` through `T-M-006`
-
-Test IDs are allowed to move between Vitest component/integration layers if the Cate test harness makes that more natural, but coverage intent and requirement traceability must remain intact.
-
-## Traceability
-
-| Requirement range | GSD phase | Source phase(s) | Primary test coverage |
-|---|---:|---|---|
-| REQ-001..REQ-018, REQ-035 partial | 24 | Requirements Section 6.1-6.3 | `T-U-001`..`T-U-010`, `T-U-013`..`T-U-014`, `T-I-001`..`T-I-008`, `T-I-027`..`T-I-035`, `T-E-004` |
-| REQ-019..REQ-034, REQ-036..REQ-037, REQ-035 completion | 25 | Requirements Section 6.4-6.7 | `T-U-011`..`T-U-012`, `T-I-009`..`T-I-026`, `T-I-030`, `T-I-036`..`T-I-043`, `T-E-001`..`T-E-010`, `T-M-001`..`T-M-006` |
+- [ ] **REQ-010:** Screenshot capture is relocated into a modular browser/capture IPC home while preserving the existing `{ filePath, dataUrl }` screenshot contract and avoiding upstream proxy/extraction handlers.
+- [ ] **REQ-011:** Fork-only portal orchestration behavior remains functional, including `portalRegistry` calls to `orchRegisterPortalWc` / main-process popup parent resolution.
+- [ ] **REQ-012:** Browser navigation, history, bookmarks, screenshots, and clear-data operations do not mutate or depend on FlashQuery credentials, connection metadata, vault documents, indexes, or MCP sessions.
 
 ## Future Requirements
 
-- FlashQuery server-side API for document/chunk connection retrieval.
-- Typed graph edge store, typed relationship persistence, and typed-edge classification.
-- Spatial Map view and any broader Graph Explorer visualization beyond the Inspector.
-- Source-mode Monaco line decorations for semantic connections.
-- Chat panel integration.
+- Page capture/extraction and browser-control MCP integration for the broader Browser Capture and Control tier.
+- FlashQuery history ingestion from per-workspace browser history.
+- Global-bookmarks promotion model.
+- Proxy partition composition built on top of the partition helper.
+- Migration of old per-panel cookies into new per-workspace browser partitions.
 
 ## Out of Scope
 
-- Replacing the existing Cate Markdown preview toggle or creating a separate web UI.
-- Implementing a general-purpose graph database in Cate.
-- Implementing FlashQuery backend query APIs as part of this Cate milestone.
-- Rendering nature sort/filter controls in embeddings-only runtime data.
+| Feature | Reason |
+|---|---|
+| In-panel tabs | Cate's existing multiple panels/windows model remains the multi-page workflow for this tier. |
+| Start page and URL autocomplete UI | History is stored for future use but not surfaced through those upstream views in v1.5. |
+| Per-panel proxy support | Upstream `browserProxy.ts`, `BROWSER_SET_PROXY`, and proxy UI are explicitly excluded. |
+| DOM extraction, Readability/Turndown, PDF/DOCX extraction, and browser-to-vault writes | Deferred to separate Browser Capture and Control work. |
+| `cate_browser` MCP server or MCP browser-control tools | This milestone is a Cate browser uplift, not an MCP control surface. |
+| FlashQuery server changes | v1.5 preserves FlashQuery behavior and contracts rather than changing FlashQuery. |
+| Cookie migration from old per-panel partitions | Not included; new durability applies through the workspace-scoped partition model. |
+
+## Traceability
+
+| Requirement | GSD phase | Source slice | Primary test coverage | Status |
+|---|---:|---|---|---|
+| REQ-001 | Phase 26 | Browser Foundation | `T-U-001`, `T-U-002`, `T-U-029`, `T-E-001`, `T-E-002`, `T-E-003`, `T-E-020`, `T-E-021`, `T-M-001` | Pending |
+| REQ-002 | Phase 26 | Workspace Safety and Controls | `T-U-003`, `T-U-004`, `T-I-001`, `T-E-004` | Pending |
+| REQ-003 | Phase 26 | Browser State and Affordances | `T-U-005`, `T-U-006`, `T-U-007`, `T-U-008`, `T-U-030`, `T-E-005`, `T-E-006` | Pending |
+| REQ-004 | Phase 26 | Browser Foundation | `T-U-009`, `T-U-010`, `T-U-011`, `T-E-007`, `T-E-008` | Pending |
+| REQ-005 | Phase 26 | Workspace Safety and Controls | `T-U-012`, `T-U-013`, `T-E-009` | Pending |
+| REQ-006 | Phase 26 | Workspace Safety and Controls | `T-U-014`, `T-U-015`, `T-U-016`, `T-E-010`, `T-E-011` | Pending |
+| REQ-007 | Phase 26 | Browser State and Affordances | `T-U-017`, `T-U-018`, `T-U-030`, `T-E-012`, `T-E-013` | Pending |
+| REQ-008 | Phase 26 | Browser State and Affordances | `T-U-019`, `T-U-020`, `T-U-021`, `T-U-031`, `T-E-014` | Pending |
+| REQ-009 | Phase 26 | Workspace Safety and Controls | `T-U-022`, `T-U-023`, `T-U-024`, `T-I-002`, `T-I-003`, `T-E-015` | Pending |
+| REQ-010 | Phase 26 | Browser Foundation | `T-I-004`, `T-I-005`, `T-I-006`, `T-E-016` | Pending |
+| REQ-011 | Phase 26 | Browser Foundation | `T-U-025`, `T-U-026`, `T-E-017` | Pending |
+| REQ-012 | Phase 26 | Workspace Safety and Controls | `T-U-027`, `T-U-028`, `T-E-018`, `T-E-019` | Pending |
+
+**Coverage:**
+
+- Active requirements: 12 total
+- Mapped to phases: 12
+- Unmapped: 0
 
 ---
-*Last updated: 2026-06-16 for v1.4 Semantic Connections Inspector milestone planning*
+*Requirements defined: 2026-06-26*
+*Last updated: 2026-06-26 after v1.5 Browser Uplift milestone planning*
