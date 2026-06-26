@@ -219,6 +219,52 @@ test('T-E-005/T-E-006 browser history and bookmarks persist by workspace and sta
   }
 })
 
+test('T-E-004 removing a workspace removes its browser state and preserves another workspace', async () => {
+  const { electronApp: app, mainWindow: page } = await launchApp()
+
+  try {
+    const workspaceA = await page.evaluate(() => window.__cateE2E!.selectedWorkspaceId())
+    await page.evaluate(async (workspaceId) => {
+      await window.electronAPI.browserHistoryRecord(workspaceId, 'https://example.test/remove-a', 'Remove A')
+      await window.electronAPI.browserBookmarksAdd(workspaceId, 'https://example.test/remove-a', 'Remove A')
+    }, workspaceA)
+
+    const workspaceB = await createWorkspace(page, 'Browser Cleanup Workspace B')
+    await page.evaluate(async (workspaceId) => {
+      await window.electronAPI.browserHistoryRecord(workspaceId, 'https://example.test/keep-b', 'Keep B')
+      await window.electronAPI.browserBookmarksAdd(workspaceId, 'https://example.test/keep-b', 'Keep B')
+    }, workspaceB)
+
+    await page.evaluate((workspaceId) => window.__cateE2E!.removeWorkspace(workspaceId), workspaceA)
+
+    await expect.poll(async () => {
+      return page.evaluate(async (workspaceId) => ({
+        history: await window.electronAPI.browserHistoryGet(workspaceId),
+        bookmarks: await window.electronAPI.browserBookmarksGet(workspaceId),
+      }), workspaceA)
+    }).toEqual({ history: [], bookmarks: [] })
+
+    const workspaceBState = await page.evaluate(async (workspaceId) => ({
+      history: await window.electronAPI.browserHistoryGet(workspaceId),
+      bookmarks: await window.electronAPI.browserBookmarksGet(workspaceId),
+    }), workspaceB)
+    expect(workspaceBState.history).toMatchObject([
+      {
+        url: 'https://example.test/keep-b',
+        title: 'Keep B',
+      },
+    ])
+    expect(workspaceBState.bookmarks).toMatchObject([
+      {
+        url: 'https://example.test/keep-b',
+        title: 'Keep B',
+      },
+    ])
+  } finally {
+    await closeApp(app)
+  }
+})
+
 test('T-E-012/T-E-013 bookmark bar persists bookmarks in one workspace and excludes another workspace', async () => {
   const server = await startLocalBrowserServer((_req, res) => {
     res.writeHead(200, { 'content-type': 'text/html' })

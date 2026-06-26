@@ -48,7 +48,7 @@ describe('FlashQuery handoff producer to watcher rebind', () => {
   afterEach(async () => {
     unregisterRefresher?.()
     unregisterRefresher = undefined
-    for (const workspaceId of workspaceIds.splice(0)) removeWorkspace(workspaceId)
+    for (const workspaceId of workspaceIds.splice(0)) await removeWorkspace(workspaceId)
     await fsp.rm(tmpRoot, { recursive: true, force: true })
   })
 

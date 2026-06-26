@@ -5,7 +5,7 @@
 // Canvas/panel state lives in each renderer window — only metadata is shared.
 // =============================================================================
 
-import { ipcMain } from 'electron'
+import { ipcMain, session } from 'electron'
 import { randomUUID } from 'crypto'
 import log from './logger'
 import {
@@ -21,6 +21,7 @@ import { addAllowedRoot, removeAllowedRoot } from './ipc/pathValidation'
 import { resolveTrustedWorkspaceRoot } from './workspaceRoots'
 import { setWorkspaceToken } from './flashquery/credentials'
 import { refreshFlashQueryHandoffsForWorkspace } from '../agent/main/flashQueryHandoffBridge'
+import { clearWorkspaceBrowserState } from './browserStateStore'
 
 // In-memory workspace list — authoritative source of truth
 const workspaces: Map<string, WorkspaceInfo> = new Map()
@@ -31,6 +32,16 @@ const workspaces: Map<string, WorkspaceInfo> = new Map()
 
 /** Accepts standard UUIDs (from randomUUID) and any safe alphanumeric id. */
 const WORKSPACE_ID_RE = /^[a-zA-Z0-9_-]{8,64}$/
+const BROWSER_STORAGE_TYPES = [
+  'cookies',
+  'filesystem',
+  'indexdb',
+  'localstorage',
+  'shadercache',
+  'websql',
+  'serviceworkers',
+  'cachestorage',
+] as const
 
 function isValidWorkspaceId(id: string): boolean {
   return WORKSPACE_ID_RE.test(id)
@@ -38,6 +49,18 @@ function isValidWorkspaceId(id: string): boolean {
 
 function generateId(): string {
   return randomUUID()
+}
+
+function browserPartitionForWorkspace(workspaceId: string): string {
+  return `persist:browser-ws-${workspaceId}`
+}
+
+async function clearWorkspaceBrowserData(workspaceId: string): Promise<void> {
+  const partition = browserPartitionForWorkspace(workspaceId)
+  await session.fromPartition(partition).clearStorageData({
+    storages: [...BROWSER_STORAGE_TYPES],
+  })
+  await clearWorkspaceBrowserState(workspaceId)
 }
 
 // -----------------------------------------------------------------------------
@@ -185,7 +208,7 @@ export async function updateWorkspace(id: string, changes: Partial<Omit<Workspac
   return { ok: true, workspace: updated }
 }
 
-export function removeWorkspace(id: string): boolean {
+export async function removeWorkspace(id: string): Promise<boolean> {
   if (!isValidWorkspaceId(id)) {
     log.warn('workspaceManager: removeWorkspace called with invalid id: %s', id)
     return false
@@ -195,7 +218,14 @@ export function removeWorkspace(id: string): boolean {
     removeAllowedRoot(existing.rootPath)
   }
   const removed = workspaces.delete(id)
-  if (removed) log.info('Workspace removed: %s', id)
+  if (removed) {
+    try {
+      await clearWorkspaceBrowserData(id)
+    } catch (error) {
+      log.warn('workspaceManager: failed to clear browser data for removed workspace %s: %O', id, error)
+    }
+    log.info('Workspace removed: %s', id)
+  }
   return removed
 }
 
@@ -239,7 +269,7 @@ export function registerWorkspaceHandlers(): void {
 
   // Remove a workspace
   ipcMain.handle(WORKSPACE_REMOVE, async (event, id: string) => {
-    const removed = removeWorkspace(id)
+    const removed = await removeWorkspace(id)
     if (removed) {
       const win = windowFromEvent(event)
       broadcastWorkspaceChange(win?.id)

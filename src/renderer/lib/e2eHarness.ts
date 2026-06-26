@@ -30,6 +30,7 @@ declare global {
       activeCanvasPanelId(): string | null
       selectedWorkspaceId(): string
       createWorkspace(name: string): Promise<string>
+      removeWorkspace(id: string): void
       saveSession(): Promise<void>
       ensureWorkspaceRoot(rootPath: string): Promise<string>
       openFlashQueryConnectionDialog(workspaceId?: string): void
@@ -257,6 +258,10 @@ export function installE2EHarness(): void {
     const id = useAppStore.getState().addWorkspace(name)
     await useAppStore.getState().selectWorkspace(id)
     return id
+  }
+
+  const removeWorkspace = (id: string): void => {
+    useAppStore.getState().removeWorkspace(id)
   }
 
   const ensureWorkspaceRoot = async (rootPath: string): Promise<string> => {
@@ -548,6 +553,7 @@ export function installE2EHarness(): void {
     activeCanvasPanelId,
     selectedWorkspaceId,
     createWorkspace,
+    removeWorkspace,
     saveSession,
     ensureWorkspaceRoot,
     openFlashQueryConnectionDialog,
