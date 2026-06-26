@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import BrowserPanel from './BrowserPanel'
 
@@ -46,5 +46,46 @@ describe('BrowserPanel workspace partition mount', () => {
 
     expect(container.querySelector('webview')).toBeNull()
     expect(screen.getByText('Browser workspace unavailable')).toBeTruthy()
+  })
+})
+
+describe('BrowserPanel load-error handling', () => {
+  it('ignores subresource did-fail-load events', () => {
+    const { container } = render(
+      <BrowserPanel panelId="panel-1" workspaceId="workspace-1" nodeId="node-1" url="about:blank" />,
+    )
+
+    const webview = container.querySelector('webview')
+    expect(webview).not.toBeNull()
+
+    act(() => {
+      webview?.dispatchEvent(Object.assign(new Event('did-fail-load'), {
+        errorCode: -105,
+        errorDescription: 'ERR_NAME_NOT_RESOLVED',
+        isMainFrame: false,
+      }))
+    })
+
+    expect(screen.queryByText('Failed to load page')).toBeNull()
+  })
+
+  it('shows the failed-load overlay for main-frame did-fail-load events', () => {
+    const { container } = render(
+      <BrowserPanel panelId="panel-1" workspaceId="workspace-1" nodeId="node-1" url="about:blank" />,
+    )
+
+    const webview = container.querySelector('webview')
+    expect(webview).not.toBeNull()
+
+    act(() => {
+      webview?.dispatchEvent(Object.assign(new Event('did-fail-load'), {
+        errorCode: -105,
+        errorDescription: 'ERR_NAME_NOT_RESOLVED',
+        isMainFrame: true,
+      }))
+    })
+
+    expect(screen.getByText('Failed to load page')).toBeTruthy()
+    expect(screen.getByText('ERR_NAME_NOT_RESOLVED')).toBeTruthy()
   })
 })
