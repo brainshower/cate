@@ -45,7 +45,7 @@ Bring Cate's forked in-app browser up to the relevant upstream v1.3.2 browser ca
 
 - [x] **REQ-010:** Screenshot capture is relocated into a modular browser/capture IPC home while preserving the existing `{ filePath, dataUrl }` screenshot contract and avoiding upstream proxy/extraction handlers.
 - [x] **REQ-011:** Fork-only portal orchestration behavior remains functional, including `portalRegistry` calls to `orchRegisterPortalWc` / main-process popup parent resolution.
-- [ ] **REQ-012:** Browser navigation, history, bookmarks, screenshots, and clear-data operations do not mutate or depend on FlashQuery credentials, connection metadata, vault documents, indexes, or MCP sessions.
+- [x] **REQ-012:** Browser navigation, history, bookmarks, screenshots, and clear-data operations do not mutate or depend on FlashQuery credentials, connection metadata, vault documents, indexes, or MCP sessions.
 
 ## Future Requirements
 
@@ -82,7 +82,7 @@ Bring Cate's forked in-app browser up to the relevant upstream v1.3.2 browser ca
 | REQ-009 | Phase 26 | Workspace Safety and Controls | `T-U-022`, `T-U-023`, `T-U-024`, `T-I-002`, `T-I-003`, `T-E-015` | Complete in 26-04/26-07 |
 | REQ-010 | Phase 26 | Browser Foundation | `T-I-004`, `T-I-005`, `T-I-006`, `T-E-016` | Complete in 26-03 |
 | REQ-011 | Phase 26 | Browser Foundation | `T-U-025`, `T-U-026`, `T-E-017` | Complete in 26-02 for unit/component bridge coverage; T-E-017 deferred pending observable main bridge path |
-| REQ-012 | Phase 26 | Workspace Safety and Controls | `T-U-027`, `T-U-028`, `T-E-018`, `T-E-019` | Pending |
+| REQ-012 | Phase 26 | Workspace Safety and Controls | `T-U-027`, `T-U-028`, `T-E-018`, `T-E-019` | Complete in 26-09 |
 
 **Coverage:**
 
@@ -92,4 +92,4 @@ Bring Cate's forked in-app browser up to the relevant upstream v1.3.2 browser ca
 
 ---
 *Requirements defined: 2026-06-26*
-*Last updated: 2026-06-26 after 26-08 crash recovery and scoped shortcut forwarding*
+*Last updated: 2026-06-26 after 26-09 FlashQuery isolation contract tests*

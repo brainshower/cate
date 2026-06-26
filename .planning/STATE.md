@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Browser Uplift
 status: executing
-stopped_at: Completed 26-08-PLAN.md
-last_updated: "2026-06-26T19:47:13Z"
-last_activity: 2026-06-26 -- Completed 26-08 crash recovery and scoped browser shortcuts
+stopped_at: Completed 26-09-PLAN.md
+last_updated: "2026-06-26T20:00:55.159Z"
+last_activity: 2026-06-26 -- Completed 26-09 FlashQuery isolation contract tests
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 10
-  completed_plans: 8
-  percent: 80
+  completed_plans: 9
+  percent: 90
 ---
 
 # Project State
@@ -26,14 +26,14 @@ See: `.planning/PROJECT.md` (updated 2026-06-26 for v1.5 Browser Uplift)
 ## Current Position
 
 Phase: 26-browser-uplift
-Plan: 09 next
+Plan: 10 next
 Status: Executing
-Last activity: 2026-06-26 -- Completed 26-08 crash recovery and scoped browser shortcuts
+Last activity: 2026-06-26 -- Completed 26-09 FlashQuery isolation contract tests
 
 ## Session Continuity
 
-Last session: 2026-06-26T19:47:13Z
-Stopped At: Completed 26-08-PLAN.md
+Last session: 2026-06-26T20:00:55.141Z
+Stopped At: Completed 26-09-PLAN.md
 Resume File: None
 
 ## Next Up
@@ -90,6 +90,8 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table.
 | 2026-06-26 | Plan 26-07 keeps clear-data non-reloading. | The confirmation UI reports results and leaves open webviews loaded until user reload/navigation. |
 | 2026-06-26 | Plan 26-08 forwards only four browser shortcuts from webview guests. | Cmd/Ctrl+R, L, `[`, and `]` map to reload, focus URL, back, and forward; app-management shortcuts remain outside browser forwarding. |
 | 2026-06-26 | Plan 26-08 uses E2E simulation for webview crash/shortcut automation. | Direct Chromium crashes and webview guest keyboard/history delivery were unreliable in Playwright; unit tests pin classifier and method mapping. |
+| 2026-06-26 | Plan 26-09 required no production code changes because Waves 1-8 had already preserved the FlashQuery/browser boundary. | The wave delivered regression evidence for REQ-012 rather than changing runtime behavior. |
+| 2026-06-26 | T-E-018 calls `browserClearData` directly. | T-E-015 already owns clear-data confirmation UI coverage; T-E-018 owns the FlashQuery state invariant. |
 
 ## Deferred Items
 
@@ -136,6 +138,7 @@ Items acknowledged and deferred at milestone close on 2026-06-16:
 | 26-browser-uplift | 06 | 35min | 2 | 12 |
 | 26-browser-uplift | 07 | 55min | 2 | 10 |
 | 26-browser-uplift | 08 | 85min | 2 | 10 |
+| 26-browser-uplift | 09 | 8min | 2 | 4 |
 
 ## Operator Next Steps
 
