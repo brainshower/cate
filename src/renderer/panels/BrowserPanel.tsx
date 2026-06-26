@@ -17,6 +17,7 @@ import { browserPartitionForWorkspace } from './browserPartition'
 import { pageLoadErrorFrom } from './browserLoadError'
 import { initializeBrowserStoreSubscriptions, useBrowserStore } from '../stores/browserStore'
 import { BookmarksBar } from './BookmarksBar'
+import { BrowserMenu } from './BrowserMenu'
 
 // -----------------------------------------------------------------------------
 // Type declarations for Electron's <webview> element
@@ -50,6 +51,7 @@ export default function BrowserPanel({
 }: BrowserPanelProps) {
   const browserHomepage = useSettingsStore((s) => s.browserHomepage)
   const browserSearchEngine = useSettingsStore((s) => s.browserSearchEngine)
+  const browserShowBookmarksBar = useSettingsStore((s) => s.browserShowBookmarksBar)
   const updatePanelTitle = useAppStore((s) => s.updatePanelTitle)
   const updatePanelUrl = useAppStore((s) => s.updatePanelUrl)
   const recordVisit = useBrowserStore((s) => s.recordVisit)
@@ -179,6 +181,10 @@ export default function BrowserPanel({
       void addBookmark(workspaceId, currentUrl, currentTitle || currentUrl)
     }
   }, [addBookmark, currentTitle, currentUrl, isCurrentPageBookmarked, removeBookmark, workspaceId])
+
+  const handleClearBrowsingData = useCallback(() => {
+    // Plan 26-07 wires confirmation and IPC. This plan only exposes the scoped entry point.
+  }, [])
 
   const handleUrlBarKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -402,9 +408,13 @@ export default function BrowserPanel({
         >
           <Camera size={13} />
         </button>
+
+        <BrowserMenu onClearBrowsingData={handleClearBrowsingData} />
       </div>
 
-      <BookmarksBar bookmarks={workspaceBookmarks} onNavigate={navigateTo} />
+      {browserShowBookmarksBar && (
+        <BookmarksBar bookmarks={workspaceBookmarks} onNavigate={navigateTo} />
+      )}
 
       {/* Webview + overlays container */}
       <div className="flex-1 relative">

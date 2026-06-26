@@ -22,7 +22,7 @@ describe('BrowserSettingsPopover', () => {
   it('T-U-020 toggles bookmarks-bar visibility and exposes no homepage/search controls', () => {
     render(<BrowserSettingsPopover onClearBrowsingData={vi.fn()} />)
 
-    expect(screen.getByRole('switch', { name: 'Show bookmarks bar' })).toHaveAttribute('aria-checked', 'false')
+    expect(screen.getByRole('switch', { name: 'Show bookmarks bar' }).getAttribute('aria-checked')).toBe('false')
     expect(screen.getByRole('button', { name: 'Clear browsing data...' })).toBeTruthy()
     expect(screen.queryByText(/homepage/i)).toBeNull()
     expect(screen.queryByText(/search engine/i)).toBeNull()
