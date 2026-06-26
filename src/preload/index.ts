@@ -216,10 +216,12 @@ import {
   BROWSER_HISTORY_GET,
   BROWSER_HISTORY_RECORD,
   BROWSER_HISTORY_REMOVE,
+  BROWSER_PORTAL_LOOKUP,
+  BROWSER_PORTAL_REGISTER,
   BROWSER_SHORTCUT,
   PERF_GET,
 } from '../shared/ipc-channels'
-import type { AppSettings, BrowserBookmark, BrowserClearDataResult, BrowserHistoryEntry, BrowserShortcutAction, WorkspaceMutationResult } from '../shared/types'
+import type { AppSettings, BrowserBookmark, BrowserClearDataResult, BrowserHistoryEntry, BrowserShortcutPayload, WorkspaceMutationResult } from '../shared/types'
 
 let e2eNextContextMenuAction: string | null | undefined
 let e2eLastContextMenuItems: unknown[] = []
@@ -846,12 +848,20 @@ const electronAPI = {
     return ipcRenderer.invoke(BROWSER_CLEAR_DATA, workspaceId)
   },
 
-  onBrowserShortcut(callback: (action: BrowserShortcutAction) => void): () => void {
-    const listener = (_event: Electron.IpcRendererEvent, action: BrowserShortcutAction): void => {
-      callback(action)
+  onBrowserShortcut(callback: (payload: BrowserShortcutPayload) => void): () => void {
+    const listener = (_event: Electron.IpcRendererEvent, payload: BrowserShortcutPayload): void => {
+      callback(payload)
     }
     ipcRenderer.on(BROWSER_SHORTCUT, listener)
     return () => { ipcRenderer.removeListener(BROWSER_SHORTCUT, listener) }
+  },
+
+  orchRegisterPortalWc(payload: { panelId: string; webContentsId: number; alive: boolean }): void {
+    ipcRenderer.send(BROWSER_PORTAL_REGISTER, payload)
+  },
+
+  e2eBrowserPortalPanelId(webContentsId: number): Promise<string | null> {
+    return ipcRenderer.invoke(BROWSER_PORTAL_LOOKUP, webContentsId)
   },
 
   // ---------------------------------------------------------------------------

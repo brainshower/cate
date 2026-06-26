@@ -2,11 +2,13 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('electron', () => ({
   app: { on: vi.fn() },
+  ipcMain: { on: vi.fn(), handle: vi.fn() },
   session: { fromPartition: vi.fn() },
   shell: { openExternal: vi.fn() },
+  webContents: { fromId: vi.fn() },
 }))
 
-import { classifyWebviewShortcut } from './webSecurity'
+import { classifyWebviewShortcut, portalPanelIdForWebContents, registerPortalWebContents } from './webSecurity'
 
 const keyDown = (input: Partial<Electron.Input>): Electron.Input => ({
   type: 'keyDown',
@@ -35,5 +37,25 @@ describe('classifyWebviewShortcut', () => {
     expect(classifyWebviewShortcut(keyDown({ code: 'KeyL', key: 'l', meta: true, shift: true }))).toBeNull()
     expect(classifyWebviewShortcut(keyDown({ code: 'KeyK', key: 'k', meta: true }))).toBeNull()
     expect(classifyWebviewShortcut(keyDown({ code: 'KeyR', key: 'r' }))).toBeNull()
+  })
+})
+
+describe('portal webContents registry', () => {
+  it('T-U-031 tracks alive portal registrations by webContentsId', () => {
+    registerPortalWebContents({ panelId: 'panel-1', webContentsId: 101, alive: true })
+
+    expect(portalPanelIdForWebContents(101)).toBe('panel-1')
+  })
+
+  it('T-U-031 removes stale and dead portal registrations', () => {
+    registerPortalWebContents({ panelId: 'panel-2', webContentsId: 201, alive: true })
+    registerPortalWebContents({ panelId: 'panel-2', webContentsId: 202, alive: true })
+
+    expect(portalPanelIdForWebContents(201)).toBeNull()
+    expect(portalPanelIdForWebContents(202)).toBe('panel-2')
+
+    registerPortalWebContents({ panelId: 'panel-2', webContentsId: 202, alive: false })
+
+    expect(portalPanelIdForWebContents(202)).toBeNull()
   })
 })

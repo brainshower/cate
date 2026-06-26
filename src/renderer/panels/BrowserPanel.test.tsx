@@ -227,18 +227,19 @@ describe('BrowserPanel browser shortcut handling', () => {
     const firstBack = vi.fn()
     const firstForward = vi.fn()
     const secondReload = vi.fn()
-    Object.assign(first, { reload: firstReload, goBack: firstBack, goForward: firstForward })
-    Object.assign(second, { reload: secondReload })
+    Object.assign(first, { reload: firstReload, goBack: firstBack, goForward: firstForward, getWebContentsId: () => 101 })
+    Object.assign(second, { reload: secondReload, getWebContentsId: () => 202 })
 
     const inputs = screen.getAllByPlaceholderText('Enter URL or search...')
     const firstInput = inputs[0] as HTMLInputElement
 
     act(() => {
       first.dispatchEvent(new Event('focus'))
-      for (const callback of browserShortcutCallbacks) callback('reload')
-      for (const callback of browserShortcutCallbacks) callback('back')
-      for (const callback of browserShortcutCallbacks) callback('forward')
-      for (const callback of browserShortcutCallbacks) callback('focus-url')
+      for (const callback of browserShortcutCallbacks) callback({ action: 'reload', webContentsId: 101 })
+      for (const callback of browserShortcutCallbacks) callback({ action: 'reload', webContentsId: 202 })
+      for (const callback of browserShortcutCallbacks) callback({ action: 'back', webContentsId: 101 })
+      for (const callback of browserShortcutCallbacks) callback({ action: 'forward', webContentsId: 101 })
+      for (const callback of browserShortcutCallbacks) callback({ action: 'focus-url', webContentsId: 101 })
     })
 
     expect(firstReload).toHaveBeenCalledTimes(1)
@@ -257,12 +258,12 @@ describe('BrowserPanel browser shortcut handling', () => {
 
     const webview = container.querySelector('webview') as Element & { reload?: () => void }
     const reload = vi.fn()
-    Object.assign(webview, { reload })
+    Object.assign(webview, { reload, getWebContentsId: () => 101 })
 
     act(() => {
       webview.dispatchEvent(new Event('focus'))
-      for (const callback of browserShortcutCallbacks) callback('new-tab')
-      for (const callback of browserShortcutCallbacks) callback('close-tab')
+      for (const callback of browserShortcutCallbacks) callback({ action: 'new-tab', webContentsId: 101 })
+      for (const callback of browserShortcutCallbacks) callback({ action: 'close-tab', webContentsId: 101 })
     })
 
     expect(reload).not.toHaveBeenCalled()
@@ -287,7 +288,7 @@ describe('BrowserPanel portal registration', () => {
 })
 
 describe('BrowserPanel history and bookmark controls', () => {
-  it('records visits for the panel workspace on navigation and title events', () => {
+  it('records one visit for the panel workspace after navigation and title events', () => {
     const { container } = render(
       <BrowserPanel panelId="panel-1" workspaceId="workspace-1" nodeId="node-1" url="https://example.test/initial" />,
     )
@@ -307,7 +308,7 @@ describe('BrowserPanel history and bookmark controls', () => {
       }))
     })
 
-    expect(recordVisit).toHaveBeenCalledWith('workspace-1', 'https://example.test/current', 'https://example.test/current')
+    expect(recordVisit).toHaveBeenCalledTimes(1)
     expect(recordVisit).toHaveBeenCalledWith('workspace-1', 'https://example.test/current', 'Current Title')
   })
 

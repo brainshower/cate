@@ -41,6 +41,7 @@ declare global {
       createBrowserPanel(url: string): string
       simulateBrowserCrash(panelId: string, reason?: string): void
       simulateBrowserShortcut(panelId: string, action: BrowserShortcutAction): void
+      browserPortalPanelId(panelId: string): Promise<string | null>
       evalBrowserPanel(panelId: string, script: string): Promise<unknown>
       createSemanticConnections(point: Point, placement?: PanelPlacement): string
       createAgent(point: Point, placement?: PanelPlacement): string
@@ -320,10 +321,21 @@ export function installE2EHarness(): void {
   }
 
   const simulateBrowserShortcut = (panelId: string, action: BrowserShortcutAction): void => {
-    const webview = browserWebview(panelId)
+    const webview = browserWebview(panelId) as (HTMLElement & { getWebContentsId?: () => number }) | null
     if (!webview) throw new Error(`Browser webview not found for panel ${panelId}`)
     webview.dispatchEvent(new Event('focus'))
-    webview.dispatchEvent(new CustomEvent('cate-browser-shortcut', { detail: action }))
+    webview.dispatchEvent(new CustomEvent('cate-browser-shortcut', {
+      detail: {
+        action,
+        webContentsId: webview.getWebContentsId?.() ?? 0,
+      },
+    }))
+  }
+
+  const browserPortalPanelId = async (panelId: string): Promise<string | null> => {
+    const webview = browserWebview(panelId) as (HTMLElement & { getWebContentsId?: () => number }) | null
+    if (!webview?.getWebContentsId) throw new Error(`Browser webview not ready for panel ${panelId}`)
+    return window.electronAPI.e2eBrowserPortalPanelId?.(webview.getWebContentsId()) ?? null
   }
 
   const evalBrowserPanel = async (panelId: string, script: string): Promise<unknown> => {
@@ -584,6 +596,7 @@ export function installE2EHarness(): void {
     createBrowserPanel,
     simulateBrowserCrash,
     simulateBrowserShortcut,
+    browserPortalPanelId,
     evalBrowserPanel,
     createSemanticConnections,
     createAgent,

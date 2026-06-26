@@ -1,5 +1,5 @@
-import { app, session, shell, type Session, type WebContents } from 'electron'
-import { BROWSER_SHORTCUT } from '../shared/ipc-channels'
+import { app, ipcMain, session, shell, webContents, type Session, type WebContents } from 'electron'
+import { BROWSER_PORTAL_LOOKUP, BROWSER_PORTAL_REGISTER, BROWSER_SHORTCUT } from '../shared/ipc-channels'
 import type { BrowserShortcutAction } from '../shared/types'
 import log from './logger'
 import { disableWebviewHardening } from './featureFlags'
@@ -24,6 +24,67 @@ function isOAuthUrl(url: string): boolean {
 const configuredGuestSessions = new Set<string>()
 const browserGuestPartitions = new Set<string>()
 const browserGuestSessions = new Set<Session>()
+const portalPanelByWebContentsId = new Map<number, string>()
+const portalWebContentsIdByPanelId = new Map<string, number>()
+
+export interface PortalWebContentsRegistration {
+  panelId: string
+  webContentsId: number
+  alive: boolean
+}
+
+export function registerPortalWebContents(payload: PortalWebContentsRegistration): void {
+  const panelId = payload.panelId.trim()
+  const webContentsId = Number(payload.webContentsId)
+  if (!panelId || !Number.isInteger(webContentsId) || webContentsId <= 0) return
+
+  const existingWebContentsId = portalWebContentsIdByPanelId.get(panelId)
+  if (existingWebContentsId && existingWebContentsId !== webContentsId) {
+    portalPanelByWebContentsId.delete(existingWebContentsId)
+  }
+
+  if (!payload.alive) {
+    portalWebContentsIdByPanelId.delete(panelId)
+    portalPanelByWebContentsId.delete(webContentsId)
+    return
+  }
+
+  portalWebContentsIdByPanelId.set(panelId, webContentsId)
+  portalPanelByWebContentsId.set(webContentsId, panelId)
+}
+
+export function portalPanelIdForWebContents(webContentsId: number): string | null {
+  return portalPanelByWebContentsId.get(webContentsId) ?? null
+}
+
+function senderOwnsWebContents(sender: WebContents, webContentsId: number): boolean {
+  const target = webContents.fromId(webContentsId) as (WebContents & { hostWebContents?: WebContents }) | undefined
+  if (!target || target.isDestroyed()) return false
+  return target.hostWebContents === sender
+}
+
+export function registerPortalWebContentsHandlers(): void {
+  ipcMain.on(BROWSER_PORTAL_REGISTER, (event, payload: Partial<PortalWebContentsRegistration>) => {
+    if (!payload || typeof payload.panelId !== 'string') return
+    const webContentsId = Number(payload.webContentsId)
+    if (!senderOwnsWebContents(event.sender, webContentsId)) {
+      log.warn('[webview] Denied portal registration for webContentsId %s', webContentsId)
+      return
+    }
+    registerPortalWebContents({
+      panelId: payload.panelId,
+      webContentsId,
+      alive: Boolean(payload.alive),
+    })
+  })
+
+  ipcMain.handle(BROWSER_PORTAL_LOOKUP, (event, webContentsId: number): string | null => {
+    if (!process.env.CATE_E2E) return null
+    const normalizedId = Number(webContentsId)
+    if (!senderOwnsWebContents(event.sender, normalizedId)) return null
+    return portalPanelIdForWebContents(normalizedId)
+  })
+}
 
 export function classifyWebviewShortcut(input: Electron.Input): BrowserShortcutAction | null {
   if (input.type !== 'keyDown') return null
@@ -47,7 +108,7 @@ export function classifyWebviewShortcut(input: Electron.Input): BrowserShortcutA
 function forwardBrowserShortcut(contents: WebContents, action: BrowserShortcutAction): void {
   const hostWebContents = (contents as WebContents & { hostWebContents?: WebContents }).hostWebContents
   if (!hostWebContents || hostWebContents.isDestroyed()) return
-  hostWebContents.send(BROWSER_SHORTCUT, action)
+  hostWebContents.send(BROWSER_SHORTCUT, { action, webContentsId: contents.id })
 }
 
 export function isTrustedAppUrl(url: string): boolean {

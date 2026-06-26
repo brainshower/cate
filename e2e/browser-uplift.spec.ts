@@ -363,6 +363,22 @@ test('T-E-016 screenshot button creates a draggable thumbnail from a local page'
   }
 })
 
+test('T-E-017 browser webview registration reaches main for portal parent lookup', async () => {
+  const server = await startLocalBrowserServer()
+  const { electronApp: app, mainWindow: page } = await launchApp()
+
+  try {
+    const panelId = await createBrowserPanel(page, server.baseUrl)
+
+    await expect.poll(async () => {
+      return page.evaluate((id) => window.__cateE2E!.browserPortalPanelId(id), panelId)
+    }).toBe(panelId)
+  } finally {
+    await closeApp(app)
+    await server.close()
+  }
+})
+
 test('T-E-005/T-E-006 browser history and bookmarks persist by workspace and stay isolated', async () => {
   const userDataDir = await mkdtemp(path.join(os.tmpdir(), 'cate-browser-uplift-user-data-'))
   const { electronApp: firstApp, mainWindow: firstPage } = await launchApp({ userDataDir })

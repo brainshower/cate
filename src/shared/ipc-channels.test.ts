@@ -35,6 +35,8 @@ const BROWSER_CHANNELS = {
   BROWSER_BOOKMARKS_CHANGED: 'browser:bookmarks:changed',
   BROWSER_CLEAR_DATA: 'browser:clear-data',
   BROWSER_SHORTCUT: 'browser:shortcut',
+  BROWSER_PORTAL_REGISTER: 'browser:portal-register',
+  BROWSER_PORTAL_LOOKUP: 'browser:portal-lookup',
 } as const
 
 const FLASHQUERY_CHANNEL_VALUES: Set<string> = new Set(Object.values(FLASHQUERY_CHANNELS))

@@ -30,6 +30,13 @@ The Browser Uplift requirements document and test plan were read first, before i
 | 2026-06-26T22:20:16Z | `npx -p node@22 npm run typecheck` | 0 | PASS | TypeScript strict check passed after adding fake-auth E2E and browser guest cookie-store flush. |
 | 2026-06-26T22:20:16Z | `npx -p node@22 npm run test:e2e -- e2e/flashquery-persistence.spec.ts` | 0 | PASS | FlashQuery persistence Playwright Electron smoke passed: 1 test after browser guest session changes. |
 | 2026-06-26T22:22:42Z | `npx -p node@22 npm test` | 0 | PASS | Full Vitest suite passed after browser guest session changes: 112 files, 1020 tests passed, 3 skipped. |
+| 2026-06-26T20:33:30-03:00 | `npm test -- src/main/webSecurity.test.ts src/renderer/panels/BrowserPanel.test.tsx src/main/browserStateStore.test.ts src/shared/ipc-channels.test.ts` | 0 | PASS | Focused regression suite passed after gap fixes: 4 files, 28 tests. |
+| 2026-06-26T20:35:50-03:00 | `npm run build` | 0 | PASS | Built fresh main/preload/renderer bundles for Electron E2E. |
+| 2026-06-26T20:36:20-03:00 | `npm run test:e2e -- e2e/browser-uplift.spec.ts --grep "T-E-017"` | 0 | PASS | T-E-017 portal bridge smoke passed against fresh dist app: browser webview registration reached main. |
+| 2026-06-26T20:36:27-03:00 | `npm run typecheck` | 0 | PASS | TypeScript strict check passed after gap fixes. |
+| 2026-06-26T20:37:29-03:00 | `npm test` | 0 | PASS | Full Vitest suite passed after gap fixes: 112 files, 1024 tests passed, 3 skipped. |
+| 2026-06-26T20:38:20-03:00 | `npm run test:e2e -- e2e/browser-uplift.spec.ts` | 0 | PASS | Full Browser Uplift Playwright Electron spec passed after gap fixes: 17 tests. |
+| 2026-06-26T20:39:00-03:00 | `npm run test:e2e -- e2e/flashquery-persistence.spec.ts` | 0 | PASS | FlashQuery persistence Playwright Electron smoke passed after gap fixes: 1 test. |
 
 ## Automated Coverage Matrix
 
@@ -40,12 +47,12 @@ The Browser Uplift requirements document and test plan were read first, before i
 | REQ-003 | T-U-005, T-U-006, T-U-007, T-U-008, T-U-030; T-E-005, T-E-006 | PASS |
 | REQ-004 | T-U-009, T-U-010, T-U-011; T-E-007, T-E-008 | PASS |
 | REQ-005 | T-U-012, T-U-013; T-E-009 | PASS |
-| REQ-006 | T-U-014, T-U-015, T-U-016; T-E-010, T-E-011 | PASS |
+| REQ-006 | T-U-014, T-U-015, T-U-016; T-E-010, T-E-011; focused regression confirms forwarded shortcuts are matched by guest `webContentsId` before acting | PASS |
 | REQ-007 | T-U-017, T-U-018, T-U-030; T-E-012, T-E-013 | PASS |
 | REQ-008 | T-U-019, T-U-020, T-U-021, T-U-031; T-E-014 | PASS |
 | REQ-009 | T-U-022, T-U-023, T-U-024; T-I-002, T-I-003; T-E-015 | PASS |
 | REQ-010 | T-I-004, T-I-005, T-I-006; T-E-016 | PASS |
-| REQ-011 | T-U-025, T-U-026 pass. T-E-017 remains a prior-slice E2E traceability gap because no main/preload `orchRegisterPortalWc` implementation exists to observe a real popup-parent registration path. | UNIT PASS, E2E GAP |
+| REQ-011 | T-U-025, T-U-026; T-E-017 now passes after adding preload/main `orchRegisterPortalWc` registration and an E2E-only lookup assertion. | PASS |
 | REQ-012 | T-U-027, T-U-028; T-E-018, T-E-019 | PASS |
 
 ## Test ID Matrix
@@ -55,7 +62,7 @@ The Browser Uplift requirements document and test plan were read first, before i
 | T-U-001 through T-U-031 | Full Vitest suite passed after test-only fixes. Browser Uplift unit IDs are present in the relevant focused files from Waves 1-9. | PASS |
 | T-I-001 through T-I-006 | Full Vitest suite passed after test-only fixes. Integration IDs are present in `workspaceManager`, `browser`, and `capture` tests. | PASS |
 | T-E-001 through T-E-016 | `e2e/browser-uplift.spec.ts` passed where implemented, including local fake-auth session restart persistence and workspace isolation. | PASS |
-| T-E-017 | Not implemented as real E2E. Prior 26-02 summary documented that only renderer best-effort bridge coverage exists because main/preload `orchRegisterPortalWc` is absent. | E2E GAP |
+| T-E-017 | `e2e/browser-uplift.spec.ts --grep "T-E-017"` passed after implementing preload/main `orchRegisterPortalWc`; the smoke confirms browser webview registration reaches main. | PASS |
 | T-E-018 | `e2e/browser-uplift.spec.ts` passed. | PASS |
 | T-E-019 | `e2e/flashquery-persistence.spec.ts` passed. | PASS |
 | T-E-020 through T-E-021 | `e2e/browser-uplift.spec.ts` passed. | PASS |

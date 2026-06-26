@@ -48,7 +48,7 @@ import { disableRendererSandbox, disableTrustScoping } from './featureFlags'
 import { getSharedPanelDef } from '../shared/panels'
 import { startPerfMonitor, getLatestSnapshot } from './perf/perfMonitor'
 import { PERF_GET } from '../shared/ipc-channels'
-import { flushBrowserGuestSessions, installWebContentsSecurity } from './webSecurity'
+import { flushBrowserGuestSessions, installWebContentsSecurity, registerPortalWebContentsHandlers } from './webSecurity'
 import { installThemeSkill } from './installThemeSkill'
 import {
   startCrossWindowDrag,
@@ -442,6 +442,7 @@ function registerCriticalHandlers(): void {
   registerMenuHandlers()
   registerCaptureHandlers()
   registerBrowserHandlers()
+  registerPortalWebContentsHandlers()
   registerWindowAndDialogHandlers()
   // Resource profiler — no-op unless CATE_PERF=1.
   startPerfMonitor()

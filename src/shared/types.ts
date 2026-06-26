@@ -580,6 +580,11 @@ export interface BrowserBookmark {
 
 export type BrowserShortcutAction = 'reload' | 'focus-url' | 'back' | 'forward'
 
+export interface BrowserShortcutPayload {
+  action: BrowserShortcutAction
+  webContentsId: number
+}
+
 export type BrowserClearDataResult =
   | {
       ok: true

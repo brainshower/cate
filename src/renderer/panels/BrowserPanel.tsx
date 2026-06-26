@@ -10,7 +10,7 @@ import { useSettingsStore } from '../stores/settingsStore'
 import { useAppStore } from '../stores/appStore'
 import { useCanvasStoreContext } from '../stores/CanvasStoreContext'
 import { SEARCH_ENGINE_URLS } from '../../shared/types'
-import type { BrowserShortcutAction } from '../../shared/types'
+import type { BrowserShortcutAction, BrowserShortcutPayload } from '../../shared/types'
 import type { BrowserPanelProps } from './types'
 import { portalRegistry } from '../lib/portalRegistry'
 import { isUrl, normalizeUrl } from './browserUrl'
@@ -79,6 +79,8 @@ export default function BrowserPanel({
   const webviewRef = useRef<WebviewElement | null>(null)
   const urlInputRef = useRef<HTMLInputElement | null>(null)
   const webviewFocusedRef = useRef(false)
+  const pendingVisitRef = useRef<{ url: string; recorded: boolean } | null>(null)
+  const currentTitleRef = useRef(initialUrl)
   const [currentUrl, setCurrentUrl] = useState(initialUrl)
   const [currentTitle, setCurrentTitle] = useState(initialUrl)
   const [inputUrl, setInputUrl] = useState(initialUrl)
@@ -133,9 +135,11 @@ export default function BrowserPanel({
     webviewRef.current?.reload()
   }, [])
 
-  const runBrowserAction = useCallback((action: BrowserShortcutAction) => {
+  const runBrowserAction = useCallback((payload: BrowserShortcutPayload | BrowserShortcutAction) => {
     const webview = webviewRef.current
     if (!webview) return
+    const action = typeof payload === 'string' ? payload : payload.action
+    if (typeof payload !== 'string' && payload.webContentsId !== webview.getWebContentsId()) return
     if (!webviewFocusedRef.current && document.activeElement !== webview) return
 
     switch (action) {
@@ -235,14 +239,18 @@ export default function BrowserPanel({
   }, [isFocused])
 
   useEffect(() => {
+    currentTitleRef.current = currentTitle
+  }, [currentTitle])
+
+  useEffect(() => {
     if (!browserPartition) return
     initializeBrowserStoreSubscriptions()
     void refreshWorkspace(workspaceId)
   }, [browserPartition, refreshWorkspace, workspaceId])
 
   useEffect(() => {
-    return window.electronAPI.onBrowserShortcut((action) => {
-      runBrowserAction(action)
+    return window.electronAPI.onBrowserShortcut((payload) => {
+      runBrowserAction(payload)
     })
   }, [runBrowserAction])
 
@@ -269,7 +277,7 @@ export default function BrowserPanel({
       setLoadError(null)
       setCrashReason(null)
       updatePanelUrl(workspaceId, panelId, url)
-      void recordVisit(workspaceId, url, url)
+      pendingVisitRef.current = { url, recorded: false }
     }
 
     const onDidNavigateInPage = (event: any) => {
@@ -282,7 +290,7 @@ export default function BrowserPanel({
       setCanGoForward(webview.canGoForward())
       setCrashReason(null)
       updatePanelUrl(workspaceId, panelId, url)
-      void recordVisit(workspaceId, url, url)
+      pendingVisitRef.current = { url, recorded: false }
     }
 
     const onPageTitleUpdated = (event: any) => {
@@ -292,6 +300,11 @@ export default function BrowserPanel({
         updatePanelTitle(workspaceId, panelId, title)
         const url = webview.getURL()
         if (url && url !== 'about:blank') {
+          pendingVisitRef.current = pendingVisitRef.current?.url === url
+            ? pendingVisitRef.current
+            : { url, recorded: false }
+          if (pendingVisitRef.current.recorded) return
+          pendingVisitRef.current.recorded = true
           void recordVisit(workspaceId, url, title)
         }
       }
@@ -309,10 +322,15 @@ export default function BrowserPanel({
       setIsLoading(true)
       setLoadError(null)
       setCrashReason(null)
+      pendingVisitRef.current = null
     }
 
     const onDidStopLoading = () => {
       setIsLoading(false)
+      const pendingVisit = pendingVisitRef.current
+      if (!pendingVisit || pendingVisit.recorded) return
+      pendingVisit.recorded = true
+      void recordVisit(workspaceId, pendingVisit.url, currentTitleRef.current || pendingVisit.url)
     }
 
     const onWillNavigate = (event: any) => {

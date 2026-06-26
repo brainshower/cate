@@ -164,6 +164,8 @@ export const BROWSER_BOOKMARKS_CLEAR = 'browser:bookmarks:clear'
 export const BROWSER_BOOKMARKS_CHANGED = 'browser:bookmarks:changed' // main -> renderer
 export const BROWSER_CLEAR_DATA = 'browser:clear-data'
 export const BROWSER_SHORTCUT = 'browser:shortcut' // main -> renderer
+export const BROWSER_PORTAL_REGISTER = 'browser:portal-register'
+export const BROWSER_PORTAL_LOOKUP = 'browser:portal-lookup'
 
 // Menu actions (main -> renderer)
 export const MENU_OPEN_SETTINGS = 'menu:openSettings'
