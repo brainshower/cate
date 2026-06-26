@@ -3,7 +3,7 @@ import { createServer, type Server } from 'node:http'
 import { mkdtemp } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { closeApp, createBrowserPanel, createWorkspace, evalBrowserPanel, launchApp, waitForBrowserPartition } from './fixtures/electron-app'
+import { closeApp, createBrowserPanel, createWorkspace, evalBrowserPanel, launchApp, quitApp, waitForBrowserPartition } from './fixtures/electron-app'
 import type { ElectronApplication, Page } from 'playwright'
 
 async function startLocalBrowserServer(
@@ -24,6 +24,48 @@ async function startLocalBrowserServer(
   }
 }
 
+async function startLocalAuthServer(): Promise<{ baseUrl: string; close(): Promise<void> }> {
+  return startLocalBrowserServer((req, res) => {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1')
+    const isSignedIn = req.headers.cookie?.includes('cateAuthSession=fixture-session') ?? false
+
+    if (req.method === 'POST' && url.pathname === '/login') {
+      req.resume()
+      res.writeHead(302, {
+        location: '/account',
+        'set-cookie': 'cateAuthSession=fixture-session; Max-Age=3600; Path=/; HttpOnly; SameSite=Lax',
+      })
+      res.end()
+      return
+    }
+
+    if (url.pathname === '/login') {
+      res.writeHead(200, { 'content-type': 'text/html' })
+      res.end(`<!doctype html>
+        <title>Fixture Login</title>
+        <body>
+          <h1 id="status">signed out</h1>
+          <form method="post" action="/login"><button id="login" type="submit">Sign in</button></form>
+        </body>`)
+      return
+    }
+
+    if (url.pathname === '/account') {
+      res.writeHead(200, { 'content-type': 'text/html' })
+      res.end(`<!doctype html>
+        <title>Fixture Account</title>
+        <body>
+          <h1 id="status">${isSignedIn ? 'signed in' : 'signed out'}</h1>
+          ${isSignedIn ? '<p id="account">fixture account session active</p>' : '<a id="login-link" href="/login">Sign in</a>'}
+        </body>`)
+      return
+    }
+
+    res.writeHead(302, { location: '/login' })
+    res.end()
+  })
+}
+
 async function unusedLocalPort(): Promise<number> {
   const server = createServer()
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
@@ -34,6 +76,17 @@ async function unusedLocalPort(): Promise<number> {
     server.close((error) => error ? reject(error) : resolve())
   })
   return port
+}
+
+async function partitionCookieNames(
+  app: ElectronApplication,
+  partition: string,
+  url: string,
+): Promise<string[]> {
+  return app.evaluate(async ({ session }, cookieQuery) => {
+    const cookies = await session.fromPartition(cookieQuery.partition).cookies.get({ url: cookieQuery.url })
+    return cookies.map((cookie) => cookie.name).sort()
+  }, { partition, url })
 }
 
 test('T-E-001/T-E-021 browser storage persists across browser-panel recreation in the same workspace partition', async () => {
@@ -75,6 +128,58 @@ test('T-E-002 browser storage is isolated between workspace partitions', async (
     await expect(await evalBrowserPanel(page, panelB, "document.cookie.includes('cateSession=workspace-a')")).toBe(false)
   } finally {
     await closeApp(app)
+    await server.close()
+  }
+})
+
+test('T-E-001/T-E-002 local auth session persists across restart and stays isolated by workspace partition', async () => {
+  const server = await startLocalAuthServer()
+  const userDataDir = await mkdtemp(path.join(os.tmpdir(), 'cate-browser-auth-user-data-'))
+  const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), 'cate-browser-auth-workspace-'))
+  let workspaceId = ''
+
+  const { electronApp: firstApp, mainWindow: firstPage } = await launchApp({ userDataDir })
+  try {
+    workspaceId = await firstPage.evaluate((rootPath) => window.__cateE2E!.ensureWorkspaceRoot(rootPath), workspaceRoot)
+    const panelId = await createBrowserPanel(firstPage, new URL('/login', server.baseUrl).href)
+    await expect(await waitForBrowserPartition(firstPage, panelId)).toBe(`persist:browser-ws-${workspaceId}`)
+
+    await expect.poll(async () => {
+      return evalBrowserPanel(firstPage, panelId, "document.querySelector('#status')?.textContent")
+    }).toBe('signed out')
+    await evalBrowserPanel(firstPage, panelId, "document.querySelector('form')?.requestSubmit(); true")
+    await expect.poll(async () => {
+      return evalBrowserPanel(firstPage, panelId, "document.querySelector('#status')?.textContent")
+    }).toBe('signed in')
+    await expect.poll(async () => {
+      return partitionCookieNames(firstApp, `persist:browser-ws-${workspaceId}`, server.baseUrl)
+    }).toContain('cateAuthSession')
+  } finally {
+    await quitApp(firstApp)
+  }
+
+  const { electronApp: secondApp, mainWindow: secondPage } = await launchApp({ userDataDir })
+  try {
+    const restoredWorkspaceId = await secondPage.evaluate((rootPath) => window.__cateE2E!.ensureWorkspaceRoot(rootPath), workspaceRoot)
+    expect(restoredWorkspaceId).toBe(workspaceId)
+    await expect.poll(async () => {
+      return partitionCookieNames(secondApp, `persist:browser-ws-${workspaceId}`, server.baseUrl)
+    }).toContain('cateAuthSession')
+
+    const restoredPanelId = await createBrowserPanel(secondPage, new URL('/account', server.baseUrl).href)
+    await expect(await waitForBrowserPartition(secondPage, restoredPanelId)).toBe(`persist:browser-ws-${workspaceId}`)
+    await expect.poll(async () => {
+      return evalBrowserPanel(secondPage, restoredPanelId, "document.querySelector('#status')?.textContent")
+    }).toBe('signed in')
+
+    const isolatedWorkspaceId = await createWorkspace(secondPage, 'Local Auth Isolation Workspace')
+    const isolatedPanelId = await createBrowserPanel(secondPage, new URL('/account', server.baseUrl).href)
+    await expect(await waitForBrowserPartition(secondPage, isolatedPanelId)).toBe(`persist:browser-ws-${isolatedWorkspaceId}`)
+    await expect.poll(async () => {
+      return evalBrowserPanel(secondPage, isolatedPanelId, "document.querySelector('#status')?.textContent")
+    }).toBe('signed out')
+  } finally {
+    await closeApp(secondApp)
     await server.close()
   }
 })

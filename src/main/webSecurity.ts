@@ -23,6 +23,7 @@ function isOAuthUrl(url: string): boolean {
 
 const configuredGuestSessions = new Set<string>()
 const browserGuestPartitions = new Set<string>()
+const browserGuestSessions = new Set<Session>()
 
 export function classifyWebviewShortcut(input: Electron.Input): BrowserShortcutAction | null {
   if (input.type !== 'keyDown') return null
@@ -104,19 +105,40 @@ function guestSessionFor(contents: WebContents, partition?: string): Session {
   return contents.session
 }
 
+async function flushGuestSessionStorage(targetSession: Session): Promise<void> {
+  await targetSession.flushStorageData()
+  await targetSession.cookies.flushStore()
+}
+
 export async function flushBrowserGuestSessions(): Promise<void> {
-  await Promise.all([...browserGuestPartitions].map(async (partition) => {
-    try {
-      await session.fromPartition(partition).flushStorageData()
-    } catch (error) {
-      log.warn('[webview] Failed to flush browser partition %s:', partition, error)
-    }
-  }))
+  await Promise.all([
+    ...[...browserGuestSessions].map(async (targetSession) => {
+      try {
+        await flushGuestSessionStorage(targetSession)
+      } catch (error) {
+        log.warn('[webview] Failed to flush browser guest session: %O', error)
+      }
+    }),
+    ...[...browserGuestPartitions].map(async (partition) => {
+      try {
+        await flushGuestSessionStorage(session.fromPartition(partition))
+      } catch (error) {
+        log.warn('[webview] Failed to flush browser partition %s:', partition, error)
+      }
+    }),
+  ])
 }
 
 export function installWebContentsSecurity(): void {
   app.on('web-contents-created', (_event, contents) => {
     if (contents.getType() === 'webview') {
+      browserGuestSessions.add(contents.session)
+      contents.on('did-stop-loading', () => {
+        void flushGuestSessionStorage(contents.session).catch((error) => {
+          log.warn('[webview] Failed to flush guest storage after load: %O', error)
+        })
+      })
+
       contents.on('before-input-event', (event, input) => {
         const action = classifyWebviewShortcut(input)
         if (!action) return

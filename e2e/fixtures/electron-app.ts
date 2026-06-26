@@ -50,6 +50,22 @@ export async function closeApp(electronApp: ElectronApplication): Promise<void> 
   }
 }
 
+export async function quitApp(electronApp: ElectronApplication): Promise<void> {
+  const closed = electronApp.waitForEvent('close', { timeout: 10_000 })
+    .then(() => true)
+    .catch(() => false)
+
+  await electronApp.evaluate(({ app }) => {
+    app.quit()
+  }).catch(() => {
+    // The process may exit before Playwright receives the evaluate response.
+  })
+
+  if (!await closed) {
+    await closeApp(electronApp)
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Drag helpers
 // -----------------------------------------------------------------------------
