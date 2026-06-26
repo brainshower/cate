@@ -9,6 +9,7 @@ const recordVisit = vi.fn()
 const addBookmark = vi.fn()
 const removeBookmark = vi.fn()
 const refreshWorkspace = vi.fn()
+const onBrowserShortcut = vi.fn()
 let isBookmarked = false
 
 vi.mock('../stores/settingsStore', () => ({
@@ -52,17 +53,28 @@ vi.mock('../stores/browserStore', () => ({
 }))
 
 beforeEach(() => {
+  Object.defineProperty(window, 'electronAPI', {
+    configurable: true,
+    value: {
+      onBrowserShortcut,
+      webviewScreenshot: vi.fn(),
+      nativeFileDrag: vi.fn(),
+    },
+  })
   updatePanelTitle.mockClear()
   updatePanelUrl.mockClear()
   recordVisit.mockClear()
   addBookmark.mockClear()
   removeBookmark.mockClear()
   refreshWorkspace.mockClear()
+  onBrowserShortcut.mockReset()
+  onBrowserShortcut.mockReturnValue(() => undefined)
   isBookmarked = false
 })
 
 afterEach(() => {
   cleanup()
+  delete (window as unknown as { electronAPI?: unknown }).electronAPI
 })
 
 describe('BrowserPanel workspace partition mount', () => {
@@ -125,6 +137,66 @@ describe('BrowserPanel load-error handling', () => {
 
     expect(screen.getByText('Failed to load page')).toBeTruthy()
     expect(screen.getByText('ERR_NAME_NOT_RESOLVED')).toBeTruthy()
+  })
+})
+
+describe('BrowserPanel crash recovery', () => {
+  it('T-U-012 shows a distinct crash overlay for non-clean render-process-gone events', () => {
+    const { container } = render(
+      <BrowserPanel panelId="panel-1" workspaceId="workspace-1" nodeId="node-1" url="about:blank" />,
+    )
+
+    const webview = container.querySelector('webview')
+    expect(webview).not.toBeNull()
+
+    act(() => {
+      webview?.dispatchEvent(Object.assign(new Event('render-process-gone'), {
+        reason: 'crashed',
+      }))
+    })
+
+    expect(screen.getByText('Page crashed')).toBeTruthy()
+    expect(screen.getByText('The browser page stopped unexpectedly.')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Reload page' })).toBeTruthy()
+    expect(screen.queryByText('Failed to load page')).toBeNull()
+  })
+
+  it('T-U-013 ignores clean render-process-gone exits', () => {
+    const { container } = render(
+      <BrowserPanel panelId="panel-1" workspaceId="workspace-1" nodeId="node-1" url="about:blank" />,
+    )
+
+    const webview = container.querySelector('webview')
+    expect(webview).not.toBeNull()
+
+    act(() => {
+      webview?.dispatchEvent(Object.assign(new Event('render-process-gone'), {
+        reason: 'clean-exit',
+      }))
+    })
+
+    expect(screen.queryByText('Page crashed')).toBeNull()
+  })
+
+  it('clears the crash overlay before reloading', () => {
+    const { container } = render(
+      <BrowserPanel panelId="panel-1" workspaceId="workspace-1" nodeId="node-1" url="about:blank" />,
+    )
+
+    const webview = container.querySelector('webview') as (Element & { reload?: () => void }) | null
+    const reload = vi.fn()
+    Object.assign(webview ?? {}, { reload })
+
+    act(() => {
+      webview?.dispatchEvent(Object.assign(new Event('crashed'), {
+        reason: 'oom',
+      }))
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reload page' }))
+
+    expect(reload).toHaveBeenCalled()
+    expect(screen.queryByText('Page crashed')).toBeNull()
   })
 })
 

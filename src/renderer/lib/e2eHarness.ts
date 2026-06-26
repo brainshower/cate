@@ -39,6 +39,7 @@ declare global {
       createFlashQueryVault(point: Point, placement?: PanelPlacement): string
       createFlashQueryVaultSearch(point: Point, placement?: PanelPlacement): string
       createBrowserPanel(url: string): string
+      simulateBrowserCrash(panelId: string, reason?: string): void
       evalBrowserPanel(panelId: string, script: string): Promise<unknown>
       createSemanticConnections(point: Point, placement?: PanelPlacement): string
       createAgent(point: Point, placement?: PanelPlacement): string
@@ -311,6 +312,12 @@ export function installE2EHarness(): void {
     return document.querySelector(`webview[data-browser-panel-id="${panelId}"]`)
   }
 
+  const simulateBrowserCrash = (panelId: string, reason = 'crashed'): void => {
+    const webview = browserWebview(panelId)
+    if (!webview) throw new Error(`Browser webview not found for panel ${panelId}`)
+    webview.dispatchEvent(Object.assign(new Event('render-process-gone'), { reason }))
+  }
+
   const evalBrowserPanel = async (panelId: string, script: string): Promise<unknown> => {
     const deadline = Date.now() + 10_000
     while (Date.now() < deadline) {
@@ -567,6 +574,7 @@ export function installE2EHarness(): void {
     createFlashQueryVault,
     createFlashQueryVaultSearch,
     createBrowserPanel,
+    simulateBrowserCrash,
     evalBrowserPanel,
     createSemanticConnections,
     createAgent,

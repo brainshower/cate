@@ -142,6 +142,33 @@ test('T-E-008 main-frame navigation failure shows failed-load overlay', async ()
   }
 })
 
+test('T-E-009 simulated webview crash shows reload recovery and reload clears it', async () => {
+  const server = await startLocalBrowserServer((_req, res) => {
+    res.writeHead(200, { 'content-type': 'text/html' })
+    res.end('<!doctype html><title>Crash Recovery</title><body><h1 id="loaded">crash recovery page</h1></body>')
+  })
+  const { electronApp: app, mainWindow: page } = await launchApp()
+
+  try {
+    const panelId = await createBrowserPanel(page, server.baseUrl)
+    await expect.poll(async () => {
+      return evalBrowserPanel(page, panelId, "document.querySelector('#loaded')?.textContent")
+    }).toBe('crash recovery page')
+
+    await page.evaluate((id) => window.__cateE2E!.simulateBrowserCrash(id, 'crashed'), panelId)
+
+    const targetPanel = page.locator(`[data-browser-panel-root="${panelId}"]`)
+    await expect(targetPanel.getByText('Page crashed')).toBeVisible()
+    await expect(targetPanel.getByRole('button', { name: 'Reload page' })).toBeVisible()
+
+    await targetPanel.getByRole('button', { name: 'Reload page' }).click()
+    await expect(targetPanel.getByText('Page crashed')).toHaveCount(0)
+  } finally {
+    await closeApp(app)
+    await server.close()
+  }
+})
+
 test('T-E-016 screenshot button creates a draggable thumbnail from a local page', async () => {
   const server = await startLocalBrowserServer((_req, res) => {
     res.writeHead(200, { 'content-type': 'text/html' })
