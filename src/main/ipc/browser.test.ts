@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import {
   BROWSER_BOOKMARKS_ADD,
+  BROWSER_BOOKMARKS_CLEAR,
   BROWSER_BOOKMARKS_CHANGED,
   BROWSER_BOOKMARKS_GET,
   BROWSER_BOOKMARKS_REMOVE,
   BROWSER_CLEAR_DATA,
   BROWSER_HISTORY_CHANGED,
+  BROWSER_HISTORY_CLEAR,
   BROWSER_HISTORY_GET,
   BROWSER_HISTORY_RECORD,
   BROWSER_HISTORY_REMOVE,
@@ -66,10 +68,11 @@ const { registerBrowserHandlers } = await import('./browser')
 
 describe('registerBrowserHandlers', () => {
   beforeEach(() => {
-    handlers.clear()
     vi.clearAllMocks()
     clearStorageData.mockResolvedValue(undefined)
     sessionFromPartition.mockReturnValue({ clearStorageData })
+    recordBrowserVisit.mockResolvedValue({ url: 'https://example.test', title: 'Example', lastVisited: 1000, visitCount: 1 })
+    addBrowserBookmark.mockResolvedValue({ url: 'https://example.test', title: 'Example', addedAt: 1000 })
     listBrowserHistory.mockResolvedValue([{ url: 'https://example.test', title: 'Example', lastVisited: 1000, visitCount: 1 }])
     listBrowserBookmarks.mockResolvedValue([{ url: 'https://example.test', title: 'Example', addedAt: 1000 }])
   })
@@ -80,9 +83,11 @@ describe('registerBrowserHandlers', () => {
 
     expect([...handlers.keys()].sort()).toEqual([
       BROWSER_BOOKMARKS_ADD,
+      BROWSER_BOOKMARKS_CLEAR,
       BROWSER_BOOKMARKS_GET,
       BROWSER_BOOKMARKS_REMOVE,
       BROWSER_CLEAR_DATA,
+      BROWSER_HISTORY_CLEAR,
       BROWSER_HISTORY_GET,
       BROWSER_HISTORY_RECORD,
       BROWSER_HISTORY_REMOVE,
@@ -117,7 +122,7 @@ describe('registerBrowserHandlers', () => {
 
     expect(sessionFromPartition).toHaveBeenCalledWith('persist:browser-ws-workspace-a')
     expect(clearStorageData).toHaveBeenCalledWith({
-      storages: ['appcache', 'cookies', 'filesystem', 'indexdb', 'localstorage', 'shadercache', 'websql', 'serviceworkers', 'cachestorage'],
+      storages: ['cookies', 'filesystem', 'indexdb', 'localstorage', 'shadercache', 'websql', 'serviceworkers', 'cachestorage'],
     })
     expect(clearWorkspaceBrowserState).toHaveBeenCalledWith('workspace-a')
     expect(result).toEqual({

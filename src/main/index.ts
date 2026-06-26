@@ -24,6 +24,7 @@ import { registerProjectStateHandlers, saveProjectStateSync, runLegacyMigrationI
 import { registerHandlers as registerMenuHandlers } from './ipc/menu'
 import { registerHandlers as registerNotificationHandlers } from './ipc/notifications'
 import { registerCaptureHandlers } from './ipc/capture'
+import { registerBrowserHandlers } from './ipc/browser'
 import { registerAgentHandlers } from '../agent/main/ipcAgent'
 import { registerAuthHandlers } from '../agent/main/ipcAuth'
 import { authManager } from '../agent/main/authManager'
@@ -440,6 +441,7 @@ function registerCriticalHandlers(): void {
   registerShellHandlers()
   registerMenuHandlers()
   registerCaptureHandlers()
+  registerBrowserHandlers()
   registerWindowAndDialogHandlers()
   // Resource profiler — no-op unless CATE_PERF=1.
   startPerfMonitor()

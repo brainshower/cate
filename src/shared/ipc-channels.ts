@@ -151,6 +151,18 @@ export const FLASHQUERY_LIST_VAULT_INDEX = 'flashquery:list-vault-index'
 export const FLASHQUERY_RETRY = 'flashquery:retry'
 export const FLASHQUERY_STATUS = 'flashquery:status' // main -> renderer
 
+// Browser state
+export const BROWSER_HISTORY_GET = 'browser:history:get'
+export const BROWSER_HISTORY_RECORD = 'browser:history:record'
+export const BROWSER_HISTORY_REMOVE = 'browser:history:remove'
+export const BROWSER_HISTORY_CLEAR = 'browser:history:clear'
+export const BROWSER_HISTORY_CHANGED = 'browser:history:changed' // main -> renderer
+export const BROWSER_BOOKMARKS_GET = 'browser:bookmarks:get'
+export const BROWSER_BOOKMARKS_ADD = 'browser:bookmarks:add'
+export const BROWSER_BOOKMARKS_REMOVE = 'browser:bookmarks:remove'
+export const BROWSER_BOOKMARKS_CLEAR = 'browser:bookmarks:clear'
+export const BROWSER_BOOKMARKS_CHANGED = 'browser:bookmarks:changed' // main -> renderer
+export const BROWSER_CLEAR_DATA = 'browser:clear-data'
 
 // Menu actions (main -> renderer)
 export const MENU_OPEN_SETTINGS = 'menu:openSettings'

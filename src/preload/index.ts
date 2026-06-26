@@ -205,9 +205,20 @@ import {
   FLASHQUERY_SET_CONNECTION,
   FLASHQUERY_STATUS,
   FLASHQUERY_WRITE_DOCUMENT,
+  BROWSER_BOOKMARKS_ADD,
+  BROWSER_BOOKMARKS_CHANGED,
+  BROWSER_BOOKMARKS_CLEAR,
+  BROWSER_BOOKMARKS_GET,
+  BROWSER_BOOKMARKS_REMOVE,
+  BROWSER_CLEAR_DATA,
+  BROWSER_HISTORY_CHANGED,
+  BROWSER_HISTORY_CLEAR,
+  BROWSER_HISTORY_GET,
+  BROWSER_HISTORY_RECORD,
+  BROWSER_HISTORY_REMOVE,
   PERF_GET,
 } from '../shared/ipc-channels'
-import type { AppSettings, WorkspaceMutationResult } from '../shared/types'
+import type { AppSettings, BrowserBookmark, BrowserClearDataResult, BrowserHistoryEntry, WorkspaceMutationResult } from '../shared/types'
 
 let e2eNextContextMenuAction: string | null | undefined
 let e2eLastContextMenuItems: unknown[] = []
@@ -780,6 +791,58 @@ const electronAPI = {
 
   nativeFileDrag(filePath: string): Promise<void> {
     return ipcRenderer.invoke(NATIVE_FILE_DRAG, filePath)
+  },
+
+  browserHistoryGet(workspaceId: string): Promise<BrowserHistoryEntry[]> {
+    return ipcRenderer.invoke(BROWSER_HISTORY_GET, workspaceId)
+  },
+
+  browserHistoryRecord(workspaceId: string, url: string, title?: string): Promise<BrowserHistoryEntry | null> {
+    return ipcRenderer.invoke(BROWSER_HISTORY_RECORD, workspaceId, url, title)
+  },
+
+  browserHistoryRemove(workspaceId: string, url: string): Promise<void> {
+    return ipcRenderer.invoke(BROWSER_HISTORY_REMOVE, workspaceId, url)
+  },
+
+  browserHistoryClear(workspaceId: string): Promise<void> {
+    return ipcRenderer.invoke(BROWSER_HISTORY_CLEAR, workspaceId)
+  },
+
+  onBrowserHistoryChanged(callback: (payload: { workspaceId: string }) => void): () => void {
+    const listener = (_event: Electron.IpcRendererEvent, payload: { workspaceId: string }): void => {
+      callback(payload)
+    }
+    ipcRenderer.on(BROWSER_HISTORY_CHANGED, listener)
+    return () => { ipcRenderer.removeListener(BROWSER_HISTORY_CHANGED, listener) }
+  },
+
+  browserBookmarksGet(workspaceId: string): Promise<BrowserBookmark[]> {
+    return ipcRenderer.invoke(BROWSER_BOOKMARKS_GET, workspaceId)
+  },
+
+  browserBookmarksAdd(workspaceId: string, url: string, title?: string): Promise<BrowserBookmark | null> {
+    return ipcRenderer.invoke(BROWSER_BOOKMARKS_ADD, workspaceId, url, title)
+  },
+
+  browserBookmarksRemove(workspaceId: string, url: string): Promise<void> {
+    return ipcRenderer.invoke(BROWSER_BOOKMARKS_REMOVE, workspaceId, url)
+  },
+
+  browserBookmarksClear(workspaceId: string): Promise<void> {
+    return ipcRenderer.invoke(BROWSER_BOOKMARKS_CLEAR, workspaceId)
+  },
+
+  onBrowserBookmarksChanged(callback: (payload: { workspaceId: string }) => void): () => void {
+    const listener = (_event: Electron.IpcRendererEvent, payload: { workspaceId: string }): void => {
+      callback(payload)
+    }
+    ipcRenderer.on(BROWSER_BOOKMARKS_CHANGED, listener)
+    return () => { ipcRenderer.removeListener(BROWSER_BOOKMARKS_CHANGED, listener) }
+  },
+
+  browserClearData(workspaceId: string): Promise<BrowserClearDataResult> {
+    return ipcRenderer.invoke(BROWSER_CLEAR_DATA, workspaceId)
   },
 
   // ---------------------------------------------------------------------------

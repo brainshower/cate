@@ -578,6 +578,29 @@ export interface BrowserBookmark {
   addedAt: number
 }
 
+export type BrowserClearDataResult =
+  | {
+      ok: true
+      workspaceId: string
+      partition: string
+      cleared: {
+        electronStorage: true
+        history: true
+        bookmarks: true
+      }
+    }
+  | {
+      ok: false
+      workspaceId: string
+      partition: string
+      error: string
+      cleared: {
+        electronStorage: boolean
+        history: boolean
+        bookmarks: boolean
+      }
+    }
+
 // -----------------------------------------------------------------------------
 // Keyboard shortcuts
 // -----------------------------------------------------------------------------

@@ -170,3 +170,51 @@ test('T-E-016 screenshot button creates a draggable thumbnail from a local page'
     await server.close()
   }
 })
+
+test('T-E-005/T-E-006 browser history and bookmarks persist by workspace and stay isolated', async () => {
+  const userDataDir = await mkdtemp(path.join(os.tmpdir(), 'cate-browser-uplift-user-data-'))
+  const { electronApp: firstApp, mainWindow: firstPage } = await launchApp({ userDataDir })
+  let workspaceA = ''
+  let workspaceB = ''
+
+  try {
+    workspaceA = await firstPage.evaluate(() => window.__cateE2E!.selectedWorkspaceId())
+    await firstPage.evaluate(async (workspaceId) => {
+      await window.electronAPI.browserHistoryRecord(workspaceId, 'https://example.test/a', 'Workspace A Page')
+      await window.electronAPI.browserBookmarksAdd(workspaceId, 'https://example.test/a', 'Workspace A Page')
+    }, workspaceA)
+    workspaceB = await createWorkspace(firstPage, 'Browser State Workspace B')
+  } finally {
+    await closeApp(firstApp)
+  }
+
+  const { electronApp: secondApp, mainWindow: secondPage } = await launchApp({ userDataDir })
+  try {
+    const state = await secondPage.evaluate(async ({ workspaceAId, workspaceBId }) => {
+      return {
+        historyA: await window.electronAPI.browserHistoryGet(workspaceAId),
+        bookmarksA: await window.electronAPI.browserBookmarksGet(workspaceAId),
+        historyB: await window.electronAPI.browserHistoryGet(workspaceBId),
+        bookmarksB: await window.electronAPI.browserBookmarksGet(workspaceBId),
+      }
+    }, { workspaceAId: workspaceA, workspaceBId: workspaceB })
+
+    expect(state.historyA).toMatchObject([
+      {
+        url: 'https://example.test/a',
+        title: 'Workspace A Page',
+        visitCount: 1,
+      },
+    ])
+    expect(state.bookmarksA).toMatchObject([
+      {
+        url: 'https://example.test/a',
+        title: 'Workspace A Page',
+      },
+    ])
+    expect(state.historyB).toEqual([])
+    expect(state.bookmarksB).toEqual([])
+  } finally {
+    await closeApp(secondApp)
+  }
+})
