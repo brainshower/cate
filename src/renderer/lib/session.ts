@@ -757,6 +757,38 @@ export async function replayTerminalLog(panelId: string): Promise<void> {
 // Restore — multi-workspace
 // -----------------------------------------------------------------------------
 
+/**
+ * Ensure every workspace snapshot carries a UNIQUE workspaceId. Two distinct
+ * projects sharing an id is data corruption that makes both browsers resolve to
+ * the same `persist:browser-ws-${id}` Electron session — logging in or out of
+ * one bleeds into the other (debug: cate-workspace-session-bleed).
+ *
+ * Mutates snapshots in place: the FIRST occurrence of an id keeps it; every
+ * later collision (and any blank/missing id) is assigned a fresh
+ * crypto.randomUUID(). Mutating the snapshot is intentional so the corrected id
+ * flows through addWorkspace() into the store and is persisted by the next
+ * autosave, self-healing the on-disk files. Returns the number of ids changed.
+ */
+export function dedupeWorkspaceIds(workspaces: SessionSnapshot[]): number {
+  const seen = new Set<string>()
+  let changed = 0
+  for (const snapshot of workspaces) {
+    const id = typeof snapshot.workspaceId === 'string' ? snapshot.workspaceId.trim() : ''
+    if (id && !seen.has(id)) {
+      seen.add(id)
+      continue
+    }
+    const freshId = crypto.randomUUID()
+    log.warn(
+      `[session] duplicate/blank workspaceId ${id || '(empty)'} for "${snapshot.workspaceName}" (root=${snapshot.rootPath ?? 'none'}); regenerating as ${freshId} to prevent browser session bleed`,
+    )
+    snapshot.workspaceId = freshId
+    seen.add(freshId)
+    changed += 1
+  }
+  return changed
+}
+
 export async function restoreMultiWorkspaceSession(session: MultiWorkspaceSession, canvasStoreApi?: StoreApi<CanvasStore>): Promise<void> {
   const appStore = useAppStore.getState()
   const tTotal = performance.now()
@@ -780,6 +812,15 @@ export async function restoreMultiWorkspaceSession(session: MultiWorkspaceSessio
   }
 
   const selectedIdx = session.selectedWorkspaceIndex ?? 0
+
+  // Guard against two DISTINCT projects sharing the same persisted workspaceId.
+  // The browser session partition is derived purely as
+  // `persist:browser-ws-${workspaceId}`, so a duplicate id makes two workspaces
+  // bind to the SAME Electron session — their cookies/logins bleed across each
+  // other (see debug: cate-workspace-session-bleed). The corrected ids are
+  // written back into the snapshots so the next autosave repairs the on-disk
+  // .cate/workspace.json + session.json.
+  dedupeWorkspaceIds(session.workspaces)
 
   // Create all workspaces (entries only) and only restore the active one's panels
   const wsIds: string[] = []

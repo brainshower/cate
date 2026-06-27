@@ -1,16 +1,38 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi, afterEach } from 'vitest'
 import { Graph, ListBullets, MagnifyingGlass, Vault } from '@phosphor-icons/react'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { browserPartitionForWorkspace } from './browserPartition'
 
 const createFlashQueryVault = vi.fn()
 const createFlashQueryVaultSearch = vi.fn()
 const createOutline = vi.fn()
 const createSemanticConnections = vi.fn()
 
+// Mutable workspace fixture: each test that exercises owning-workspace
+// resolution sets this to the workspaces it wants `ownerWorkspaceIdForPanel`
+// to scan. Defaults to empty so unrelated tests fall back to ctx.workspaceId.
+let mockWorkspaces: Array<{ id: string; panels: Record<string, unknown> }> = []
+
 vi.mock('../stores/appStore', () => ({
   useAppStore: {
-    getState: () => ({ createFlashQueryVault, createFlashQueryVaultSearch, createOutline, createSemanticConnections }),
+    getState: () => ({
+      createFlashQueryVault,
+      createFlashQueryVaultSearch,
+      createOutline,
+      createSemanticConnections,
+      workspaces: mockWorkspaces,
+    }),
+  },
+  // Real-ish implementation mirroring appStore.ownerWorkspaceIdForPanel so the
+  // registry's owning-workspace resolution is exercised end-to-end against the
+  // mocked workspace fixture.
+  ownerWorkspaceIdForPanel: (panelId: string): string | undefined => {
+    if (!panelId) return undefined
+    for (const ws of mockWorkspaces) {
+      if (ws.panels[panelId]) return ws.id
+    }
+    return undefined
   },
 }))
 
@@ -268,5 +290,84 @@ describe('PANEL_REGISTRY semantic-connections entry', () => {
 
     expect(html).toContain('Selection')
     expect(html).not.toContain('my-heading-slug')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Regression: per-workspace browser session isolation
+// (debug: cate-workspace-session-bleed)
+//
+// The Electron <webview> partition is derived as
+// `persist:browser-ws-${workspaceId}` and is immutable after the webview
+// attaches. renderPanelComponent must therefore supply each browser panel its
+// OWN owning workspace id — the workspace whose `panels` map contains the
+// panel — NOT the globally-active selectedWorkspaceId that callers pass as
+// ctx.workspaceId. If it leaked the active id, two workspaces' browsers would
+// collapse onto one Electron session and bleed cookies/logins across
+// workspaces.
+// ---------------------------------------------------------------------------
+
+describe('renderPanelComponent — per-workspace browser partition isolation', () => {
+  afterEach(() => {
+    mockWorkspaces = []
+  })
+
+  it('T-U-023 binds each of two simultaneously-owned browser panels to its OWN workspace partition', async () => {
+    const { renderPanelComponent } = await import('./registry')
+
+    const wsA = '41933e17-92bd-4995-9f0d-ace211ff015f' // "files" / FlashQuery
+    const wsB = 'ba468b7e-2392-4591-b9ca-1a5e11da79f6' // "files" / Downloads
+    const browserA = { id: 'panel-browser-A', type: 'browser' as const, url: 'https://mail.google.com' }
+    const browserB = { id: 'panel-browser-B', type: 'browser' as const, url: 'https://mail.google.com' }
+
+    // Two DISTINCT workspaces, each owning ONE browser panel, both present in
+    // the store at the SAME time (not sequential fresh-workspace creation).
+    mockWorkspaces = [
+      { id: wsA, panels: { [browserA.id]: browserA } },
+      { id: wsB, panels: { [browserB.id]: browserB } },
+    ]
+
+    // Simulate the real bug condition: the renderer passes the GLOBAL active
+    // workspace id (wsA) as ctx.workspaceId for BOTH panels. The fix must
+    // override this with each panel's owning id.
+    const elemA = renderPanelComponent(browserA, { workspaceId: wsA, nodeId: 'node-A', zoomLevel: 1 })
+    const elemB = renderPanelComponent(browserB, { workspaceId: wsA, nodeId: 'node-B', zoomLevel: 1 })
+
+    expect(elemA?.props.workspaceId).toBe(wsA)
+    // The decisive assertion: panel B owned by wsB must NOT inherit the active
+    // wsA id — it must resolve to its own workspace.
+    expect(elemB?.props.workspaceId).toBe(wsB)
+
+    // And the derived partitions must be DISTINCT (the actual isolation guarantee).
+    const partitionA = browserPartitionForWorkspace(elemA!.props.workspaceId as string)
+    const partitionB = browserPartitionForWorkspace(elemB!.props.workspaceId as string)
+    expect(partitionA).toBe(`persist:browser-ws-${wsA}`)
+    expect(partitionB).toBe(`persist:browser-ws-${wsB}`)
+    expect(partitionA).not.toBe(partitionB)
+  })
+
+  it('T-U-024 falls back to ctx.workspaceId when no workspace owns the panel', async () => {
+    const { renderPanelComponent } = await import('./registry')
+    mockWorkspaces = [] // panel not present in any workspace (transient/detached)
+
+    const elem = renderPanelComponent(
+      { id: 'orphan-browser', type: 'browser', url: 'about:blank' },
+      { workspaceId: 'fallback-ws', nodeId: '', zoomLevel: 1 },
+    )
+
+    expect(elem?.props.workspaceId).toBe('fallback-ws')
+  })
+
+  it('T-U-025 prefers the owning workspace id over the active id even when they differ', async () => {
+    const { renderPanelComponent } = await import('./registry')
+    const owningWs = 'owning-workspace'
+    const activeWs = 'a-different-active-workspace'
+    const panel = { id: 'panel-x', type: 'browser' as const, url: 'about:blank' }
+    mockWorkspaces = [{ id: owningWs, panels: { [panel.id]: panel } }]
+
+    const elem = renderPanelComponent(panel, { workspaceId: activeWs, nodeId: '', zoomLevel: 1 })
+
+    expect(elem?.props.workspaceId).toBe(owningWs)
+    expect(elem?.props.workspaceId).not.toBe(activeWs)
   })
 })

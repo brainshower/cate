@@ -593,6 +593,70 @@ test('T-E-015 clear-data requires confirmation and does not reload open browser 
   }
 })
 
+test('T-E-019 browser session stays isolated when switching between workspaces that both have dock-zone browsers', async () => {
+  // Regression for: React reuses the BrowserPanel component (same tree position,
+  // same component type) when the active dock tab switches between two browser
+  // panels. Without key={browserPartition} on <webview>, Electron silently ignores
+  // the partition attribute change, leaving the incoming workspace's browser using
+  // the previous workspace's session.
+  const server = await startLocalAuthServer()
+  const workspaceRootA = await mkdtemp(path.join(os.tmpdir(), 'cate-session-bleed-a-'))
+  const workspaceRootB = await mkdtemp(path.join(os.tmpdir(), 'cate-session-bleed-b-'))
+  const { electronApp: app, mainWindow: page } = await launchApp()
+
+  try {
+    // --- Workspace A: anchor with rootPath (prevents auto-drop on switch), open browser and sign in ---
+    // ensureWorkspaceRoot sets a rootPath on the currently selected workspace so that
+    // selectWorkspace(B) later will NOT discard workspace A via the shouldDropOutgoing guard.
+    const workspaceA = await page.evaluate(
+      (rootPath) => window.__cateE2E!.ensureWorkspaceRoot(rootPath),
+      workspaceRootA,
+    )
+    const panelA = await createBrowserPanel(page, new URL('/login', server.baseUrl).href)
+    await expect(await waitForBrowserPartition(page, panelA)).toBe(`persist:browser-ws-${workspaceA}`)
+
+    await expect.poll(async () => {
+      return evalBrowserPanel(page, panelA, "document.querySelector('#status')?.textContent")
+    }).toBe('signed out')
+    await evalBrowserPanel(page, panelA, "document.querySelector('form')?.requestSubmit(); true")
+    await expect.poll(async () => {
+      return evalBrowserPanel(page, panelA, "document.querySelector('#status')?.textContent")
+    }).toBe('signed in')
+
+    // --- Workspace B: create, anchor with rootPath, open browser ---
+    // createWorkspace switches to B. Because A now has a rootPath, it is NOT auto-dropped.
+    const workspaceB = await createWorkspace(page, 'Session Bleed Test B')
+    // Give workspace B a rootPath so it also won't be auto-dropped on future switches.
+    await page.evaluate(
+      (rootPath) => window.__cateE2E!.ensureWorkspaceRoot(rootPath),
+      workspaceRootB,
+    )
+    const panelB = await createBrowserPanel(page, new URL('/account', server.baseUrl).href)
+    await expect(await waitForBrowserPartition(page, panelB)).toBe(`persist:browser-ws-${workspaceB}`)
+    await expect.poll(async () => {
+      return evalBrowserPanel(page, panelB, "document.querySelector('#status')?.textContent")
+    }).toBe('signed out')
+
+    // --- Switch B → A → B to exercise dock-zone browser panel reuse ---
+    // After each switch, both workspaces have a browser panel as the active dock tab.
+    // The pre-fix bug: the webview partition is not re-applied on remount, so workspace
+    // B's browser inherits workspace A's signed-in session.
+    await page.evaluate((id) => window.__cateE2E!.selectWorkspace(id), workspaceA)
+    await expect(await waitForBrowserPartition(page, panelA)).toBe(`persist:browser-ws-${workspaceA}`)
+    await page.evaluate((id) => window.__cateE2E!.selectWorkspace(id), workspaceB)
+
+    // After switching back to B, its browser must still be isolated (signed out).
+    await expect(await waitForBrowserPartition(page, panelB)).toBe(`persist:browser-ws-${workspaceB}`)
+    await evalBrowserPanel(page, panelB, `location.href = ${JSON.stringify(new URL('/account', server.baseUrl).href)}`)
+    await expect.poll(async () => {
+      return evalBrowserPanel(page, panelB, "document.querySelector('#status')?.textContent")
+    }).toBe('signed out')
+  } finally {
+    await closeApp(app)
+    await server.close()
+  }
+})
+
 test('T-E-018 browser operations preserve workspace FlashQuery connection state', async () => {
   const server = await startLocalBrowserServer((_req, res) => {
     res.writeHead(200, { 'content-type': 'text/html' })

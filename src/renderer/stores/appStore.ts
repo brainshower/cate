@@ -1949,6 +1949,32 @@ export function useWorkspacePanels(): Record<string, PanelState> | undefined {
   )
 }
 
+/**
+ * Resolve the id of the workspace that actually OWNS a given panel, i.e. the
+ * workspace whose `panels` map contains `panelId`. This is the only reliable
+ * source of a panel's workspace identity because PanelState itself carries no
+ * workspaceId field.
+ *
+ * Critical for browser panels: the Electron <webview> partition is derived as
+ * `persist:browser-ws-${workspaceId}` and is immutable after the webview
+ * attaches. If the render path supplied the GLOBAL active workspace id instead
+ * of the panel's owning id, two workspaces' browsers would collapse onto the
+ * active workspace's single Electron session — leaking cookies/logins across
+ * workspaces (see debug: cate-workspace-session-bleed).
+ *
+ * Returns `undefined` when no workspace owns the panel (e.g. a transient panel
+ * not yet committed to the store, or a detached-window panel); callers should
+ * fall back to whatever active id they have.
+ */
+export function ownerWorkspaceIdForPanel(panelId: string): string | undefined {
+  if (!panelId) return undefined
+  const { workspaces } = useAppStore.getState()
+  for (const ws of workspaces) {
+    if (ws.panels[panelId]) return ws.id
+  }
+  return undefined
+}
+
 /** Returns the rootPath for a workspace (defaults to selected). */
 export function useWorkspaceRootPath(wsId?: string): string | undefined {
   return useAppStore((s) => {

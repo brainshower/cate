@@ -547,8 +547,12 @@ export default function BrowserPanel({
           </div>
         )}
 
-        {/* Webview */}
+        {/* Webview — key forces React to unmount/remount when the partition
+            changes (e.g. workspace switch). Electron silently ignores
+            partition changes on an already-attached webview, so without
+            the key the previous workspace's session would be reused. */}
         <webview
+          key={browserPartition}
           ref={webviewRef as any}
           data-browser-panel-id={panelId}
           src={webviewSrc}

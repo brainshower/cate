@@ -31,7 +31,7 @@ import {
 import { CateLogo } from '../ui/CateLogo'
 import type { PanelType, Point } from '../../shared/types'
 import type { PanelPlacement } from '../stores/appStore'
-import { useAppStore } from '../stores/appStore'
+import { useAppStore, ownerWorkspaceIdForPanel } from '../stores/appStore'
 import { PANEL_DEFINITIONS, type SharedPanelDefinition } from '../../shared/panels'
 import type { PanelProps } from './types'
 
@@ -207,6 +207,17 @@ export function renderPanelComponent(
   const def = PANEL_REGISTRY[panel.type]
   if (!def) return null
   const { Component } = def
+  // Resolve the panel's OWN owning workspace id rather than trusting the
+  // caller-supplied active id. Callers (App.tsx renderPanelContent) pass the
+  // GLOBAL selectedWorkspaceId for every panel, but a panel belongs to exactly
+  // one workspace — the one whose `panels` map contains it. For browser panels
+  // this is load-bearing: the <webview> partition is `persist:browser-ws-${id}`
+  // and immutable after attach, so using the active id instead of the owning id
+  // collapses two workspaces' browsers onto one Electron session and bleeds
+  // cookies/logins across workspaces (debug: cate-workspace-session-bleed).
+  // Fall back to ctx.workspaceId when ownership can't be resolved (transient or
+  // detached-window panels not present in the main appStore).
+  const owningWorkspaceId = ownerWorkspaceIdForPanel(panel.id) ?? ctx.workspaceId
   // Per-type extras are passed through; components that don't accept them
   // simply ignore the extra props.
   const extras: Record<string, unknown> = {}
@@ -220,7 +231,7 @@ export function renderPanelComponent(
   }
   const props: PanelProps & Record<string, unknown> = {
     panelId: panel.id,
-    workspaceId: ctx.workspaceId,
+    workspaceId: owningWorkspaceId,
     nodeId: ctx.nodeId,
     ...extras,
     ...injectedProps,
