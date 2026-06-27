@@ -1,25 +1,8 @@
-import { app, ipcMain, session, shell, webContents, type Session, type WebContents } from 'electron'
+import { app, ipcMain, session, webContents, type Session, type WebContents } from 'electron'
 import { BROWSER_PORTAL_LOOKUP, BROWSER_PORTAL_REGISTER, BROWSER_SHORTCUT } from '../shared/ipc-channels'
 import type { BrowserShortcutAction } from '../shared/types'
 import log from './logger'
 import { disableWebviewHardening } from './featureFlags'
-
-const OAUTH_HOSTS = new Set([
-  'accounts.google.com',
-  'login.microsoftonline.com',
-  'appleid.apple.com',
-])
-
-function isOAuthUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url)
-    if (OAUTH_HOSTS.has(parsed.host)) return true
-    if (parsed.host === 'github.com' && parsed.pathname.startsWith('/login/oauth')) return true
-    return false
-  } catch {
-    return false
-  }
-}
 
 const configuredGuestSessions = new Set<string>()
 const browserGuestPartitions = new Set<string>()
@@ -206,23 +189,13 @@ export function installWebContentsSecurity(): void {
         event.preventDefault()
         forwardBrowserShortcut(contents, action)
       })
-
-      contents.on('will-navigate', (event, url) => {
-        if (isOAuthUrl(url)) {
-          event.preventDefault()
-          shell.openExternal(url)
-        }
-      })
-
-      contents.setWindowOpenHandler(({ url }) => {
-        if (isOAuthUrl(url)) {
-          shell.openExternal(url)
-        }
-        return { action: 'deny' }
-      })
-    } else {
-      contents.setWindowOpenHandler(() => ({ action: 'deny' }))
     }
+
+    // Deny all new-window / window.open() requests for both webview and window
+    // contents. This prevents guest pages from spawning additional browser
+    // windows — sign-in flows that use same-frame navigation (like Google
+    // accounts) proceed normally within the webview instead.
+    contents.setWindowOpenHandler(() => ({ action: 'deny' }))
 
     if (contents.getType() === 'window') {
       contents.on('will-navigate', (event, url) => {
@@ -253,10 +226,10 @@ export function installWebContentsSecurity(): void {
       webPreferences.webSecurity = true
       ;(webPreferences as { allowRunningInsecureContent?: boolean }).allowRunningInsecureContent = false
 
-      // Allow `window.open()` from webview content so we can track OAuth /
-      // Sign-In popups via Cate's popup registry. The setWindowOpenHandler
-      // installed when the guest's webContents is created strictly filters
-      // which URLs are actually allowed; this just removes the blanket veto.
+      // Allow `window.open()` from webview content. The setWindowOpenHandler
+      // installed below returns { action: 'deny' } for all new-window requests,
+      // so no popup actually escapes — but the flag must be present for the
+      // handler to be invoked by Electron at all.
       params.allowpopups = 'true'
 
       const partition = typeof webPreferences.partition === 'string' ? webPreferences.partition : undefined
