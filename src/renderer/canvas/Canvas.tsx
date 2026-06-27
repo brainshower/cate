@@ -231,6 +231,25 @@ const Canvas: React.FC<CanvasProps> = ({ children, onCreateAtPoint, panelId }) =
       return
     }
 
+    // In-memory image drop (e.g. a browser-panel screenshot): ingest the data
+    // URL directly so we never read the file back through the fs path guard.
+    // The screenshot is written to the Desktop, which is outside allowedRoots,
+    // so an fsStat/fsReadBinary round-trip would be denied.
+    const imageDataUrl = e.dataTransfer.getData('application/cate-dataurl')
+    if (imageDataUrl) {
+      e.preventDefault()
+      const rect = canvasRef.current?.getBoundingClientRect()
+      if (!rect) return
+      const viewPoint = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+      const { zoomLevel, viewportOffset } = canvasApi.getState()
+      const pos = viewToCanvas(viewPoint, zoomLevel, viewportOffset)
+      const wsId = useAppStore.getState().selectedWorkspaceId
+      // Keep filePath for the title and the DocumentPanel "Show in Finder" action.
+      const filePath = e.dataTransfer.getData('application/cate-file') || undefined
+      useAppStore.getState().createDocument(wsId, filePath, 'image', pos, undefined, imageDataUrl)
+      return
+    }
+
     // Support internal multi-file drops…
     const multiData = e.dataTransfer.getData('application/cate-files')
     const singlePath = e.dataTransfer.getData('application/cate-file')

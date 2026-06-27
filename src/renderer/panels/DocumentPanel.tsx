@@ -249,6 +249,16 @@ function DocxViewer({ data }: { data: Uint8Array }) {
   )
 }
 
+// Decode a `data:<mime>;base64,<payload>` URL into raw bytes for the viewers.
+function dataUrlToBytes(dataUrl: string): Uint8Array {
+  const comma = dataUrl.indexOf(',')
+  if (comma === -1) throw new Error('Invalid data URL')
+  const binary = atob(dataUrl.slice(comma + 1))
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  return bytes
+}
+
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
@@ -261,6 +271,7 @@ export default function DocumentPanel({ panelId, workspaceId }: PanelProps) {
 
   const filePath = panelState?.filePath
   const storeDocumentType = panelState?.documentType
+  const inlineDataUrl = panelState?.inlineDataUrl
 
   const [data, setData] = useState<Uint8Array | null>(null)
   const [loading, setLoading] = useState(true)
@@ -283,6 +294,19 @@ export default function DocumentPanel({ panelId, workspaceId }: PanelProps) {
   }, [filePath])
 
   useEffect(() => {
+    // Inline image bytes (e.g. a dropped browser screenshot) render directly
+    // from the data URL — no filesystem read, so the fs path guard is never hit.
+    if (inlineDataUrl) {
+      try {
+        setData(dataUrlToBytes(inlineDataUrl))
+        setError(null)
+      } catch (err) {
+        setError(String(err))
+      }
+      setLoading(false)
+      return
+    }
+
     if (!filePath) {
       setError('No file path provided')
       setLoading(false)
@@ -306,7 +330,7 @@ export default function DocumentPanel({ panelId, workspaceId }: PanelProps) {
     })
 
     return () => { cancelled = true }
-  }, [filePath])
+  }, [filePath, inlineDataUrl])
 
   if (loading) {
     return (

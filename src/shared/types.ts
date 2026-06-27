@@ -118,6 +118,12 @@ export interface PanelState {
   cwd?: string
   /** Document panels only: sub-type discriminator for the viewer. */
   documentType?: 'pdf' | 'docx' | 'image'
+  /** Document panels only: in-memory image bytes as a data URL, rendered
+   *  instead of reading `filePath` from disk. Set when a screenshot — written
+   *  to the Desktop, which is outside the fs path guard's allowed roots — is
+   *  dropped onto the canvas. Live state only: intentionally NOT serialized
+   *  into the session snapshot (see `src/renderer/lib/session.ts`). */
+  inlineDataUrl?: string
   /** Id of the WorktreeMeta in the parent workspace that this panel is
    *  associated with. Drives the per-panel color accent and the title-bar
    *  "switch worktree" pill. Applies to terminal + agent panels. */

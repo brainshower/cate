@@ -191,6 +191,10 @@ export default function BrowserPanel({
     try {
       e.dataTransfer.effectAllowed = 'copy'
       e.dataTransfer.setData('application/cate-file', screenshot.filePath)
+      // Carry the in-memory image so the canvas can ingest it without reading
+      // the file back: the screenshot lives on the Desktop, which is outside
+      // the fs path guard's allowed roots, so a filesystem round-trip is denied.
+      e.dataTransfer.setData('application/cate-dataurl', screenshot.dataUrl)
       e.dataTransfer.setData('text/uri-list', `file://${screenshot.filePath}`)
       e.dataTransfer.setData('text/plain', screenshot.filePath)
       // Use the screenshot itself as the drag image so the cursor shows the
