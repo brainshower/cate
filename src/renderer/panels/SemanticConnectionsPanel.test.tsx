@@ -130,6 +130,108 @@ const mixedResult: SemanticConnectionsResult = {
   ],
 }
 
+const graphResult: SemanticConnectionsResult = {
+  mode: 'typed',
+  overall: [
+    {
+      id: 'contradiction-scope',
+      rel: 'contradicts',
+      confidenceScore: 0.91,
+      status: 'active',
+      target: {
+        title: 'Risk Notes',
+        path: 'Docs/Risk.md',
+        heading: 'Contrary evidence',
+        chunkId: 'risk-evidence',
+        snippet: 'Contrary evidence challenges the rollout claim.',
+      },
+    },
+    {
+      id: 'support-details',
+      rel: 'supports',
+      confidenceScore: 0.72,
+      status: 'active',
+      target: {
+        title: 'Support Notes',
+        path: 'Docs/Support.md',
+        heading: 'Supporting data',
+        chunkId: 'supporting-data',
+        snippet: 'Supporting data confirms the expected flow.',
+      },
+    },
+  ],
+  byChunkId: {
+    scope: [
+      {
+        id: 'scope-contradiction',
+        rel: 'contradicts',
+        confidenceScore: 0.9,
+        status: 'active',
+        target: {
+          title: 'Risk Notes',
+          path: 'Docs/Risk.md',
+          heading: 'Contrary evidence',
+          chunkId: 'risk-evidence',
+          snippet: 'Contrary evidence challenges the rollout claim.',
+        },
+      },
+    ],
+    details: [],
+    appendix: [],
+  },
+  chunkOrder: ['scope', 'details', 'appendix'],
+  chunkMap: {
+    scope: {
+      previewChunkId: 'scope',
+      flashqueryChunkId: 'fq-scope',
+      documentPath: '/workspace/Plan.md',
+      documentTitle: 'Plan',
+      headingText: 'Scope',
+      headingPath: ['Plan', 'Scope'],
+    },
+    details: {
+      previewChunkId: 'details',
+      flashqueryChunkId: 'fq-details',
+      documentPath: '/workspace/Plan.md',
+      documentTitle: 'Plan',
+      headingText: 'Details',
+      headingPath: ['Plan', 'Details'],
+    },
+    appendix: {
+      previewChunkId: 'appendix',
+      flashqueryChunkId: 'fq-appendix',
+      documentPath: '/workspace/Plan.md',
+      documentTitle: 'Plan',
+      headingText: 'Appendix',
+      headingPath: ['Plan', 'Appendix'],
+    },
+  },
+  communitySummary: {
+    dominantLabel: 'Graph rollout',
+    summary: 'Graph rollout connects implementation risks with supporting evidence.',
+    labels: ['Graph rollout', 'Adapter health', 'Preview UX'],
+  },
+  nodeMeta: {
+    scope: {
+      chunkSummary: 'Scope carries the riskiest rollout assumptions.',
+      certaintyLevel: 'medium',
+      questionStatus: 'none',
+    },
+    details: {
+      chunkSummary: 'Details still has an unresolved implementation question.',
+      certaintyLevel: 'high',
+      questionStatus: 'open',
+      questionResolution: 'Which graph rows should remain visible during filtering?',
+    },
+    appendix: {
+      chunkSummary: 'Appendix has a tentative source note.',
+      certaintyLevel: 'low',
+      questionStatus: 'none',
+    },
+  },
+  diagnostics: [],
+}
+
 function renderPanel(result: SemanticConnectionsResult, options: { activeChunkId?: string } = {}) {
   const filePath = readyEditor()
   if (options.activeChunkId) {
@@ -177,6 +279,7 @@ describe('SemanticConnectionsPanel', () => {
     expect(screen.queryByText('Sort by nature')).toBeNull()
     expect(screen.queryByText('Nature filters')).toBeNull()
     expect(screen.queryByText('Depends on')).toBeNull()
+    expect(screen.queryByText('Sections')).toBeNull()
   })
 
   it('publishes preview chunk markers only for sections with non-empty connection lists', async () => {
@@ -535,6 +638,87 @@ describe('SemanticConnectionsPanel', () => {
     expect(await screen.findByText('Unable to load semantic connections')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Retry connections' })).toBeTruthy()
     expect(screen.queryByTestId('semantic-connection-card-broken')).toBeNull()
+  })
+
+  it('T-C-005, T-C-006, and T-C-007 renders graph summary only when community data exists', async () => {
+    renderPanel(graphResult)
+
+    expect(await screen.findByText('Summary')).toBeTruthy()
+    expect(screen.getByText('Graph rollout')).toBeTruthy()
+    expect(screen.getByText('Graph rollout connects implementation risks with supporting evidence.')).toBeTruthy()
+    expect(screen.getByText('Adapter health')).toBeTruthy()
+    expect(screen.getByText('Preview UX')).toBeTruthy()
+    cleanup()
+    clearActiveEditorRegistryForTests()
+    clearPreviewSelectionForTests()
+
+    renderPanel({ ...graphResult, communitySummary: undefined })
+
+    await screen.findByText('Sections')
+    expect(screen.queryByText('Summary')).toBeNull()
+  })
+
+  it('T-C-008, T-C-009, T-C-010, T-C-011, T-C-012, T-C-026, and T-C-063 renders attention rows with scoped navigation and filter immunity', async () => {
+    renderPanel({ ...graphResult, nodeMetaLoading: true })
+
+    expect(await screen.findByText('Needs attention')).toBeTruthy()
+    expect(screen.getByText('Checking graph metadata...')).toBeTruthy()
+    expect(screen.queryByText('No graph attention items found')).toBeNull()
+    expect(screen.getByText('Contradictions')).toBeTruthy()
+    expect(screen.getByText('Open questions')).toBeTruthy()
+    expect(screen.getByText('Uncertain sections')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Review contradiction in Scope' })).toBeTruthy()
+    expect(screen.getByText('Which graph rows should remain visible during filtering?')).toBeTruthy()
+    expect(screen.getByText('Appendix has a tentative source note.')).toBeTruthy()
+
+    act(() => useSemanticConnectionsChromeStore.getState().panels['sc-1']?.toggleConfig())
+    fireEvent.click(screen.getByRole('button', { name: 'Supports' }))
+
+    expect(screen.getByRole('button', { name: 'Review contradiction in Scope' })).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Review contradiction in Scope' }))
+    expect(usePreviewSelectionStore.getState().getScope('editor-1').activeChunkId).toBe('scope')
+    expect(screen.getByRole('button', { name: 'Show selected section semantic connections' }).getAttribute('aria-pressed')).toBe('true')
+    cleanup()
+    clearActiveEditorRegistryForTests()
+    clearPreviewSelectionForTests()
+
+    renderPanel({
+      ...graphResult,
+      overall: graphResult.overall.filter((connection) => connection.rel !== 'contradicts'),
+      byChunkId: { scope: [], details: [], appendix: [] },
+      nodeMeta: {
+        scope: { certaintyLevel: 'high', questionStatus: 'none' },
+        details: { certaintyLevel: 'unknown', questionStatus: 'none' },
+        appendix: { certaintyLevel: 'unknown', questionStatus: 'none' },
+      },
+      nodeMetaLoading: false,
+    })
+
+    await screen.findByText('Sections')
+    expect(screen.queryByText('Needs attention')).toBeNull()
+  })
+
+  it('T-C-013, T-C-014, T-C-015, T-C-016, and T-C-017 renders ordered sections with graph flags and selection', async () => {
+    renderPanel(graphResult)
+
+    const sections = await screen.findByTestId('semantic-graph-sections')
+    expect(within(sections).getAllByRole('button').map((button) => button.textContent)).toEqual([
+      expect.stringContaining('Scope'),
+      expect.stringContaining('Details'),
+      expect.stringContaining('Appendix'),
+    ])
+    expect(within(sections).getByText('Contradiction')).toBeTruthy()
+    expect(within(sections).getByText('Question')).toBeTruthy()
+    expect(within(sections).getByText('Medium certainty')).toBeTruthy()
+    expect(within(sections).getByText('High certainty')).toBeTruthy()
+    expect(within(sections).getByText('Low certainty')).toBeTruthy()
+    expect(within(sections).getAllByText('—')).toHaveLength(2)
+
+    fireEvent.click(within(sections).getByRole('button', { name: 'Open section Details' }))
+
+    expect(usePreviewSelectionStore.getState().getScope('editor-1').activeChunkId).toBe('details')
+    expect(screen.getByRole('button', { name: 'Show selected section semantic connections' }).getAttribute('aria-pressed')).toBe('true')
   })
 
   it('T-I-025 and T-I-026 shows loading and supersedes stale in-flight requests', async () => {
