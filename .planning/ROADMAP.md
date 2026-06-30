@@ -36,10 +36,11 @@ This grouping keeps the first GSD phase vertically testable: the graph data cont
 
 **Recommended waves:**
 
-1. **Shared graph contract + normalization**
+1. ✅ **Shared graph contract + normalization** — completed by plan 27-01 (`27-01-SUMMARY.md`)
    - Implement graph relation/type expansion, optional-score validation, `get_document` graph-summary include support, target health-tier normalization, malformed optional field handling, and token-redaction diagnostics.
    - Requirements in this wave: REQ-001, REQ-003, REQ-021.
    - Tests in same wave: T-U-001, T-U-002, T-U-003, T-U-026, T-I-001, T-I-002, T-I-003, T-I-004, T-I-007, T-I-008, T-U-028.
+   - Verification: focused renderer/provider and main/IPC unit suites pass; `npm run typecheck` passes. Node 20/22 precheck could not pass in the current shell because only Node 26 is installed.
 
 2. **Provider mode, chunk mapping, and `query_graph` node backfill**
    - Implement typed/mixed/embeddings-only mode derivation, source chunk to preview chunk mapping, diagnostics for unmapped chunks, stale/partial-data handling, `query_graph` IPC/preload bridge, node metadata backfill, loading state, and per-chunk degradation.
@@ -123,7 +124,7 @@ This grouping keeps the first GSD phase vertically testable: the graph data cont
 
 ## Current Status
 
-Milestone v1.6 has been initialized. Requirements are defined in `.planning/REQUIREMENTS.md`, and the active roadmap has two phases with all 23 requirements mapped.
+Plan 27-01 completed Wave 1 shared graph contract and normalization work. Requirements are defined in `.planning/REQUIREMENTS.md`, and the active roadmap has two phases with all 23 requirements mapped.
 
 ---
 *Last updated: 2026-06-30 after v1.6 roadmap creation*

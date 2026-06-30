@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Graph Intelligence Monaco Side Panel
 status: executing
-stopped_at: Milestone v1.6 roadmap created
-last_updated: "2026-06-30T22:38:02.061Z"
-last_activity: 2026-06-30 -- Phase 27 planning complete
+stopped_at: Completed 27-01-PLAN.md
+last_updated: "2026-06-30T23:20:33Z"
+last_activity: 2026-06-30 -- Plan 27-01 graph data contract complete
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 3
-  completed_plans: 0
-  percent: 0
+  completed_plans: 1
+  percent: 33
 ---
 
 # Project State
@@ -21,26 +21,26 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-30 after v1.6 Graph Intelligence Monaco Side Panel milestone start)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** v1.6 Graph Intelligence Monaco Side Panel
+**Current focus:** Phase 27 — graph-data-contract-and-whole-document-graph-view
 
 ## Current Position
 
-Phase: 27 - Graph Data Contract and Whole-Document Graph View
-Plan: —
-Status: Ready to execute
-Last activity: 2026-06-30 -- Phase 27 planning complete
+Phase: 27 (graph-data-contract-and-whole-document-graph-view) — EXECUTING
+Plan: 2 of 3
+Status: Ready for next Phase 27 plan
+Last activity: 2026-06-30 -- Plan 27-01 graph data contract complete
 
 ## Session Continuity
 
-Last session: 2026-06-30T21:09:56.849Z
-Stopped At: Milestone v1.6 roadmap created
+Last session: 2026-06-30T23:20:33Z
+Stopped At: Completed 27-01-PLAN.md
 Resume File: None
 
 ## Next Up
 
-Start Phase 27 with `/gsd-plan-phase 27`.
+Continue Phase 27 with plan 27-02.
 
-Phase 27 bundles the source docs' Graph Data Contract and Whole-Document Graph View phases. Each wave should include the implementation and tests for the REQs it touches, especially the shared graph contract, `query_graph` bridge, provider backfill, embeddings fallback, and whole-document graph UI.
+Plan 27-01 completed the shared graph contract, `get_document` graph summary include support, target health-tier normalization, malformed optional field handling, and token-redaction diagnostics. Next work should build on these contracts for provider mode derivation, source chunk mapping, and `query_graph` backfill.
 
 ## Decisions
 
@@ -130,7 +130,8 @@ Items acknowledged and deferred at milestone close on 2026-06-16:
 | 26-browser-uplift | 07 | 55min | 2 | 10 |
 | 26-browser-uplift | 08 | 85min | 2 | 10 |
 | 26-browser-uplift | 09 | 8min | 2 | 4 |
+| 27-graph-data-contract-and-whole-document-graph-view | 01 | 11m 17s | 3 | 10 |
 
 ## Operator Next Steps
 
-- Start Phase 27 with `/gsd-plan-phase 27`.
+- Continue Phase 27 with plan 27-02.
