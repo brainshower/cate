@@ -4,6 +4,10 @@
 **Domain:** Electron/React/TypeScript graph data contract, FlashQuery MCP bridge, Semantic Connections panel
 **Confidence:** HIGH
 
+## Reconciliation Note
+
+After this research pass completed, `27-CONTEXT.md` and `27-UI-SPEC.md` were restored and committed for this phase. Downstream planning and implementation agents MUST read those files first, then use this research as supporting technical analysis. The "User Constraints" section below reflects the research-time filesystem state only.
+
 ## User Constraints
 
 No `27-CONTEXT.md` file was present in `.planning/phases/27-graph-data-contract-and-whole-document-graph-view/` at research time, so no phase-local locked decisions could be copied verbatim. [VERIFIED: codebase grep]
