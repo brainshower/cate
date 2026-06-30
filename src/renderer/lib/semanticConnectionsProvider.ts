@@ -9,6 +9,8 @@ import type {
   FlashQueryDocumentConnectionsParams,
   FlashQueryDocumentConnectionsResponse,
   FlashQueryDocumentSearchResult,
+  FlashQueryQueryGraphParams,
+  FlashQueryQueryGraphResponse,
   FlashQuerySearchParams,
   FlashQuerySearchResponse,
   FlashQuerySourceChunkConnections,
@@ -105,6 +107,11 @@ type FlashQueryDocumentConnectionsFn = (
   workspaceId: string,
   params: FlashQueryDocumentConnectionsParams,
 ) => Promise<FlashQueryDocumentConnectionsResponse>
+
+type FlashQueryQueryGraphFn = (
+  workspaceId: string,
+  params: FlashQueryQueryGraphParams,
+) => Promise<FlashQueryQueryGraphResponse>
 
 interface PreviewChunkHeading {
   heading: DocumentHeading
@@ -489,6 +496,80 @@ function deriveMode(
   return renderedConnections.some((connection) => !connection.rel) ? 'mixed' : 'typed'
 }
 
+function stringArray(value: unknown): string[] | undefined {
+  return Array.isArray(value) && value.every((entry) => typeof entry === 'string') ? value : undefined
+}
+
+function nodeMetaFromQueryGraph(payload: FlashQueryQueryGraphResponse): SemanticConnectionNodeMeta | null {
+  if (payload.error) return null
+  const meta: SemanticConnectionNodeMeta = {}
+  if (typeof payload.chunk_summary === 'string') meta.chunkSummary = payload.chunk_summary
+  const keyClaims = stringArray(payload.key_claims)
+  if (keyClaims) meta.keyClaims = keyClaims
+  if (typeof payload.certainty_level === 'string') meta.certaintyLevel = payload.certainty_level
+  if (typeof payload.staleness_risk === 'string') meta.stalenessRisk = payload.staleness_risk
+  const externalRefs = stringArray(payload.external_refs)
+  if (externalRefs) meta.externalRefs = externalRefs
+  const temporalMarkers = stringArray(payload.temporal_markers)
+  if (temporalMarkers) meta.temporalMarkers = temporalMarkers
+  if (typeof payload.question_status === 'string') meta.questionStatus = payload.question_status
+  if (typeof payload.question_resolution === 'string') meta.questionResolution = payload.question_resolution
+  if (typeof payload.community_id === 'string') meta.communityId = payload.community_id
+  if (typeof payload.community_label === 'string') meta.communityLabel = payload.community_label
+  if (typeof payload.community_summary === 'string') meta.communitySummary = payload.community_summary
+  if (typeof payload.content === 'string') meta.content = payload.content
+  if (typeof payload.analyzed === 'boolean') meta.analyzed = payload.analyzed
+  if (typeof payload.stale === 'boolean') meta.stale = payload.stale
+  if (typeof payload.analyzed_at === 'string') meta.analyzedAt = payload.analyzed_at
+  return Object.keys(meta).length > 0 ? meta : null
+}
+
+async function backfillNodeMeta(
+  workspaceId: string,
+  result: SemanticConnectionsResult,
+  queryGraph: FlashQueryQueryGraphFn,
+): Promise<SemanticConnectionsResult> {
+  const entries = Object.values(result.chunkMap)
+    .filter((entry): entry is SemanticConnectionsTargetMapEntry & { flashqueryChunkId: string; previewChunkId: string } =>
+      Boolean(entry.flashqueryChunkId && entry.previewChunkId))
+  if (entries.length === 0) return result
+
+  const nodeMeta: Record<string, SemanticConnectionNodeMeta> = {}
+  const diagnostics: string[] = []
+  await Promise.all(entries.map(async (entry) => {
+    try {
+      const payload = await queryGraph(workspaceId, {
+        action: 'node',
+        chunk_id: entry.flashqueryChunkId,
+      })
+      if (payload.error) {
+        diagnostics.push(`Unable to load node metadata for ${entry.flashqueryChunkId}: ${payload.error}`)
+        return
+      }
+      const meta = nodeMetaFromQueryGraph(payload)
+      if (meta) nodeMeta[entry.previewChunkId] = meta
+    } catch (error) {
+      diagnostics.push(
+        `Unable to load node metadata for ${entry.flashqueryChunkId}: `
+        + `${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
+  }))
+
+  return {
+    ...result,
+    nodeMeta: {
+      ...(result.nodeMeta ?? {}),
+      ...nodeMeta,
+    },
+    nodeMetaLoading: false,
+    diagnostics: [
+      ...result.diagnostics,
+      ...diagnostics,
+    ],
+  }
+}
+
 function buildConnectionsResultFromDocumentConnections(
   markdown: string,
   response: FlashQueryDocumentConnectionsResponse,
@@ -631,6 +712,7 @@ function connectionsFromResponse(response: FlashQuerySearchResponse, sourcePath:
 export function createFlashQuerySemanticConnectionsProvider(
   search: FlashQuerySearchFn = (workspaceId, params) => window.electronAPI.flashquerySearch(workspaceId, params),
   documentConnections?: FlashQueryDocumentConnectionsFn,
+  queryGraph?: FlashQueryQueryGraphFn,
 ): SemanticConnectionsProvider {
   return createCachedSemanticConnectionsProvider({
     async loadDocumentConnections(input) {
@@ -647,7 +729,11 @@ export function createFlashQuerySemanticConnectionsProvider(
           limit_per_chunk: DOCUMENT_CONNECTIONS_LIMIT_PER_CHUNK,
           ...(input.embeddingNames?.length ? { embedding_names: input.embeddingNames } : {}),
         })
-        return buildConnectionsResultFromDocumentConnections(input.markdown, response)
+        const result = buildConnectionsResultFromDocumentConnections(input.markdown, response)
+        const loadQueryGraph = queryGraph
+          ?? (typeof window === 'undefined' ? undefined : window.electronAPI.flashqueryQueryGraph)
+        if (!loadQueryGraph || result.mode === 'embeddings-only') return result
+        return backfillNodeMeta(input.workspaceId, result, loadQueryGraph)
       }
 
       const searchParams = {
