@@ -418,15 +418,49 @@ function targetFromConnection(connection: FlashQueryDocumentConnection): FlashQu
     headingText: headingFromPath(connection.target.heading_path),
     snippet: snippetFrom(connection.target.content, undefined),
     body: connection.target.content,
+    targetChunkSummary: connection.target.chunk_summary,
+    targetStale: connection.target.stale,
+    targetAnalyzedAt: connection.target.analyzed_at,
+    targetCommunityId: connection.target.community_id,
+  }
+}
+
+function sourceChunkTarget(
+  sourceChunk: FlashQuerySourceChunkConnections,
+  response: FlashQueryDocumentConnectionsResponse,
+): FlashQuerySemanticConnectionTarget {
+  const headingPath = headingPathFrom(sourceChunk.heading_path ?? sourceChunk.breadcrumb)
+  return {
+    flashqueryChunkId: sourceChunk.chunk_id,
+    documentId: response.source.document_id,
+    documentPath: response.source.path,
+    documentTitle: response.source.title ?? response.source.path,
+    headingPath,
+    headingText: headingFromPath(sourceChunk.heading_path ?? sourceChunk.breadcrumb),
+    snippet: '',
+  }
+}
+
+function toFlashQuerySemanticConnection(connection: FlashQueryDocumentConnection): FlashQuerySemanticConnection {
+  return {
+    id: connection.id,
+    score: connection.score,
+    rel: connection.relation,
+    dir: connection.direction as SemanticConnectionDirection | undefined,
+    confidence: connection.confidence,
+    confidenceScore: connection.confidence_score,
+    reasoning: connection.reasoning,
+    sourceClaimsReferenced: connection.source_claims_referenced,
+    targetClaimsReferenced: connection.target_claims_referenced,
+    status: connection.status,
+    qualifiers: connection.qualifiers,
+    metadata: connection.metadata,
+    target: targetFromConnection(connection),
   }
 }
 
 function toSemanticConnection(connection: FlashQueryDocumentConnection): SemanticConnection {
-  return toUnscopedPanelConnection({
-    id: connection.id,
-    score: connection.score,
-    target: targetFromConnection(connection),
-  })
+  return toUnscopedPanelConnection(toFlashQuerySemanticConnection(connection))
 }
 
 function sourcePreviewChunkId(
@@ -447,44 +481,52 @@ function sourcePreviewChunkId(
   return previewHeading?.previewChunkId ?? null
 }
 
+function deriveMode(
+  graphSummary: GraphDocumentSummary | undefined,
+  renderedConnections: readonly SemanticConnection[],
+): SemanticConnectionMode {
+  if (!graphSummary || graphSummary.edge_count <= 0) return 'embeddings-only'
+  return renderedConnections.some((connection) => !connection.rel) ? 'mixed' : 'typed'
+}
+
 function buildConnectionsResultFromDocumentConnections(
   markdown: string,
   response: FlashQueryDocumentConnectionsResponse,
 ): SemanticConnectionsResult {
   if (response.error) throw new Error(response.error)
 
-  const sourceChunks = sourcePreviewChunksFromMarkdown(markdown)
+  const mapping = mapFlashQueryChunksToPreview({
+    markdown,
+    targets: response.source_chunks.map((sourceChunk) => sourceChunkTarget(sourceChunk, response)),
+  })
   const byChunkId: Record<string, SemanticConnection[]> = Object.fromEntries(
-    sourceChunks.map((chunk) => [chunk.previewChunkId, []]),
-  )
-  const chunkMap: Record<string, SemanticConnectionsTargetMapEntry> = Object.fromEntries(
-    sourceChunks.map((chunk) => [
-      chunk.previewChunkId,
-      {
-        previewChunkId: chunk.previewChunkId,
-        documentPath: response.source.path,
-        documentTitle: response.source.title ?? response.source.path,
-        headingPath: chunk.headingPath,
-        headingText: chunk.heading.text,
-        sourceStartLine: chunk.sourceStartLine,
-        sourceEndLine: chunk.sourceEndLine,
-      },
-    ]),
+    mapping.chunkOrder.map((chunkId) => [chunkId, []]),
   )
 
   for (const sourceChunk of response.source_chunks) {
-    const previewChunkId = sourcePreviewChunkId(sourceChunk, markdown)
-    if (!previewChunkId) continue
-    byChunkId[previewChunkId] = dedupeBestConnections(sourceChunk.connections.map(toSemanticConnection))
+    const entry = mapping.chunkMapByFlashQueryId[sourceChunk.chunk_id]
+    if (!entry?.previewChunkId) continue
+    byChunkId[entry.previewChunkId] = dedupeBestConnections(sourceChunk.connections.map(toSemanticConnection))
   }
 
+  const overall = dedupeBestConnections(response.overall.map(toSemanticConnection))
+  const renderedConnections = dedupeBestConnections([
+    ...overall,
+    ...Object.values(byChunkId).flat(),
+  ])
+
   return {
-    mode: 'embeddings-only',
-    overall: dedupeBestConnections(response.overall.map(toSemanticConnection)),
+    mode: deriveMode(response.graph_summary, renderedConnections),
+    overall,
     byChunkId,
-    chunkOrder: sourceChunks.map((chunk) => chunk.previewChunkId),
-    chunkMap,
-    diagnostics: [],
+    chunkOrder: mapping.chunkOrder,
+    chunkMap: mapping.chunkMap,
+    diagnostics: [
+      ...mapping.diagnostics,
+      ...(response.diagnostics ?? []),
+      ...unknownRelationDiagnostics(renderedConnections),
+    ],
+    ...(response.graph_summary ? { graphSummary: response.graph_summary } : {}),
   }
 }
 
