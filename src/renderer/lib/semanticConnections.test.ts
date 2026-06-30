@@ -3,6 +3,7 @@ import {
   SC_EDGE,
   arrangeForDisplay,
   getAllRels,
+  groupWholeDocumentConnections,
   scCautionFlags,
   scEdgeLabel,
   scUnknownRelationDiagnostic,
@@ -143,5 +144,58 @@ describe('semantic connection utilities', () => {
   it('T-U-008 returns zero caution counts for embeddings-only data and counts typed caution tones', () => {
     expect(scCautionFlags(embeddingsOnly)).toEqual({ warn: 0, caution: 0, total: 0 })
     expect(scCautionFlags(mixedTyped)).toEqual({ warn: 1, caution: 1, total: 2 })
+  })
+
+  it('T-U-017 groups whole-document relations in graph priority order with similarity last', () => {
+    const grouped = groupWholeDocumentConnections([
+      { ...mixedTyped[0], id: 'untyped' },
+      { ...mixedTyped[1], id: 'depends' },
+      { ...mixedTyped[3], id: 'contradicts' },
+      {
+        id: 'similarity',
+        rel: 'semantically_similar_to',
+        confidenceScore: 0.99,
+        target: { title: 'Similarity', path: 'Docs/S.md', chunkId: 'similarity', snippet: 'similarity' },
+      },
+    ])
+
+    expect(grouped.map((group) => group.key)).toEqual([
+      'contradicts',
+      'depends_on',
+      'similarity',
+      'semantically_similar_to',
+    ])
+  })
+
+  it('T-U-018 sorts relation groups by confidence score with score fallback', () => {
+    const grouped = groupWholeDocumentConnections([
+      {
+        id: 'score-fallback',
+        rel: 'supports',
+        score: 0.8,
+        target: { title: 'Score fallback', path: 'Docs/F.md', chunkId: 'score-fallback', snippet: 'fallback' },
+      },
+      {
+        id: 'confidence-high',
+        rel: 'supports',
+        confidenceScore: 0.9,
+        score: 0.1,
+        target: { title: 'Confidence high', path: 'Docs/H.md', chunkId: 'confidence-high', snippet: 'high' },
+      },
+      {
+        id: 'confidence-low',
+        rel: 'supports',
+        confidenceScore: 0.4,
+        score: 0.99,
+        target: { title: 'Confidence low', path: 'Docs/L.md', chunkId: 'confidence-low', snippet: 'low' },
+      },
+    ])
+
+    expect(grouped).toHaveLength(1)
+    expect(grouped[0].connections.map((connection) => connection.id)).toEqual([
+      'confidence-high',
+      'score-fallback',
+      'confidence-low',
+    ])
   })
 })

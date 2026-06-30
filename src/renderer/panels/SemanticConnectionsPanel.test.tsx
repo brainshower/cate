@@ -232,6 +232,55 @@ const graphResult: SemanticConnectionsResult = {
   diagnostics: [],
 }
 
+const groupedGraphResult: SemanticConnectionsResult = {
+  ...graphResult,
+  mode: 'mixed',
+  overall: [
+    {
+      id: 'contradicts-main',
+      rel: 'contradicts',
+      confidenceScore: 0.91,
+      status: 'active',
+      target: { title: 'Conflict A', path: 'Docs/A.md', chunkId: 'a', snippet: 'Conflict A snippet' },
+    },
+    {
+      id: 'supports-1',
+      rel: 'supports',
+      confidenceScore: 0.9,
+      target: { title: 'Support 1', path: 'Docs/S1.md', chunkId: 's1', snippet: 'Support 1 snippet' },
+    },
+    {
+      id: 'supports-2',
+      rel: 'supports',
+      confidenceScore: 0.8,
+      target: { title: 'Support 2', path: 'Docs/S2.md', chunkId: 's2', snippet: 'Support 2 snippet' },
+    },
+    {
+      id: 'supports-3',
+      rel: 'supports',
+      confidenceScore: 0.7,
+      target: { title: 'Support 3', path: 'Docs/S3.md', chunkId: 's3', snippet: 'Support 3 snippet' },
+    },
+    {
+      id: 'supports-4',
+      rel: 'supports',
+      confidenceScore: 0.6,
+      target: { title: 'Support 4', path: 'Docs/S4.md', chunkId: 's4', snippet: 'Support 4 snippet' },
+    },
+    {
+      id: 'untyped-overall',
+      score: 0.99,
+      target: { title: 'Untyped Similarity', path: 'Docs/U.md', chunkId: 'u', snippet: 'Untyped snippet' },
+    },
+    {
+      id: 'semantic-similarity',
+      rel: 'semantically_similar_to',
+      confidenceScore: 0.95,
+      target: { title: 'Typed Similarity', path: 'Docs/T.md', chunkId: 't', snippet: 'Typed similarity snippet' },
+    },
+  ],
+}
+
 function renderPanel(result: SemanticConnectionsResult, options: { activeChunkId?: string } = {}) {
   const filePath = readyEditor()
   if (options.activeChunkId) {
@@ -719,6 +768,58 @@ describe('SemanticConnectionsPanel', () => {
 
     expect(usePreviewSelectionStore.getState().getScope('editor-1').activeChunkId).toBe('details')
     expect(screen.getByRole('button', { name: 'Show selected section semantic connections' }).getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('T-C-018, T-C-019, T-C-020, and T-C-064 renders grouped graph rows with overflow and score text omitted', async () => {
+    renderPanel(groupedGraphResult)
+
+    const connections = await screen.findByTestId('semantic-graph-connections')
+    expect(within(connections).getAllByTestId(/semantic-graph-group-/).map((group) => group.dataset.groupKey)).toEqual([
+      'contradicts',
+      'supports',
+      'similarity',
+      'semantically_similar_to',
+    ])
+    expect(within(connections).getByText('Conflict A')).toBeTruthy()
+    expect(within(connections).getByText('Support 1')).toBeTruthy()
+    expect(within(connections).queryByText('Support 4')).toBeNull()
+    expect(within(connections).queryByLabelText(/Cosine similarity/)).toBeNull()
+    expect(within(connections).queryByText(/90%/)).toBeNull()
+
+    fireEvent.click(within(connections).getByRole('button', { name: 'Show 1 more Supports connection' }))
+
+    expect(within(connections).getByText('Support 4')).toBeTruthy()
+  })
+
+  it('T-C-022, T-C-023, and T-C-024 applies Top-N and relation filters to graph connections only', async () => {
+    renderPanel(groupedGraphResult)
+
+    expect(await screen.findByText('Needs attention')).toBeTruthy()
+    act(() => useSemanticConnectionsChromeStore.getState().panels['sc-1']?.toggleConfig())
+    fireEvent.change(screen.getByLabelText('Top N connections'), { target: { value: '2' } })
+
+    const connections = screen.getByTestId('semantic-graph-connections')
+    expect(within(connections).getByText('Conflict A')).toBeTruthy()
+    expect(within(connections).getByText('Support 1')).toBeTruthy()
+    expect(within(connections).queryByText('Support 2')).toBeNull()
+    expect(screen.getByText('Needs attention')).toBeTruthy()
+    expect(screen.getByText('Sections')).toBeTruthy()
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.configActive).toBe(true)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Supports' }))
+
+    expect(within(connections).queryByText('Conflict A')).toBeNull()
+    expect(within(connections).getByText('Support 1')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Review contradiction in Scope' })).toBeTruthy()
+  })
+
+  it('T-C-021 and T-C-025 keeps embeddings-only fallback flat and hides graph controls', async () => {
+    renderPanel(embeddingsOnlyResult)
+
+    expect(await screen.findByTestId('semantic-connection-card-alpha')).toBeTruthy()
+    expect(screen.queryByTestId('semantic-graph-connections')).toBeNull()
+    expect(screen.queryByText('Nature filters')).toBeNull()
+    expect(screen.queryByText('Sections')).toBeNull()
   })
 
   it('T-I-025 and T-I-026 shows loading and supersedes stale in-flight requests', async () => {
