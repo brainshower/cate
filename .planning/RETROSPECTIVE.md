@@ -111,6 +111,56 @@
 
 ---
 
+## Milestone: v1.5 — Browser Uplift
+
+**Shipped:** 2026-06-30
+**Phases:** 1 | **Plans:** 10 | **Tasks:** 18
+
+### What Was Built
+
+- Workspace-scoped durable Electron browser partitions with fail-closed BrowserPanel mounting across main, canvas, docked, and detached browser surfaces.
+- Main-frame-only load-error handling, reloadable crash recovery, and focused-webview browser shortcut forwarding.
+- Modular screenshot capture IPC preserving Desktop PNG output, `{ filePath, dataUrl }`, guest ownership checks, and screenshot drag/drop usability.
+- Workspace-keyed browser history, bookmarks, bookmarks bar, star toggle, browser menu/settings controls, and scoped clear-data behavior.
+- Workspace removal cleanup and clear-data paths that leave FlashQuery credentials, connection metadata, vault documents, indexes, and MCP sessions untouched.
+- Browser Uplift E2E plus FlashQuery persistence regression coverage, with a deterministic fake-auth restart/isolation path standing in for automated persistence checks.
+
+### What Worked
+
+- One GSD phase was the right shape for this milestone because the browser work shared one IPC/preload/state boundary.
+- Tests landing with each source slice kept the final verification wave from becoming a catch-up phase.
+- The post-phase gap analysis paid for itself: it found real issues after apparent completion and kept the final milestone from shipping with hidden traceability drift.
+- Keeping homepage/search controls in the Settings window and clear-data non-reloading avoided duplicate browser configuration surfaces and surprising live-panel behavior.
+
+### What Was Inefficient
+
+- `STATE.md` and `ROADMAP.md` lagged behind after 26-10 landed, so the repo looked 90% complete even though automated verification had passed.
+- No canonical `v1.5-MILESTONE-AUDIT.md` was produced before closeout; the product gap analysis became the practical audit evidence instead.
+- `T-M-001` is intentionally human-only, but leaving it in the same success-criteria row as automated coverage made the completion state look ambiguous.
+- The screenshot drop issue was pre-existing, but it surfaced on a Phase 26-touched surface and had to be diagnosed during closeout.
+
+### Patterns Established
+
+- Browser state uses `workspaceId` as a scope key while remaining separate from FlashQuery state and credentials.
+- Browser shortcut forwarding should route by guest `webContentsId`, with focus as a secondary guard rather than the primary identity check.
+- Browser screenshots can preserve Desktop file output while carrying an in-memory data URL through drag/drop to avoid widening filesystem trust roots.
+- Post-phase gap docs should be treated as first-class closeout artifacts when they enumerate requirements, fixes, and auditor verification.
+
+### Key Lessons
+
+1. A milestone can be implementation-complete and still not closeout-complete until gap analysis, metadata, and manual evidence are reconciled.
+2. For Electron browser work, local deterministic E2E fixtures are essential, but they do not replace human checks for real third-party login persistence.
+3. Workspace scoping must be visible in tests, not merely implied by store shape or panel props.
+4. If a test ID is listed in requirements traceability, a matching test name should exist; truthful traceability matters as much as behavior.
+
+### Cost Observations
+
+- Model mix: high-capability coding agents for implementation and gap remediation; focused audit/debug passes for closeout evidence.
+- Sessions: concentrated on 2026-06-26, with milestone archive completed 2026-06-30.
+- Notable: The final closeout cost came from reconciling generated planning state with the real gap-check result, not from production code changes.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -119,6 +169,7 @@
 |-----------|----------|--------|-------|-------|------------|
 | v1.0 | multi-session over 2 days | 7 | 23 | 61 | First milestone in this project; established the /gsd workflow chain end-to-end, the post-execution gap-and-resolution Gaps.md pattern, and the retroactive close-out discipline. |
 | v1.3 | multiple sessions over 3 days | 2 | 8 | n/a | Document Outline shipped as a focused two-phase feature; audit process learned to reconcile stale artifact wording with current code and explicit product clarification. |
+| v1.5 | concentrated implementation plus gap closeout | 1 | 10 | 18 | Browser Uplift proved one phase can work when sub-slices share a boundary; post-phase gap analysis became the decisive closeout artifact. |
 
 ### Cumulative Quality
 
@@ -126,6 +177,7 @@
 |-----------|--------------------|--------------------|------------------|------------------|---------|
 | v1.0 | 18 net new FlashQuery-touching files (51 src/ touched total) | 9 new test files | ~6,800 | 4 (`flashquery-happy-path`, `flashquery-disconnect`, `flashquery-persistence`, `flashquery-vault-browse`) + 1 fixture (`flashquery-server.spec.ts`) | Full v1 user journey covered E2E; integration audit returned WIRED across all 8 cross-cutting flows |
 | v1.3 | focused Outline/editor/preview files | focused parser, registry, OutlinePanel, and EditorPanel tests | n/a | 0 | 22/22 requirements satisfied; focused integration run passed 92 tests after audit clarification. |
+| v1.5 | focused browser, IPC, settings, and E2E harness files | browser partition/state/menu/panel/capture/security tests | n/a | Browser Uplift spec + FlashQuery persistence smoke | Automated verification passed after gap remediation; `T-M-001` remains human-only manual-pending evidence. |
 
 ### Recurring Themes (to watch in v1.1+)
 

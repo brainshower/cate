@@ -2,57 +2,49 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Browser Uplift
-status: executing
+status: Awaiting next milestone
 stopped_at: Completed 26-09-PLAN.md
-last_updated: "2026-06-26T20:00:55.159Z"
-last_activity: 2026-06-26 -- Completed 26-09 FlashQuery isolation contract tests
+last_updated: "2026-06-30T21:09:56.849Z"
+last_activity: 2026-06-30 — Milestone v1.5 completed and archived
 progress:
   total_phases: 1
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 10
-  completed_plans: 9
-  percent: 90
+  completed_plans: 10
+  percent: 100
 ---
 
 # Project State
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-06-26 for v1.5 Browser Uplift)
+See: `.planning/PROJECT.md` (updated 2026-06-30 after v1.5 Browser Uplift closeout)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** Phase 26 Browser Uplift execution
+**Current focus:** Planning the next milestone
 
 ## Current Position
 
-Phase: 26-browser-uplift
-Plan: 10 next
-Status: Executing
-Last activity: 2026-06-26 -- Completed 26-09 FlashQuery isolation contract tests
+Phase: Milestone v1.5 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-06-30 — Milestone v1.5 completed and archived
 
 ## Session Continuity
 
-Last session: 2026-06-26T20:00:55.141Z
-Stopped At: Completed 26-09-PLAN.md
+Last session: 2026-06-30T21:09:56.849Z
+Stopped At: Milestone v1.5 archived
 Resume File: None
 
 ## Next Up
 
-Phase 26 Browser Uplift execution is underway.
+v1.5 Browser Uplift is archived. Next up is defining a fresh milestone with `/gsd-new-milestone`.
 
-Phase 26 bundles the supplied Browser Uplift source implementation phases into one GSD phase:
+Closeout notes:
 
-- Browser Foundation
-- Browser State and Affordances
-- Workspace Safety and Controls
-- System Verification
-
-Tests must be implemented alongside each feature slice:
-
-- `T-U-001` through `T-U-031`
-- `T-I-001` through `T-I-006`
-- `T-E-001` through `T-E-021`
-- `T-M-001`
+- Automated Browser Uplift verification passed: typecheck, full unit suite, Browser Uplift E2E, and FlashQuery persistence E2E.
+- Post-phase gap analysis resolved the known implementation and traceability gaps before milestone close.
+- `T-M-001` real-site login persistence remains human-only and is recorded as manual-pending evidence, not fabricated.
 
 ## Decisions
 
@@ -142,4 +134,4 @@ Items acknowledged and deferred at milestone close on 2026-06-16:
 
 ## Operator Next Steps
 
-- Run `$gsd-discuss-phase 26` to clarify implementation approach, or `$gsd-plan-phase 26` to plan directly.
+- Start the next milestone with /gsd-new-milestone

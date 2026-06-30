@@ -1,5 +1,27 @@
 # Milestones
 
+## v1.5 Browser Uplift (Shipped: 2026-06-30)
+
+**Phases completed:** 1 phases, 10 plans, 18 tasks
+
+**Closeout:** Automated verification and post-phase gap remediation completed. Known implementation gaps from the Browser Uplift gap analysis were resolved before closeout; `T-M-001` remains an explicitly recorded human-only manual evidence item.
+
+**Key accomplishments:**
+
+- Workspace-scoped Electron browser partitions with fail-closed BrowserPanel mounting and focused Vitest/Playwright coverage
+- Main-frame-only browser load failures with preserved fork-only portal bridge coverage
+- Modular browser capture IPC preserving Desktop PNG screenshots, data URLs, and webview ownership checks
+- Workspace-keyed browser history/bookmarks with typed IPC/preload contracts and scoped Electron partition clear-data
+- Workspace-scoped renderer browser state with BrowserPanel visit recording, star toggle, bookmarks bar, and persistence/isolation E2E coverage
+- Browser overflow/settings controls for REQ-008 with persisted bookmarks-bar visibility and homepage/search kept in the Settings window
+- Workspace-scoped browser cleanup on workspace removal plus confirmed clear-data UI that leaves live browser panels loaded
+- Reloadable browser crash recovery plus allowlisted focused-webview shortcut forwarding
+- REQ-012 coverage for FlashQuery IPC contracts and browser operation isolation
+
+**Known deferred items at close:** 5 older UAT bookkeeping records remain acknowledged in `.planning/STATE.md` Deferred Items. v1.5 manual evidence item `T-M-001` is documented as manual-pending in `.planning/phases/26-browser-uplift/26-MANUAL-EVIDENCE.md`.
+
+---
+
 ## v1.4 Semantic Connections Inspector (Completed: 2026-06-17)
 
 **Phases completed:** 2 phases, 4 plans, 37 requirements

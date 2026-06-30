@@ -41,16 +41,9 @@ Canonical source docs for this milestone:
 - `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Monaco Extension Testing/Outline-Chat/Document Outline Requirements.md`
 - `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Monaco Extension Testing/Outline-Chat/Document Outline Test Plan.md`
 
-## Current Milestone: v1.5 Browser Uplift
+**Shipped:** v1.5 Browser Uplift (2026-06-30).
 
-**Goal:** Bring Cate's forked in-app browser up to the relevant upstream v1.3.2 browser capabilities while preserving FlashQuery isolation and workspace-scoped behavior.
-
-**Target features:**
-- Workspace-scoped durable browser partitions, history, bookmarks, and cleanup keyed by Cate `workspaceId`.
-- Browser UX uplift: main-frame-only load errors, crash recovery, shortcut forwarding, bookmarks bar, star toggle, menu, settings popover, and scoped clear-data.
-- Modular browser IPC/capture home with screenshot behavior preserved and no upstream proxy/extraction/tabs/start-page scope.
-- FlashQuery boundary protection: existing tokens, connection metadata, vault/index state, MCP sessions, and IPC/preload contracts remain untouched by browser actions.
-- One GSD implementation phase that preserves the source spec's four internal implementation slices and lands tests with each slice.
+Cate's forked in-app browser now has workspace-scoped durable browser partitions, per-workspace history/bookmarks/settings affordances, scoped clear-data and workspace removal cleanup, main-frame-only load errors, crash recovery, focused-webview shortcut forwarding, modular screenshot IPC, portal bridge preservation, and FlashQuery isolation regression coverage. The post-phase Browser Uplift gap analysis resolved the known implementation and traceability gaps before closeout. `T-M-001` real-site login persistence remains explicitly recorded as human-only manual-pending evidence.
 
 Canonical source docs for this milestone:
 
@@ -81,17 +74,15 @@ Canonical source docs for this milestone:
 - ✓ User can filter and cycle Outline headings while preserving spatial context and active-heading state — v1.3
 - ✓ User can use the same Outline navigation while Markdown preview is active, scrolling to preview heading IDs with the accepted highlight lifecycle — v1.3
 - ✓ User gets stable cleanup, theme-compatible rendering, no-editor empty state, duplicate-heading handling, and no regressions to existing editor/preview behavior — v1.3
+- ✓ Browser panels use stable per-workspace durable Electron partitions and never fall back to panel IDs or empty workspace suffixes — v1.5
+- ✓ Browser history, bookmarks, bookmark bar state, and clear-data behavior persist per workspace with renderer selectors keyed by `workspaceId` — v1.5
+- ✓ Browser chrome includes main-frame-only load errors, crash recovery, focused-webview shortcut forwarding, star/bookmark affordances, menu/settings controls, and scoped clear-data — v1.5
+- ✓ Screenshot capture lives in modular IPC while preserving `{ filePath, dataUrl }`, Desktop PNG behavior, ownership validation, and screenshot drag/drop usability — v1.5
+- ✓ Browser operations preserve FlashQuery credentials, connection metadata, vault/index state, MCP sessions, and existing FlashQuery IPC/preload contracts — v1.5
 
 ### Active
 
-See `.planning/REQUIREMENTS.md` for the active v1.5 Browser Uplift requirements. Summary:
-
-- Browser panels use stable per-workspace durable Electron partitions and never fall back to panel IDs or empty workspace suffixes.
-- Browser history and bookmarks persist per workspace, with renderer store selectors keyed by `workspaceId`.
-- Browser chrome gains upstream-inspired practical affordances without adopting tabs, start page/autocomplete, proxy, or extraction behavior.
-- Clear-data and workspace removal clean only the target workspace's browser state and do not touch FlashQuery credentials, connection metadata, vaults, indexes, or MCP sessions.
-- Screenshot capture moves into a modular IPC home while preserving the existing `{ filePath, dataUrl }` contract and fork-only portal orchestration bridge.
-- Implementation must land the supplied unit, integration, E2E, and manual coverage alongside each internal source slice.
+No active milestone requirements. The next `/gsd-new-milestone` pass should create a fresh `.planning/REQUIREMENTS.md`.
 
 ### Out of Scope
 
@@ -199,11 +190,12 @@ Known codebase concerns that affect ongoing work:
 | Require tests to land with the feature slices they verify | Avoids final test catch-up and keeps each feature group verified before the next slice starts | Planned — v1.4 |
 | Keep FlashQuery connection-query backend out of v1.4 | Cate can define the adapter and UI contract while backend work remains a separate FlashQuery milestone | Planned — v1.4 |
 | Launch SC Inspector as embeddings-only | FlashQuery has no typed graph edge store today; typed fields remain optional for future upgrade | Planned — v1.4 |
-| Treat Browser Uplift requirements/test plan as source of truth for v1.5 | The product docs pin upstream v1.3.2 browser capabilities, fork-specific FlashQuery boundaries, and direct REQ/test traceability. | Planned — v1.5 |
-| Execute Browser Uplift in one GSD phase | Owner requested one phase if possible; the source spec's four internal implementation phases can be preserved as sub-slices inside Phase 26. | Planned — v1.5 |
-| Keep browser state workspace-scoped and separate from FlashQuery state | The same `workspaceId` scopes browser convenience state and FlashQuery connection state, but the stores and security boundaries must remain separate. | Planned — v1.5 |
-| Exclude upstream tabs, start page/autocomplete, proxy, extraction, and browser MCP control | Browser Uplift is a durability and affordance uplift, not the broader Browser Capture and Control tier. | Planned — v1.5 |
-| Use Option A for browser popover and clear-data behavior | Homepage/search stay in the existing Settings-window browser panel; clear-data does not force-reload live webviews and takes effect on next navigation/reload. | Planned — v1.5 |
+| Treat Browser Uplift requirements/test plan as source of truth for v1.5 | The product docs pin upstream v1.3.2 browser capabilities, fork-specific FlashQuery boundaries, and direct REQ/test traceability. | ✓ Good — v1.5 |
+| Execute Browser Uplift in one GSD phase | Owner requested one phase if possible; the source spec's four internal implementation phases can be preserved as sub-slices inside Phase 26. | ✓ Good — v1.5 |
+| Keep browser state workspace-scoped and separate from FlashQuery state | The same `workspaceId` scopes browser convenience state and FlashQuery connection state, but the stores and security boundaries must remain separate. | ✓ Good — v1.5 |
+| Exclude upstream tabs, start page/autocomplete, proxy, extraction, and browser MCP control | Browser Uplift is a durability and affordance uplift, not the broader Browser Capture and Control tier. | ✓ Good — v1.5 |
+| Use Option A for browser popover and clear-data behavior | Homepage/search stay in the existing Settings-window browser panel; clear-data does not force-reload live webviews and takes effect on next navigation/reload. | ✓ Good — v1.5 |
+| Run post-phase gap analysis before closeout | The gap pass found shortcut scoping, portal smoke, traceability, visit-count, and screenshot-drop issues after implementation looked complete. | ✓ Good — v1.5 |
 
 ## Planning Preference
 
@@ -227,4 +219,4 @@ This document evolves at milestone boundaries and, once explicitly created, phas
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-26 for v1.5 Browser Uplift planning*
+*Last updated: 2026-06-30 after v1.5 Browser Uplift closeout*
