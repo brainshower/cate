@@ -566,6 +566,145 @@ describe('semantic connections provider boundary', () => {
     ]))
   })
 
+  it('T-U-023 backfills nodeMeta from query_graph action node and clears nodeMetaLoading when settled', async () => {
+    const search = vi.fn()
+    const connections = vi.fn().mockResolvedValue({
+      source: { document_id: 'source-doc', path: 'Docs/Source.md', title: 'Source' },
+      graph_summary: {
+        edge_count: 1,
+        edge_counts_by_relation: { supports: 1 },
+        stale_edge_count: 0,
+        community_labels: ['Architecture'],
+        has_contradictions: false,
+        has_open_questions: false,
+        open_question_count: 0,
+      },
+      overall: [],
+      source_chunks: [{
+        chunk_id: 'source-scope',
+        heading_path: 'Source > Scope',
+        connections: [{
+          id: 'edge-scope',
+          relation: 'supports',
+          target: { chunk_id: 'target', path: 'Docs/Target.md', title: 'Target' },
+        }],
+      }],
+    } satisfies FlashQueryDocumentConnectionsResponse)
+    const queryGraph = vi.fn().mockResolvedValue({
+      action: 'node',
+      chunk_id: 'source-scope',
+      key_claims: ['Claim one'],
+      chunk_summary: 'Scope summary',
+      certainty_level: 'high',
+      staleness_risk: 'low',
+      external_refs: ['https://example.test/ref'],
+      temporal_markers: ['2026-Q2'],
+      question_status: 'open',
+      question_resolution: 'Needs follow-up',
+      community_id: 'community-1',
+      community_label: 'Architecture',
+      community_summary: 'Architecture cluster',
+      content: 'Scope body',
+      analyzed: true,
+      stale: false,
+      analyzed_at: '2026-06-30T00:00:00Z',
+    })
+    const provider = createFlashQuerySemanticConnectionsProvider(search, connections, queryGraph)
+
+    const result = await provider.loadDocumentConnections({
+      workspaceId: 'workspace-1',
+      editorPanelId: 'editor-1',
+      documentPath: 'flashquery://workspace-1/Docs/Source.md',
+      markdown: '# Source\n\nIntro\n\n## Scope\n\nScope body',
+      contentHash: 'hash-node-meta',
+    })
+
+    expect(queryGraph).toHaveBeenCalledWith('workspace-1', {
+      action: 'node',
+      chunk_id: 'source-scope',
+    })
+    expect(result.nodeMetaLoading).toBe(false)
+    expect(result.nodeMeta?.scope).toMatchObject({
+      keyClaims: ['Claim one'],
+      chunkSummary: 'Scope summary',
+      certaintyLevel: 'high',
+      stalenessRisk: 'low',
+      externalRefs: ['https://example.test/ref'],
+      temporalMarkers: ['2026-Q2'],
+      questionStatus: 'open',
+      questionResolution: 'Needs follow-up',
+      communityId: 'community-1',
+      communityLabel: 'Architecture',
+      communitySummary: 'Architecture cluster',
+      content: 'Scope body',
+      analyzed: true,
+      stale: false,
+      analyzedAt: '2026-06-30T00:00:00Z',
+    })
+  })
+
+  it('T-U-015 and T-U-025 record query_graph diagnostics per failed chunk while keeping valid graph data', async () => {
+    const search = vi.fn()
+    const connections = vi.fn().mockResolvedValue({
+      source: { document_id: 'source-doc', path: 'Docs/Source.md', title: 'Source' },
+      graph_summary: {
+        edge_count: 2,
+        edge_counts_by_relation: { supports: 2 },
+        stale_edge_count: 0,
+        community_labels: [],
+        has_contradictions: false,
+        has_open_questions: false,
+        open_question_count: 0,
+      },
+      overall: [],
+      source_chunks: [{
+        chunk_id: 'source-scope',
+        heading_path: 'Source > Scope',
+        connections: [{
+          id: 'edge-scope',
+          relation: 'supports',
+          target: { chunk_id: 'target-scope', path: 'Docs/Scope.md', title: 'Scope Target' },
+        }],
+      }, {
+        chunk_id: 'source-details',
+        heading_path: 'Source > Details',
+        connections: [{
+          id: 'edge-details',
+          relation: 'supports',
+          target: { chunk_id: 'target-details', path: 'Docs/Details.md', title: 'Details Target' },
+        }],
+      }],
+    } satisfies FlashQueryDocumentConnectionsResponse)
+    const queryGraph = vi.fn()
+      .mockResolvedValueOnce({
+        action: 'node',
+        chunk_id: 'source-scope',
+        key_claims: ['Valid claim'],
+        chunk_summary: 'Valid summary',
+      })
+      .mockRejectedValueOnce(new Error('node fetch failed'))
+    const provider = createFlashQuerySemanticConnectionsProvider(search, connections, queryGraph)
+
+    const result = await provider.loadDocumentConnections({
+      workspaceId: 'workspace-1',
+      editorPanelId: 'editor-1',
+      documentPath: 'flashquery://workspace-1/Docs/Source.md',
+      markdown: '# Source\n\nIntro\n\n## Scope\n\nScope body\n\n## Details\n\nDetails body',
+      contentHash: 'hash-node-meta-partial',
+    })
+
+    expect(result.byChunkId.scope.map((connection) => connection.id)).toEqual(['edge-scope'])
+    expect(result.byChunkId.details.map((connection) => connection.id)).toEqual(['edge-details'])
+    expect(result.nodeMeta?.scope).toMatchObject({
+      keyClaims: ['Valid claim'],
+      chunkSummary: 'Valid summary',
+    })
+    expect(result.nodeMeta?.details).toBeUndefined()
+    expect(result.diagnostics).toEqual(expect.arrayContaining([
+      expect.stringContaining('Unable to load node metadata for source-details'),
+    ]))
+  })
+
   it('T-I-042 caches by editor document and content hash, then invalidates material content changes', async () => {
     const backend = {
       loadDocumentConnections: vi.fn()
