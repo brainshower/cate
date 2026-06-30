@@ -297,17 +297,15 @@ function safeRelationLabel(rel: string, dir?: SemanticConnectionDirection) {
 |---|-------|---------|---------------|
 | A1 | `vitest` slopcheck SUS verdict is a false positive typo heuristic because the repo already uses Vitest as its established test runner. [ASSUMED] | Package Legitimacy Audit | Planner might add an unnecessary human checkpoint before running existing tests. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Where are `27-CONTEXT.md` and `27-UI-SPEC.md`?**
-   - What we know: The requested phase-local files were absent. [VERIFIED: codebase grep]
-   - What's unclear: Whether they were not generated or live outside the phase directory. [ASSUMED]
-   - Recommendation: Planner should proceed from ROADMAP/REQUIREMENTS/product docs, but add a checkpoint if those files appear before execution. [ASSUMED]
+1. **RESOLVED: Where are `27-CONTEXT.md` and `27-UI-SPEC.md`?**
+   - Resolution: Both files were restored and committed after the research pass. Downstream agents MUST read `27-CONTEXT.md` and `27-UI-SPEC.md` first, then use this research as supporting technical analysis. [VERIFIED: phase artifacts]
+   - Planning effect: No checkpoint is required before execution; the phase-local context and UI contract are now present. [VERIFIED: phase artifacts]
 
-2. **Should `query_graph` edge metadata backfill happen in Phase 27 or be stubbed for Phase 28 edge detail?**
-   - What we know: REQ-023 spans Phase 27 and Phase 28; roadmap says Phase 27 includes foundation/node backfill. [VERIFIED: ROADMAP.md]
-   - What's unclear: Whether Phase 27 should fetch edge traversal data now or only create the bridge and node metadata. [ASSUMED]
-   - Recommendation: Implement the bridge and node backfill in Phase 27; design the provider API so Phase 28 can add lazy edge metadata merge without another IPC contract change. [ASSUMED]
+2. **RESOLVED: Should `query_graph` edge metadata backfill happen in Phase 27 or be stubbed for Phase 28 edge detail?**
+   - Resolution: Phase 27 implements the typed `query_graph` bridge and progressive node metadata backfill only. Edge metadata overlay consumption remains Phase 28 selection-detail scope, except for data-shape hooks needed to avoid another IPC contract change. [VERIFIED: 27-CONTEXT.md]
+   - Planning effect: Plan 02 owns `query_graph` bridge/node backfill; Plan 03 owns whole-document UI; Phase 28 owns selection-view edge metadata consumption. [VERIFIED: ROADMAP.md]
 
 ## Environment Availability
 
