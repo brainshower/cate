@@ -1584,6 +1584,104 @@ describe('FlashQueryClientManager', () => {
     })
   })
 
+  it('T-I-005 routes query_graph node requests through the FlashQuery MCP tool', async () => {
+    const callTool = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({
+        action: 'node',
+        chunk_id: 'chunk-1',
+        content: 'Node content',
+        key_claims: ['Claim one'],
+        chunk_summary: 'Chunk summary',
+        certainty_level: 'high',
+        staleness_risk: 'low',
+        external_refs: ['https://example.test/ref'],
+        temporal_markers: ['2026-Q2'],
+        question_status: 'open',
+        question_resolution: 'Needs follow-up',
+        analyzed: true,
+        stale: false,
+        edges: [{
+          id: 'edge-1',
+          relation: 'supports',
+          direction: 'out',
+          metadata: {
+            qualifiers: ['normative'],
+            source_claims_referenced: [0],
+            target_claims_referenced: [1],
+          },
+        }],
+      }) }],
+    })
+    workspaceMock.workspaces = [workspaceInfo()]
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
+    await expect(manager.queryGraph('workspace-1', {
+      action: 'node',
+      chunk_id: 'chunk-1',
+      direction: 'both',
+      limit: 25,
+    })).resolves.toMatchObject({
+      action: 'node',
+      chunk_id: 'chunk-1',
+      key_claims: ['Claim one'],
+      chunk_summary: 'Chunk summary',
+      certainty_level: 'high',
+      edges: [{
+        id: 'edge-1',
+        metadata: {
+          qualifiers: ['normative'],
+          source_claims_referenced: [0],
+          target_claims_referenced: [1],
+        },
+      }],
+    })
+
+    expect(callTool).toHaveBeenCalledWith({
+      name: 'query_graph',
+      arguments: {
+        action: 'node',
+        chunk_id: 'chunk-1',
+        direction: 'both',
+        limit: 25,
+      },
+    })
+  })
+
+  it('T-I-009 defaults query_graph bulk actions to omit nested content while node requests keep FlashQuery defaults', async () => {
+    const callTool = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({ ok: true }) }],
+    })
+    workspaceMock.workspaces = [workspaceInfo()]
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
+    await manager.queryGraph('workspace-1', { action: 'node', chunk_id: 'chunk-1' })
+    await manager.queryGraph('workspace-1', { action: 'edges' })
+    await manager.queryGraph('workspace-1', { action: 'neighbors', chunk_id: 'chunk-1', include_content: true })
+
+    expect(callTool).toHaveBeenNthCalledWith(1, {
+      name: 'query_graph',
+      arguments: {
+        action: 'node',
+        chunk_id: 'chunk-1',
+      },
+    })
+    expect(callTool).toHaveBeenNthCalledWith(2, {
+      name: 'query_graph',
+      arguments: {
+        action: 'edges',
+        include_content: false,
+      },
+    })
+    expect(callTool).toHaveBeenNthCalledWith(3, {
+      name: 'query_graph',
+      arguments: {
+        action: 'neighbors',
+        chunk_id: 'chunk-1',
+        include_content: true,
+      },
+    })
+  })
+
   it('preserves get_document connection expected errors as local connection errors', async () => {
     const callTool = vi.fn().mockResolvedValue({
       content: [{ type: 'text', text: JSON.stringify({

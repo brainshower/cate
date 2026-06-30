@@ -8,6 +8,7 @@ import {
   FLASHQUERY_MANAGE_DIRECTORY,
   FLASHQUERY_MOVE_DOCUMENT,
   FLASHQUERY_PROBE,
+  FLASHQUERY_QUERY_GRAPH,
   FLASHQUERY_REMOVE_DOCUMENT,
   FLASHQUERY_RETRY,
   FLASHQUERY_SEARCH,
@@ -39,6 +40,7 @@ const mocks = vi.hoisted(() => ({
     connect: ReturnType<typeof vi.fn>
     dispose: ReturnType<typeof vi.fn>
     documentConnections: ReturnType<typeof vi.fn>
+    queryGraph: ReturnType<typeof vi.fn>
     listVault: ReturnType<typeof vi.fn>
     getDocument: ReturnType<typeof vi.fn>
     listVaultIndex: ReturnType<typeof vi.fn>
@@ -87,6 +89,7 @@ vi.mock('../flashquery/clientManager', () => {
     connect = vi.fn().mockResolvedValue({ workspaceId: 'workspace-1', status: 'live' })
     dispose = vi.fn()
     documentConnections = vi.fn()
+    queryGraph = vi.fn()
     listVault = vi.fn()
     getDocument = vi.fn()
     listVaultIndex = vi.fn()
@@ -789,6 +792,112 @@ describe('FlashQuery IPC handlers', () => {
     })).resolves.toMatchObject({ error: 'embedding_names must be an array of non-empty strings' })
 
     expect(mocks.managerInstances[0].documentConnections).not.toHaveBeenCalled()
+  })
+
+  it('T-I-005 round-trips query_graph node payloads through a typed IPC channel', async () => {
+    const handler = await registeredHandler<(_event: unknown, workspaceId: string, params: unknown) => Promise<unknown>>(FLASHQUERY_QUERY_GRAPH)
+    mocks.managerInstances[0].queryGraph.mockResolvedValueOnce({
+      action: 'node',
+      chunk_id: 'chunk-1',
+      content: 'Node content',
+      key_claims: ['Claim one'],
+      chunk_summary: 'Chunk summary',
+      certainty_level: 'high',
+      staleness_risk: 'low',
+      external_refs: ['https://example.test/ref'],
+      temporal_markers: ['2026-Q2'],
+      question_status: 'open',
+      question_resolution: 'Needs follow-up',
+      analyzed: true,
+      stale: false,
+      edges: [{
+        id: 'edge-1',
+        relation: 'supports',
+        direction: 'out',
+        metadata: {
+          qualifiers: ['normative'],
+          source_claims_referenced: [0],
+          target_claims_referenced: [1],
+        },
+      }],
+    })
+
+    await expect(handler({}, 'workspace-1', {
+      action: 'node',
+      chunk_id: 'chunk-1',
+      direction: 'both',
+      limit: 25,
+    })).resolves.toMatchObject({
+      action: 'node',
+      chunk_id: 'chunk-1',
+      content: 'Node content',
+      key_claims: ['Claim one'],
+      chunk_summary: 'Chunk summary',
+      certainty_level: 'high',
+      edges: [{
+        id: 'edge-1',
+        metadata: {
+          qualifiers: ['normative'],
+          source_claims_referenced: [0],
+          target_claims_referenced: [1],
+        },
+      }],
+    })
+
+    expect(mocks.managerInstances[0].queryGraph).toHaveBeenCalledWith('workspace-1', {
+      action: 'node',
+      chunk_id: 'chunk-1',
+      direction: 'both',
+      limit: 25,
+    })
+  })
+
+  it('T-I-006 validates query_graph params and returns per-call failures without throwing across IPC', async () => {
+    const handler = await registeredHandler<(_event: unknown, workspaceId: string, params: unknown) => Promise<unknown>>(FLASHQUERY_QUERY_GRAPH)
+    mocks.managerInstances[0].queryGraph.mockRejectedValueOnce(new Error('query_graph failed'))
+
+    await expect(handler({}, 'workspace-1', { action: 'node', chunk_id: 'chunk-1' })).resolves.toEqual({
+      error: 'query_graph failed',
+    })
+    await expect(handler({}, 'workspace-1', { action: 'node' })).resolves.toMatchObject({
+      error: 'query_graph chunk_id is required for action node',
+    })
+    await expect(handler({}, 'workspace-1', { action: 'bad', chunk_id: 'chunk-1' })).resolves.toMatchObject({
+      error: 'query_graph action must be node, edges, neighbors, or subgraph',
+    })
+    await expect(handler({}, 'workspace-1', { action: 'edges', direction: 'sideways' })).resolves.toMatchObject({
+      error: 'query_graph direction must be in, out, or both',
+    })
+    await expect(handler({}, 'workspace-1', { action: 'edges', include_content: 'yes' })).resolves.toMatchObject({
+      error: 'query_graph include_content must be a boolean',
+    })
+    await expect(handler({}, 'workspace-1', { action: 'edges', limit: 0 })).resolves.toMatchObject({
+      error: 'query_graph limit must be a positive integer',
+    })
+
+    expect(mocks.managerInstances[0].queryGraph).toHaveBeenCalledTimes(1)
+  })
+
+  it('T-I-009 preserves query_graph include_content gating for node and bulk actions', async () => {
+    const handler = await registeredHandler<(_event: unknown, workspaceId: string, params: unknown) => Promise<unknown>>(FLASHQUERY_QUERY_GRAPH)
+    mocks.managerInstances[0].queryGraph.mockResolvedValue({})
+
+    await handler({}, 'workspace-1', { action: 'node', chunk_id: 'chunk-1' })
+    await handler({}, 'workspace-1', { action: 'edges' })
+    await handler({}, 'workspace-1', { action: 'subgraph', include_content: true })
+
+    expect(mocks.managerInstances[0].queryGraph).toHaveBeenNthCalledWith(1, 'workspace-1', {
+      action: 'node',
+      chunk_id: 'chunk-1',
+    })
+    expect(mocks.managerInstances[0].queryGraph).toHaveBeenNthCalledWith(2, 'workspace-1', {
+      action: 'edges',
+      include_content: false,
+    })
+    expect(mocks.managerInstances[0].queryGraph).toHaveBeenNthCalledWith(3, 'workspace-1', {
+      action: 'subgraph',
+      include_content: true,
+    })
   })
 
   it('T-U-006 registers vault-index IPC and delegates valid workspace IDs to manager', async () => {

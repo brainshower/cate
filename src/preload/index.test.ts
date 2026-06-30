@@ -80,4 +80,25 @@ describe('preload E2E bridge gating', () => {
     expect((api.e2eLastContextMenuItems as () => unknown[])()).toEqual([{ label: 'Open on Canvas' }])
     expect(electronMocks.invoke).not.toHaveBeenCalledWith('menu:showContext', expect.anything())
   })
+
+  it('T-I-005 and T-I-009 exposes a typed FlashQuery query_graph bridge only through flashqueryQueryGraph', async () => {
+    const api = await loadPreload()
+
+    expect(api.flashqueryQueryGraph).toEqual(expect.any(Function))
+    expect(api.flashqueryCallTool).toBeUndefined()
+
+    await (api.flashqueryQueryGraph as (workspaceId: string, params: unknown) => Promise<unknown>)('workspace-1', {
+      action: 'node',
+      chunk_id: 'chunk-1',
+      direction: 'both',
+      limit: 25,
+    })
+
+    expect(electronMocks.invoke).toHaveBeenCalledWith('flashquery:queryGraph', 'workspace-1', {
+      action: 'node',
+      chunk_id: 'chunk-1',
+      direction: 'both',
+      limit: 25,
+    })
+  })
 })
