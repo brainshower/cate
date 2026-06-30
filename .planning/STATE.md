@@ -1,50 +1,45 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.5
-milestone_name: Browser Uplift
-status: Awaiting next milestone
-stopped_at: Completed 26-09-PLAN.md
-last_updated: "2026-06-30T21:09:56.849Z"
-last_activity: 2026-06-30 — Milestone v1.5 completed and archived
+milestone: v1.6
+milestone_name: Graph Intelligence Monaco Side Panel
+status: planning
+last_updated: "2026-06-30T21:40:15.218Z"
+last_activity: 2026-06-30
 progress:
-  total_phases: 1
-  completed_phases: 1
-  total_plans: 10
-  completed_plans: 10
-  percent: 100
+  total_phases: 2
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-06-30 after v1.5 Browser Uplift closeout)
+See: `.planning/PROJECT.md` (updated 2026-06-30 after v1.6 Graph Intelligence Monaco Side Panel milestone start)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** Planning the next milestone
+**Current focus:** v1.6 Graph Intelligence Monaco Side Panel
 
 ## Current Position
 
-Phase: Milestone v1.5 complete
+Phase: 27 - Graph Data Contract and Whole-Document Graph View
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-06-30 — Milestone v1.5 completed and archived
+Status: Requirements and roadmap defined
+Last activity: 2026-06-30 — Milestone v1.6 requirements and two-phase roadmap created
 
 ## Session Continuity
 
 Last session: 2026-06-30T21:09:56.849Z
-Stopped At: Milestone v1.5 archived
+Stopped At: Milestone v1.6 roadmap created
 Resume File: None
 
 ## Next Up
 
-v1.5 Browser Uplift is archived. Next up is defining a fresh milestone with `/gsd-new-milestone`.
+Start Phase 27 with `/gsd-plan-phase 27`.
 
-Closeout notes:
-
-- Automated Browser Uplift verification passed: typecheck, full unit suite, Browser Uplift E2E, and FlashQuery persistence E2E.
-- Post-phase gap analysis resolved the known implementation and traceability gaps before milestone close.
-- `T-M-001` real-site login persistence remains human-only and is recorded as manual-pending evidence, not fabricated.
+Phase 27 bundles the source docs' Graph Data Contract and Whole-Document Graph View phases. Each wave should include the implementation and tests for the REQs it touches, especially the shared graph contract, `query_graph` bridge, provider backfill, embeddings fallback, and whole-document graph UI.
 
 ## Decisions
 
@@ -84,6 +79,9 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table.
 | 2026-06-26 | Plan 26-08 uses E2E simulation for webview crash/shortcut automation. | Direct Chromium crashes and webview guest keyboard/history delivery were unreliable in Playwright; unit tests pin classifier and method mapping. |
 | 2026-06-26 | Plan 26-09 required no production code changes because Waves 1-8 had already preserved the FlashQuery/browser boundary. | The wave delivered regression evidence for REQ-012 rather than changing runtime behavior. |
 | 2026-06-26 | T-E-018 calls `browserClearData` directly. | T-E-015 already owns clear-data confirmation UI coverage; T-E-018 owns the FlashQuery state invariant. |
+| 2026-06-30 | v1.6 uses the Graph Intelligence Monaco Side Panel requirements and test plan as mandatory source-of-truth docs. | The product docs define the graph contract, deferred structured-claim scope, and complete REQ/test traceability. |
+| 2026-06-30 | v1.6 executes in two GSD phases, Phases 27-28. | Phase 27 bundles source phases 1-2; Phase 28 bundles source phases 3-5 so every wave can carry implementation and tests. |
+| 2026-06-30 | v1.6 preserves product REQ and test IDs. | Avoids traceability drift from the supplied requirements/test-plan matrix. |
 
 ## Deferred Items
 
@@ -134,4 +132,4 @@ Items acknowledged and deferred at milestone close on 2026-06-16:
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Start Phase 27 with `/gsd-plan-phase 27`.
