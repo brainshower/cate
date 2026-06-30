@@ -155,6 +155,12 @@ export interface SemanticConnectionCautionFlags {
   total: number
 }
 
+export interface SemanticConnectionGroup {
+  key: string
+  label: string
+  connections: SemanticConnection[]
+}
+
 export const SC_EDGE: Record<SemanticConnectionRel, SemanticConnectionEdgeDef> = {
   contradicts: { kind: 'symmetric', tone: 'warn', sym: 'contradicts', color: '#dc2626', icon: 'warning' },
   depends_on: { kind: 'directed', tone: 'neutral', out: 'depends on', in: 'required by', color: '#2563eb', icon: 'link' },
@@ -187,6 +193,10 @@ function scoreValue(connection: SemanticConnection): number {
   return connection.score ?? connection.confidenceScore ?? 0
 }
 
+function graphSortValue(connection: SemanticConnection): number {
+  return connection.confidenceScore ?? connection.score ?? 0
+}
+
 export function scUnknownRelationDiagnostic(rel: string): string {
   return `Unknown semantic relation: ${rel}`
 }
@@ -208,6 +218,58 @@ function natureRank(connection: SemanticConnection): number {
   if (tone === 'warn') return 0
   if (tone === 'caution') return 1
   return 2
+}
+
+const RELATION_GROUP_PRIORITY: SemanticConnectionRel[] = [
+  'contradicts',
+  'supersedes',
+  'resolves',
+  'depends_on',
+  'supports',
+  'extends',
+  'references',
+  'rationale_for',
+  'elaborates',
+  'summarizes',
+  'contains',
+  'duplicates',
+]
+
+function groupKey(connection: SemanticConnection): string {
+  if (!connection.rel) return 'similarity'
+  return String(connection.rel)
+}
+
+function groupRank(key: string): number {
+  if (key === 'similarity') return 90
+  if (key === 'semantically_similar_to') return 100
+  const index = RELATION_GROUP_PRIORITY.indexOf(key as SemanticConnectionRel)
+  if (index >= 0) return index
+  return 80
+}
+
+export function groupWholeDocumentConnections(
+  list: readonly SemanticConnection[],
+): SemanticConnectionGroup[] {
+  const groups = new Map<string, SemanticConnection[]>()
+  for (const connection of list) {
+    const key = groupKey(connection)
+    const group = groups.get(key) ?? []
+    group.push(connection)
+    groups.set(key, group)
+  }
+
+  return [...groups.entries()]
+    .map(([key, connections]) => ({
+      key,
+      label: key === 'similarity' ? 'Similarity' : scEdgeLabel(key as SemanticConnectionRelation),
+      connections: [...connections].sort((a, b) => graphSortValue(b) - graphSortValue(a)),
+    }))
+    .sort((a, b) => {
+      const rankDelta = groupRank(a.key) - groupRank(b.key)
+      if (rankDelta !== 0) return rankDelta
+      return graphSortValue(b.connections[0]) - graphSortValue(a.connections[0])
+    })
 }
 
 export function arrangeForDisplay(

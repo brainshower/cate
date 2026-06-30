@@ -5,8 +5,10 @@ import type { SemanticConnectionsPanelProps } from './types'
 import {
   arrangeForDisplay,
   getAllRels,
+  groupWholeDocumentConnections,
   scEdgeLabel,
   type SemanticConnection,
+  type SemanticConnectionGroup,
   type SemanticConnectionNodeMeta,
   type SemanticConnectionSortMode,
   type SemanticConnectionsTargetMapEntry,
@@ -351,10 +353,12 @@ function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'ne
 
 function WholeDocumentGraphView({
   result,
+  connections,
   loading,
   selectionScopeId,
 }: {
   result: SemanticConnectionsResult
+  connections: readonly SemanticConnection[]
   loading: boolean
   selectionScopeId: string | null
 }) {
@@ -502,7 +506,69 @@ function WholeDocumentGraphView({
           </div>
         </SectionChrome>
       )}
+      <GroupedGraphConnections connections={connections} />
     </div>
+  )
+}
+
+function groupOverflowLabel(group: SemanticConnectionGroup, hiddenCount: number): string {
+  return `Show ${hiddenCount} more ${group.label} ${hiddenCount === 1 ? 'connection' : 'connections'}`
+}
+
+function GroupedGraphConnections({ connections }: { connections: readonly SemanticConnection[] }) {
+  const [expandedGroups, setExpandedGroups] = useState<ReadonlySet<string>>(() => new Set())
+  const groups = useMemo(() => groupWholeDocumentConnections(connections), [connections])
+  if (groups.length === 0) return null
+
+  return (
+    <SectionChrome title="Connections">
+      <div data-testid="semantic-graph-connections" className="space-y-3">
+        {groups.map((group) => {
+          const expanded = expandedGroups.has(group.key)
+          const visible = expanded ? group.connections : group.connections.slice(0, 3)
+          const hiddenCount = Math.max(0, group.connections.length - visible.length)
+          return (
+            <div
+              key={group.key}
+              data-testid={`semantic-graph-group-${group.key}`}
+              data-group-key={group.key}
+              className="space-y-1.5"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="truncate text-xs font-medium text-primary">{group.label}</p>
+                <span className="shrink-0 text-xs text-muted">{group.connections.length}</span>
+              </div>
+              <div className="space-y-1">
+                {visible.map((connection) => (
+                  <article
+                    key={connection.id}
+                    data-testid={`semantic-graph-connection-${connection.id}`}
+                    className="min-w-0 rounded border border-subtle bg-surface-2 px-2 py-1.5"
+                  >
+                    <p className="truncate text-sm font-medium text-primary">{connection.target.title}</p>
+                    {connection.target.heading && (
+                      <p className="truncate text-xs text-secondary">{connection.target.heading}</p>
+                    )}
+                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">
+                      {plainTextFromMarkdown(connection.target.snippet)}
+                    </p>
+                  </article>
+                ))}
+              </div>
+              {hiddenCount > 0 && (
+                <button
+                  type="button"
+                  className="rounded border border-subtle px-2 py-1 text-xs text-secondary hover:bg-hover hover:text-primary"
+                  onClick={() => setExpandedGroups((current) => new Set([...current, group.key]))}
+                >
+                  {groupOverflowLabel(group, hiddenCount)}
+                </button>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </SectionChrome>
   )
 }
 
@@ -672,22 +738,26 @@ export default function SemanticConnectionsPanel({
   const sortedConnections = useMemo(() => (
     arrangeForDisplay(filteredConnections, hasTypedControls ? sortMode : 'similarity')
   ), [filteredConnections, hasTypedControls, sortMode])
-  const limit = displayLimit(topN, sortedConnections.length)
-  const visibleConnections = sortedConnections.slice(0, limit)
-  const hiddenCount = Math.max(0, sortedConnections.length - visibleConnections.length)
-  const configActive = topN !== Infinity || activeRelFilters.size > 0
-  const sliderValue = topN === Infinity ? String(Math.max(1, sortedConnections.length)) : String(displayLimit(topN, sortedConnections.length))
-  const scopedCountLabel = countLabel(scopedConnections.length)
   const graphWholeDocumentMode = Boolean(
     result
       && !activeChunkId
       && result.mode !== 'embeddings-only'
       && result.chunkOrder.some((chunkId) => result.chunkMap[chunkId]?.previewChunkId),
   )
+  const graphOrderedConnections = useMemo(() => (
+    groupWholeDocumentConnections(filteredConnections).flatMap((group) => group.connections)
+  ), [filteredConnections])
+  const orderedConnections = graphWholeDocumentMode ? graphOrderedConnections : sortedConnections
+  const limit = displayLimit(topN, orderedConnections.length)
+  const visibleConnections = orderedConnections.slice(0, limit)
+  const hiddenCount = Math.max(0, orderedConnections.length - visibleConnections.length)
+  const configActive = topN !== Infinity || activeRelFilters.size > 0
+  const sliderValue = topN === Infinity ? String(Math.max(1, orderedConnections.length)) : String(displayLimit(topN, orderedConnections.length))
+  const scopedCountLabel = countLabel(scopedConnections.length)
 
   useEffect(() => {
-    if (topN !== Infinity && sortedConnections.length > 0 && topN >= sortedConnections.length) setTopN(Infinity)
-  }, [sortedConnections.length, topN])
+    if (topN !== Infinity && orderedConnections.length > 0 && topN >= orderedConnections.length) setTopN(Infinity)
+  }, [orderedConnections.length, topN])
 
   useEffect(() => {
     setActiveRelFilters((current) => {
@@ -804,11 +874,11 @@ export default function SemanticConnectionsPanel({
                     id={`${panelId}-top-n`}
                     aria-label="Top N connections"
                     type="range"
-                    min={sortedConnections.length > 0 ? 1 : 0}
-                    max={Math.max(1, sortedConnections.length)}
+                    min={orderedConnections.length > 0 ? 1 : 0}
+                    max={Math.max(1, orderedConnections.length)}
                     value={sliderValue}
-                    disabled={sortedConnections.length === 0}
-                    onChange={(event) => setTopN(normalizeTopN(event.currentTarget.value, sortedConnections.length))}
+                    disabled={orderedConnections.length === 0}
+                    onChange={(event) => setTopN(normalizeTopN(event.currentTarget.value, orderedConnections.length))}
                     className="w-full"
                   />
                 </div>
@@ -886,6 +956,7 @@ export default function SemanticConnectionsPanel({
           {!loadIssue && graphWholeDocumentMode && result && (
             <WholeDocumentGraphView
               result={result}
+              connections={visibleConnections}
               loading={loading}
               selectionScopeId={selectionScopeId}
             />
