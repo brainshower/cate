@@ -1,11 +1,30 @@
 import { describe, expect, it } from 'vitest'
 import {
+  SC_EDGE,
   arrangeForDisplay,
   getAllRels,
   scCautionFlags,
   scEdgeLabel,
+  scUnknownRelationDiagnostic,
   type SemanticConnection,
+  type SemanticConnectionRel,
 } from './semanticConnections'
+
+const graphRelations: SemanticConnectionRel[] = [
+  'contains',
+  'references',
+  'depends_on',
+  'supersedes',
+  'rationale_for',
+  'elaborates',
+  'summarizes',
+  'contradicts',
+  'duplicates',
+  'supports',
+  'extends',
+  'resolves',
+  'semantically_similar_to',
+]
 
 const embeddingsOnly: SemanticConnection[] = [
   {
@@ -68,11 +87,35 @@ const mixedTyped: SemanticConnection[] = [
 ]
 
 describe('semantic connection utilities', () => {
-  it('T-U-004 resolves directed and symmetric edge labels', () => {
+  it('T-U-001 proves complete relation union and metadata map covers all graph relations', () => {
+    expect(Object.keys(SC_EDGE).sort()).toEqual([...graphRelations].sort())
+    for (const rel of graphRelations) {
+      const edge = SC_EDGE[rel]
+      expect(edge).toMatchObject({
+        kind: expect.stringMatching(/^(directed|symmetric)$/),
+        tone: expect.stringMatching(/^(neutral|caution|warn)$/),
+        color: expect.stringMatching(/^#/),
+        icon: expect.any(String),
+      })
+      if (edge.kind === 'directed') {
+        expect(edge.out).toEqual(expect.any(String))
+        expect(edge.in).toEqual(expect.any(String))
+      } else {
+        expect(edge.sym).toEqual(expect.any(String))
+      }
+    }
+  })
+
+  it('T-U-007 resolves directed inbound/outbound and symmetric labels correctly', () => {
     expect(scEdgeLabel('depends_on', 'out')).toBe('Depends on')
     expect(scEdgeLabel('depends_on', 'in')).toBe('Required by')
     expect(scEdgeLabel('contradicts')).toBe('Contradicts')
     expect(scEdgeLabel(undefined, undefined)).toBe('Similarity only')
+  })
+
+  it('T-U-008 renders unknown relation strings safely and exposes a diagnostic path', () => {
+    expect(scEdgeLabel('requires_manual_review' as SemanticConnectionRel)).toBe('Requires manual review')
+    expect(scUnknownRelationDiagnostic('requires_manual_review')).toBe('Unknown semantic relation: requires_manual_review')
   })
 
   it('T-U-005 returns score-descending order in similarity mode', () => {

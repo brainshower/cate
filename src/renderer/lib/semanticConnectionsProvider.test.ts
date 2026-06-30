@@ -145,6 +145,136 @@ describe('semantic connections provider boundary', () => {
     }
   })
 
+  it('T-U-002 accepts graph-aware result fields while embeddings-only fixtures stay valid', () => {
+    const result = buildSemanticConnectionsResult({
+      markdown,
+      mode: 'typed',
+      connections: [{
+        id: 'graph-1',
+        score: 0.77,
+        rel: 'supports',
+        dir: 'out',
+        confidence: 'high',
+        confidenceScore: 0.93,
+        reasoning: 'Scope supports the graph contract.',
+        sourceClaimsReferenced: [0],
+        targetClaimsReferenced: [1],
+        status: 'active',
+        qualifiers: ['normative'],
+        metadata: { arbitraryNestedValue: { remains: ['opaque'] } },
+        target: {
+          flashqueryChunkId: '11111111-1111-4111-8111-111111111111',
+          documentId: 'doc-1',
+          documentPath: '/workspace/Plan.md',
+          documentTitle: 'Plan',
+          headingPath: ['Plan', 'Scope'],
+          headingText: 'Scope',
+          snippet: 'Graph target',
+          targetChunkSummary: 'Target analysis summary',
+          targetStale: false,
+          targetAnalyzedAt: '2026-06-30T00:00:00Z',
+          targetCommunityId: 'community-1',
+        },
+      }],
+      graphSummary: {
+        edge_count: 1,
+        edge_counts_by_relation: { supports: 1 },
+        stale_edge_count: 0,
+        community_labels: ['Architecture'],
+        has_contradictions: false,
+        has_open_questions: false,
+        open_question_count: 0,
+      },
+      communitySummary: {
+        dominantLabel: 'Architecture',
+        summary: 'Graph contract context',
+        labels: ['Architecture'],
+      },
+      nodeMeta: {
+        scope: {
+          chunkSummary: 'Scope summary',
+          keyClaims: ['Claim one'],
+          certaintyLevel: 'high',
+          stale: false,
+          analyzedAt: '2026-06-30T00:00:00Z',
+        },
+      },
+      nodeMetaLoading: false,
+    })
+
+    expect(result.mode).toBe('typed')
+    expect(result.graphSummary?.edge_count).toBe(1)
+    expect(result.communitySummary?.dominantLabel).toBe('Architecture')
+    expect(result.nodeMeta?.scope?.keyClaims).toEqual(['Claim one'])
+    expect(result.overall[0]).toMatchObject({
+      rel: 'supports',
+      confidenceScore: 0.93,
+      target: {
+        targetChunkSummary: 'Target analysis summary',
+        targetCommunityId: 'community-1',
+      },
+    })
+  })
+
+  it('T-U-003 keeps unknown optional metadata opaque without narrowing renderer assumptions', () => {
+    const metadata = { futureShape: { nested: ['still opaque'] }, numeric: 42 }
+    const result = buildSemanticConnectionsResult({
+      markdown,
+      mode: 'typed',
+      connections: [{
+        id: 'graph-opaque',
+        rel: 'references',
+        dir: 'out',
+        metadata,
+        target: {
+          flashqueryChunkId: '11111111-1111-4111-8111-111111111111',
+          documentPath: '/workspace/Plan.md',
+          documentTitle: 'Plan',
+          headingPath: ['Plan', 'Scope'],
+          headingText: 'Scope',
+          snippet: 'Opaque metadata target',
+        },
+      }],
+    })
+
+    expect(result.overall[0].metadata).toBe(metadata)
+  })
+
+  it('T-U-026 accepts graph-only rows with null or absent score', () => {
+    const result = buildSemanticConnectionsResult({
+      markdown,
+      mode: 'typed',
+      connections: [{
+        id: 'graph-no-score',
+        score: null,
+        rel: 'contradicts',
+        target: {
+          flashqueryChunkId: '11111111-1111-4111-8111-111111111111',
+          documentPath: '/workspace/Plan.md',
+          documentTitle: 'Plan',
+          headingPath: ['Plan', 'Scope'],
+          headingText: 'Scope',
+          snippet: 'Graph target without cosine score',
+        },
+      }, {
+        id: 'graph-absent-score',
+        rel: 'supports',
+        target: {
+          flashqueryChunkId: '22222222-2222-4222-8222-222222222222',
+          documentPath: '/workspace/Plan.md',
+          documentTitle: 'Plan',
+          headingPath: ['Plan', 'Scope', 'Details'],
+          headingText: 'Details',
+          snippet: 'Graph target without score key',
+        },
+      }],
+    })
+
+    expect(result.overall.map((connection) => connection.id)).toEqual(['graph-no-score', 'graph-absent-score'])
+    expect(result.overall[0].score).toBeUndefined()
+    expect(result.overall[1].score).toBeUndefined()
+  })
+
   it('T-I-042 caches by editor document and content hash, then invalidates material content changes', async () => {
     const backend = {
       loadDocumentConnections: vi.fn()
