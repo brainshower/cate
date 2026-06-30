@@ -181,6 +181,16 @@ function selectPreviewSection(chunkId: string, scopeId: string | null): void {
   usePreviewSelectionStore.getState().selectSection(chunkId, scopeId)
 }
 
+function sourceChunkForConnection(result: SemanticConnectionsResult, connectionId: string): string | null {
+  for (const chunkId of result.chunkOrder) {
+    if ((result.byChunkId[chunkId] ?? []).some((connection) => connection.id === connectionId)) return chunkId
+  }
+  for (const [chunkId, connections] of Object.entries(result.byChunkId)) {
+    if (connections.some((connection) => connection.id === connectionId)) return chunkId
+  }
+  return null
+}
+
 function revealHeadingInSourceEditor(snapshot: ActiveEditorSnapshot, heading: string): boolean {
   const editor = snapshot.editor
   const model = snapshot.model
@@ -356,11 +366,13 @@ function WholeDocumentGraphView({
   connections,
   loading,
   selectionScopeId,
+  onSelectConnectionSource,
 }: {
   result: SemanticConnectionsResult
   connections: readonly SemanticConnection[]
   loading: boolean
   selectionScopeId: string | null
+  onSelectConnectionSource: (connection: SemanticConnection) => void
 }) {
   const summary = result.communitySummary
   const secondaryLabels = summary?.labels?.filter((label) => label && label !== summary.dominantLabel) ?? []
@@ -506,7 +518,7 @@ function WholeDocumentGraphView({
           </div>
         </SectionChrome>
       )}
-      <GroupedGraphConnections connections={connections} />
+      <GroupedGraphConnections connections={connections} onSelectConnectionSource={onSelectConnectionSource} />
     </div>
   )
 }
@@ -515,7 +527,13 @@ function groupOverflowLabel(group: SemanticConnectionGroup, hiddenCount: number)
   return `Show ${hiddenCount} more ${group.label} ${hiddenCount === 1 ? 'connection' : 'connections'}`
 }
 
-function GroupedGraphConnections({ connections }: { connections: readonly SemanticConnection[] }) {
+function GroupedGraphConnections({
+  connections,
+  onSelectConnectionSource,
+}: {
+  connections: readonly SemanticConnection[]
+  onSelectConnectionSource: (connection: SemanticConnection) => void
+}) {
   const [expandedGroups, setExpandedGroups] = useState<ReadonlySet<string>>(() => new Set())
   const groups = useMemo(() => groupWholeDocumentConnections(connections), [connections])
   if (groups.length === 0) return null
@@ -540,10 +558,13 @@ function GroupedGraphConnections({ connections }: { connections: readonly Semant
               </div>
               <div className="space-y-1">
                 {visible.map((connection) => (
-                  <article
+                  <button
+                    type="button"
                     key={connection.id}
                     data-testid={`semantic-graph-connection-${connection.id}`}
-                    className="min-w-0 rounded border border-subtle bg-surface-2 px-2 py-1.5"
+                    className="w-full min-w-0 rounded border border-subtle bg-surface-2 px-2 py-1.5 text-left hover:bg-hover"
+                    aria-label={`Open source section for ${connection.target.title}`}
+                    onClick={() => onSelectConnectionSource(connection)}
                   >
                     <p className="truncate text-sm font-medium text-primary">{connection.target.title}</p>
                     {connection.target.heading && (
@@ -552,7 +573,7 @@ function GroupedGraphConnections({ connections }: { connections: readonly Semant
                     <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">
                       {plainTextFromMarkdown(connection.target.snippet)}
                     </p>
-                  </article>
+                  </button>
                 ))}
               </div>
               {hiddenCount > 0 && (
@@ -595,6 +616,7 @@ export default function SemanticConnectionsPanel({
   const [sortMode, setSortMode] = useState<SemanticConnectionSortMode>('similarity')
   const [activeRelFilters, setActiveRelFilters] = useState<ReadonlySet<string>>(() => new Set())
   const [topN, setTopN] = useState<number>(Infinity)
+  const [navigationDiagnostics, setNavigationDiagnostics] = useState(0)
   const requestRef = useRef(0)
   const resultCacheRef = useRef(new Map<string, SemanticConnectionsResult>())
   const latestResultRef = useRef(new Map<string, { hash: string; result: SemanticConnectionsResult }>())
@@ -797,12 +819,27 @@ export default function SemanticConnectionsPanel({
     })
   }, [])
 
+  const handleSelectWholeDocumentConnectionSource = useCallback((connection: SemanticConnection) => {
+    if (!result) return
+    const sourceChunkId = sourceChunkForConnection(result, connection.id)
+    if (!sourceChunkId) {
+      setNavigationDiagnostics((count) => count + 1)
+      return
+    }
+    selectPreviewSection(sourceChunkId, selectionScopeId)
+  }, [result, selectionScopeId])
+
+  useEffect(() => {
+    setNavigationDiagnostics(0)
+  }, [result])
+
   return (
     <section
       className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-surface-2 text-primary"
       data-panel-id={panelId}
       data-testid="semantic-connections-panel"
       data-semantic-diagnostics-count={result?.diagnostics.length ? String(result.diagnostics.length) : undefined}
+      data-semantic-navigation-diagnostics-count={navigationDiagnostics > 0 ? String(navigationDiagnostics) : undefined}
       onKeyDown={(event) => {
         if (event.key === 'Escape') {
           usePreviewSelectionStore.getState().clearSelection(selectionScopeId)
@@ -959,6 +996,7 @@ export default function SemanticConnectionsPanel({
               connections={visibleConnections}
               loading={loading}
               selectionScopeId={selectionScopeId}
+              onSelectConnectionSource={handleSelectWholeDocumentConnectionSource}
             />
           )}
 
