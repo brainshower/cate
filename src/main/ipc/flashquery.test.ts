@@ -577,7 +577,8 @@ describe('FlashQuery IPC handlers', () => {
       body: 'body',
       frontmatter: { title: 'Plan' },
     })
-    await expect(handler({}, 'workspace-1', 'Plan.md', { include: ['bad'] })).rejects.toThrow('options.include must contain only body, frontmatter, or connections')
+    await expect(handler({}, 'workspace-1', 'Plan.md', { include: ['bad'] }))
+      .rejects.toThrow('options.include must contain only body, frontmatter, connections, graph_summary, or headings')
 
     expect(mocks.managerInstances[0].getDocument).toHaveBeenCalledWith('workspace-1', 'Plan.md', {
       include: ['body', 'frontmatter', 'connections'],

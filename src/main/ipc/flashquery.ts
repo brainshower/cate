@@ -290,13 +290,16 @@ function validateGetDocumentOptions(value: unknown): FlashQueryGetDocumentOption
   if (include === undefined) return {}
   if (!Array.isArray(include)) throw new Error('options.include must be an array')
   for (const part of include) {
-    if (part !== 'body' && part !== 'frontmatter' && part !== 'connections') {
-      throw new Error('options.include must contain only body, frontmatter, or connections')
+    if (part !== 'body' && part !== 'frontmatter' && part !== 'connections' && part !== 'graph_summary' && part !== 'headings') {
+      throw new Error('options.include must contain only body, frontmatter, connections, graph_summary, or headings')
     }
   }
-  const connections = isPlainObject(value.connections)
-    ? validateDocumentConnectionsParams({ ...value.connections, identifier: 'placeholder' })
-    : undefined
+  if (value.connections !== undefined && !isPlainObject(value.connections)) {
+    throw new Error('options.connections must be an object when provided')
+  }
+  const connections = value.connections === undefined
+    ? undefined
+    : validateDocumentConnectionsParams({ ...value.connections, identifier: 'placeholder' })
   return {
     include,
     ...(connections ? {
@@ -509,6 +512,22 @@ async function search(workspaceId: string, params: unknown): Promise<FlashQueryS
 function validateDocumentConnectionsParams(value: unknown): FlashQueryDocumentConnectionsParams {
   if (!value || typeof value !== 'object') throw new Error('Document connections params must be an object')
   const input = value as Partial<FlashQueryDocumentConnectionsParams>
+  if (input.limit !== undefined && (
+    typeof input.limit !== 'number'
+    || !Number.isFinite(input.limit)
+    || !Number.isInteger(input.limit)
+    || input.limit <= 0
+  )) {
+    throw new Error('Document connections limit must be a positive integer')
+  }
+  if (input.limit_per_chunk !== undefined && (
+    typeof input.limit_per_chunk !== 'number'
+    || !Number.isFinite(input.limit_per_chunk)
+    || !Number.isInteger(input.limit_per_chunk)
+    || input.limit_per_chunk <= 0
+  )) {
+    throw new Error('Document connections limit_per_chunk must be a positive integer')
+  }
   return {
     identifier: requireNonEmptyString(input.identifier, 'identifier'),
     ...(typeof input.limit === 'number' ? { limit: input.limit } : {}),
