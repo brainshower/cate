@@ -1398,6 +1398,192 @@ describe('FlashQueryClientManager', () => {
     expect(callTool).not.toHaveBeenCalledWith(expect.objectContaining({ name: 'get_document_connections' }))
   })
 
+  it('T-I-001, T-I-002, T-I-007, and T-I-008 preserves get_document graph overlay, graph summary, source chunks, and target health fields', async () => {
+    const callTool = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({
+        identifier: 'Docs/Plan.md',
+        path: 'Docs/Plan.md',
+        title: 'Plan',
+        fq_id: 'doc-1',
+        connections: {
+          graph_summary: {
+            edge_count: 3,
+            edge_counts_by_relation: { supports: 1, contradicts: 2 },
+            stale_edge_count: 1,
+            community_labels: ['Architecture', 'Risk'],
+            has_contradictions: true,
+            has_open_questions: true,
+            open_question_count: 2,
+          },
+          overall: [{
+            id: 'edge-1',
+            score: null,
+            basis: 'graph',
+            relation: 'supports',
+            direction: 'out',
+            confidence: 'high',
+            confidence_score: 0.96,
+            reasoning: 'The source supports the target decision.',
+            stale: false,
+            status: 'active',
+            question_status: 'open',
+            community_label: 'Architecture',
+            target: {
+              chunk_id: 'chunk-2',
+              document_id: 'doc-2',
+              path: 'Docs/Other.md',
+              title: 'Other',
+              heading_path: ['Other', 'Section'],
+              breadcrumb: 'Other > Section',
+              content: 'Other content',
+              chunk_summary: 'Target health summary',
+              stale: true,
+              analyzed_at: '2026-06-30T00:00:00Z',
+              community_id: 'community-2',
+            },
+          }],
+          source_chunks: [{
+            chunk_id: 'source-1',
+            heading_path: ['Plan', 'Scope'],
+            breadcrumb: 'Plan > Scope',
+            connections: [{
+              id: 'edge-1',
+              relation: 'supports',
+              direction: 'out',
+              confidence_score: 0.96,
+              target: {
+                chunk_id: 'chunk-2',
+                document_id: 'doc-2',
+                path: 'Docs/Other.md',
+                title: 'Other',
+              },
+            }],
+          }],
+        },
+      }) }],
+    })
+    workspaceMock.workspaces = [workspaceInfo()]
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
+    await expect(manager.documentConnections('workspace-1', {
+      identifier: 'Docs/Plan.md',
+      limit: 40,
+      limit_per_chunk: 5,
+      embedding_names: ['primary'],
+    })).resolves.toMatchObject({
+      source: { document_id: 'doc-1', path: 'Docs/Plan.md', title: 'Plan' },
+      graph_summary: {
+        edge_count: 3,
+        edge_counts_by_relation: { supports: 1, contradicts: 2 },
+        stale_edge_count: 1,
+        community_labels: ['Architecture', 'Risk'],
+        has_contradictions: true,
+        has_open_questions: true,
+        open_question_count: 2,
+      },
+      overall: [{
+        id: 'edge-1',
+        basis: 'graph',
+        relation: 'supports',
+        direction: 'out',
+        confidence: 'high',
+        confidence_score: 0.96,
+        reasoning: 'The source supports the target decision.',
+        stale: false,
+        status: 'active',
+        question_status: 'open',
+        community_label: 'Architecture',
+        target: {
+          chunk_id: 'chunk-2',
+          document_id: 'doc-2',
+          path: 'Docs/Other.md',
+          title: 'Other',
+          heading_path: 'Other > Section',
+          content: 'Other content',
+          chunk_summary: 'Target health summary',
+          stale: true,
+          analyzed_at: '2026-06-30T00:00:00Z',
+          community_id: 'community-2',
+        },
+      }],
+      source_chunks: [{
+        chunk_id: 'source-1',
+        heading_path: 'Plan > Scope',
+        breadcrumb: 'Plan > Scope',
+        connections: [{
+          id: 'edge-1',
+          relation: 'supports',
+          direction: 'out',
+          confidence_score: 0.96,
+        }],
+      }],
+    })
+
+    expect(callTool).toHaveBeenCalledWith({
+      name: 'get_document',
+      arguments: {
+        identifiers: 'Docs/Plan.md',
+        include: ['connections', 'graph_summary'],
+        connections: {
+          limit: 40,
+          limit_per_chunk: 5,
+          embedding_names: ['primary'],
+        },
+      },
+    })
+  })
+
+  it('T-I-003 omits or diagnoses malformed optional graph fields without discarding valid rows', async () => {
+    const callTool = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({
+        identifier: 'Docs/Plan.md',
+        path: 'Docs/Plan.md',
+        fq_id: 'doc-1',
+        connections: {
+          graph_summary: {
+            edge_count: 'bad',
+            edge_counts_by_relation: ['bad'],
+            stale_edge_count: 0,
+          },
+          overall: [{
+            id: 'edge-valid',
+            relation: 'supports',
+            confidence_score: 'not-a-number',
+            metadata: ['not-object'],
+            target: {
+              chunk_id: 'chunk-2',
+              path: 'Docs/Other.md',
+              title: 'Other',
+              stale: 'unknown',
+            },
+          }],
+          source_chunks: [],
+        },
+      }) }],
+    })
+    workspaceMock.workspaces = [workspaceInfo()]
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
+    await expect(manager.documentConnections('workspace-1', {
+      identifier: 'Docs/Plan.md',
+    })).resolves.toMatchObject({
+      overall: [{
+        id: 'edge-valid',
+        relation: 'supports',
+        target: {
+          chunk_id: 'chunk-2',
+          path: 'Docs/Other.md',
+          title: 'Other',
+        },
+      }],
+      diagnostics: expect.arrayContaining([
+        expect.stringContaining('graph_summary.edge_count'),
+        expect.stringContaining('edge-valid.confidence_score'),
+        expect.stringContaining('edge-valid.target.stale'),
+      ]),
+    })
+  })
+
   it('preserves get_document connection expected errors as local connection errors', async () => {
     const callTool = vi.fn().mockResolvedValue({
       content: [{ type: 'text', text: JSON.stringify({
@@ -1559,6 +1745,37 @@ describe('FlashQueryClientManager', () => {
 
     await expect(manager.getDocument('workspace-1', 'Plan.md'))
       .rejects.toThrow('Authorization failed for [redacted]')
+  })
+
+  it('T-U-028 redacts bearer tokens and URL credentials from normalized graph diagnostics', async () => {
+    workspaceMock.workspaces = [workspaceInfo({ transport: 'http', url: 'https://user:pass@flashquery.local' })]
+    workspaceMock.token = 'secret-token'
+    const callTool = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({
+        identifier: 'Docs/Plan.md',
+        path: 'Docs/Plan.md',
+        fq_id: 'doc-1',
+        connections: {
+          overall: [{
+            id: 'edge-secret',
+            confidence_score: 'secret-token https://user:pass@flashquery.local',
+            target: {
+              chunk_id: 'chunk-2',
+              path: 'Docs/Other.md',
+              title: 'Other',
+            },
+          }],
+          source_chunks: [],
+        },
+      }) }],
+    })
+    const manager = new FlashQueryClientManager({ createMcpClient: async () => ({ callTool }) })
+
+    const result = await manager.documentConnections('workspace-1', { identifier: 'Docs/Plan.md' })
+
+    expect(JSON.stringify(result)).not.toContain('secret-token')
+    expect(JSON.stringify(result)).not.toContain('user:pass')
+    expect(result.diagnostics?.join('\n')).toContain('[redacted]')
   })
 
   it('returns safe write failures for malformed JSON and token-bearing transport errors', async () => {
