@@ -1,5 +1,7 @@
 export type SemanticConnectionDirection = 'out' | 'in' | 'sym'
 export type SemanticConnectionTone = 'neutral' | 'caution' | 'warn'
+export type SemanticConnectionConfidence = 'high' | 'medium' | 'low' | 'unknown'
+export type SemanticConnectionStatus = 'active' | 'stale' | 'deleted' | 'unknown'
 
 export type SemanticConnectionRel =
   | 'contains'
@@ -11,6 +13,12 @@ export type SemanticConnectionRel =
   | 'summarizes'
   | 'contradicts'
   | 'duplicates'
+  | 'supports'
+  | 'extends'
+  | 'resolves'
+  | 'semantically_similar_to'
+
+export type SemanticConnectionRelation = SemanticConnectionRel | (string & {})
 
 export interface SemanticConnectionTarget {
   title: string
@@ -22,19 +30,33 @@ export interface SemanticConnectionTarget {
   inDocument?: boolean
   documentId?: string
   headingPath?: string[]
+  targetChunkSummary?: string
+  targetStale?: boolean
+  targetAnalyzedAt?: string
+  targetCommunityId?: string
 }
 
 export interface SemanticConnection {
   id: string
-  score: number
-  rel?: SemanticConnectionRel
+  score?: number
+  rel?: SemanticConnectionRelation
   dir?: SemanticConnectionDirection
+  confidence?: SemanticConnectionConfidence | string
+  confidenceScore?: number
+  reasoning?: string
+  sourceClaimsReferenced?: number[]
+  targetClaimsReferenced?: number[]
+  status?: SemanticConnectionStatus | string
+  qualifiers?: string[]
+  metadata?: unknown
   target: SemanticConnectionTarget
 }
 
 export interface SemanticConnectionEdgeDef {
   kind: 'directed' | 'symmetric'
   tone: SemanticConnectionTone
+  color: string
+  icon: string
   out?: string
   in?: string
   sym?: string
@@ -61,6 +83,41 @@ export interface SemanticConnectionsTargetMapEntry {
   sourceEndLine?: number
 }
 
+export interface GraphDocumentSummary {
+  edge_count: number
+  edge_counts_by_relation: Record<string, number>
+  stale_edge_count: number
+  community_labels: string[]
+  has_contradictions: boolean
+  has_open_questions: boolean
+  open_question_count: number
+}
+
+export interface SemanticConnectionsCommunitySummary {
+  dominantLabel?: string
+  summary?: string
+  labels?: string[]
+}
+
+export interface SemanticConnectionNodeMeta {
+  chunkSummary?: string
+  keyClaims?: string[]
+  certaintyLevel?: SemanticConnectionConfidence | string
+  stalenessRisk?: string
+  externalRefs?: string[]
+  temporalMarkers?: string[]
+  questionStatus?: 'open' | 'deferred' | 'resolved' | 'none' | string
+  questionResolution?: string
+  communityId?: string
+  communityLabel?: string
+  communitySummary?: string
+  content?: string
+  analyzed?: boolean
+  stale?: boolean
+  analyzedAt?: string
+  diagnostics?: string[]
+}
+
 export interface SemanticConnectionsResult {
   mode: SemanticConnectionMode
   overall: readonly SemanticConnection[]
@@ -69,6 +126,10 @@ export interface SemanticConnectionsResult {
   chunkMap: Record<string, SemanticConnectionsTargetMapEntry>
   diagnostics: string[]
   stale?: boolean
+  graphSummary?: GraphDocumentSummary
+  communitySummary?: SemanticConnectionsCommunitySummary
+  nodeMeta?: Record<string, SemanticConnectionNodeMeta>
+  nodeMetaLoading?: boolean
 }
 
 export interface SemanticConnectionsProviderInput {
@@ -95,15 +156,19 @@ export interface SemanticConnectionCautionFlags {
 }
 
 export const SC_EDGE: Record<SemanticConnectionRel, SemanticConnectionEdgeDef> = {
-  contains: { kind: 'directed', tone: 'neutral', out: 'contains', in: 'contained by' },
-  references: { kind: 'directed', tone: 'neutral', out: 'references', in: 'referenced by' },
-  depends_on: { kind: 'directed', tone: 'neutral', out: 'depends on', in: 'required by' },
-  supersedes: { kind: 'directed', tone: 'caution', out: 'supersedes', in: 'superseded by' },
-  rationale_for: { kind: 'directed', tone: 'neutral', out: 'rationale for', in: 'has rationale' },
-  elaborates: { kind: 'directed', tone: 'neutral', out: 'elaborates', in: 'elaborated by' },
-  summarizes: { kind: 'directed', tone: 'neutral', out: 'summarizes', in: 'summarized by' },
-  contradicts: { kind: 'symmetric', tone: 'warn', sym: 'contradicts' },
-  duplicates: { kind: 'symmetric', tone: 'neutral', sym: 'duplicates' },
+  contradicts: { kind: 'symmetric', tone: 'warn', sym: 'contradicts', color: '#dc2626', icon: 'warning' },
+  depends_on: { kind: 'directed', tone: 'neutral', out: 'depends on', in: 'required by', color: '#2563eb', icon: 'link' },
+  supersedes: { kind: 'directed', tone: 'caution', out: 'supersedes', in: 'superseded by', color: '#d97706', icon: 'arrow-clockwise' },
+  resolves: { kind: 'directed', tone: 'neutral', out: 'resolves', in: 'resolved by', color: '#16a34a', icon: 'check-circle' },
+  supports: { kind: 'directed', tone: 'neutral', out: 'supports', in: 'supported by', color: '#059669', icon: 'thumbs-up' },
+  references: { kind: 'directed', tone: 'neutral', out: 'references', in: 'referenced by', color: '#4f46e5', icon: 'bookmark' },
+  extends: { kind: 'directed', tone: 'neutral', out: 'extends', in: 'extended by', color: '#0891b2', icon: 'tree-structure' },
+  elaborates: { kind: 'directed', tone: 'neutral', out: 'elaborates', in: 'elaborated by', color: '#0d9488', icon: 'article' },
+  rationale_for: { kind: 'directed', tone: 'neutral', out: 'rationale for', in: 'has rationale', color: '#7c3aed', icon: 'lightbulb' },
+  summarizes: { kind: 'directed', tone: 'neutral', out: 'summarizes', in: 'summarized by', color: '#65a30d', icon: 'list' },
+  contains: { kind: 'directed', tone: 'neutral', out: 'contains', in: 'contained by', color: '#475569', icon: 'folder' },
+  duplicates: { kind: 'symmetric', tone: 'neutral', sym: 'duplicates', color: '#64748b', icon: 'copy' },
+  semantically_similar_to: { kind: 'symmetric', tone: 'neutral', sym: 'semantically similar to', color: '#6b7280', icon: 'sparkle' },
 }
 
 function titleCase(value: string): string {
@@ -111,19 +176,31 @@ function titleCase(value: string): string {
 }
 
 function scoreDescending(a: SemanticConnection, b: SemanticConnection): number {
-  return b.score - a.score
+  return scoreValue(b) - scoreValue(a)
 }
 
-export function scEdgeLabel(rel?: SemanticConnectionRel, dir?: SemanticConnectionDirection): string {
+function isKnownRelation(rel: SemanticConnectionRelation | undefined): rel is SemanticConnectionRel {
+  return Boolean(rel && rel in SC_EDGE)
+}
+
+function scoreValue(connection: SemanticConnection): number {
+  return connection.score ?? connection.confidenceScore ?? 0
+}
+
+export function scUnknownRelationDiagnostic(rel: string): string {
+  return `Unknown semantic relation: ${rel}`
+}
+
+export function scEdgeLabel(rel?: SemanticConnectionRelation, dir?: SemanticConnectionDirection): string {
   if (!rel) return 'Similarity only'
-  const edge = SC_EDGE[rel]
+  const edge = isKnownRelation(rel) ? SC_EDGE[rel] : undefined
   if (!edge) return titleCase(rel.replace(/_/g, ' '))
   if (edge.kind === 'symmetric') return titleCase(edge.sym ?? rel.replace(/_/g, ' '))
   return titleCase((dir === 'in' ? edge.in : edge.out) ?? edge.out ?? rel.replace(/_/g, ' '))
 }
 
 function connectionTone(connection: SemanticConnection): SemanticConnectionTone {
-  return connection.rel ? SC_EDGE[connection.rel]?.tone ?? 'neutral' : 'neutral'
+  return isKnownRelation(connection.rel) ? SC_EDGE[connection.rel].tone : 'neutral'
 }
 
 function natureRank(connection: SemanticConnection): number {
@@ -152,7 +229,7 @@ export function arrangeForDisplay(
     .sort((a, b) => {
       const rankDelta = natureRank(a[0]) - natureRank(b[0])
       if (rankDelta !== 0) return rankDelta
-      return b[0].score - a[0].score
+      return scoreValue(b[0]) - scoreValue(a[0])
     })
     .flat()
 }
@@ -160,11 +237,11 @@ export function arrangeForDisplay(
 export function getAllRels(payload: SemanticConnectionBuckets): SemanticConnectionRel[] {
   const rels = new Set<SemanticConnectionRel>()
   for (const connection of payload.overall ?? []) {
-    if (connection.rel) rels.add(connection.rel)
+    if (isKnownRelation(connection.rel)) rels.add(connection.rel)
   }
   for (const connections of Object.values(payload.byChunkId ?? {})) {
     for (const connection of connections) {
-      if (connection.rel) rels.add(connection.rel)
+      if (isKnownRelation(connection.rel)) rels.add(connection.rel)
     }
   }
   return [...rels].sort()

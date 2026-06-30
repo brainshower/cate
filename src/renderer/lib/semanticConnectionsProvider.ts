@@ -19,9 +19,13 @@ import {
   loadCachedFlashQueryDocumentConnections,
 } from './semanticConnectionsDocumentCache'
 import type {
+  GraphDocumentSummary,
   SemanticConnection,
   SemanticConnectionDirection,
+  SemanticConnectionNodeMeta,
   SemanticConnectionRel,
+  SemanticConnectionRelation,
+  SemanticConnectionsCommunitySummary,
   SemanticConnectionsProvider,
   SemanticConnectionsProviderInput,
   SemanticConnectionsResult,
@@ -47,13 +51,25 @@ export interface FlashQuerySemanticConnectionTarget {
   body?: string
   sourceStartLine?: number
   sourceEndLine?: number
+  targetChunkSummary?: string
+  targetStale?: boolean
+  targetAnalyzedAt?: string
+  targetCommunityId?: string
 }
 
 export interface FlashQuerySemanticConnection {
   id: string
-  score: number
-  rel?: SemanticConnectionRel
+  score?: number | null
+  rel?: SemanticConnectionRelation
   dir?: SemanticConnectionDirection
+  confidence?: string
+  confidenceScore?: number
+  reasoning?: string
+  sourceClaimsReferenced?: number[]
+  targetClaimsReferenced?: number[]
+  status?: string
+  qualifiers?: string[]
+  metadata?: unknown
   target: FlashQuerySemanticConnectionTarget
 }
 
@@ -73,6 +89,11 @@ export interface BuildSemanticConnectionsResultInput {
   markdown: string
   mode: SemanticConnectionMode
   connections: readonly FlashQuerySemanticConnection[]
+  graphSummary?: GraphDocumentSummary
+  communitySummary?: SemanticConnectionsCommunitySummary
+  nodeMeta?: Record<string, SemanticConnectionNodeMeta>
+  nodeMetaLoading?: boolean
+  diagnostics?: string[]
 }
 
 type FlashQuerySearchFn = (
@@ -224,7 +245,6 @@ function toPanelConnection(
   const target = connection.target
   const panelConnection: SemanticConnection = {
     id: connection.id,
-    score: connection.score,
     target: {
       title: target.documentTitle,
       path: target.documentPath,
@@ -235,10 +255,25 @@ function toPanelConnection(
       inDocument: false,
       documentId: target.documentId,
       headingPath: target.headingPath,
+      targetChunkSummary: target.targetChunkSummary,
+      targetStale: target.targetStale,
+      targetAnalyzedAt: target.targetAnalyzedAt,
+      targetCommunityId: target.targetCommunityId,
     },
   }
+  if (typeof connection.score === 'number' && Number.isFinite(connection.score)) panelConnection.score = connection.score
   if (connection.rel) panelConnection.rel = connection.rel
   if (connection.dir) panelConnection.dir = connection.dir
+  if (connection.confidence) panelConnection.confidence = connection.confidence
+  if (typeof connection.confidenceScore === 'number' && Number.isFinite(connection.confidenceScore)) {
+    panelConnection.confidenceScore = connection.confidenceScore
+  }
+  if (connection.reasoning) panelConnection.reasoning = connection.reasoning
+  if (connection.sourceClaimsReferenced) panelConnection.sourceClaimsReferenced = connection.sourceClaimsReferenced
+  if (connection.targetClaimsReferenced) panelConnection.targetClaimsReferenced = connection.targetClaimsReferenced
+  if (connection.status) panelConnection.status = connection.status
+  if (connection.qualifiers) panelConnection.qualifiers = connection.qualifiers
+  if (connection.metadata !== undefined) panelConnection.metadata = connection.metadata
   return panelConnection
 }
 
@@ -262,13 +297,42 @@ function dedupeBestConnections(connections: readonly SemanticConnection[]): Sema
   const byId = new Map<string, SemanticConnection>()
   for (const connection of connections) {
     const existing = byId.get(connection.id)
-    if (!existing || connection.score > existing.score) byId.set(connection.id, connection)
+    if (!existing || connectionScore(connection) > connectionScore(existing)) byId.set(connection.id, connection)
   }
   return [...byId.values()].sort((left, right) => {
-    const scoreDelta = right.score - left.score
+    const scoreDelta = connectionScore(right) - connectionScore(left)
     if (scoreDelta !== 0) return scoreDelta
     return left.id.localeCompare(right.id)
   })
+}
+
+function connectionScore(connection: SemanticConnection): number {
+  return connection.score ?? connection.confidenceScore ?? 0
+}
+
+function unknownRelationDiagnostics(connections: readonly SemanticConnection[]): string[] {
+  const knownRelations = new Set<string>([
+    'contains',
+    'references',
+    'depends_on',
+    'supersedes',
+    'rationale_for',
+    'elaborates',
+    'summarizes',
+    'contradicts',
+    'duplicates',
+    'supports',
+    'extends',
+    'resolves',
+    'semantically_similar_to',
+  ])
+  const diagnostics = new Set<string>()
+  for (const connection of connections) {
+    if (connection.rel && !knownRelations.has(connection.rel)) {
+      diagnostics.add(`Unknown semantic relation: ${connection.rel}`)
+    }
+  }
+  return [...diagnostics]
 }
 
 export function buildSemanticConnectionsResult(input: BuildSemanticConnectionsResultInput): SemanticConnectionsResult {
@@ -297,7 +361,15 @@ export function buildSemanticConnectionsResult(input: BuildSemanticConnectionsRe
     byChunkId,
     chunkOrder: mapping.chunkOrder,
     chunkMap: mapping.chunkMap,
-    diagnostics: mapping.diagnostics,
+    diagnostics: [
+      ...mapping.diagnostics,
+      ...(input.diagnostics ?? []),
+      ...unknownRelationDiagnostics(overall),
+    ],
+    ...(input.graphSummary ? { graphSummary: input.graphSummary } : {}),
+    ...(input.communitySummary ? { communitySummary: input.communitySummary } : {}),
+    ...(input.nodeMeta ? { nodeMeta: input.nodeMeta } : {}),
+    ...(input.nodeMetaLoading !== undefined ? { nodeMetaLoading: input.nodeMetaLoading } : {}),
   }
 }
 
