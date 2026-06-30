@@ -340,6 +340,21 @@ export interface FlashQueryDocumentConnectionsResponse {
   error?: string
 }
 
+export type FlashQueryQueryGraphAction = 'node' | 'edges' | 'neighbors' | 'subgraph'
+export type FlashQueryQueryGraphDirection = 'in' | 'out' | 'both'
+
+export interface FlashQueryQueryGraphParams {
+  action: FlashQueryQueryGraphAction
+  chunk_id?: string
+  direction?: FlashQueryQueryGraphDirection
+  include_content?: boolean
+  limit?: number
+}
+
+export type FlashQueryQueryGraphResponse = Record<string, unknown> & {
+  error?: string
+}
+
 export interface FlashQueryVaultIndexEntry {
   filename: string
   fullPath: string

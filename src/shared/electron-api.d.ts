@@ -2,7 +2,7 @@
 // Type declaration for window.electronAPI exposed via contextBridge
 // =============================================================================
 
-import type { AgentCreateOptions, AgentEventEnvelope, AgentExtensionUIResponse, AgentImageAttachment, AgentModelRef, AgentRpcState, AgentSessionListEntry, AgentSessionStats, AgentSlashCommand, AgentThinkingLevel, AgentToolApprovalRequest, AppSettings, AgentState, AuthProviderDescriptor, AuthProviderStatus, BrowserBookmark, BrowserClearDataResult, BrowserHistoryEntry, BrowserShortcutPayload, CateWindowParams, DockWindowInitPayload, DetachedDockWindowSnapshot, DockStateSnapshot, FileSearchOptions, FileSearchResult, FileTreeNode, FlashQueryConnection, FlashQueryDirectoryAction, FlashQueryDocumentBody, FlashQueryDocumentConnectionsParams, FlashQueryDocumentConnectionsResponse, FlashQueryGetDocumentOptions, FlashQueryProbeResult, FlashQuerySearchParams, FlashQuerySearchResponse, FlashQueryStatusBroadcastPayload, FlashQueryVaultEntry, FlashQueryVaultIndexEntry, FlashQueryWritePayload, FlashQueryWriteResult, GitInfo, NotificationAction, OAuthFlowEvent, PanelState, PanelTransferSnapshot, PanelWindowSnapshot, PerfSnapshot, Point, SessionSnapshot, TerminalActivity, WorkspaceInfo, WorkspaceMutationResult } from './types'
+import type { AgentCreateOptions, AgentEventEnvelope, AgentExtensionUIResponse, AgentImageAttachment, AgentModelRef, AgentRpcState, AgentSessionListEntry, AgentSessionStats, AgentSlashCommand, AgentThinkingLevel, AgentToolApprovalRequest, AppSettings, AgentState, AuthProviderDescriptor, AuthProviderStatus, BrowserBookmark, BrowserClearDataResult, BrowserHistoryEntry, BrowserShortcutPayload, CateWindowParams, DockWindowInitPayload, DetachedDockWindowSnapshot, DockStateSnapshot, FileSearchOptions, FileSearchResult, FileTreeNode, FlashQueryConnection, FlashQueryDirectoryAction, FlashQueryDocumentBody, FlashQueryDocumentConnectionsParams, FlashQueryDocumentConnectionsResponse, FlashQueryGetDocumentOptions, FlashQueryProbeResult, FlashQueryQueryGraphParams, FlashQueryQueryGraphResponse, FlashQuerySearchParams, FlashQuerySearchResponse, FlashQueryStatusBroadcastPayload, FlashQueryVaultEntry, FlashQueryVaultIndexEntry, FlashQueryWritePayload, FlashQueryWriteResult, GitInfo, NotificationAction, OAuthFlowEvent, PanelState, PanelTransferSnapshot, PanelWindowSnapshot, PerfSnapshot, Point, SessionSnapshot, TerminalActivity, WorkspaceInfo, WorkspaceMutationResult } from './types'
 
 export interface NativeContextMenuItem {
   id?: string
@@ -628,6 +628,8 @@ export interface ElectronAPI {
   flashquerySearch(workspaceId: string, params: FlashQuerySearchParams): Promise<FlashQuerySearchResponse>
 
   flashqueryDocumentConnections(workspaceId: string, params: FlashQueryDocumentConnectionsParams): Promise<FlashQueryDocumentConnectionsResponse>
+
+  flashqueryQueryGraph(workspaceId: string, params: FlashQueryQueryGraphParams): Promise<FlashQueryQueryGraphResponse>
 
   flashqueryListVaultIndex(workspaceId: string): Promise<FlashQueryVaultIndexEntry[]>
 

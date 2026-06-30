@@ -164,7 +164,7 @@ describe('FlashQuery IPC handlers', () => {
 
     registerHandlers()
 
-    expect(mocks.handle).toHaveBeenCalledTimes(13)
+    expect(mocks.handle).toHaveBeenCalledTimes(14)
     expect(mocks.handle.mock.calls.map(([channel]) => channel)).toEqual([
       FLASHQUERY_SET_CONNECTION,
       FLASHQUERY_PROBE,
@@ -177,10 +177,12 @@ describe('FlashQuery IPC handlers', () => {
       FLASHQUERY_REMOVE_DOCUMENT,
       FLASHQUERY_SEARCH,
       FLASHQUERY_DOCUMENT_CONNECTIONS,
+      FLASHQUERY_QUERY_GRAPH,
       FLASHQUERY_LIST_VAULT_INDEX,
       FLASHQUERY_RETRY,
     ])
     expect(mocks.handle.mock.calls.map(([, handler]) => handler)).toEqual([
+      expect.any(Function),
       expect.any(Function),
       expect.any(Function),
       expect.any(Function),
@@ -204,7 +206,7 @@ describe('FlashQuery IPC handlers', () => {
     registerHandlers()
     registerHandlers()
 
-    expect(mocks.handle).toHaveBeenCalledTimes(13)
+    expect(mocks.handle).toHaveBeenCalledTimes(14)
   })
 
   it('declares the exact Phase 3 FlashQuery channel strings', () => {
@@ -219,6 +221,7 @@ describe('FlashQuery IPC handlers', () => {
     expect(FLASHQUERY_REMOVE_DOCUMENT).toBe('flashquery:removeDocument')
     expect(FLASHQUERY_SEARCH).toBe('flashquery:search')
     expect(FLASHQUERY_DOCUMENT_CONNECTIONS).toBe('flashquery:documentConnections')
+    expect(FLASHQUERY_QUERY_GRAPH).toBe('flashquery:queryGraph')
     expect(FLASHQUERY_LIST_VAULT_INDEX).toBe('flashquery:list-vault-index')
     expect(FLASHQUERY_RETRY).toBe('flashquery:retry')
     expect(FLASHQUERY_STATUS).toBe('flashquery:status')

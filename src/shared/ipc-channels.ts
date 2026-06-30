@@ -147,6 +147,7 @@ export const FLASHQUERY_MOVE_DOCUMENT = 'flashquery:moveDocument'
 export const FLASHQUERY_REMOVE_DOCUMENT = 'flashquery:removeDocument'
 export const FLASHQUERY_SEARCH = 'flashquery:search'
 export const FLASHQUERY_DOCUMENT_CONNECTIONS = 'flashquery:documentConnections'
+export const FLASHQUERY_QUERY_GRAPH = 'flashquery:queryGraph'
 export const FLASHQUERY_LIST_VAULT_INDEX = 'flashquery:list-vault-index'
 export const FLASHQUERY_RETRY = 'flashquery:retry'
 export const FLASHQUERY_STATUS = 'flashquery:status' // main -> renderer

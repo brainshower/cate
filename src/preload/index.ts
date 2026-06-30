@@ -199,6 +199,7 @@ import {
   FLASHQUERY_MANAGE_DIRECTORY,
   FLASHQUERY_MOVE_DOCUMENT,
   FLASHQUERY_PROBE,
+  FLASHQUERY_QUERY_GRAPH,
   FLASHQUERY_REMOVE_DOCUMENT,
   FLASHQUERY_RETRY,
   FLASHQUERY_SEARCH,
@@ -1141,6 +1142,10 @@ const electronAPI = {
 
   flashqueryDocumentConnections(workspaceId: string, params: unknown): Promise<unknown> {
     return ipcRenderer.invoke(FLASHQUERY_DOCUMENT_CONNECTIONS, workspaceId, params)
+  },
+
+  flashqueryQueryGraph(workspaceId: string, params: unknown): Promise<unknown> {
+    return ipcRenderer.invoke(FLASHQUERY_QUERY_GRAPH, workspaceId, params)
   },
 
   flashqueryListVaultIndex(workspaceId: string): Promise<unknown[]> {

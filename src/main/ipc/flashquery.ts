@@ -10,6 +10,7 @@ import {
   FLASHQUERY_MANAGE_DIRECTORY,
   FLASHQUERY_MOVE_DOCUMENT,
   FLASHQUERY_PROBE,
+  FLASHQUERY_QUERY_GRAPH,
   FLASHQUERY_REMOVE_DOCUMENT,
   FLASHQUERY_RETRY,
   FLASHQUERY_SEARCH,
@@ -24,6 +25,8 @@ import type {
   FlashQueryDocumentConnectionsResponse,
   FlashQueryGetDocumentOptions,
   FlashQueryProbeResult,
+  FlashQueryQueryGraphParams,
+  FlashQueryQueryGraphResponse,
   FlashQuerySearchParams,
   FlashQuerySearchResponse,
   FlashQueryStatusBroadcastPayload,
@@ -536,6 +539,40 @@ function validateDocumentConnectionsParams(value: unknown): FlashQueryDocumentCo
   }
 }
 
+function validateQueryGraphParams(value: unknown): FlashQueryQueryGraphParams {
+  if (!isPlainObject(value)) throw new Error('query_graph params must be an object')
+  const action = value.action
+  if (action !== 'node' && action !== 'edges' && action !== 'neighbors' && action !== 'subgraph') {
+    throw new Error('query_graph action must be node, edges, neighbors, or subgraph')
+  }
+  const params: FlashQueryQueryGraphParams = { action }
+  if (value.chunk_id !== undefined) {
+    params.chunk_id = requireNonEmptyString(value.chunk_id, 'query_graph chunk_id')
+  }
+  if (action === 'node' && !params.chunk_id) {
+    throw new Error('query_graph chunk_id is required for action node')
+  }
+  if (value.direction !== undefined) {
+    if (value.direction !== 'in' && value.direction !== 'out' && value.direction !== 'both') {
+      throw new Error('query_graph direction must be in, out, or both')
+    }
+    params.direction = value.direction
+  }
+  if (value.include_content !== undefined) {
+    if (typeof value.include_content !== 'boolean') throw new Error('query_graph include_content must be a boolean')
+    params.include_content = value.include_content
+  } else if (action !== 'node') {
+    params.include_content = false
+  }
+  if (value.limit !== undefined) {
+    if (typeof value.limit !== 'number' || !Number.isFinite(value.limit) || !Number.isInteger(value.limit) || value.limit <= 0) {
+      throw new Error('query_graph limit must be a positive integer')
+    }
+    params.limit = value.limit
+  }
+  return params
+}
+
 async function documentConnections(workspaceId: string, params: unknown): Promise<FlashQueryDocumentConnectionsResponse> {
   try {
     return await flashQueryClientManager.documentConnections(
@@ -547,6 +584,19 @@ async function documentConnections(workspaceId: string, params: unknown): Promis
       source: { document_id: '', path: '' },
       overall: [],
       source_chunks: [],
+      error: error instanceof Error ? error.message : String(error),
+    }
+  }
+}
+
+async function queryGraph(workspaceId: string, params: unknown): Promise<FlashQueryQueryGraphResponse> {
+  try {
+    return await flashQueryClientManager.queryGraph(
+      requireNonEmptyString(workspaceId, 'workspaceId'),
+      validateQueryGraphParams(params),
+    )
+  } catch (error) {
+    return {
       error: error instanceof Error ? error.message : String(error),
     }
   }
@@ -600,6 +650,9 @@ export function registerHandlers(): void {
   })
   ipcMain.handle(FLASHQUERY_DOCUMENT_CONNECTIONS, async (_event, workspaceId: string, params: unknown) => {
     return documentConnections(workspaceId, params)
+  })
+  ipcMain.handle(FLASHQUERY_QUERY_GRAPH, async (_event, workspaceId: string, params: unknown) => {
+    return queryGraph(workspaceId, params)
   })
   ipcMain.handle(FLASHQUERY_LIST_VAULT_INDEX, async (_event, workspaceId: string) => {
     return listVaultIndex(workspaceId)

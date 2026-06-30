@@ -12,6 +12,8 @@ import type {
   FlashQueryFrontmatter,
   FlashQueryGetDocumentOptions,
   FlashQueryMemorySearchResult,
+  FlashQueryQueryGraphParams,
+  FlashQueryQueryGraphResponse,
   FlashQuerySearchEntityType,
   FlashQuerySearchParams,
   FlashQuerySearchResponse,
@@ -353,6 +355,26 @@ export class FlashQueryClientManager {
       const latestState = this.workspaceStates.get(workspaceId)
       const latestConnection = latestState?.connection ?? connection ?? this.getConfiguredConnection(workspaceId)
       return this.emptyDocumentConnectionsResponse(this.errorToSafeMessage(error, latestConnection, latestState?.token))
+    }
+  }
+
+  async queryGraph(workspaceId: string, params: FlashQueryQueryGraphParams): Promise<FlashQueryQueryGraphResponse> {
+    const state = this.workspaceStates.get(workspaceId)
+    const connection = state?.connection ?? this.getConfiguredConnection(workspaceId)
+    try {
+      if (!connection && !state?.connection) {
+        return { error: 'No FlashQuery connection is configured for this workspace' }
+      }
+      const client = await this.requireMcpClient(workspaceId)
+      const payload = await this.callJsonTool(client, 'query_graph', this.normalizeQueryGraphArgs(params))
+      if (this.isErrorEnvelope(payload)) {
+        return { error: this.errorEnvelopeMessage(payload) }
+      }
+      return payload
+    } catch (error) {
+      const latestState = this.workspaceStates.get(workspaceId)
+      const latestConnection = latestState?.connection ?? connection ?? this.getConfiguredConnection(workspaceId)
+      return { error: this.errorToSafeMessage(error, latestConnection, latestState?.token) }
     }
   }
 
@@ -788,6 +810,21 @@ export class FlashQueryClientManager {
       limit_per_chunk: limitPerChunk,
       ...(params?.embedding_names?.length ? { embedding_names: params.embedding_names } : {}),
     }
+  }
+
+  private normalizeQueryGraphArgs(params: FlashQueryQueryGraphParams): Record<string, unknown> {
+    const args: Record<string, unknown> = {
+      action: params.action,
+      ...(params.chunk_id ? { chunk_id: params.chunk_id } : {}),
+      ...(params.direction ? { direction: params.direction } : {}),
+      ...(typeof params.limit === 'number' ? { limit: params.limit } : {}),
+    }
+    if (params.include_content !== undefined) {
+      args.include_content = params.include_content
+    } else if (params.action !== 'node') {
+      args.include_content = false
+    }
+    return args
   }
 
   private normalizeSearchResponse(payload: Record<string, unknown>): FlashQuerySearchResponse {
