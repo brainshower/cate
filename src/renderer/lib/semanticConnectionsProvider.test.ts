@@ -275,6 +275,297 @@ describe('semantic connections provider boundary', () => {
     expect(result.overall[1].score).toBeUndefined()
   })
 
+  it('T-U-009 maps document source chunks to preview IDs and preserves graph relation rows', async () => {
+    const search = vi.fn()
+    const connections = vi.fn().mockResolvedValue({
+      source: { document_id: 'source-doc', path: 'Docs/Source.md', title: 'Source' },
+      graph_summary: {
+        edge_count: 1,
+        edge_counts_by_relation: { supports: 1 },
+        stale_edge_count: 0,
+        community_labels: ['Architecture'],
+        has_contradictions: false,
+        has_open_questions: false,
+        open_question_count: 0,
+      },
+      overall: [{
+        id: 'edge-source-beta',
+        relation: 'supports',
+        direction: 'out',
+        confidence_score: 0.92,
+        target: {
+          chunk_id: 'beta-chunk',
+          document_id: 'doc-beta',
+          path: 'Docs/Beta.md',
+          title: 'Beta',
+          heading_path: 'Beta > Decision',
+          content: 'Beta target.',
+        },
+      }],
+      source_chunks: [{
+        chunk_id: 'source-scope',
+        heading_path: 'Source > Scope',
+        connections: [{
+          id: 'edge-source-beta',
+          relation: 'supports',
+          direction: 'out',
+          confidence_score: 0.92,
+          target: {
+            chunk_id: 'beta-chunk',
+            document_id: 'doc-beta',
+            path: 'Docs/Beta.md',
+            title: 'Beta',
+            heading_path: 'Beta > Decision',
+            content: 'Beta target.',
+          },
+        }],
+      }],
+    } satisfies FlashQueryDocumentConnectionsResponse)
+    const provider = createFlashQuerySemanticConnectionsProvider(search, connections)
+
+    const result = await provider.loadDocumentConnections({
+      workspaceId: 'workspace-1',
+      editorPanelId: 'editor-1',
+      documentPath: 'flashquery://workspace-1/Docs/Source.md',
+      markdown: '# Source\n\nIntro\n\n## Scope\n\nScope body',
+      contentHash: 'hash-source-graph',
+    })
+
+    expect(result.mode).toBe('typed')
+    expect(result.graphSummary?.edge_count).toBe(1)
+    expect(result.chunkMap.scope).toMatchObject({
+      flashqueryChunkId: 'source-scope',
+      previewChunkId: 'scope',
+      documentPath: 'Docs/Source.md',
+      documentTitle: 'Source',
+      headingPath: ['Source', 'Scope'],
+    })
+    expect(result.byChunkId.scope).toHaveLength(1)
+    expect(result.byChunkId.scope[0]).toMatchObject({
+      id: 'edge-source-beta',
+      rel: 'supports',
+      dir: 'out',
+      confidenceScore: 0.92,
+      target: {
+        chunkId: 'beta-chunk',
+        title: 'Beta',
+      },
+    })
+  })
+
+  it('T-U-010 maps duplicate document source headings to distinct preview IDs', async () => {
+    const search = vi.fn()
+    const connections = vi.fn().mockResolvedValue({
+      source: { document_id: 'source-doc', path: 'Docs/Plan.md', title: 'Plan' },
+      graph_summary: {
+        edge_count: 2,
+        edge_counts_by_relation: { references: 2 },
+        stale_edge_count: 0,
+        community_labels: [],
+        has_contradictions: false,
+        has_open_questions: false,
+        open_question_count: 0,
+      },
+      overall: [],
+      source_chunks: [{
+        chunk_id: 'first-scope',
+        heading_path: 'Plan > Scope',
+        connections: [{
+          id: 'edge-first',
+          relation: 'references',
+          target: {
+            chunk_id: 'target-first',
+            path: 'Docs/First.md',
+            title: 'First',
+            content: 'First target',
+          },
+        }],
+      }, {
+        chunk_id: 'second-scope',
+        heading_path: 'Plan > Scope',
+        connections: [{
+          id: 'edge-second',
+          relation: 'references',
+          target: {
+            chunk_id: 'target-second',
+            path: 'Docs/Second.md',
+            title: 'Second',
+            content: 'Second target',
+          },
+        }],
+      }],
+    } satisfies FlashQueryDocumentConnectionsResponse)
+    const provider = createFlashQuerySemanticConnectionsProvider(search, connections)
+
+    const result = await provider.loadDocumentConnections({
+      workspaceId: 'workspace-1',
+      editorPanelId: 'editor-1',
+      documentPath: 'flashquery://workspace-1/Docs/Plan.md',
+      markdown,
+      contentHash: 'hash-duplicates',
+    })
+
+    expect(result.chunkMap.scope?.flashqueryChunkId).toBe('first-scope')
+    expect(result.chunkMap['scope-1']?.flashqueryChunkId).toBe('second-scope')
+    expect(result.byChunkId.scope.map((connection) => connection.id)).toEqual(['edge-first'])
+    expect(result.byChunkId['scope-1'].map((connection) => connection.id)).toEqual(['edge-second'])
+  })
+
+  it('T-U-011 omits only unmapped source chunk rows and records diagnostics', async () => {
+    const search = vi.fn()
+    const connections = vi.fn().mockResolvedValue({
+      source: { document_id: 'source-doc', path: 'Docs/Source.md', title: 'Source' },
+      graph_summary: {
+        edge_count: 2,
+        edge_counts_by_relation: { supports: 2 },
+        stale_edge_count: 0,
+        community_labels: [],
+        has_contradictions: false,
+        has_open_questions: false,
+        open_question_count: 0,
+      },
+      overall: [],
+      source_chunks: [{
+        chunk_id: 'source-scope',
+        heading_path: 'Source > Scope',
+        connections: [{
+          id: 'edge-mapped',
+          relation: 'supports',
+          target: { chunk_id: 'mapped-target', path: 'Docs/Mapped.md', title: 'Mapped' },
+        }],
+      }, {
+        chunk_id: 'source-missing',
+        heading_path: 'Source > Missing',
+        connections: [{
+          id: 'edge-unmapped',
+          relation: 'supports',
+          target: { chunk_id: 'unmapped-target', path: 'Docs/Unmapped.md', title: 'Unmapped' },
+        }],
+      }],
+    } satisfies FlashQueryDocumentConnectionsResponse)
+    const provider = createFlashQuerySemanticConnectionsProvider(search, connections)
+
+    const result = await provider.loadDocumentConnections({
+      workspaceId: 'workspace-1',
+      editorPanelId: 'editor-1',
+      documentPath: 'flashquery://workspace-1/Docs/Source.md',
+      markdown: '# Source\n\nIntro\n\n## Scope\n\nScope body',
+      contentHash: 'hash-unmapped',
+    })
+
+    expect(result.byChunkId.scope.map((connection) => connection.id)).toEqual(['edge-mapped'])
+    expect(result.overall.map((connection) => connection.id)).not.toContain('edge-unmapped')
+    expect(result.diagnostics).toEqual(expect.arrayContaining([
+      expect.stringContaining('Unable to map FlashQuery chunk source-missing'),
+    ]))
+  })
+
+  it('T-U-012, T-U-013, and T-U-014 derive typed, mixed, and embeddings-only modes from graph summary coverage', async () => {
+    const response = (
+      edgeCount: number,
+      sourceConnections: FlashQueryDocumentConnectionsResponse['source_chunks'][number]['connections'],
+    ) => ({
+      source: { document_id: 'source-doc', path: 'Docs/Source.md', title: 'Source' },
+      graph_summary: {
+        edge_count: edgeCount,
+        edge_counts_by_relation: edgeCount > 0 ? { supports: edgeCount } : {},
+        stale_edge_count: 0,
+        community_labels: [],
+        has_contradictions: false,
+        has_open_questions: false,
+        open_question_count: 0,
+      },
+      overall: sourceConnections,
+      source_chunks: [{
+        chunk_id: 'source-scope',
+        heading_path: 'Source > Scope',
+        connections: sourceConnections,
+      }],
+    } satisfies FlashQueryDocumentConnectionsResponse)
+    const markdownSource = '# Source\n\nIntro\n\n## Scope\n\nScope body'
+    const typedProvider = createFlashQuerySemanticConnectionsProvider(vi.fn(), vi.fn().mockResolvedValue(response(1, [{
+      id: 'typed-edge',
+      relation: 'supports',
+      target: { chunk_id: 'target', path: 'Docs/Target.md', title: 'Target' },
+    }])))
+    const mixedProvider = createFlashQuerySemanticConnectionsProvider(vi.fn(), vi.fn().mockResolvedValue(response(2, [{
+      id: 'typed-edge',
+      relation: 'supports',
+      target: { chunk_id: 'target', path: 'Docs/Target.md', title: 'Target' },
+    }, {
+      id: 'untyped-edge',
+      target: { chunk_id: 'legacy-target', path: 'Docs/Legacy.md', title: 'Legacy' },
+    }])))
+    const emptyGraphProvider = createFlashQuerySemanticConnectionsProvider(vi.fn(), vi.fn().mockResolvedValue(response(0, [{
+      id: 'legacy-edge',
+      target: { chunk_id: 'legacy-target', path: 'Docs/Legacy.md', title: 'Legacy' },
+    }])))
+
+    const input = {
+      workspaceId: 'workspace-1',
+      editorPanelId: 'editor-1',
+      documentPath: 'flashquery://workspace-1/Docs/Source.md',
+      markdown: markdownSource,
+      contentHash: 'hash-mode',
+    }
+
+    await expect(typedProvider.loadDocumentConnections(input)).resolves.toMatchObject({ mode: 'typed' })
+    await expect(mixedProvider.loadDocumentConnections(input)).resolves.toMatchObject({ mode: 'mixed' })
+    await expect(emptyGraphProvider.loadDocumentConnections(input)).resolves.toMatchObject({ mode: 'embeddings-only' })
+  })
+
+  it('T-U-016 records diagnostics for malformed optional graph fields without throwing during result construction', async () => {
+    const search = vi.fn()
+    const connections = vi.fn().mockResolvedValue({
+      source: { document_id: 'source-doc', path: 'Docs/Source.md', title: 'Source' },
+      graph_summary: {
+        edge_count: 1,
+        edge_counts_by_relation: { supports: 1 },
+        stale_edge_count: 0,
+        community_labels: [],
+        has_contradictions: false,
+        has_open_questions: false,
+        open_question_count: 0,
+      },
+      overall: [],
+      source_chunks: [{
+        chunk_id: 'source-scope',
+        heading_path: 'Source > Scope',
+        connections: [{
+          id: 'edge-bad-optional',
+          relation: 'supports',
+          confidence_score: Number.NaN,
+          source_claims_referenced: [0],
+          qualifiers: ['normative'],
+          metadata: { nested: { ok: true } },
+          target: { chunk_id: 'target', path: 'Docs/Target.md', title: 'Target' },
+        }],
+      }],
+      diagnostics: ['edge-bad-optional.confidence_score ignored: expected number'],
+    } satisfies FlashQueryDocumentConnectionsResponse)
+    const provider = createFlashQuerySemanticConnectionsProvider(search, connections)
+
+    const result = await provider.loadDocumentConnections({
+      workspaceId: 'workspace-1',
+      editorPanelId: 'editor-1',
+      documentPath: 'flashquery://workspace-1/Docs/Source.md',
+      markdown: '# Source\n\nIntro\n\n## Scope\n\nScope body',
+      contentHash: 'hash-malformed-graph-fields',
+    })
+
+    expect(result.byChunkId.scope[0]).toMatchObject({
+      id: 'edge-bad-optional',
+      rel: 'supports',
+      sourceClaimsReferenced: [0],
+      qualifiers: ['normative'],
+      metadata: { nested: { ok: true } },
+    })
+    expect(result.byChunkId.scope[0].confidenceScore).toBeUndefined()
+    expect(result.diagnostics).toEqual(expect.arrayContaining([
+      'edge-bad-optional.confidence_score ignored: expected number',
+    ]))
+  })
+
   it('T-I-042 caches by editor document and content hash, then invalidates material content changes', async () => {
     const backend = {
       loadDocumentConnections: vi.fn()
