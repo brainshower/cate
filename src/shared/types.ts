@@ -195,7 +195,7 @@ export interface FlashQueryVaultEntry {
   title?: string
 }
 
-export type FlashQueryDocumentPart = 'body' | 'frontmatter' | 'connections'
+export type FlashQueryDocumentPart = 'body' | 'frontmatter' | 'connections' | 'graph_summary' | 'headings'
 
 export interface FlashQueryGetDocumentOptions {
   include?: FlashQueryDocumentPart[]
@@ -275,12 +275,31 @@ export interface FlashQueryDocumentConnectionTarget {
   path: string
   title: string
   heading_path?: string
+  breadcrumb?: string
   content?: string
+  chunk_summary?: string
+  stale?: boolean
+  analyzed_at?: string
+  community_id?: string
 }
 
 export interface FlashQueryDocumentConnection {
   id: string
-  score: number
+  score?: number
+  basis?: string
+  relation?: string
+  direction?: 'out' | 'in' | 'sym' | string
+  confidence?: string
+  confidence_score?: number
+  reasoning?: string
+  stale?: boolean
+  status?: string
+  question_status?: string
+  community_label?: string
+  source_claims_referenced?: number[]
+  target_claims_referenced?: number[]
+  qualifiers?: string[]
+  metadata?: Record<string, unknown>
   target: FlashQueryDocumentConnectionTarget
 }
 
@@ -298,6 +317,16 @@ export interface FlashQueryDocumentConnectionsParams {
   embedding_names?: string[]
 }
 
+export interface GraphDocumentSummary {
+  edge_count: number
+  edge_counts_by_relation: Record<string, number>
+  stale_edge_count: number
+  community_labels: string[]
+  has_contradictions: boolean
+  has_open_questions: boolean
+  open_question_count: number
+}
+
 export interface FlashQueryDocumentConnectionsResponse {
   source: {
     document_id: string
@@ -306,6 +335,8 @@ export interface FlashQueryDocumentConnectionsResponse {
   }
   overall: FlashQueryDocumentConnection[]
   source_chunks: FlashQuerySourceChunkConnections[]
+  graph_summary?: GraphDocumentSummary
+  diagnostics?: string[]
   error?: string
 }
 

@@ -346,7 +346,8 @@ export class FlashQueryClientManager {
       if (this.isErrorEnvelope(payload)) {
         return this.emptyDocumentConnectionsResponse(this.errorEnvelopeMessage(payload))
       }
-      return this.normalizeDocumentConnectionsResponse(payload)
+      const latestState = this.workspaceStates.get(workspaceId)
+      return this.normalizeDocumentConnectionsResponse(payload, connection, latestState?.token)
     } catch (error) {
       const latestState = this.workspaceStates.get(workspaceId)
       const latestConnection = latestState?.connection ?? connection ?? this.getConfiguredConnection(workspaceId)
@@ -535,11 +536,30 @@ export class FlashQueryClientManager {
 
   private errorToSafeMessage(error: unknown, connection?: FlashQueryConnection, tokenOverride?: string | null): string {
     let message = error instanceof Error ? error.message : String(error)
-    const token = connection?.auth?.token ?? tokenOverride
-    if (token) {
-      message = message.split(token).join('[redacted]')
-    }
+    message = this.redactSensitiveText(message, connection, tokenOverride)
     return message || 'FlashQuery request failed'
+  }
+
+  private redactSensitiveText(message: string, connection?: FlashQueryConnection, tokenOverride?: string | null): string {
+    const token = connection?.auth?.token ?? tokenOverride
+    let next = message
+    if (token) {
+      next = next.split(token).join('[redacted]')
+    }
+    if (connection?.url) {
+      try {
+        const parsed = new URL(connection.url)
+        if (parsed.username || parsed.password) {
+          const originalUrl = connection.url
+          parsed.username = ''
+          parsed.password = ''
+          next = next.split(originalUrl).join(parsed.toString())
+        }
+      } catch {
+        next = next.replace(/https?:\/\/[^/\s:@]+:[^/\s@]+@/g, 'https://[redacted]@')
+      }
+    }
+    return next
   }
 
   private isCurrentAttempt(workspaceId: string, state: WorkspaceClientState, attemptId: number): boolean {
@@ -666,7 +686,7 @@ export class FlashQueryClientManager {
     const rawInclude = options?.include ?? ['body']
     const include: FlashQueryDocumentPart[] = []
     for (const part of rawInclude) {
-      if (part !== 'body' && part !== 'frontmatter' && part !== 'connections') {
+      if (part !== 'body' && part !== 'frontmatter' && part !== 'connections' && part !== 'graph_summary' && part !== 'headings') {
         throw new Error(`Unsupported FlashQuery document part: ${String(part)}`)
       }
       if (!include.includes(part)) include.push(part)
@@ -752,7 +772,7 @@ export class FlashQueryClientManager {
     const connections = this.normalizeDocumentConnectionsOptions(params)
     return {
       identifiers: identifier,
-      include: ['connections'],
+      include: ['connections', 'graph_summary'],
       connections,
     }
   }
@@ -802,30 +822,53 @@ export class FlashQueryClientManager {
     }
   }
 
-  private normalizeDocumentConnectionsResponse(payload: Record<string, unknown>): FlashQueryDocumentConnectionsResponse {
+  private normalizeDocumentConnectionsResponse(
+    payload: Record<string, unknown>,
+    connection?: FlashQueryConnection,
+    token?: string | null,
+  ): FlashQueryDocumentConnectionsResponse {
     const connectionsPayload = this.isPlainObject(payload.connections) ? payload.connections : payload
+    const diagnostics: string[] = []
+    const graphSummary = this.normalizeGraphSummary(
+      connectionsPayload.graph_summary ?? payload.graph_summary,
+      diagnostics,
+      connection,
+      token,
+    )
+    const overall = this.arrayFrom(connectionsPayload.overall)
+      .flatMap((entry) => this.normalizeDocumentConnection(entry, diagnostics, connection, token))
+    const sourceChunks = this.arrayFrom(connectionsPayload.source_chunks).flatMap((entry) => {
+      if (!this.isPlainObject(entry)) return []
+      const chunkId = this.firstString(entry.chunk_id, entry.id)
+      if (!chunkId) return []
+      const headingPath = this.stringFromHeadingPath(entry.heading_path)
+      return [{
+        chunk_id: chunkId,
+        ...(headingPath ? { heading_path: headingPath } : {}),
+        ...(typeof entry.breadcrumb === 'string' ? { breadcrumb: entry.breadcrumb } : {}),
+        connections: this.arrayFrom(entry.connections)
+          .flatMap((item) => this.normalizeDocumentConnection(item, diagnostics, connection, token)),
+      }]
+    })
     return {
       source: {
         document_id: this.firstString(payload.fq_id, payload.document_id, payload.id) ?? '',
         path: this.normalizePath(this.firstString(payload.path, payload.identifier)) ?? '',
         ...(typeof payload.title === 'string' ? { title: payload.title } : {}),
       },
-      overall: this.arrayFrom(connectionsPayload.overall).flatMap((entry) => this.normalizeDocumentConnection(entry)),
-      source_chunks: this.arrayFrom(connectionsPayload.source_chunks).flatMap((entry) => {
-        if (!this.isPlainObject(entry)) return []
-        const chunkId = this.firstString(entry.chunk_id, entry.id)
-        if (!chunkId) return []
-        return [{
-          chunk_id: chunkId,
-          ...(typeof entry.heading_path === 'string' ? { heading_path: entry.heading_path } : {}),
-          ...(typeof entry.breadcrumb === 'string' ? { breadcrumb: entry.breadcrumb } : {}),
-          connections: this.arrayFrom(entry.connections).flatMap((connection) => this.normalizeDocumentConnection(connection)),
-        }]
-      }),
+      overall,
+      source_chunks: sourceChunks,
+      ...(graphSummary ? { graph_summary: graphSummary } : {}),
+      ...(diagnostics.length ? { diagnostics } : {}),
     }
   }
 
-  private normalizeDocumentConnection(entry: unknown) {
+  private normalizeDocumentConnection(
+    entry: unknown,
+    diagnostics: string[] = [],
+    connection?: FlashQueryConnection,
+    token?: string | null,
+  ) {
     if (!this.isPlainObject(entry)) return []
     const target = this.isPlainObject(entry.target) ? entry.target : null
     if (!target) return []
@@ -834,19 +877,176 @@ export class FlashQueryClientManager {
     const path = this.normalizePath(this.firstString(target.path, target.document_path))
     const title = this.firstString(target.title, target.document_title, path)
     const score = typeof entry.score === 'number' && Number.isFinite(entry.score) ? entry.score : undefined
-    if (!id || !chunkId || !path || !title || score === undefined) return []
-    return [{
+    if (!id || !chunkId || !path || !title) return []
+    const normalized: FlashQueryDocumentConnection = {
       id,
-      score,
       target: {
         chunk_id: chunkId,
         ...(typeof target.document_id === 'string' ? { document_id: target.document_id } : {}),
         path,
         title,
-        ...(typeof target.heading_path === 'string' ? { heading_path: target.heading_path } : {}),
+        ...(this.stringFromHeadingPath(target.heading_path) ? { heading_path: this.stringFromHeadingPath(target.heading_path)! } : {}),
+        ...(typeof target.breadcrumb === 'string' ? { breadcrumb: target.breadcrumb } : {}),
         ...(typeof target.content === 'string' ? { content: target.content } : {}),
+        ...(typeof target.chunk_summary === 'string' ? { chunk_summary: target.chunk_summary } : {}),
+        ...(typeof target.stale === 'boolean' ? { stale: target.stale } : {}),
+        ...(typeof target.analyzed_at === 'string' ? { analyzed_at: target.analyzed_at } : {}),
+        ...(typeof target.community_id === 'string' ? { community_id: target.community_id } : {}),
       },
-    }]
+    }
+    if (score !== undefined) normalized.score = score
+    else if (entry.score !== undefined && entry.score !== null) {
+      diagnostics.push(this.safeDiagnostic(`${id}.score ignored: expected number`, connection, token))
+    }
+    this.copyStringField(entry, normalized, 'basis')
+    this.copyStringField(entry, normalized, 'relation')
+    this.copyStringField(entry, normalized, 'direction')
+    this.copyStringField(entry, normalized, 'confidence')
+    this.copyStringField(entry, normalized, 'reasoning')
+    this.copyStringField(entry, normalized, 'status')
+    this.copyStringField(entry, normalized, 'question_status')
+    this.copyStringField(entry, normalized, 'community_label')
+    this.copyBooleanField(entry, normalized, 'stale')
+    this.copyNumberField(entry, normalized, 'confidence_score', diagnostics, id, connection, token)
+    this.copyNumberArrayField(entry, normalized, 'source_claims_referenced')
+    this.copyNumberArrayField(entry, normalized, 'target_claims_referenced')
+    this.copyStringArrayField(entry, normalized, 'qualifiers')
+    if (this.isPlainObject(entry.metadata)) normalized.metadata = entry.metadata
+    else if (entry.metadata !== undefined) {
+      diagnostics.push(this.safeDiagnostic(`${id}.metadata ignored: expected object`, connection, token))
+    }
+    if (target.stale !== undefined && typeof target.stale !== 'boolean') {
+      diagnostics.push(this.safeDiagnostic(`${id}.target.stale ignored: expected boolean`, connection, token))
+    }
+    return [normalized]
+  }
+
+  private normalizeGraphSummary(
+    value: unknown,
+    diagnostics: string[],
+    connection?: FlashQueryConnection,
+    token?: string | null,
+  ) {
+    if (value === undefined) return undefined
+    if (!this.isPlainObject(value)) {
+      diagnostics.push(this.safeDiagnostic('graph_summary ignored: expected object', connection, token))
+      return undefined
+    }
+    const edgeCount = this.numberField(value, 'edge_count', diagnostics, 'graph_summary', connection, token)
+    const staleEdgeCount = this.numberField(value, 'stale_edge_count', diagnostics, 'graph_summary', connection, token)
+    const edgeCounts = this.recordNumberField(value, 'edge_counts_by_relation', diagnostics, 'graph_summary', connection, token)
+    const communityLabels = this.stringArrayValue(value.community_labels)
+    const hasContradictions = typeof value.has_contradictions === 'boolean' ? value.has_contradictions : false
+    const hasOpenQuestions = typeof value.has_open_questions === 'boolean' ? value.has_open_questions : false
+    const openQuestionCount = typeof value.open_question_count === 'number' && Number.isFinite(value.open_question_count)
+      ? value.open_question_count
+      : 0
+    if (edgeCount === undefined || staleEdgeCount === undefined || edgeCounts === undefined) return undefined
+    return {
+      edge_count: edgeCount,
+      edge_counts_by_relation: edgeCounts,
+      stale_edge_count: staleEdgeCount,
+      community_labels: communityLabels,
+      has_contradictions: hasContradictions,
+      has_open_questions: hasOpenQuestions,
+      open_question_count: openQuestionCount,
+    }
+  }
+
+  private copyStringField(
+    source: Record<string, unknown>,
+    target: Record<string, unknown>,
+    key: string,
+  ): void {
+    if (typeof source[key] === 'string') target[key] = source[key]
+  }
+
+  private copyBooleanField(
+    source: Record<string, unknown>,
+    target: Record<string, unknown>,
+    key: string,
+  ): void {
+    if (typeof source[key] === 'boolean') target[key] = source[key]
+  }
+
+  private copyNumberField(
+    source: Record<string, unknown>,
+    target: Record<string, unknown>,
+    key: string,
+    diagnostics: string[],
+    id: string,
+    connection?: FlashQueryConnection,
+    token?: string | null,
+  ): void {
+    if (typeof source[key] === 'number' && Number.isFinite(source[key])) {
+      target[key] = source[key]
+      return
+    }
+    if (source[key] !== undefined) {
+      diagnostics.push(this.safeDiagnostic(`${id}.${key} ignored: expected number (${String(source[key])})`, connection, token))
+    }
+  }
+
+  private copyStringArrayField(source: Record<string, unknown>, target: Record<string, unknown>, key: string): void {
+    const values = this.stringArrayValue(source[key])
+    if (values.length > 0) target[key] = values
+  }
+
+  private copyNumberArrayField(source: Record<string, unknown>, target: Record<string, unknown>, key: string): void {
+    const value = source[key]
+    if (Array.isArray(value) && value.every((item) => typeof item === 'number' && Number.isInteger(item))) {
+      target[key] = value
+    }
+  }
+
+  private numberField(
+    source: Record<string, unknown>,
+    key: string,
+    diagnostics: string[],
+    context: string,
+    connection?: FlashQueryConnection,
+    token?: string | null,
+  ): number | undefined {
+    const value = source[key]
+    if (typeof value === 'number' && Number.isFinite(value)) return value
+    diagnostics.push(this.safeDiagnostic(`${context}.${key} ignored: expected number`, connection, token))
+    return undefined
+  }
+
+  private recordNumberField(
+    source: Record<string, unknown>,
+    key: string,
+    diagnostics: string[],
+    context: string,
+    connection?: FlashQueryConnection,
+    token?: string | null,
+  ): Record<string, number> | undefined {
+    const value = source[key]
+    if (this.isPlainObject(value)) {
+      return Object.fromEntries(
+        Object.entries(value).filter((entry): entry is [string, number] =>
+          typeof entry[1] === 'number' && Number.isFinite(entry[1])),
+      )
+    }
+    diagnostics.push(this.safeDiagnostic(`${context}.${key} ignored: expected number map`, connection, token))
+    return undefined
+  }
+
+  private stringArrayValue(value: unknown): string[] {
+    if (!Array.isArray(value)) return []
+    return value.filter((item): item is string => typeof item === 'string' && item.length > 0)
+  }
+
+  private stringFromHeadingPath(value: unknown): string | undefined {
+    if (typeof value === 'string') return value
+    if (Array.isArray(value) && value.every((item) => typeof item === 'string')) {
+      return value.join(' > ')
+    }
+    return undefined
+  }
+
+  private safeDiagnostic(message: string, connection?: FlashQueryConnection, token?: string | null): string {
+    return this.redactSensitiveText(message, connection, token)
   }
 
   private normalizeDocumentSearchResult(entry: unknown): FlashQueryDocumentSearchResult[] {

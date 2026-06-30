@@ -1387,7 +1387,7 @@ describe('FlashQueryClientManager', () => {
       name: 'get_document',
       arguments: {
         identifiers: 'Docs/Plan.md',
-        include: ['connections'],
+        include: ['connections', 'graph_summary'],
         connections: {
           limit: 40,
           limit_per_chunk: 5,
@@ -1610,7 +1610,7 @@ describe('FlashQueryClientManager', () => {
       name: 'get_document',
       arguments: {
         identifiers: 'Docs/Plan.md',
-        include: ['connections'],
+        include: ['connections', 'graph_summary'],
         connections: {
           limit: 50,
           limit_per_chunk: 5,
