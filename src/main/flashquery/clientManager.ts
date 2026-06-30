@@ -4,6 +4,7 @@ import type {
   FlashQueryConnection,
   FlashQueryDirectoryAction,
   FlashQueryDocumentBody,
+  FlashQueryDocumentConnection,
   FlashQueryDocumentConnectionsParams,
   FlashQueryDocumentConnectionsResponse,
   FlashQueryDocumentPart,
@@ -878,7 +879,7 @@ export class FlashQueryClientManager {
     const title = this.firstString(target.title, target.document_title, path)
     const score = typeof entry.score === 'number' && Number.isFinite(entry.score) ? entry.score : undefined
     if (!id || !chunkId || !path || !title) return []
-    const normalized: FlashQueryDocumentConnection = {
+    const normalized: Record<string, unknown> = {
       id,
       target: {
         chunk_id: chunkId,
@@ -918,7 +919,7 @@ export class FlashQueryClientManager {
     if (target.stale !== undefined && typeof target.stale !== 'boolean') {
       diagnostics.push(this.safeDiagnostic(`${id}.target.stale ignored: expected boolean`, connection, token))
     }
-    return [normalized]
+    return [normalized as unknown as FlashQueryDocumentConnection]
   }
 
   private normalizeGraphSummary(

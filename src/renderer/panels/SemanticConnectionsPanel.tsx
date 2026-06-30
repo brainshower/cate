@@ -287,7 +287,7 @@ function ConnectionCard({
           >
             <ArrowSquareOut size={16} weight="bold" />
           </button>
-          <ScorePie score={connection.score} />
+          {connection.score !== undefined && <ScorePie score={connection.score} />}
         </div>
       </div>
       {typedLabel && (
