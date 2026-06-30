@@ -1,12 +1,15 @@
 import { ArrowSquareOut, SlidersHorizontal } from '@phosphor-icons/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import type { SemanticConnectionsPanelProps } from './types'
 import {
   arrangeForDisplay,
   getAllRels,
   scEdgeLabel,
   type SemanticConnection,
+  type SemanticConnectionNodeMeta,
   type SemanticConnectionSortMode,
+  type SemanticConnectionsTargetMapEntry,
   type SemanticConnectionsProvider,
   type SemanticConnectionsResult,
 } from '../lib/semanticConnections'
@@ -96,8 +99,7 @@ function isSemanticConnection(value: unknown): value is SemanticConnection {
   const candidate = value as Partial<SemanticConnection>
   const target = candidate.target as Partial<SemanticConnection['target']> | undefined
   return typeof candidate.id === 'string'
-    && typeof candidate.score === 'number'
-    && Number.isFinite(candidate.score)
+    && (candidate.score === undefined || (typeof candidate.score === 'number' && Number.isFinite(candidate.score)))
     && Boolean(target)
     && typeof target?.title === 'string'
     && typeof target.path === 'string'
@@ -158,6 +160,23 @@ function normalizeTopN(value: string, connectionCount: number): number {
 
 function hasOpenMetadata(connection: SemanticConnection): boolean {
   return Boolean(connection.target.path?.trim() && connection.target.heading?.trim() && connection.target.chunkId?.trim())
+}
+
+function isActiveConnection(connection: SemanticConnection): boolean {
+  return connection.status !== 'stale' && connection.status !== 'deleted'
+}
+
+function sectionTitle(entry: SemanticConnectionsTargetMapEntry | undefined, chunkId: string): string {
+  return entry?.headingText || entry?.headingPath?.[entry.headingPath.length - 1] || chunkId
+}
+
+function certaintyLabel(certainty: SemanticConnectionNodeMeta['certaintyLevel']): string | null {
+  if (certainty !== 'high' && certainty !== 'medium' && certainty !== 'low') return null
+  return `${certainty[0].toUpperCase()}${certainty.slice(1)} certainty`
+}
+
+function selectPreviewSection(chunkId: string, scopeId: string | null): void {
+  usePreviewSelectionStore.getState().selectSection(chunkId, scopeId)
 }
 
 function revealHeadingInSourceEditor(snapshot: ActiveEditorSnapshot, heading: string): boolean {
@@ -299,6 +318,191 @@ function ConnectionCard({
         {displayText}
       </p>
     </article>
+  )
+}
+
+function SectionChrome({
+  title,
+  children,
+}: {
+  title: string
+  children: ReactNode
+}) {
+  return (
+    <section className="rounded-md border border-subtle bg-surface px-3 py-3">
+      <h3 className="text-xs font-semibold uppercase tracking-normal text-muted">{title}</h3>
+      <div className="mt-2">{children}</div>
+    </section>
+  )
+}
+
+function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'neutral' | 'warn' | 'caution' }) {
+  const className = tone === 'warn'
+    ? 'border-red-400/35 bg-red-400/10 text-red-100'
+    : tone === 'caution'
+      ? 'border-amber-400/35 bg-amber-400/10 text-amber-100'
+      : 'border-subtle bg-surface-2 text-secondary'
+  return (
+    <span className={`inline-flex shrink-0 rounded border px-1.5 py-0.5 text-[11px] ${className}`}>
+      {children}
+    </span>
+  )
+}
+
+function WholeDocumentGraphView({
+  result,
+  loading,
+  selectionScopeId,
+}: {
+  result: SemanticConnectionsResult
+  loading: boolean
+  selectionScopeId: string | null
+}) {
+  const summary = result.communitySummary
+  const secondaryLabels = summary?.labels?.filter((label) => label && label !== summary.dominantLabel) ?? []
+  const sections = result.chunkOrder
+    .map((chunkId) => ({
+      chunkId,
+      entry: result.chunkMap[chunkId],
+      nodeMeta: result.nodeMeta?.[chunkId],
+      connections: result.byChunkId[chunkId] ?? [],
+    }))
+    .filter((section) => section.entry?.previewChunkId)
+  const contradictionItems = sections.flatMap((section) => (
+    section.connections
+      .filter((connection) => connection.rel === 'contradicts' && isActiveConnection(connection))
+      .map((connection) => ({ section, connection }))
+  ))
+  const questionItems = sections.filter((section) => section.nodeMeta?.questionStatus === 'open')
+  const uncertainItems = sections.filter((section) => section.nodeMeta?.certaintyLevel === 'medium' || section.nodeMeta?.certaintyLevel === 'low')
+  const hasAttention = contradictionItems.length > 0 || questionItems.length > 0 || uncertainItems.length > 0
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-3">
+      <div className="flex shrink-0 items-center justify-between text-xs text-muted">
+        <span>Whole-document graph</span>
+        {loading && <span>Refreshing...</span>}
+      </div>
+      {result.stale && (
+        <p className="shrink-0 rounded border border-amber-400/20 bg-amber-400/10 px-2 py-1 text-xs text-amber-100">
+          Based on last indexed version
+        </p>
+      )}
+      {summary?.dominantLabel && (summary.summary || secondaryLabels.length > 0) && (
+        <SectionChrome title="Summary">
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-primary">{summary.dominantLabel}</p>
+            {summary.summary && <p className="text-sm leading-relaxed text-secondary">{summary.summary}</p>}
+            {secondaryLabels.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {secondaryLabels.map((label) => <Badge key={label}>{label}</Badge>)}
+              </div>
+            )}
+          </div>
+        </SectionChrome>
+      )}
+      {hasAttention && (
+        <SectionChrome title="Needs attention">
+          <div className="space-y-3">
+            {result.nodeMetaLoading && (
+              <p className="rounded border border-subtle bg-surface-2 px-2 py-1 text-xs text-muted">
+                Checking graph metadata...
+              </p>
+            )}
+            {contradictionItems.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-red-100">Contradictions</p>
+                {contradictionItems.map(({ section, connection }) => {
+                  const title = sectionTitle(section.entry, section.chunkId)
+                  return (
+                    <button
+                      key={`${section.chunkId}-${connection.id}`}
+                      type="button"
+                      className="w-full min-w-0 rounded border border-red-400/25 bg-red-400/10 px-2 py-1.5 text-left hover:bg-red-400/15"
+                      aria-label={`Review contradiction in ${title}`}
+                      onClick={() => selectPreviewSection(section.chunkId, selectionScopeId)}
+                    >
+                      <span className="block truncate text-xs font-medium text-primary">{title}</span>
+                      <span className="block truncate text-xs text-secondary">{plainTextFromMarkdown(connection.target.snippet)}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+            {questionItems.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-amber-100">Open questions</p>
+                {questionItems.map((section) => {
+                  const title = sectionTitle(section.entry, section.chunkId)
+                  return (
+                    <button
+                      key={section.chunkId}
+                      type="button"
+                      className="w-full min-w-0 rounded border border-amber-400/25 bg-amber-400/10 px-2 py-1.5 text-left hover:bg-amber-400/15"
+                      aria-label={`Review open question in ${title}`}
+                      onClick={() => selectPreviewSection(section.chunkId, selectionScopeId)}
+                    >
+                      <span className="block truncate text-xs font-medium text-primary">{title}</span>
+                      <span className="block truncate text-xs text-secondary">{section.nodeMeta?.questionResolution || title}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+            {uncertainItems.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-amber-100">Uncertain sections</p>
+                {uncertainItems.map((section) => {
+                  const title = sectionTitle(section.entry, section.chunkId)
+                  return (
+                    <button
+                      key={section.chunkId}
+                      type="button"
+                      className="w-full min-w-0 rounded border border-amber-400/25 bg-amber-400/10 px-2 py-1.5 text-left hover:bg-amber-400/15"
+                      aria-label={`Review uncertainty in ${title}`}
+                      onClick={() => selectPreviewSection(section.chunkId, selectionScopeId)}
+                    >
+                      <span className="block truncate text-xs font-medium text-primary">{title}</span>
+                      <span className="block truncate text-xs text-secondary">{section.nodeMeta?.chunkSummary || 'Graph certainty is still unresolved.'}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </SectionChrome>
+      )}
+      {sections.length > 0 && (
+        <SectionChrome title="Sections">
+          <div data-testid="semantic-graph-sections" className="space-y-1.5">
+            {sections.map((section) => {
+              const title = sectionTitle(section.entry, section.chunkId)
+              const activeContradictions = section.connections.filter((connection) => connection.rel === 'contradicts' && isActiveConnection(connection))
+              const certainty = certaintyLabel(section.nodeMeta?.certaintyLevel)
+              return (
+                <button
+                  key={section.chunkId}
+                  type="button"
+                  className="flex w-full min-w-0 items-center gap-2 rounded border border-subtle bg-surface-2 px-2 py-1.5 text-left hover:bg-hover"
+                  aria-label={`Open section ${title}`}
+                  onClick={() => selectPreviewSection(section.chunkId, selectionScopeId)}
+                >
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-primary">{title}</span>
+                  <span className="flex shrink-0 flex-wrap justify-end gap-1">
+                    {activeContradictions.length > 0 && <Badge tone="warn">Contradiction</Badge>}
+                    {section.nodeMeta?.questionStatus === 'open' && <Badge tone="caution">Question</Badge>}
+                    {certainty && <Badge tone={section.nodeMeta?.certaintyLevel === 'low' ? 'caution' : 'neutral'}>{certainty}</Badge>}
+                    <span className="min-w-[1.25rem] text-right text-xs text-muted">
+                      {section.connections.length > 0 ? section.connections.length : '—'}
+                    </span>
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </SectionChrome>
+      )}
+    </div>
   )
 }
 
@@ -474,6 +678,12 @@ export default function SemanticConnectionsPanel({
   const configActive = topN !== Infinity || activeRelFilters.size > 0
   const sliderValue = topN === Infinity ? String(Math.max(1, sortedConnections.length)) : String(displayLimit(topN, sortedConnections.length))
   const scopedCountLabel = countLabel(scopedConnections.length)
+  const graphWholeDocumentMode = Boolean(
+    result
+      && !activeChunkId
+      && result.mode !== 'embeddings-only'
+      && result.chunkOrder.some((chunkId) => result.chunkMap[chunkId]?.previewChunkId),
+  )
 
   useEffect(() => {
     if (topN !== Infinity && sortedConnections.length > 0 && topN >= sortedConnections.length) setTopN(Infinity)
@@ -673,7 +883,15 @@ export default function SemanticConnectionsPanel({
             />
           )}
 
-          {!loading && !loadIssue && sortedConnections.length === 0 && (
+          {!loadIssue && graphWholeDocumentMode && result && (
+            <WholeDocumentGraphView
+              result={result}
+              loading={loading}
+              selectionScopeId={selectionScopeId}
+            />
+          )}
+
+          {!loading && !loadIssue && !graphWholeDocumentMode && sortedConnections.length === 0 && (
             <StateMessage
               title={activeChunkId ? 'No connections exist for this section' : 'No connections exist for this document'}
               detail="No matching semantic connections are available yet."
@@ -681,7 +899,7 @@ export default function SemanticConnectionsPanel({
             />
           )}
 
-          {!loadIssue && sortedConnections.length > 0 && (
+          {!loadIssue && !graphWholeDocumentMode && sortedConnections.length > 0 && (
             <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-3">
               <div className="flex shrink-0 items-center justify-between text-xs text-muted">
                 <span>
