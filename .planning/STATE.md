@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Graph Intelligence Monaco Side Panel
-status: executing
-stopped_at: Completed 27-02-PLAN.md
-last_updated: "2026-06-30T23:36:13Z"
-last_activity: 2026-06-30 -- Plan 27-02 provider graph mode and query_graph backfill complete
+status: verifying
+stopped_at: Completed 27-03-PLAN.md
+last_updated: "2026-06-30T23:53:57.172Z"
+last_activity: 2026-06-30
 progress:
   total_phases: 2
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
-  percent: 67
+  completed_plans: 3
+  percent: 50
 ---
 
 # Project State
@@ -25,22 +25,22 @@ See: `.planning/PROJECT.md` (updated 2026-06-30 after v1.6 Graph Intelligence Mo
 
 ## Current Position
 
-Phase: 27 (graph-data-contract-and-whole-document-graph-view) — EXECUTING
+Phase: 27 (graph-data-contract-and-whole-document-graph-view) — VERIFYING
 Plan: 3 of 3
-Status: Ready for next Phase 27 plan
-Last activity: 2026-06-30 -- Plan 27-02 provider graph mode and query_graph backfill complete
+Status: Phase complete — ready for verification
+Last activity: 2026-06-30
 
 ## Session Continuity
 
-Last session: 2026-06-30T23:36:13Z
-Stopped At: Completed 27-02-PLAN.md
+Last session: 2026-06-30T23:53:56.946Z
+Stopped At: Completed 27-03-PLAN.md
 Resume File: None
 
 ## Next Up
 
-Continue Phase 27 with plan 27-03.
+Verify Phase 27, then continue v1.6 with Phase 28.
 
-Plan 27-02 completed provider mode derivation, FlashQuery source chunk to Cate preview ID mapping, typed `query_graph` main/preload/client bridge, and provider node metadata backfill with per-chunk diagnostics. Next work should build the whole-document graph UI and navigation on top of `mode`, `chunkMap`, `nodeMeta`, `nodeMetaLoading`, and diagnostics.
+Plan 27-03 completed whole-document graph Summary, Needs attention, Sections, grouped Connections, Top-N/relation filters, local section navigation, responsive dock classes, and chrome count/config state. Phase 28 should build selection-detail graph intelligence, local text filtering, edge metadata overlay, final chrome polish, and integrated Electron regression coverage.
 
 ## Decisions
 
@@ -83,6 +83,9 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table.
 | 2026-06-30 | v1.6 uses the Graph Intelligence Monaco Side Panel requirements and test plan as mandatory source-of-truth docs. | The product docs define the graph contract, deferred structured-claim scope, and complete REQ/test traceability. |
 | 2026-06-30 | v1.6 executes in two GSD phases, Phases 27-28. | Phase 27 bundles source phases 1-2; Phase 28 bundles source phases 3-5 so every wave can carry implementation and tests. |
 | 2026-06-30 | v1.6 preserves product REQ and test IDs. | Avoids traceability drift from the supplied requirements/test-plan matrix. |
+| 2026-06-30 | Whole-document graph mode activates only when graph document structure is present. | Preserves sparse mixed and embeddings-only fallback behavior while enabling graph triage when chunk mapping exists. |
+| 2026-06-30 | Top-N uses relation-priority ordering for graph whole-document rows before per-group overflow. | Keeps graph triage focused on high-priority relations such as contradictions before lower-priority similarity rows. |
+| 2026-06-30 | Whole-document row navigation derives source sections from byChunkId membership. | Avoids guessing from target metadata and records local diagnostics when a graph row is untraceable. |
 
 ## Deferred Items
 
@@ -132,7 +135,8 @@ Items acknowledged and deferred at milestone close on 2026-06-16:
 | 26-browser-uplift | 09 | 8min | 2 | 4 |
 | 27-graph-data-contract-and-whole-document-graph-view | 01 | 11m 17s | 3 | 10 |
 | 27-graph-data-contract-and-whole-document-graph-view | 02 | 10m 28s | 3 | 11 |
+| 27-graph-data-contract-and-whole-document-graph-view | 03 | 18m | 3 | 4 |
 
 ## Operator Next Steps
 
-- Continue Phase 27 with plan 27-02.
+- Verify Phase 27, then plan/execute Phase 28.

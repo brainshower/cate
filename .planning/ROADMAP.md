@@ -48,10 +48,11 @@ This grouping keeps the first GSD phase vertically testable: the graph data cont
    - Tests in same wave: T-U-004, T-U-005, T-U-009, T-U-010, T-U-011, T-U-012, T-U-013, T-U-014, T-U-015, T-U-016, T-U-023, T-U-025, T-I-005, T-I-006, T-I-009, T-C-001, T-C-002, T-C-003, T-C-004, T-C-063.
    - Verification: focused renderer/provider and main/preload IPC unit suites pass; `npm run typecheck` passes. Node 20/22 precheck could not pass in the current shell because only Node 26 is installed.
 
-3. **Whole-document graph UI and navigation**
+3. ✅ **Whole-document graph UI and navigation** — completed by plan 27-03 (`27-03-SUMMARY.md`)
    - Render community summary, attention groups, section list, grouped relation connections, Top-N allocation, graph-only config controls, relation filter behavior, count/config chrome state, dock-native responsive/accessibility behavior, and source-section navigation.
    - Requirements in this wave: REQ-004, REQ-007, REQ-008, REQ-009, REQ-010, REQ-011, REQ-019, REQ-020, REQ-022.
    - Tests in same wave: T-U-006, T-U-007, T-U-008, T-U-017, T-U-018, T-C-005, T-C-006, T-C-007, T-C-008, T-C-009, T-C-010, T-C-011, T-C-012, T-C-013, T-C-014, T-C-015, T-C-016, T-C-017, T-C-018, T-C-019, T-C-020, T-C-021, T-C-022, T-C-023, T-C-024, T-C-025, T-C-026, T-C-027, T-C-028, T-C-029, T-C-064.
+   - Verification: focused panel/provider/main-preload unit suites pass; `npm run typecheck` passes. Node 20/22 precheck could not pass in the current shell because only Node 26 is installed.
 
 **Success criteria:**
 
@@ -125,7 +126,7 @@ This grouping keeps the first GSD phase vertically testable: the graph data cont
 
 ## Current Status
 
-Plans 27-01 and 27-02 completed Waves 1-2: shared graph contract/normalization, provider mode derivation, source chunk mapping, typed `query_graph` bridge, and provider node metadata backfill. Plan 27-03 remains for whole-document graph UI and navigation.
+Phase 27 is complete. Plans 27-01 through 27-03 delivered the graph contract, provider graph mode, typed `query_graph` bridge, node metadata backfill, whole-document graph UI, grouped connections, scoped filters, local section navigation, and chrome state. Phase 28 remains for selection detail, local filtering, edge metadata overlay, chrome polish, and integrated Electron regression coverage.
 
 ---
-*Last updated: 2026-06-30 after Phase 27 Plan 02 completion*
+*Last updated: 2026-06-30 after Phase 27 Plan 03 completion*
