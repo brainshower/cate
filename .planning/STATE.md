@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Graph Intelligence Monaco Side Panel
 status: executing
-stopped_at: Completed 27-01-PLAN.md
-last_updated: "2026-06-30T23:20:33Z"
-last_activity: 2026-06-30 -- Plan 27-01 graph data contract complete
+stopped_at: Completed 27-02-PLAN.md
+last_updated: "2026-06-30T23:36:13Z"
+last_activity: 2026-06-30 -- Plan 27-02 provider graph mode and query_graph backfill complete
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
-  percent: 33
+  completed_plans: 2
+  percent: 67
 ---
 
 # Project State
@@ -26,21 +26,21 @@ See: `.planning/PROJECT.md` (updated 2026-06-30 after v1.6 Graph Intelligence Mo
 ## Current Position
 
 Phase: 27 (graph-data-contract-and-whole-document-graph-view) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready for next Phase 27 plan
-Last activity: 2026-06-30 -- Plan 27-01 graph data contract complete
+Last activity: 2026-06-30 -- Plan 27-02 provider graph mode and query_graph backfill complete
 
 ## Session Continuity
 
-Last session: 2026-06-30T23:20:33Z
-Stopped At: Completed 27-01-PLAN.md
+Last session: 2026-06-30T23:36:13Z
+Stopped At: Completed 27-02-PLAN.md
 Resume File: None
 
 ## Next Up
 
-Continue Phase 27 with plan 27-02.
+Continue Phase 27 with plan 27-03.
 
-Plan 27-01 completed the shared graph contract, `get_document` graph summary include support, target health-tier normalization, malformed optional field handling, and token-redaction diagnostics. Next work should build on these contracts for provider mode derivation, source chunk mapping, and `query_graph` backfill.
+Plan 27-02 completed provider mode derivation, FlashQuery source chunk to Cate preview ID mapping, typed `query_graph` main/preload/client bridge, and provider node metadata backfill with per-chunk diagnostics. Next work should build the whole-document graph UI and navigation on top of `mode`, `chunkMap`, `nodeMeta`, `nodeMetaLoading`, and diagnostics.
 
 ## Decisions
 
@@ -131,6 +131,7 @@ Items acknowledged and deferred at milestone close on 2026-06-16:
 | 26-browser-uplift | 08 | 85min | 2 | 10 |
 | 26-browser-uplift | 09 | 8min | 2 | 4 |
 | 27-graph-data-contract-and-whole-document-graph-view | 01 | 11m 17s | 3 | 10 |
+| 27-graph-data-contract-and-whole-document-graph-view | 02 | 10m 28s | 3 | 11 |
 
 ## Operator Next Steps
 

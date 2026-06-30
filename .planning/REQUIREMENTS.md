@@ -13,12 +13,12 @@
 ### Graph Data Contract
 
 - [x] **REQ-001**: User can rely on graph-aware semantic connection types that cover all FlashQuery graph relation types, edge metadata, node metadata, community context, source chunk ordering, typed/mixed/embeddings-only modes, and optional scores. — Completed in Phase 27 Plan 01.
-- [ ] **REQ-002**: User can keep using the existing embeddings-only Semantic Connections fallback when typed graph data is absent or unavailable.
+- [x] **REQ-002**: User can keep using the existing embeddings-only Semantic Connections fallback when typed graph data is absent or unavailable. — Provider fallback and score-sort regressions completed in Phase 27 Plan 02; panel fallback UI remains covered by Plan 27-03/Phase 28 component tests.
 - [x] **REQ-003**: User can receive normalized FlashQuery `get_document` graph connection payloads, source chunks, graph summaries, and target health-tier fields through validated Cate IPC without losing useful partial data. — Completed in Phase 27 Plan 01.
 - [x] **REQ-004**: User can see safe, complete display metadata for every graph edge relation, including directed/symmetric labels and unknown-relation fallbacks. — Completed in Phase 27 Plan 01.
-- [ ] **REQ-005**: User can navigate graph source chunks through Cate preview chunk IDs while preserving FlashQuery chunk IDs for diagnostics and duplicate-heading disambiguation.
-- [ ] **REQ-006**: User can distinguish typed, mixed, and embeddings-only results while seeing stale and partial-data diagnostics without losing valid graph data.
-- [ ] **REQ-023**: User can get progressive node and edge metadata through a typed `query_graph` IPC/preload/provider path without exposing FlashQuery credentials.
+- [x] **REQ-005**: User can navigate graph source chunks through Cate preview chunk IDs while preserving FlashQuery chunk IDs for diagnostics and duplicate-heading disambiguation. — Completed in Phase 27 Plan 02.
+- [x] **REQ-006**: User can distinguish typed, mixed, and embeddings-only results while seeing stale and partial-data diagnostics without losing valid graph data. — Completed in Phase 27 Plan 02 for provider data construction and node metadata degradation.
+- [ ] **REQ-023**: User can get progressive node and edge metadata through a typed `query_graph` IPC/preload/provider path without exposing FlashQuery credentials. — Node metadata bridge/backfill completed in Phase 27 Plan 02; edge metadata overlay consumption remains Phase 28.
 
 ### Whole-Document Graph View
 
@@ -42,7 +42,7 @@
 - [ ] **REQ-018**: User can apply local filtering at the correct UI granularity while preserving structural context and seeing a no-results state.
 - [ ] **REQ-019**: User can navigate from attention rows, section rows, and whole-document connection rows to local sections while preserving target-opening behavior for edge rows.
 - [ ] **REQ-020**: User can use the graph intelligence panel in Cate docks with native theme tokens, accessible controls, responsive truncation/wrapping, and no fixed prototype width.
-- [x] **REQ-021**: User can recover from loading, unsupported context, FlashQuery, adapter, malformed-result, and partial graph metadata states without renderer crashes or premature clean-state claims. — Wave 1 malformed graph payload and credential-safe diagnostic coverage completed in Phase 27 Plan 01.
+- [x] **REQ-021**: User can recover from loading, unsupported context, FlashQuery, adapter, malformed-result, and partial graph metadata states without renderer crashes or premature clean-state claims. — Wave 1 malformed graph payload/credential-safe diagnostics completed in Phase 27 Plan 01; partial node metadata degradation completed in Phase 27 Plan 02. Remaining UI-state assertions stay mapped to later component tests.
 - [ ] **REQ-022**: User can rely on accurate dock chrome connection counts and separate config/filter active indicators that unregister on unmount.
 
 ## Future Requirements
@@ -77,11 +77,11 @@
 | Requirement | Phase | Status | Primary Tests |
 |-------------|-------|--------|---------------|
 | REQ-001 | Phase 27 | Complete in 27-01 | T-U-001, T-U-002, T-U-003, T-U-026, T-A-002 |
-| REQ-002 | Phase 27 | Pending | T-U-004, T-U-005, T-C-001, T-C-002, T-C-021, T-E-004 |
+| REQ-002 | Phase 27 | Complete in 27-02 for provider fallback | T-U-004, T-U-005, T-C-001, T-C-002, T-C-021, T-E-004 |
 | REQ-003 | Phase 27 | Complete in 27-01 | T-I-001, T-I-002, T-I-003, T-I-004, T-I-007, T-I-008, T-A-002 |
 | REQ-004 | Phase 27 | Complete in 27-01 | T-U-006, T-U-007, T-U-008 |
-| REQ-005 | Phase 27 | Pending | T-U-009, T-U-010, T-U-011 |
-| REQ-006 | Phase 27 | Pending | T-U-012, T-U-013, T-U-014, T-U-015 |
+| REQ-005 | Phase 27 | Complete in 27-02 | T-U-009, T-U-010, T-U-011 |
+| REQ-006 | Phase 27 | Complete in 27-02 | T-U-012, T-U-013, T-U-014, T-U-015 |
 | REQ-007 | Phase 27 | Pending | T-C-005, T-C-006, T-C-007, T-E-001 |
 | REQ-008 | Phase 27 | Pending | T-C-008, T-C-009, T-C-010, T-C-011, T-C-012, T-C-026, T-E-002 |
 | REQ-009 | Phase 27 | Pending | T-C-013, T-C-014, T-C-015, T-C-016, T-C-017, T-E-002 |
@@ -96,9 +96,9 @@
 | REQ-018 | Phase 28 | Pending | T-C-055, T-C-056, T-C-057, T-C-058, T-C-059, T-E-003 |
 | REQ-019 | Phase 28 | Pending | T-C-017, T-C-026, T-C-027, T-C-048, T-E-002 |
 | REQ-020 | Phase 28 | Pending | T-C-028, T-C-049, T-E-001, T-A-003 |
-| REQ-021 | Phase 28 | Partially complete in 27-01 | T-U-016, T-U-026, T-U-028, T-C-003, T-C-004, T-C-063, T-I-003, T-E-005 |
+| REQ-021 | Phase 28 | Partially complete in 27-01 and 27-02 | T-U-016, T-U-026, T-U-028, T-C-003, T-C-004, T-C-063, T-I-003, T-E-005 |
 | REQ-022 | Phase 28 | Pending | T-C-029, T-C-060, T-C-061, T-C-062 |
-| REQ-023 | Phase 27 and Phase 28 | Pending | T-I-005, T-I-006, T-I-009, T-U-023, T-U-024, T-U-025, T-E-002 |
+| REQ-023 | Phase 27 and Phase 28 | Node bridge/backfill complete in 27-02; edge overlay pending Phase 28 | T-I-005, T-I-006, T-I-009, T-U-023, T-U-024, T-U-025, T-E-002 |
 
 **Coverage:**
 - v1.6 requirements: 23 total
