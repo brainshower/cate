@@ -589,6 +589,38 @@ describe('FlashQuery IPC handlers', () => {
     expect(mocks.managerInstances[0].getDocument).toHaveBeenCalledTimes(1)
   })
 
+  it('T-I-004 accepts graph get-document options and rejects invalid include/connection option shapes', async () => {
+    const handler = await registeredHandler<(_event: unknown, workspaceId: string, vaultPath: string, options?: unknown) => Promise<unknown>>(FLASHQUERY_GET_DOCUMENT)
+    mocks.managerInstances[0].getDocument.mockResolvedValue({ body: 'body' })
+
+    await expect(handler({}, 'workspace-1', 'Plan.md', {
+      include: ['connections', 'graph_summary'],
+      connections: {
+        limit: 200,
+        limit_per_chunk: 5,
+        embedding_names: ['primary'],
+      },
+    })).resolves.toEqual({ body: 'body' })
+    await expect(handler({}, 'workspace-1', 'Plan.md', { include: ['connections', 'not_a_part'] }))
+      .rejects.toThrow('options.include must contain only body, frontmatter, connections, graph_summary, or headings')
+    await expect(handler({}, 'workspace-1', 'Plan.md', { include: ['connections'], connections: 'bad' }))
+      .rejects.toThrow('options.connections must be an object when provided')
+    await expect(handler({}, 'workspace-1', 'Plan.md', { include: ['connections'], connections: { limit: 0 } }))
+      .rejects.toThrow('Document connections limit must be a positive integer')
+    await expect(handler({}, 'workspace-1', 'Plan.md', { include: ['connections'], connections: { limit_per_chunk: -1 } }))
+      .rejects.toThrow('Document connections limit_per_chunk must be a positive integer')
+
+    expect(mocks.managerInstances[0].getDocument).toHaveBeenCalledWith('workspace-1', 'Plan.md', {
+      include: ['connections', 'graph_summary'],
+      connections: {
+        limit: 200,
+        limit_per_chunk: 5,
+        embedding_names: ['primary'],
+      },
+    })
+    expect(mocks.managerInstances[0].getDocument).toHaveBeenCalledTimes(1)
+  })
+
   it('T-I-009 through T-I-011 maps writeDocument IPC success and failure results without throwing', async () => {
     const handler = await registeredHandler<(_event: unknown, workspaceId: string, vaultPath: string, content: string) => Promise<unknown>>(FLASHQUERY_WRITE_DOCUMENT)
     mocks.managerInstances[0].writeDocument
@@ -737,6 +769,25 @@ describe('FlashQuery IPC handlers', () => {
       limit_per_chunk: 5,
       embedding_names: ['primary'],
     })
+  })
+
+  it('T-I-004 rejects invalid document connection request option shapes before manager dispatch', async () => {
+    const handler = await registeredHandler<(_event: unknown, workspaceId: string, params: unknown) => Promise<unknown>>(FLASHQUERY_DOCUMENT_CONNECTIONS)
+
+    await expect(handler({}, 'workspace-1', {
+      identifier: 'Docs/Plan.md',
+      limit: 0,
+    })).resolves.toMatchObject({ error: 'Document connections limit must be a positive integer' })
+    await expect(handler({}, 'workspace-1', {
+      identifier: 'Docs/Plan.md',
+      limit_per_chunk: Number.NaN,
+    })).resolves.toMatchObject({ error: 'Document connections limit_per_chunk must be a positive integer' })
+    await expect(handler({}, 'workspace-1', {
+      identifier: 'Docs/Plan.md',
+      embedding_names: ['primary', ''],
+    })).resolves.toMatchObject({ error: 'embedding_names must be an array of non-empty strings' })
+
+    expect(mocks.managerInstances[0].documentConnections).not.toHaveBeenCalled()
   })
 
   it('T-U-006 registers vault-index IPC and delegates valid workspace IDs to manager', async () => {
