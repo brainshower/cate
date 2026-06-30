@@ -822,6 +822,57 @@ describe('SemanticConnectionsPanel', () => {
     expect(screen.queryByText('Sections')).toBeNull()
   })
 
+  it('T-C-027 selects a traceable whole-document graph row and no-ops untraceable rows with diagnostics', async () => {
+    renderPanel({
+      ...groupedGraphResult,
+      byChunkId: {
+        ...groupedGraphResult.byChunkId,
+        scope: [groupedGraphResult.overall[1]],
+      },
+    })
+
+    const traceableRow = await screen.findByRole('button', { name: 'Open source section for Support 1' })
+    fireEvent.click(traceableRow)
+    expect(usePreviewSelectionStore.getState().getScope('editor-1').activeChunkId).toBe('scope')
+    cleanup()
+    clearActiveEditorRegistryForTests()
+    clearPreviewSelectionForTests()
+
+    renderPanel(groupedGraphResult)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Open source section for Support 1' }))
+    expect(usePreviewSelectionStore.getState().getScope('editor-1').activeChunkId).toBeNull()
+    expect(screen.getByTestId('semantic-connections-panel').dataset.semanticNavigationDiagnosticsCount).toBe('1')
+  })
+
+  it('T-C-028 uses responsive truncating dock classes for graph containers and rows', async () => {
+    renderPanel(groupedGraphResult)
+
+    const panel = await screen.findByTestId('semantic-connections-panel')
+    const connections = screen.getByTestId('semantic-graph-connections')
+    const row = screen.getByTestId('semantic-graph-connection-supports-1')
+
+    expect(panel.className).toContain('min-w-0')
+    expect(panel.className).toContain('overflow-hidden')
+    expect(connections.className).toContain('space-y-3')
+    expect(row.className).toContain('min-w-0')
+    expect(within(row).getByText('Support 1').className).toContain('truncate')
+  })
+
+  it('T-C-029 publishes whole-document graph connection count and config active state to dock chrome', async () => {
+    renderPanel(groupedGraphResult)
+
+    await screen.findByTestId('semantic-graph-connections')
+    await waitFor(() => expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.connectionCount).toBe(7))
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.configActive).toBe(false)
+
+    act(() => useSemanticConnectionsChromeStore.getState().panels['sc-1']?.toggleConfig())
+    fireEvent.change(screen.getByLabelText('Top N connections'), { target: { value: '2' } })
+
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.connectionCount).toBe(7)
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.configActive).toBe(true)
+  })
+
   it('T-I-025 and T-I-026 shows loading and supersedes stale in-flight requests', async () => {
     const first = deferred<SemanticConnectionsResult>()
     const second = deferred<SemanticConnectionsResult>()
