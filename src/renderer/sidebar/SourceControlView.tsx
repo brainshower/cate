@@ -221,7 +221,7 @@ const BranchPicker: React.FC<{
 
   useEffect(() => {
     if (isOpen) {
-      loadBranches()
+      void loadBranches()
     } else {
       setFilter('')
       setCreating(false)
@@ -260,7 +260,7 @@ const BranchPicker: React.FC<{
     setError(null)
     try {
       await window.electronAPI.gitBranchDelete(rootPath, name)
-      loadBranches()
+      void loadBranches()
     } catch (err: any) {
       setError(err?.message || 'Delete failed')
     }
@@ -298,7 +298,7 @@ const BranchPicker: React.FC<{
                 <input
                   value={newBranchName}
                   onChange={(e) => setNewBranchName(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape') setCreating(false) }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') void handleCreate(); if (e.key === 'Escape') setCreating(false) }}
                   className="flex-1 min-w-0 bg-surface-5 border border-subtle rounded px-2 py-1 text-[11px] text-primary placeholder:text-muted focus:outline-none focus:border-subtle"
                   placeholder="New branch name..."
                   autoFocus
@@ -420,13 +420,13 @@ export const SourceControlView: React.FC<SourceControlViewProps> = ({ rootPath }
   }, [rootPath])
 
   useEffect(() => {
-    refresh()
+    void refresh()
   }, [refresh])
 
   // Refresh on window focus
   useEffect(() => {
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible') refresh()
+      if (document.visibilityState === 'visible') void refresh()
     }
     document.addEventListener('visibilitychange', handleVisibility)
     return () => document.removeEventListener('visibilitychange', handleVisibility)
@@ -435,7 +435,7 @@ export const SourceControlView: React.FC<SourceControlViewProps> = ({ rootPath }
   // Listen for branch updates
   useEffect(() => {
     const cleanup = window.electronAPI.onGitBranchUpdate(() => {
-      refresh()
+      void refresh()
     })
     return cleanup
   }, [refresh])
@@ -455,18 +455,18 @@ export const SourceControlView: React.FC<SourceControlViewProps> = ({ rootPath }
 
   const stageFile = useCallback(async (filePath: string) => {
     await window.electronAPI.gitStage(rootPath, filePath)
-    refresh()
+    void refresh()
   }, [rootPath, refresh])
 
   const unstageFile = useCallback(async (filePath: string) => {
     await window.electronAPI.gitUnstage(rootPath, filePath)
-    refresh()
+    void refresh()
   }, [rootPath, refresh])
 
   const discardFile = useCallback(async (filePath: string) => {
     try {
       await window.electronAPI.gitDiscardFile(rootPath, filePath)
-      refresh()
+      void refresh()
     } catch (err: any) {
       setActionError(err?.message || 'Discard failed')
     }
@@ -476,14 +476,14 @@ export const SourceControlView: React.FC<SourceControlViewProps> = ({ rootPath }
     for (const f of files) {
       await window.electronAPI.gitStage(rootPath, f.path)
     }
-    refresh()
+    void refresh()
   }, [rootPath, refresh])
 
   const unstageAll = useCallback(async (files: GitFileStatus[]) => {
     for (const f of files) {
       await window.electronAPI.gitUnstage(rootPath, f.path)
     }
-    refresh()
+    void refresh()
   }, [rootPath, refresh])
 
   const commit = useCallback(async () => {
@@ -493,7 +493,7 @@ export const SourceControlView: React.FC<SourceControlViewProps> = ({ rootPath }
     try {
       await window.electronAPI.gitCommit(rootPath, commitMessage.trim())
       setCommitMessage('')
-      refresh()
+      void refresh()
     } catch (err: any) {
       setActionError(err?.message || 'Commit failed')
     } finally {
@@ -507,7 +507,7 @@ export const SourceControlView: React.FC<SourceControlViewProps> = ({ rootPath }
     setActionError(null)
     try {
       await window.electronAPI.gitPush(rootPath)
-      refresh()
+      void refresh()
     } catch (err: any) {
       setActionError(err?.message || 'Push failed')
     } finally {
@@ -521,7 +521,7 @@ export const SourceControlView: React.FC<SourceControlViewProps> = ({ rootPath }
     setActionError(null)
     try {
       await window.electronAPI.gitPull(rootPath)
-      refresh()
+      void refresh()
     } catch (err: any) {
       setActionError(err?.message || 'Pull failed')
     } finally {
@@ -535,7 +535,7 @@ export const SourceControlView: React.FC<SourceControlViewProps> = ({ rootPath }
     setActionError(null)
     try {
       await window.electronAPI.gitFetch(rootPath)
-      refresh()
+      void refresh()
     } catch (err: any) {
       setActionError(err?.message || 'Fetch failed')
     } finally {
@@ -547,7 +547,7 @@ export const SourceControlView: React.FC<SourceControlViewProps> = ({ rootPath }
     setActionError(null)
     try {
       await window.electronAPI.gitStash(rootPath)
-      refresh()
+      void refresh()
     } catch (err: any) {
       setActionError(err?.message || 'Stash failed')
     }
@@ -557,7 +557,7 @@ export const SourceControlView: React.FC<SourceControlViewProps> = ({ rootPath }
     setActionError(null)
     try {
       await window.electronAPI.gitStashPop(rootPath)
-      refresh()
+      void refresh()
     } catch (err: any) {
       setActionError(err?.message || 'Stash pop failed')
     }
@@ -659,7 +659,7 @@ export const SourceControlView: React.FC<SourceControlViewProps> = ({ rootPath }
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
               e.preventDefault()
-              commit()
+              void commit()
             }
           }}
           rows={1}

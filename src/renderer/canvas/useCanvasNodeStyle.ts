@@ -94,7 +94,7 @@ export function useCanvasNodeStyle(args: StyleArgs) {
       pointerEvents: isExiting || isWholeNodeDragSource ? 'none' : undefined,
       userSelect: 'none',
     }
-  }, [node, isFocused, isSelected, activityState, isAnimatingLayout, isHovered, chromeTint, isWholeNodeDragSource])
+  }, [node, activityState, isAnimatingLayout, isHovered, chromeTint, isWholeNodeDragSource])
 
   const glowStyle = useMemo<React.CSSProperties | null>(() => {
     if (!node) return null

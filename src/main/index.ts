@@ -33,7 +33,7 @@ import { AgentManager } from '../agent/main/agentManager'
 // Shared singletons for pi agent + auth.
 const agentManager = new AgentManager(authManager)
 import { writeDragTempFile, cleanupDragTempFile, createDragGhostImage } from './ipc/drag'
-import { registerWindow, getWindowType, sendToWindow, broadcastToAll, broadcastToAllExcept, setPanelWindowMeta, setPanelWindowTerminalPtyId, listPanelWindows, getWindow, setDockWindowState, listDockWindows } from './windowRegistry'
+import { registerWindow, getWindowType, sendToWindow, broadcastToAll, broadcastToAllExcept, setPanelWindowMeta, setPanelWindowTerminalPtyId, listPanelWindows, setDockWindowState, listDockWindows } from './windowRegistry'
 import { registerWorkspaceHandlers } from './workspaceManager'
 import { addAllowedRoot, clearFileGrantsForWindow, clearScopedWriteAllowancesForWindow, grantFileAccess, validatePath } from './ipc/pathValidation'
 import { listPersistentGrants, recordPersistentGrant } from './grantedPathStore'
@@ -308,9 +308,9 @@ function createWindow(params?: CateWindowParams): BrowserWindow {
   void grantsReady.finally(() => {
     if (win.isDestroyed()) return
     if (process.env.ELECTRON_RENDERER_URL) {
-      win.loadURL(`${process.env.ELECTRON_RENDERER_URL}${query}`)
+      void win.loadURL(`${process.env.ELECTRON_RENDERER_URL}${query}`)
     } else {
-      win.loadFile(path.join(__dirname, '../renderer/index.html'), {
+      void win.loadFile(path.join(__dirname, '../renderer/index.html'), {
         search: query ? query.slice(1) : undefined,
       })
     }
@@ -387,7 +387,7 @@ body{background:transparent;overflow:hidden;font:11px -apple-system,sans-serif}
 .body .lbl{color:rgba(74,158,255,0.85);font-size:11px;font-weight:500}
 </style></head><body><div class="ghost"><div class="tbar">${icon}<span class="t">${safeTitle}</span></div><div class="body"><div class="big"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(74,158,255,0.85)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg></div><div class="lbl">Drop to place here</div></div></div></body></html>`
 
-  dragGhostWin.loadURL(html)
+  void dragGhostWin.loadURL(html)
   dragGhostWin.webContents.once('did-finish-load', () => {
     if (dragGhostWin && !dragGhostWin.isDestroyed()) {
       dragGhostWin.showInactive()
@@ -460,12 +460,6 @@ function registerDeferredHandlers(): void {
   registerNotificationHandlers()
   registerAuthHandlers(authManager)
   registerAgentHandlers(authManager, agentManager)
-}
-
-/** Union of critical + deferred — kept for any callers that want the full set in one call. */
-function registerAllHandlers(): void {
-  registerCriticalHandlers()
-  registerDeferredHandlers()
 }
 
 /**
@@ -1182,7 +1176,7 @@ process.on('uncaughtException', (err) => {
   log.error('uncaughtException: %O', err)
   captureMainException(err)
   emergencyKillPTYs()
-  flushSentry().finally(() => process.exit(1))
+  void flushSentry().finally(() => process.exit(1))
 })
 process.on('unhandledRejection', (reason) => {
   log.error('unhandledRejection: %O', reason)
@@ -1201,7 +1195,7 @@ process.on('SIGINT', () => {
   process.exit(0)
 })
 
-app.whenReady().then(async () => {
+void app.whenReady().then(async () => {
   // Phase 0 perf marker — log a high-resolution timestamp at app.whenReady
   // so cold-launch traces can be reconstructed from main + renderer logs.
   log.info('[perf] app.whenReady t=%dms', Math.round(performance.now()))

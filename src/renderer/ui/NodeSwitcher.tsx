@@ -39,6 +39,7 @@ export const NodeSwitcher: React.FC = () => {
   const nodeIds = useMemo(() => Object.keys(nodes).sort(), [nodes])
   const items = useMemo(() => {
     if (!workspace) return []
+    if (nodeIds.length === 0) return []
     const sorted = canvasApi.getState().sortedNodesByCreationOrder()
     return sorted.map((node) => {
       const panel = workspace.panels[node.panelId]
@@ -48,7 +49,7 @@ export const NodeSwitcher: React.FC = () => {
         type: (panel?.type ?? 'terminal') as PanelType,
       }
     })
-  }, [workspace, nodeIds])
+  }, [workspace, nodeIds, canvasApi])
 
   // Default selection: second item (next panel after current)
   const [selectedIndex, setSelectedIndex] = useState(items.length > 1 ? 1 : 0)

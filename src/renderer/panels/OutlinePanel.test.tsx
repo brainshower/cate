@@ -339,7 +339,7 @@ describe('OutlinePanel source mode', () => {
     })
 
     expect(screen.queryByText('Updated')).toBeNull()
-    act(() => vi.advanceTimersByTime(300))
+    void act(() => vi.advanceTimersByTime(300))
     expect(screen.getByText('Updated')).toBeTruthy()
   })
 
@@ -365,7 +365,7 @@ describe('OutlinePanel source mode', () => {
       editor.emitContentChange()
     })
     view.unmount()
-    act(() => vi.runOnlyPendingTimers())
+    void act(() => vi.runOnlyPendingTimers())
 
     expect(editor.listenerCounts()).toEqual({ cursor: 0, content: 0 })
   })

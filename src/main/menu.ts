@@ -201,13 +201,13 @@ export function buildApplicationMenu(): void {
         {
           label: 'Cate Documentation',
           click: (): void => {
-            shell.openExternal('https://github.com/0-AI-UG/cate')
+            void shell.openExternal('https://github.com/0-AI-UG/cate')
           },
         },
         {
           label: 'Report Issue...',
           click: (): void => {
-            shell.openExternal('https://github.com/0-AI-UG/cate/issues')
+            void shell.openExternal('https://github.com/0-AI-UG/cate/issues')
           },
         },
         { type: 'separator' },

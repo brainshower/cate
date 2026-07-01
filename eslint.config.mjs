@@ -57,7 +57,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['src/**/*.tsx'],
+    files: ['src/**/*.{ts,tsx}'],
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -74,6 +74,17 @@ export default tseslint.config(
     rules: {
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+    },
+  },
+  {
+    files: ['src/renderer/panels/BrowserPanel.test.tsx'],
+    languageOptions: {
+      parserOptions: {
+        project: false,
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-floating-promises': 'off',
     },
   },
   eslintConfigPrettier,

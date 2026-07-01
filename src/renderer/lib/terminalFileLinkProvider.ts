@@ -30,14 +30,14 @@ const existsCache = new Map<string, boolean>()
 async function pathIsFile(absPath: string): Promise<boolean> {
   const cached = existsCache.get(absPath)
   if (cached !== undefined) return cached
-  let ok = false
   try {
-    ok = (await window.electronAPI.fsStat(absPath)).isFile
+    const ok = (await window.electronAPI.fsStat(absPath)).isFile
+    existsCache.set(absPath, ok)
+    return ok
   } catch {
-    ok = false
+    existsCache.set(absPath, false)
+    return false
   }
-  existsCache.set(absPath, ok)
-  return ok
 }
 
 /** Open an existing file from a terminal link, jumping to line/col for editors. */

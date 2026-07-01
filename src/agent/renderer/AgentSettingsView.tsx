@@ -161,7 +161,7 @@ export function SettingsView({
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') handleCreate(kind)
+              if (e.key === 'Enter') void handleCreate(kind)
               if (e.key === 'Escape') { setCreating(null); setNewName(''); setError(null) }
             }}
             placeholder={`${kind.slice(0, -1)} name`}

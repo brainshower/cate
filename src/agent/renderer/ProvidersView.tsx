@@ -65,7 +65,7 @@ export function ProvidersView({ onBack, scopedProviderId, embedded = false, avai
     }
   }, [])
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => { void refresh() }, [refresh])
 
   useEffect(() => {
     if (!scopedProviderId) return
@@ -258,7 +258,7 @@ function OAuthForm({
       if (event.type === 'auth') setAuthInfo({ url: event.url, instructions: event.instructions })
       if (event.type === 'prompt' || event.type === 'manualCode') setPromptValue('')
       if (event.type === 'done' || event.type === 'error') setAuthInfo(null)
-      if (event.type === 'done') onRefresh()
+      if (event.type === 'done') void onRefresh()
     })
     return unsub
   }, [provider.id, onRefresh])
@@ -347,7 +347,7 @@ function OAuthForm({
               {phase.userCode}
             </code>
             <button
-              onClick={() => { try { navigator.clipboard.writeText(phase.userCode) } catch { /* */ } }}
+              onClick={() => { try { void navigator.clipboard.writeText(phase.userCode) } catch { /* */ } }}
               className="p-2 rounded-md bg-white/5 hover:bg-white/10 text-primary"
               title="Copy code"
             >
@@ -377,7 +377,7 @@ function OAuthForm({
             autoFocus
             value={promptValue}
             onChange={(e) => setPromptValue(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handlePromptSubmit(phase.promptId, promptValue) }}
+            onKeyDown={(e) => { if (e.key === 'Enter') void handlePromptSubmit(phase.promptId, promptValue) }}
             placeholder={phase.placeholder ?? ''}
             className="w-full bg-surface-3 border border-white/10 rounded-md px-2 py-1.5 text-[13px] text-primary outline-none focus:border-agent/60"
           />
@@ -421,7 +421,7 @@ function OAuthForm({
             autoFocus
             value={promptValue}
             onChange={(e) => setPromptValue(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handlePromptSubmit(phase.promptId, promptValue) }}
+            onKeyDown={(e) => { if (e.key === 'Enter') void handlePromptSubmit(phase.promptId, promptValue) }}
             className="w-full bg-surface-3 border border-white/10 rounded-md px-2 py-1.5 text-[13px] text-primary outline-none focus:border-agent/60"
           />
           <div className="flex justify-end">
@@ -479,7 +479,7 @@ function AuthUrlCard({ url, instructions }: { url: string; instructions?: string
           <ArrowSquareOut size={12} /> Open URL again
         </a>
         <button
-          onClick={() => { try { navigator.clipboard.writeText(url) } catch { /* */ } }}
+          onClick={() => { try { void navigator.clipboard.writeText(url) } catch { /* */ } }}
           className="inline-flex items-center gap-1 text-[12px] px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 text-primary"
         >
           <Copy size={12} /> Copy URL
@@ -542,7 +542,7 @@ function ApiKeyForm({
             type={reveal ? 'text' : 'password'}
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleSave() }}
+            onKeyDown={(e) => { if (e.key === 'Enter') void handleSave() }}
             autoComplete="off"
             spellCheck={false}
             placeholder={status?.connected ? '••••••••••••' : `Paste your ${provider.name} key`}
@@ -769,4 +769,3 @@ function DefaultModelPicker({
     </div>
   )
 }
-

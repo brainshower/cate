@@ -215,9 +215,11 @@ export const useUIStore = create<UIStore>((set, get) => ({
     }
     // Determine source side and index
     let sourceSide: SidebarSide | null = null
+    const leftIndex = layout.left.indexOf(view)
+    const rightIndex = layout.right.indexOf(view)
     let sourceIndex = -1
-    if ((sourceIndex = layout.left.indexOf(view)) >= 0) sourceSide = 'left'
-    else if ((sourceIndex = layout.right.indexOf(view)) >= 0) sourceSide = 'right'
+    if (leftIndex >= 0) { sourceSide = 'left'; sourceIndex = leftIndex }
+    else if (rightIndex >= 0) { sourceSide = 'right'; sourceIndex = rightIndex }
     if (sourceSide === null) return
 
     // Remove from source

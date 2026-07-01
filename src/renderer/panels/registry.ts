@@ -80,7 +80,7 @@ export interface RendererPanelDefinition extends SharedPanelDefinition {
   /** React.lazy() wrapped panel component. Accepts the standard PanelProps
    *  plus optional per-type extras (filePath/url/zoomLevel) — the dispatcher
    *  reads those off the PanelState. */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   Component: LazyExoticComponent<ComponentType<any>>
   /** Spawn a fresh panel of this type into the workspace. Returns the new
    *  panelId or null if creation failed. */

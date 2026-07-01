@@ -2,7 +2,7 @@
 // GitPanel — Full-featured Git panel for the canvas
 // =============================================================================
 
-import React, { useState, useCallback, useEffect, useRef } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import {
   GitBranch,
   ArrowClockwise,
@@ -55,16 +55,6 @@ interface GitPanelProps {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function fileName(path: string): string {
-  return path.split('/').pop() || path
-}
-
-function dirName(path: string): string {
-  const parts = path.split('/')
-  parts.pop()
-  return parts.join('/')
-}
 
 function statusColor(status: string): string {
   switch (status) {
@@ -140,7 +130,7 @@ export default function GitPanel({ panelId: _panelId, workspaceId, nodeId: _node
     setIsLoading(false)
   }, [rootPath])
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => { void refresh() }, [refresh])
 
   // Listen for branch updates
   useEffect(() => {
@@ -161,20 +151,20 @@ export default function GitPanel({ panelId: _panelId, workspaceId, nodeId: _node
   const handleStage = useCallback(async (filePath: string) => {
     if (!rootPath) return
     await window.electronAPI.gitStage(rootPath, filePath)
-    refresh()
+    void refresh()
   }, [rootPath, refresh])
 
   const handleUnstage = useCallback(async (filePath: string) => {
     if (!rootPath) return
     await window.electronAPI.gitUnstage(rootPath, filePath)
-    refresh()
+    void refresh()
   }, [rootPath, refresh])
 
   const handleDiscard = useCallback(async (filePath: string) => {
     if (!rootPath) return
     try {
       await window.electronAPI.gitDiscardFile(rootPath, filePath)
-      refresh()
+      void refresh()
     } catch (err: any) {
       setActionError(err?.message || 'Discard failed')
     }
@@ -186,7 +176,7 @@ export default function GitPanel({ panelId: _panelId, workspaceId, nodeId: _node
     try {
       await window.electronAPI.gitCommit(rootPath, commitMsg.trim())
       setCommitMsg('')
-      refresh()
+      void refresh()
     } catch (err: any) {
       setActionError(err?.message || 'Commit failed')
     }
@@ -198,7 +188,7 @@ export default function GitPanel({ panelId: _panelId, workspaceId, nodeId: _node
     setActionError(null)
     try {
       await window.electronAPI.gitPush(rootPath)
-      refresh()
+      void refresh()
     } catch (err: any) {
       setActionError(err?.message || 'Push failed')
     } finally { setPushing(false) }
@@ -210,7 +200,7 @@ export default function GitPanel({ panelId: _panelId, workspaceId, nodeId: _node
     setActionError(null)
     try {
       await window.electronAPI.gitPull(rootPath)
-      refresh()
+      void refresh()
     } catch (err: any) {
       setActionError(err?.message || 'Pull failed')
     } finally { setPulling(false) }
@@ -221,7 +211,7 @@ export default function GitPanel({ panelId: _panelId, workspaceId, nodeId: _node
     setActionError(null)
     try {
       await window.electronAPI.gitFetch(rootPath)
-      refresh()
+      void refresh()
     } catch (err: any) {
       setActionError(err?.message || 'Fetch failed')
     }
@@ -232,7 +222,7 @@ export default function GitPanel({ panelId: _panelId, workspaceId, nodeId: _node
     setActionError(null)
     try {
       await window.electronAPI.gitStash(rootPath)
-      refresh()
+      void refresh()
     } catch (err: any) {
       setActionError(err?.message || 'Stash failed')
     }
@@ -243,7 +233,7 @@ export default function GitPanel({ panelId: _panelId, workspaceId, nodeId: _node
     setActionError(null)
     try {
       await window.electronAPI.gitStashPop(rootPath)
-      refresh()
+      void refresh()
     } catch (err: any) {
       setActionError(err?.message || 'Stash pop failed')
     }
@@ -255,7 +245,7 @@ export default function GitPanel({ panelId: _panelId, workspaceId, nodeId: _node
     try {
       const branchName = name.replace(/^remotes\/origin\//, '')
       await window.electronAPI.gitCheckout(rootPath, branchName)
-      refresh()
+      void refresh()
     } catch (err: any) {
       setActionError(err?.message || 'Checkout failed')
     }
@@ -268,7 +258,7 @@ export default function GitPanel({ panelId: _panelId, workspaceId, nodeId: _node
       await window.electronAPI.gitBranchCreate(rootPath, newBranchName.trim())
       setNewBranchName('')
       setCreatingBranch(false)
-      refresh()
+      void refresh()
     } catch (err: any) {
       setActionError(err?.message || 'Create branch failed')
     }
@@ -279,7 +269,7 @@ export default function GitPanel({ panelId: _panelId, workspaceId, nodeId: _node
     setActionError(null)
     try {
       await window.electronAPI.gitBranchDelete(rootPath, name)
-      refresh()
+      void refresh()
     } catch (err: any) {
       setActionError(err?.message || 'Delete branch failed')
     }
@@ -353,7 +343,7 @@ export default function GitPanel({ panelId: _panelId, workspaceId, nodeId: _node
                 type="text"
                 value={commitMsg}
                 onChange={(e) => setCommitMsg(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleCommit() }}
+                onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void handleCommit() }}
                 className="w-full bg-surface-3 text-primary text-xs px-2 py-1.5 rounded border border-subtle outline-none focus:border-blue-500/50 mb-1.5"
                 placeholder="Commit message..."
               />
@@ -382,7 +372,7 @@ export default function GitPanel({ panelId: _panelId, workspaceId, nodeId: _node
                       <span className="flex-1 uppercase">Staged</span>
                       <button
                         className="p-0.5 rounded hover:bg-hover text-muted hover:text-secondary"
-                        onClick={() => { for (const f of staged) handleUnstage(f.path) }}
+                        onClick={() => { for (const f of staged) void handleUnstage(f.path) }}
                         title="Unstage All"
                       ><Minus size={12} /></button>
                     </div>
@@ -395,7 +385,7 @@ export default function GitPanel({ panelId: _panelId, workspaceId, nodeId: _node
                         <span className={`w-4 text-center mr-1 font-mono text-[11px] ${statusColor(f.index)}`}>{f.index}</span>
                         <span className="text-primary flex-1 truncate text-xs">{f.path}</span>
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleUnstage(f.path) }}
+                          onClick={(e) => { e.stopPropagation(); void handleUnstage(f.path) }}
                           className="hidden group-hover:block text-muted hover:text-secondary ml-1"
                         ><Minus size={12} /></button>
                       </div>
@@ -408,7 +398,7 @@ export default function GitPanel({ panelId: _panelId, workspaceId, nodeId: _node
                       <span className="flex-1 uppercase">Changes</span>
                       <button
                         className="p-0.5 rounded hover:bg-hover text-muted hover:text-secondary"
-                        onClick={() => { for (const f of changed) handleStage(f.path) }}
+                        onClick={() => { for (const f of changed) void handleStage(f.path) }}
                         title="Stage All"
                       ><Plus size={12} /></button>
                     </div>
@@ -421,8 +411,8 @@ export default function GitPanel({ panelId: _panelId, workspaceId, nodeId: _node
                         <span className={`w-4 text-center mr-1 font-mono text-[11px] ${statusColor(f.working_dir)}`}>{f.working_dir}</span>
                         <span className="text-primary flex-1 truncate text-xs">{f.path}</span>
                         <div className="hidden group-hover:flex items-center gap-0.5 ml-1">
-                          <button onClick={(e) => { e.stopPropagation(); handleDiscard(f.path) }} className="text-muted hover:text-red-400"><ArrowUUpLeft size={12} /></button>
-                          <button onClick={(e) => { e.stopPropagation(); handleStage(f.path) }} className="text-muted hover:text-secondary"><Plus size={12} /></button>
+                          <button onClick={(e) => { e.stopPropagation(); void handleDiscard(f.path) }} className="text-muted hover:text-red-400"><ArrowUUpLeft size={12} /></button>
+                          <button onClick={(e) => { e.stopPropagation(); void handleStage(f.path) }} className="text-muted hover:text-secondary"><Plus size={12} /></button>
                         </div>
                       </div>
                     ))}
@@ -434,7 +424,7 @@ export default function GitPanel({ panelId: _panelId, workspaceId, nodeId: _node
                       <span className="flex-1 uppercase">Untracked</span>
                       <button
                         className="p-0.5 rounded hover:bg-hover text-muted hover:text-secondary"
-                        onClick={() => { for (const f of untracked) handleStage(f.path) }}
+                        onClick={() => { for (const f of untracked) void handleStage(f.path) }}
                         title="Stage All"
                       ><Plus size={12} /></button>
                     </div>
@@ -447,7 +437,7 @@ export default function GitPanel({ panelId: _panelId, workspaceId, nodeId: _node
                         <span className="w-4 text-center mr-1 font-mono text-[11px] text-muted">?</span>
                         <span className="text-secondary flex-1 truncate text-xs">{f.path}</span>
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleStage(f.path) }}
+                          onClick={(e) => { e.stopPropagation(); void handleStage(f.path) }}
                           className="hidden group-hover:block text-muted hover:text-secondary ml-1"
                         ><Plus size={12} /></button>
                       </div>
@@ -494,7 +484,7 @@ export default function GitPanel({ panelId: _panelId, workspaceId, nodeId: _node
                   <input
                     value={newBranchName}
                     onChange={(e) => setNewBranchName(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleCreateBranch(); if (e.key === 'Escape') setCreatingBranch(false) }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') void handleCreateBranch(); if (e.key === 'Escape') setCreatingBranch(false) }}
                     className="flex-1 bg-surface-3 text-primary text-xs px-2 py-1 rounded border border-subtle outline-none focus:border-blue-500/50"
                     placeholder="Branch name..."
                     autoFocus
@@ -526,7 +516,7 @@ export default function GitPanel({ panelId: _panelId, workspaceId, nodeId: _node
                 {!b.current && (
                   <button
                     className="hidden group-hover:block p-0.5 rounded hover:bg-hover text-muted hover:text-red-400"
-                    onClick={(e) => { e.stopPropagation(); handleDeleteBranch(b.name) }}
+                    onClick={(e) => { e.stopPropagation(); void handleDeleteBranch(b.name) }}
                     title="Delete"
                   ><Trash size={11} /></button>
                 )}

@@ -45,7 +45,7 @@ export const WorktreePill: React.FC<WorktreePillProps> = ({ panel, workspaceId }
       if (entry?.ptyId) {
         // Escape single quotes by closing/reopening the quoted segment.
         const safe = target.path.replace(/'/g, `'\\''`)
-        window.electronAPI.terminalWrite(entry.ptyId, ` cd '${safe}'\r`)
+        void window.electronAPI.terminalWrite(entry.ptyId, ` cd '${safe}'\r`)
       }
     }
     // For agent panels we only update the tag — the pi process's cwd is set

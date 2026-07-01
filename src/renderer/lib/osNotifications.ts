@@ -69,5 +69,5 @@ export function subscribeToOsNotificationClicks(): void {
   if (subscribed) return
   subscribed = true
   const api = (window as any).electronAPI
-  api?.onNotifyAction?.((action: NotificationAction) => { executeAction(action) })
+  void api?.onNotifyAction?.((action: NotificationAction) => { void executeAction(action) })
 }

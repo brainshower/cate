@@ -7,7 +7,6 @@ import {
   Globe,
   FileCode,
   FolderOpen,
-  Keyboard,
   Folder,
 } from '@phosphor-icons/react'
 

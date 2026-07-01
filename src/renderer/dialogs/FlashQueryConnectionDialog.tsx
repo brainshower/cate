@@ -214,7 +214,7 @@ export function FlashQueryConnectionDialog() {
     } finally {
       setSaving(false)
     }
-  }, [close, token, url, workspace?.id])
+  }, [close, token, url, workspace?.id, workspace?.flashqueryConnection])
 
   const handleConfirmRemove = useCallback(async () => {
     setSaveError(null)

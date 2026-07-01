@@ -161,7 +161,7 @@ async function fallbackCheckForUpdate(manual: boolean): Promise<void> {
       if (manual) {
         // Surface "no updates" only for manual checks via a single quiet dialog.
         const win = BrowserWindow.getFocusedWindow()
-        dialog.showMessageBox({
+        void dialog.showMessageBox({
           ...(win ? { parentWindow: win } : {}),
           type: 'info',
           title: 'No Updates',
@@ -185,7 +185,7 @@ async function fallbackCheckForUpdate(manual: boolean): Promise<void> {
     log.error('[fallback-updater] Error:', err)
     if (manual) {
       const win = BrowserWindow.getFocusedWindow()
-      dialog.showMessageBox({
+      void dialog.showMessageBox({
         ...(win ? { parentWindow: win } : {}),
         type: 'error',
         title: 'Update Check Failed',
@@ -257,7 +257,7 @@ export function initAutoUpdater(): void {
     if (target) {
       const version = currentStatus.state === 'manual' ? currentStatus.version : undefined
       void sendEvent('update_manual_open_clicked', { version: version ?? null })
-      shell.openExternal(target)
+      void shell.openExternal(target)
     }
   })
 
@@ -285,7 +285,7 @@ export function initAutoUpdater(): void {
     if (isManualCheck) {
       isManualCheck = false
       const win = BrowserWindow.getFocusedWindow()
-      dialog.showMessageBox({
+      void dialog.showMessageBox({
         ...(win ? { parentWindow: win } : {}),
         type: 'info',
         title: 'No Updates',
@@ -323,14 +323,14 @@ export function initAutoUpdater(): void {
     // Native auto-update failed (e.g. no code signing) — try fallback
     const wasManual = isManualCheck
     isManualCheck = false
-    fallbackCheckForUpdate(wasManual)
+    void fallbackCheckForUpdate(wasManual)
   })
 
   // Check on launch (after a short delay to not block startup)
   setTimeout(() => {
     autoUpdater.checkForUpdates().catch((err) => {
       log.warn('[auto-updater] Startup check threw, trying fallback:', err)
-      fallbackCheckForUpdate(false)
+      void fallbackCheckForUpdate(false)
     })
   }, 5000)
 
@@ -339,30 +339,30 @@ export function initAutoUpdater(): void {
     () => {
       autoUpdater.checkForUpdates().catch((err) => {
         log.warn('[auto-updater] Periodic check threw, trying fallback:', err)
-        fallbackCheckForUpdate(false)
+        void fallbackCheckForUpdate(false)
       })
     },
     15 * 60 * 1000,
   )
   }).catch((err) => {
     log.warn('[auto-updater] Native updater unavailable, using fallback:', err)
-    fallbackCheckForUpdate(false)
+    void fallbackCheckForUpdate(false)
   })
 }
 
 export function checkForUpdatesManually(): void {
   isManualCheck = true
   if (!app.isPackaged) {
-    fallbackCheckForUpdate(true)
+    void fallbackCheckForUpdate(true)
     return
   }
   loadAutoUpdater().then((autoUpdater) => autoUpdater.checkForUpdates().catch((err) => {
     log.warn('[auto-updater] Manual check threw, trying fallback:', err)
     isManualCheck = false
-    fallbackCheckForUpdate(true)
+    void fallbackCheckForUpdate(true)
   })).catch((err) => {
     log.warn('[auto-updater] Manual native updater unavailable, trying fallback:', err)
     isManualCheck = false
-    fallbackCheckForUpdate(true)
+    void fallbackCheckForUpdate(true)
   })
 }

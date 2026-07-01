@@ -29,7 +29,9 @@ const loadSize = (): { w: number; h: number } => {
       const p = JSON.parse(raw)
       if (typeof p.w === 'number' && typeof p.h === 'number') return { w: p.w, h: p.h }
     }
-  } catch {}
+  } catch {
+    // Ignore unavailable localStorage.
+  }
   return { w: MINIMAP_DEFAULT_WIDTH, h: MINIMAP_DEFAULT_HEIGHT }
 }
 
@@ -103,7 +105,9 @@ const Minimap: React.FC<MinimapProps> = ({ mode = 'floating' }) => {
       setSize({ w, h })
       if (sizeDebounceRef.current) clearTimeout(sizeDebounceRef.current)
       sizeDebounceRef.current = setTimeout(() => {
-        try { localStorage.setItem(SIZE_KEY, JSON.stringify({ w, h })) } catch {}
+        try { localStorage.setItem(SIZE_KEY, JSON.stringify({ w, h })) } catch {
+          // Ignore unavailable localStorage.
+        }
       }, 500)
     }
     const handleUp = () => {
@@ -127,7 +131,9 @@ const Minimap: React.FC<MinimapProps> = ({ mode = 'floating' }) => {
         if (prev === next) return prev
         if (cornerDebounceRef.current) clearTimeout(cornerDebounceRef.current)
         cornerDebounceRef.current = setTimeout(() => {
-          try { localStorage.setItem(CORNER_KEY, next) } catch {}
+          try { localStorage.setItem(CORNER_KEY, next) } catch {
+            // Ignore unavailable localStorage.
+          }
         }, 500)
         return next
       })

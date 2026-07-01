@@ -33,7 +33,9 @@ export function titleIndicatesRunning(titleSegment: string): boolean {
 //     the one glyph unique to OpenCode's working animation: its progress bars
 //     use ■ (U+25A0) and message headers use ▣ (U+25A3), so matching only ⬝
 //     stays idle-safe (verified: present every working frame, absent at idle).
-const OSC_SEQUENCE = /\x1b\][\s\S]*?(?:\x07|\x1b\\)/g
+const ESC = String.fromCharCode(27)
+const BEL = String.fromCharCode(7)
+const OSC_SEQUENCE = new RegExp(`${ESC}\\][\\s\\S]*?(?:${BEL}|${ESC}\\\\)`, 'g')
 const BODY_SPINNER_GLYPH = /[⠀-⣿⬝]/
 
 export function outputShowsBodySpinner(chunk: string): boolean {

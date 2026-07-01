@@ -218,9 +218,9 @@ function RetryIndicator({ state, onAbort }: { state: RetryState; onAbort?: () =>
 function MessageRow({
   msg,
   shimmer,
-  forkEntryId,
-  onFork,
-  onEditResend,
+  forkEntryId: _forkEntryId,
+  onFork: _onFork,
+  onEditResend: _onEditResend,
   onImplementPlan,
   onRefinePlan,
   onClearAndImplement,
@@ -580,7 +580,7 @@ function toolVerb(msg: ToolMessage): string {
   }
 }
 
-function ToolCard({ msg, shimmer, workspaceId }: { msg: ToolMessage; shimmer?: boolean; workspaceId?: string }) {
+function ToolCard({ msg, shimmer, workspaceId: _workspaceId }: { msg: ToolMessage; shimmer?: boolean; workspaceId?: string }) {
   const isBash = msg.name === 'bash' || msg.name === 'shell'
   const isRead = msg.name === 'read' || msg.name === 'view'
   const isWrite = msg.name === 'write'
@@ -699,7 +699,7 @@ function formatTokensShort(n: number): string {
 
 function SubagentCard({ msg, shimmer, workspaceId }: { msg: ToolMessage; shimmer?: boolean; workspaceId?: string }) {
   const [expanded, setExpanded] = useState(true)
-  const args = (msg.args ?? {}) as Record<string, unknown>
+  const args = useMemo(() => (msg.args ?? {}) as Record<string, unknown>, [msg.args])
   const fallbackResults: SubagentResult[] = useMemo(() => {
     if (msg.subagent) return msg.subagent.results
     const stubs: SubagentResult[] = []
@@ -772,7 +772,6 @@ function SubagentResultRow({
   const terminalStop = result.stopReason === 'stop' || result.stopReason === 'error' ||
     result.stopReason === 'length' || result.stopReason === 'aborted'
   const isRunning = parentRunning && !terminalStop
-  const isError = !isRunning && result.exitCode > 0
   const [expanded, setExpanded] = useState(false)
 
   const toggle = () => setExpanded((v) => !v)
@@ -783,7 +782,6 @@ function SubagentResultRow({
   if (result.usage?.output) usageBits.push(`↓${formatTokensShort(result.usage.output)}`)
   if (result.usage?.cost) usageBits.push(`$${result.usage.cost.toFixed(3)}`)
 
-  const status: ToolMessage['status'] = isRunning ? 'running' : isError ? 'error' : 'success'
   const summary = result.task
   const hasExtras = result.parts.length > 0 || !!result.errorMessage || !!result.stderr || !!result.finalText
 

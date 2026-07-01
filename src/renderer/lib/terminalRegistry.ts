@@ -187,7 +187,7 @@ function makeTerminalKeyEventHandler(
     // matching VS Code / Cursor. Pure table lives in terminalKeymap.ts.
     const seq = resolveTerminalKeySequence(event, isMacPlatform)
     if (seq !== null) {
-      window.electronAPI.terminalWrite(ptyId, seq)
+      void window.electronAPI.terminalWrite(ptyId, seq)
       event.preventDefault()
       return false
     }
@@ -207,7 +207,7 @@ function makeTerminalKeyEventHandler(
     // Remaining Cmd+key combos are app shortcuts — let them propagate.
     if (event.metaKey) return true
 
-    window.electronAPI.terminalWrite(ptyId, `\x1b[${keyCode};${mod}u`)
+    void window.electronAPI.terminalWrite(ptyId, `\x1b[${keyCode};${mod}u`)
     event.preventDefault()
     return false
   }
@@ -507,13 +507,13 @@ async function getOrCreate(panelId: string, opts: CreateOpts): Promise<RegistryE
 
     // 8b. xterm -> PTY: keystrokes (standard path for all other input)
     const dataDisposable = terminal.onData((data) => {
-      electronAPI.terminalWrite(ptyId, data)
+      void electronAPI.terminalWrite(ptyId, data)
     })
     cleanupListeners.push(() => dataDisposable.dispose())
 
     // 9. xterm resize -> PTY resize
     const resizeDisposable = terminal.onResize(({ cols, rows }) => {
-      electronAPI.terminalResize(ptyId, cols, rows)
+      void electronAPI.terminalResize(ptyId, cols, rows)
     })
     cleanupListeners.push(() => resizeDisposable.dispose())
 
@@ -659,12 +659,12 @@ async function reconnectTerminal(
   terminal.attachCustomKeyEventHandler(makeTerminalKeyEventHandler(terminal, ptyId))
 
   const dataDisposable = terminal.onData((data) => {
-    electronAPI.terminalWrite(ptyId, data)
+    void electronAPI.terminalWrite(ptyId, data)
   })
   cleanupListeners.push(() => dataDisposable.dispose())
 
   const resizeDisposable = terminal.onResize(({ cols, rows }) => {
-    electronAPI.terminalResize(ptyId, cols, rows)
+    void electronAPI.terminalResize(ptyId, cols, rows)
   })
   cleanupListeners.push(() => resizeDisposable.dispose())
 

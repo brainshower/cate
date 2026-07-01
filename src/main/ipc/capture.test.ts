@@ -1,5 +1,3 @@
-import fs from 'node:fs/promises'
-import path from 'node:path'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import {
   CAPTURE_PAGE,

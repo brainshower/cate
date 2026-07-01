@@ -100,11 +100,6 @@ export const CommandPalette: React.FC = () => {
   const canvasApi = useCanvasStoreApi()
   const setZoom = useCanvasStoreContext((s) => s.setZoom)
 
-  const rootPath = useAppStore((s) => {
-    const ws = s.workspaces.find((w) => w.id === s.selectedWorkspaceId)
-    return ws?.rootPath
-  })
-
   const [searchText, setSearchText] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
@@ -118,7 +113,7 @@ export const CommandPalette: React.FC = () => {
     setSearchResults([])
   }, [setShowCommandPalette])
 
-  const dockCenter = { target: 'dock', zone: 'center' } as const
+  const dockCenter = useMemo(() => ({ target: 'dock', zone: 'center' }) as const, [])
 
   // Build command items
   const allCommands: CommandItem[] = useMemo(
@@ -243,6 +238,8 @@ export const CommandPalette: React.FC = () => {
       setActiveRightSidebarView,
       setShowNodeSwitcher,
       setZoom,
+      canvasApi,
+      dockCenter,
     ],
   )
 
@@ -501,7 +498,7 @@ export const CommandPalette: React.FC = () => {
               if (cmd) executeCommand(cmd)
             } else {
               const result = searchResults[selectedIndex - filteredCommands.length]
-              if (result) selectSearchResult(result)
+              if (result) void selectSearchResult(result)
             }
           }
           break
@@ -517,8 +514,6 @@ export const CommandPalette: React.FC = () => {
       document.removeEventListener('keydown', handleKey, { capture: true })
   }, [showCommandPalette, filteredCommands, searchResults, recommendedPanels, showRecommended, selectedIndex, totalItems, executeCommand, selectSearchResult, close, canvasApi, focusPanelById])
 
-  if (!showCommandPalette) return null
-
   // Group search results by kind for section headers
   const groupedResults = useMemo(() => {
     const seen = new Set<SearchResultKind>()
@@ -529,6 +524,8 @@ export const CommandPalette: React.FC = () => {
     }
     return sections
   }, [searchResults])
+
+  if (!showCommandPalette) return null
 
   const sectionLabel = (kind: SearchResultKind) =>
     kind === 'file' ? 'Files' : kind === 'panel' ? 'Panels' : 'Terminals'

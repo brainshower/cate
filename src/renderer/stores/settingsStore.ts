@@ -51,7 +51,7 @@ export type SettingsStore = SettingsStoreState & SettingsStoreActions
 // Store
 // -----------------------------------------------------------------------------
 
-export const useSettingsStore = create<SettingsStore>((set, get) => ({
+export const useSettingsStore = create<SettingsStore>((set, _get) => ({
   // --- State: all settings with defaults ---
   ...DEFAULT_SETTINGS,
   _loaded: false,

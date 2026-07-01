@@ -860,7 +860,7 @@ describe('EditorPanel FlashQuery URI routing', () => {
     act(() => {
       getActiveEditorSnapshot(workspaceId).highlightSourceLine?.(3)
     })
-    act(() => vi.advanceTimersByTime(0))
+    void act(() => vi.advanceTimersByTime(0))
 
     const collection = monacoMock().latestEditor().decorationCollections[0]
     expect(collection.set).toHaveBeenCalledWith([expect.objectContaining({
@@ -874,7 +874,7 @@ describe('EditorPanel FlashQuery URI routing', () => {
     act(() => {
       getActiveEditorSnapshot(workspaceId).highlightSourceLine?.(1)
     })
-    act(() => vi.advanceTimersByTime(0))
+    void act(() => vi.advanceTimersByTime(0))
 
     expect(collection.clear).toHaveBeenCalled()
     expect(collection.set).toHaveBeenLastCalledWith([expect.objectContaining({
@@ -885,7 +885,7 @@ describe('EditorPanel FlashQuery URI routing', () => {
       }),
     })])
 
-    act(() => vi.advanceTimersByTime(2200))
+    void act(() => vi.advanceTimersByTime(2200))
 
     expect(collection.clear).toHaveBeenCalled()
   })

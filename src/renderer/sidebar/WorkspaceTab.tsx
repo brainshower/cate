@@ -206,7 +206,7 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({
   isSelected,
   isMultiSelected = false,
   onClick,
-  onClose,
+  onClose: _onClose,
   onBulkContextMenu,
 }) => {
   // Single store read for all workspace status data
@@ -260,7 +260,7 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({
   // panelId. Translate via terminalRegistry so the indicators on the workspace
   // overview line up. (Agent state/name/logo come pre-mapped from
   // useAgentInfoByPanel.)
-  const portsByPty = wsStatus?.listeningPorts ?? {}
+  const portsByPty = useMemo(() => wsStatus?.listeningPorts ?? {}, [wsStatus?.listeningPorts])
   const portsByPanel = useMemo(() => {
     const out: Record<string, number[]> = {}
     for (const [ptyId, ports] of Object.entries(portsByPty)) {
@@ -321,14 +321,14 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({
       return
     }
     switch (id) {
-      case 'select': app.selectWorkspace(workspace.id); break
+      case 'select': void app.selectWorkspace(workspace.id); break
       case 'rename':
         setRenameValue(workspace.name || workspace.rootPath.split('/').pop() || 'Workspace')
         setIsRenaming(true)
         break
       case 'select-folder': {
         const path = await window.electronAPI.openFolderDialog()
-        if (path) app.setWorkspaceRootPath(workspace.id, path)
+        if (path) void app.setWorkspaceRootPath(workspace.id, path)
         break
       }
       case 'copy-cwd': {
@@ -340,7 +340,7 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({
           dir = cwds[0]
         }
         if (!dir) dir = workspace.rootPath || undefined
-        if (dir) navigator.clipboard.writeText(dir)
+        if (dir) void navigator.clipboard.writeText(dir)
         break
       }
       case 'flashquery-connection':
@@ -405,7 +405,7 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({
       if (!isSelected) onClick()
       const path = await window.electronAPI.openFolderDialog()
       if (path) {
-        useAppStore.getState().setWorkspaceRootPath(workspace.id, path)
+        void useAppStore.getState().setWorkspaceRootPath(workspace.id, path)
       }
     }
     return (
@@ -585,7 +585,7 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({
         {/* Hover actions: dots menu (rename happens via clicking the title) */}
         <button
           className="flex-shrink-0 w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-80 hover:!opacity-100 text-secondary hover:text-primary transition-opacity focus:outline-none"
-          onClick={(e) => { e.stopPropagation(); handleContextMenu(e) }}
+          onClick={(e) => { e.stopPropagation(); void handleContextMenu(e) }}
           title="More actions"
         >
           <DotsThree size={14} weight="bold" />

@@ -8,14 +8,11 @@ import { FileExplorer } from '../sidebar/FileExplorer'
 import { useAppStore } from '../stores/appStore'
 import type { PanelProps } from './types'
 
-export default function FileExplorerPanel({ panelId, workspaceId }: PanelProps) {
+export default function FileExplorerPanel({ panelId: _panelId, workspaceId }: PanelProps) {
   const rootPath = useAppStore((s) => {
     const ws = s.workspaces.find((w) => w.id === workspaceId)
     return ws?.rootPath ?? ''
   })
-  const selectedWorkspaceId = useAppStore((s) => s.selectedWorkspaceId)
-  const setWorkspaceRootPath = useAppStore((s) => s.setWorkspaceRootPath)
-
   return (
     <div className="w-full h-full overflow-auto bg-surface-4 flex flex-col">
       {rootPath ? (
@@ -32,9 +29,9 @@ export default function FileExplorerPanel({ panelId, workspaceId }: PanelProps) 
               let wsId = workspaceId || appState.selectedWorkspaceId
               if (!wsId || !appState.workspaces.find((w) => w.id === wsId)) {
                 wsId = appState.addWorkspace()
-                appState.selectWorkspace(wsId)
+                void appState.selectWorkspace(wsId)
               }
-              appState.setWorkspaceRootPath(wsId, path)
+              void appState.setWorkspaceRootPath(wsId, path)
             }}
           >
             <FolderOpen size={13} />

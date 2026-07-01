@@ -9,7 +9,7 @@ import { useAppStore } from '../stores/appStore'
 import { useCanvasInteraction } from '../hooks/useCanvasInteraction'
 import { useAutoFocusLargestVisible } from '../hooks/useAutoFocusLargestVisible'
 import { useUIStore, effectiveCanvasTool } from '../stores/uiStore'
-import { canvasToView, viewToCanvas } from '../lib/coordinates'
+import { viewToCanvas } from '../lib/coordinates'
 import CanvasGrid from './CanvasGrid'
 import SnapGuides from './SnapGuides'
 import CanvasRegionComponent from './CanvasRegionComponent'
@@ -127,7 +127,7 @@ const Canvas: React.FC<CanvasProps> = ({ children, onCreateAtPoint, panelId }) =
       }
     })
     return unsubscribe
-  }, []) // mount-only
+  }, [canvasApi])
 
   // Auto-focus the node that occupies the most visible viewport area (opt-in).
   useAutoFocusLargestVisible(canvasApi)
@@ -179,7 +179,7 @@ const Canvas: React.FC<CanvasProps> = ({ children, onCreateAtPoint, panelId }) =
     canvasApi.getState().setContainerSize(initialSize)
 
     return () => observer.disconnect()
-  }, [])
+  }, [canvasApi])
 
   // Click on the canvas background (world div) to unfocus
   const handleWorldClick = useCallback(
@@ -190,7 +190,7 @@ const Canvas: React.FC<CanvasProps> = ({ children, onCreateAtPoint, panelId }) =
         canvasApi.getState().unfocus()
       }
     },
-    [],
+    [canvasApi],
   )
 
   const handleFileDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -211,7 +211,7 @@ const Canvas: React.FC<CanvasProps> = ({ children, onCreateAtPoint, panelId }) =
     const spawnData = e.dataTransfer.getData('application/cate-spawn')
     if (spawnData) {
       e.preventDefault()
-      let spec: { panelType?: 'terminal' | 'agent'; cwd?: string; worktreeId?: string } = {}
+      let spec: { panelType?: 'terminal' | 'agent'; cwd?: string; worktreeId?: string }
       try { spec = JSON.parse(spawnData) } catch { return }
       if (spec.panelType !== 'terminal' && spec.panelType !== 'agent') return
       const rect = canvasRef.current?.getBoundingClientRect()
@@ -293,7 +293,7 @@ const Canvas: React.FC<CanvasProps> = ({ children, onCreateAtPoint, panelId }) =
       }
       offsetX += 40
     }
-  }, [canvasRef])
+  }, [canvasRef, canvasApi])
 
   // Memoize marquee rect to avoid recalculation in render
   const marqueeRect = useMemo(() => {

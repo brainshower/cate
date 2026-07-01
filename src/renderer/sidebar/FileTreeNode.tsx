@@ -269,14 +269,14 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = ({
       case 'open-on-canvas': onFileOpen(pathsToOpen, 'canvas'); break
       case 'new-file': startCreate('file'); break
       case 'new-folder': startCreate('folder'); break
-      case 'reveal': window.electronAPI.shellShowInFolder(node.path); break
+      case 'reveal': void window.electronAPI.shellShowInFolder(node.path); break
       case 'copy': setClipboard(pathsToOpen); break
       case 'paste': await handlePaste(); break
       case 'rename': startRename(); break
-      case 'copy-path': navigator.clipboard.writeText(node.path); break
-      case 'copy-rel-path': navigator.clipboard.writeText(relPath); break
-      case 'copy-name': navigator.clipboard.writeText(node.name); break
-      case 'delete': handleDelete(); break
+      case 'copy-path': void navigator.clipboard.writeText(node.path); break
+      case 'copy-rel-path': void navigator.clipboard.writeText(relPath); break
+      case 'copy-name': void navigator.clipboard.writeText(node.name); break
+      case 'delete': void handleDelete(); break
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node, rootPath, selectedPaths, onFileOpen])
@@ -521,7 +521,7 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = ({
             onChange={(e) => setRenameValue(e.target.value)}
             onBlur={commitRename}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') commitRename()
+              if (e.key === 'Enter') void commitRename()
               if (e.key === 'Escape') setIsRenaming(false)
               e.stopPropagation()
             }}
@@ -555,7 +555,7 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = ({
             onChange={(e) => setCreateValue(e.target.value)}
             onBlur={commitCreate}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') commitCreate()
+              if (e.key === 'Enter') void commitCreate()
               if (e.key === 'Escape') setIsCreating(null)
               e.stopPropagation()
             }}

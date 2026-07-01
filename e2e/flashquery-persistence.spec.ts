@@ -67,7 +67,7 @@ test('T-E-004 persistence / T-E-006 plus T-E-007 persists connection across rest
     let launched = await launchApp({ userDataDir })
     app = launched.electronApp
     const firstPage = launched.mainWindow
-    const workspaceId = await configureConnection(firstPage, workspaceRoot, server)
+    await configureConnection(firstPage, workspaceRoot, server)
     await closeApp(app)
     app = null
     await expectNoTokenOnDisk(workspaceRoot)

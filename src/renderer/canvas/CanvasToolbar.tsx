@@ -37,7 +37,9 @@ const loadMinimapCorner = (): MinimapCorner => {
     if (v === 'bottom-right' || v === 'bottom-left' || v === 'top-right' || v === 'top-left') {
       return v
     }
-  } catch {}
+  } catch {
+    // Ignore unavailable localStorage.
+  }
   return 'bottom-right'
 }
 
@@ -127,7 +129,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   onNewBrowser,
   onNewEditor,
   onNewAgent,
-  onNewCanvas,
+  onNewCanvas: _onNewCanvas,
   onNewRegion,
   onAutoLayout,
   onZoomToFit,
@@ -175,7 +177,9 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
       if (minimapDidDragRef.current) {
-        try { localStorage.setItem(MINIMAP_CORNER_KEY, nextCorner) } catch {}
+        try { localStorage.setItem(MINIMAP_CORNER_KEY, nextCorner) } catch {
+          // Ignore unavailable localStorage.
+        }
       }
     }
     window.addEventListener('mousemove', onMove)

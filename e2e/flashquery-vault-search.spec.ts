@@ -100,7 +100,6 @@ test('T-E-003 Vault Search workflows and T-E-007 disconnect recovery use determi
     await expect(memoryRow).toHaveAttribute('aria-expanded', 'true')
 
     await activateSearchAndRun(page, searchPanelId, 'cate')
-    const listbox = page.getByRole('listbox', { name: 'Vault search results' })
     await page.getByTestId('vault-search-document-Docs/Cate-01.md').click()
     await expect(page.getByTestId('vault-search-document-Docs/Cate-01.md')).toHaveAttribute('aria-selected', 'true')
     await page.evaluate(() => {

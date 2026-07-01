@@ -9,7 +9,6 @@ import {
   clampGhostSize,
   ghostPosition,
   isCursorInsideAnyAppWindow,
-  CROSS_WINDOW_CLAIM_WAIT_MS,
   GHOST_MIN_SIZE,
   GHOST_MAX_SIZE,
   type GhostHostWindow,

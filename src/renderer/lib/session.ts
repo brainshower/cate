@@ -464,7 +464,7 @@ export function projectFilesToSnapshot(
 }
 
 async function loadFromProjectFiles(): Promise<MultiWorkspaceSession | null> {
-  let recentProjects: string[] = []
+  let recentProjects: string[]
   try {
     recentProjects = (await window.electronAPI.recentProjectsGet()) ?? []
   } catch {
@@ -837,7 +837,7 @@ export async function restoreMultiWorkspaceSession(session: MultiWorkspaceSessio
 
     if (i === selectedIdx) {
       // Select and fully restore the active workspace
-      appStore.selectWorkspace(wsId)
+      void appStore.selectWorkspace(wsId)
       await restoreSession(snapshot, canvasStoreApi)
     } else {
       // Defer restoration — store the snapshot for lazy loading on first switch
@@ -847,7 +847,7 @@ export async function restoreMultiWorkspaceSession(session: MultiWorkspaceSessio
 
   // Re-select the originally selected workspace (may be a no-op if already selected)
   if (selectedIdx < wsIds.length) {
-    appStore.selectWorkspace(wsIds[selectedIdx])
+    void appStore.selectWorkspace(wsIds[selectedIdx])
   }
 
   log.debug(`[session] core session restored in ${(performance.now() - tTotal).toFixed(1)}ms`)

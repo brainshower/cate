@@ -56,7 +56,7 @@ export const SidebarViewContent: React.FC<{ view: SidebarView; rootPath: string 
             onClick={async () => {
               const path = await window.electronAPI.openFolderDialog()
               if (path && selectedWorkspaceId) {
-                setWorkspaceRootPath(selectedWorkspaceId, path)
+                void setWorkspaceRootPath(selectedWorkspaceId, path)
               }
             }}
           >

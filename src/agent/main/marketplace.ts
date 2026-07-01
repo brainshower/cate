@@ -338,7 +338,7 @@ async function scanInstalledPackages(cwd: string): Promise<InstalledExtension[]>
   let raw: string
   try { raw = await fsp.readFile(settingsPath(cwd), 'utf-8') }
   catch { return [] }
-  let parsed: { packages?: string[] } = {}
+  let parsed: { packages?: string[] }
   try { parsed = JSON.parse(raw) }
   catch { return [] }
   const refs = parsed.packages ?? []

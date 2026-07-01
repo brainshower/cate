@@ -125,14 +125,14 @@ function PdfViewer({ data }: { data: Uint8Array }) {
   useEffect(() => {
     let cancelled = false
     const loadingTask = pdfjsLib.getDocument({ data })
-    loadingTask.promise.then((doc) => {
+    void loadingTask.promise.then((doc) => {
       if (cancelled) return
       setPdf(doc)
       setNumPages(doc.numPages)
     })
     return () => {
       cancelled = true
-      loadingTask.destroy()
+      void loadingTask.destroy()
     }
   }, [data])
 
@@ -145,7 +145,7 @@ function PdfViewer({ data }: { data: Uint8Array }) {
       renderTaskRef.current = null
     }
 
-    pdf.getPage(currentPage).then((page) => {
+    void pdf.getPage(currentPage).then((page) => {
       if (cancelled || !canvasRef.current) return
       const viewport = page.getViewport({ scale })
       const canvas = canvasRef.current
@@ -213,7 +213,7 @@ function DocxViewer({ data }: { data: Uint8Array }) {
 
   useEffect(() => {
     let cancelled = false
-    import('mammoth').then((mammoth) => {
+    void import('mammoth').then((mammoth) => {
       mammoth.convertToHtml({ arrayBuffer: (data.buffer as ArrayBuffer).slice(data.byteOffset, data.byteOffset + data.byteLength) }).then((result) => {
         if (!cancelled) setHtml(result.value)
       }).catch((err) => {
@@ -289,7 +289,7 @@ export default function DocumentPanel({ panelId, workspaceId }: PanelProps) {
 
   const openExternal = useCallback(() => {
     if (filePath) {
-      window.electronAPI.shellShowInFolder(filePath)
+      void window.electronAPI.shellShowInFolder(filePath)
     }
   }, [filePath])
 

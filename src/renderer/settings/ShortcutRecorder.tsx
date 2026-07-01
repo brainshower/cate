@@ -8,7 +8,7 @@ interface ShortcutRecorderProps {
   onRecord: (shortcut: StoredShortcut) => void
 }
 
-export function ShortcutRecorder({ action, currentShortcut, onRecord }: ShortcutRecorderProps) {
+export function ShortcutRecorder({ action: _action, currentShortcut, onRecord }: ShortcutRecorderProps) {
   const [isRecording, setIsRecording] = useState(false)
 
   const handleKeyDown = useCallback(

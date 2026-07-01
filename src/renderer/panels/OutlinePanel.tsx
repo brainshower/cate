@@ -170,7 +170,7 @@ export default function OutlinePanel({ panelId, workspaceId, sourceEditorPanelId
     }
   }, [parseCurrentModel, snapshot])
 
-  const chunkIdsByLine = useMemo(() => previewChunkIdByLine(snapshot.model), [snapshot.model, headings])
+  const chunkIdsByLine = useMemo(() => previewChunkIdByLine(snapshot.model), [snapshot.model])
   const sharedActiveHeadingIdx = useMemo(() => {
     if (!activeChunkId) return -1
     const slugMatch = headings.findIndex((heading) => chunkIdsByLine.get(heading.line) === activeChunkId)

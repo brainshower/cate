@@ -16,13 +16,12 @@ import type {
   PanelState,
   PanelType,
   Point,
-  Size,
   DockZonePosition,
   DockDropTarget,
   DockStateSnapshot,
   WorktreeMeta,
 } from '../../shared/types'
-import { PANEL_DEFAULT_SIZES, PANEL_MINIMUM_SIZES, ZOOM_DEFAULT, ALL_ZONES, sanitizeFlashQueryConnection } from '../../shared/types'
+import { PANEL_MINIMUM_SIZES, ZOOM_DEFAULT, ALL_ZONES, sanitizeFlashQueryConnection } from '../../shared/types'
 import { ACCENT_COLORS } from '../../shared/colors'
 import type { CanvasNodeId, CanvasNodeState, CanvasRegion } from '../../shared/types'
 import type { StoreApi } from 'zustand'
@@ -241,7 +240,7 @@ function syncUpdateToMain(id: string, changes: Partial<Omit<WorkspaceInfo, 'id'>
 }
 
 function syncRemoveFromMain(id: string): void {
-  enqueueWorkspaceSync('Remove', () => window.electronAPI.workspaceRemove(id))
+  void enqueueWorkspaceSync('Remove', () => window.electronAPI.workspaceRemove(id))
 }
 
 // -----------------------------------------------------------------------------
@@ -807,7 +806,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       )
     }
     // Sync to main process
-    syncCreateToMain(ws).then((result) => {
+    void syncCreateToMain(ws).then((result) => {
       if (!result?.ok) {
         log.warn('[workspace-sync] Create rejected:', result?.error?.message)
         return
@@ -997,7 +996,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       if (remaining.length === 0) {
         // Always keep at least one workspace
         const fresh = createDefaultWorkspace()
-        syncCreateToMain(fresh)
+        void syncCreateToMain(fresh)
         return {
           workspaces: [fresh],
           selectedWorkspaceId: fresh.id,
@@ -1654,7 +1653,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
             : candidate
         )),
       }))
-      window.electronAPI.recentProjectsAdd(result.workspace.rootPath)
+      void window.electronAPI.recentProjectsAdd(result.workspace.rootPath)
       return true
     })
   },
@@ -1665,7 +1664,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         ws.id === wsId ? { ...ws, color } : ws,
       ),
     }))
-    syncUpdateToMain(wsId, { color })
+    void syncUpdateToMain(wsId, { color })
   },
 
   renameWorkspace(wsId, name) {
@@ -1676,7 +1675,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         ws.id === wsId ? { ...ws, name: trimmed } : ws,
       ),
     }))
-    syncUpdateToMain(wsId, { name: trimmed })
+    void syncUpdateToMain(wsId, { name: trimmed })
   },
 
   duplicateWorkspace(wsId) {
@@ -1695,7 +1694,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       focusedNodeId: null,
     }
     set((state) => ({ workspaces: [...state.workspaces, copy] }))
-    syncCreateToMain(copy)
+    void syncCreateToMain(copy)
     return copy.id
   },
 

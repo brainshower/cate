@@ -205,7 +205,7 @@ export default function BrowserPanel({
     } catch {
       // Older Electron — fall back to native OS drag with the file on disk.
       e.preventDefault()
-      window.electronAPI.nativeFileDrag(screenshot.filePath)
+      void window.electronAPI.nativeFileDrag(screenshot.filePath)
     }
   }, [screenshot])
 

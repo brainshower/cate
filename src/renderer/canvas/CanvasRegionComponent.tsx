@@ -149,7 +149,7 @@ const CanvasRegionComponent: React.FC<Props> = ({ region, zoomLevel }) => {
     const { signal } = controller
     window.addEventListener('mousemove', handleMouseMove, { signal })
     window.addEventListener('mouseup', handleMouseUp, { signal })
-  }, [region.id, region.origin.x, region.origin.y])
+  }, [region.id, region.origin.x, region.origin.y, canvasApi])
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
@@ -162,7 +162,7 @@ const CanvasRegionComponent: React.FC<Props> = ({ region, zoomLevel }) => {
       canvasApi.getState().renameRegion(region.id, editValue.trim())
     }
     setIsEditing(false)
-  }, [region.id, editValue])
+  }, [region.id, editValue, canvasApi])
 
   const extractRegionToNewCanvas = useCallback(() => {
     const state = canvasApi.getState()
@@ -291,7 +291,7 @@ const CanvasRegionComponent: React.FC<Props> = ({ region, zoomLevel }) => {
         break
       }
     }
-  }, [region.id, region.label, region.color, region.defaultCwd, canvasApi])
+  }, [region.id, region.label, region.color, region.defaultCwd, canvasApi, extractRegionToNewCanvas])
 
   // Resize handle mouse down
   const handleResizeStart = useCallback((e: React.MouseEvent, handle: ResizeHandle) => {
@@ -345,7 +345,7 @@ const CanvasRegionComponent: React.FC<Props> = ({ region, zoomLevel }) => {
     const { signal } = controller
     window.addEventListener('mousemove', handleMouseMove, { signal })
     window.addEventListener('mouseup', handleMouseUp, { signal })
-  }, [region.id, region.origin, region.size])
+  }, [region.id, region.origin, region.size, canvasApi])
 
   // Bracket dimensions in screen px, divided by zoom so they stay a constant
   // on-screen size regardless of the canvas zoom level.

@@ -81,17 +81,6 @@ vi.mock('./OutlinePanel', () => ({
   },
 }))
 
-function collectText(node: unknown): string[] {
-  if (node == null || typeof node === 'boolean') return []
-  if (typeof node === 'string' || typeof node === 'number') return [String(node)]
-  if (Array.isArray(node)) return node.flatMap(collectText)
-  if (typeof node === 'object' && 'props' in node) {
-    const props = (node as { props?: { children?: unknown } }).props
-    return collectText(props?.children)
-  }
-  return []
-}
-
 describe('PANEL_REGISTRY flashqueryVault entry', () => {
   it('registers the FlashQuery Vault renderer metadata', async () => {
     const { PANEL_REGISTRY } = await import('./registry')

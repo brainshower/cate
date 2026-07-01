@@ -45,10 +45,6 @@ const statusUnsubscribers = new Map<string, () => void>()
 let handlersRegistered = false
 const DIALOG_PROBE_TIMEOUT_MS = 10_000
 
-function flashQueryHandlerUnavailable(operation: string): never {
-  throw new Error(`FlashQuery ${operation} handler is not available until its Phase 3 implementation plan runs`)
-}
-
 function normalizeStatusPayload(payload: FlashQueryStatusBroadcastPayload): FlashQueryStatusBroadcastPayload {
   if (payload.status === 'disconnected') {
     return {
@@ -257,13 +253,6 @@ async function probeConnection(workspaceId: string, connection: unknown): Promis
 function requireNonEmptyString(value: unknown, field: string): string {
   if (typeof value !== 'string' || value.trim().length === 0) {
     throw new Error(`${field} must be a non-empty string`)
-  }
-  return value
-}
-
-function requireString(value: unknown, field: string): string {
-  if (typeof value !== 'string') {
-    throw new Error(`${field} must be a string`)
   }
   return value
 }

@@ -13,7 +13,6 @@ import type { DragSource, DragOpSourceSpec, RuntimeState } from './types'
 import { reduce, initial as runtimeInitial } from './runtime'
 import { resolveDrop } from './resolve'
 import { commitDrop } from './commit'
-import { normalizeGrabOffset } from './geometry'
 import { dockTabGrabOffset } from './grabOffset'
 import { findNodeIdForDockStore } from '../panels/nodeDockRegistry'
 import type { CanvasStore } from '../stores/canvasStore'
@@ -312,10 +311,10 @@ function runEffects(prevActive: ActiveDispatch, next: RuntimeState) {
         }
         break
       case 'cross-window-start':
-        window.electronAPI?.crossWindowDragStart(eff.snapshot, eff.screen)
+        void window.electronAPI?.crossWindowDragStart(eff.snapshot, eff.screen)
         break
       case 'cross-window-cancel':
-        window.electronAPI?.crossWindowDragCancel()
+        void window.electronAPI?.crossWindowDragCancel()
         break
       case 'commit':
         commitDrop(eff.source, eff.target, eff.panel, {
@@ -324,7 +323,7 @@ function runEffects(prevActive: ActiveDispatch, next: RuntimeState) {
             return window.electronAPI.crossWindowDragResolve()
           },
           crossWindowCancel: () => {
-            window.electronAPI?.crossWindowDragCancel()
+            void window.electronAPI?.crossWindowDragCancel()
           },
           dragDetach: async (snapshot, workspaceId) => {
             if (!window.electronAPI?.dragDetach) return null
@@ -356,7 +355,7 @@ function runEffects(prevActive: ActiveDispatch, next: RuntimeState) {
             prepareTerminalRemount(panelId, panelType, terminalRegistry)
           },
         }).catch((err) => {
-          // eslint-disable-next-line no-console
+
           console.warn('[useDragOp] commitDrop failed', err)
         })
         break

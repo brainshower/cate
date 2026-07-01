@@ -40,7 +40,7 @@ export const ProjectList: React.FC = () => {
 
     setMultiSelected(new Set())
     lastClickedIndexRef.current = index
-    selectWorkspace(wsId)
+    void selectWorkspace(wsId)
   }, [workspaces, selectWorkspace])
 
   const handleBulkDelete = useCallback(() => {
@@ -83,7 +83,7 @@ export const ProjectList: React.FC = () => {
   const handleNewWorkspace = useCallback(() => {
     const existing = useAppStore.getState().workspaces.find((w) => !w.rootPath)
     const wsId = existing ? existing.id : addWorkspace()
-    selectWorkspace(wsId)
+    void selectWorkspace(wsId)
     setMultiSelected(new Set())
   }, [addWorkspace, selectWorkspace])
 

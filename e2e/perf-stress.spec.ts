@@ -114,7 +114,7 @@ function report(m: Measurement): void {
     lines.push(`  procs:  ${m.main.procs.slice(0, 4).map((p) => `${p.type} ${p.cpu}%/${p.memMB}MB`).join('  ')}`)
   }
   lines.push('────────────────────────────────────────────')
-  // eslint-disable-next-line no-console
+
   console.log(lines.join('\n'))
 }
 
@@ -377,7 +377,7 @@ function reportPeak(label: string, mounted: number, s: PeakSample): void {
   const top = (r: Record<string, number>) =>
     Object.entries(r).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, v]) => `${k}=${v}/s`).join('  ') || '(none)'
   const procs = Object.entries(s.perProcCpu).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}%`).join('  ')
-  // eslint-disable-next-line no-console
+
   console.log([
     '',
     `──────── PERF: ${label}  (${mounted} mounted nodes) ────────`,

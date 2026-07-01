@@ -129,7 +129,7 @@ export default function AgentPanel({ panelId, workspaceId }: PanelProps) {
   const retry = slice?.retry ?? { active: false }
   const steeringQueue = slice?.steeringQueue ?? []
   const followUpQueue = slice?.followUpQueue ?? []
-  const extensionStatuses = slice?.extensionStatuses ?? []
+  const extensionStatuses = useMemo(() => slice?.extensionStatuses ?? [], [slice?.extensionStatuses])
   const extensionWidgets = slice?.extensionWidgets ?? []
   const vaultIndex = slice?.vaultIndex ?? []
   const vaultIndexLoading = slice?.vaultIndexLoading ?? false
@@ -200,8 +200,8 @@ export default function AgentPanel({ panelId, workspaceId }: PanelProps) {
     }
   }, [])
 
-  useEffect(() => { refreshAuth() }, [refreshAuth])
-  useEffect(() => { if (view === 'chat') refreshAuth() }, [view, refreshAuth])
+  useEffect(() => { void refreshAuth() }, [refreshAuth])
+  useEffect(() => { if (view === 'chat') void refreshAuth() }, [view, refreshAuth])
 
   useEffect(() => {
     setFlashQueryStatus(null)
@@ -311,7 +311,7 @@ export default function AgentPanel({ panelId, workspaceId }: PanelProps) {
       markReady(key, false)
       log.warn('[AgentPanel] createAgent failed', err)
     }
-  }, [workspaceId, cwd, refreshCommands, markReady])
+  }, [workspaceId, cwd, refreshCommands, refreshModels, markReady])
 
   // Mount: open the most-recent on-disk session as the initial chat. Unmount:
   // dispose every chat session this panel ever spawned. Background pi
@@ -356,10 +356,11 @@ export default function AgentPanel({ panelId, workspaceId }: PanelProps) {
       await createAgent(key, initialModel, resume?.path)
     })()
 
+    const readyMap = readyByKey.current
     return () => {
       cancelled = true
       for (const c of openChatsRef.current) {
-        readyByKey.current[c.agentKey] = false
+        readyMap[c.agentKey] = false
         window.electronAPI.agentDispose(c.agentKey).catch(() => { /* */ })
         useAgentStore.getState().dispose(c.agentKey)
       }
@@ -440,7 +441,7 @@ export default function AgentPanel({ panelId, workspaceId }: PanelProps) {
     await createAgent(key, model)
     if (myGen !== openGenRef.current) return
     void refreshChats()
-  }, [createAgent, refreshChats, newAgentKey])
+  }, [createAgent, refreshChats, newAgentKey, workspaceId])
 
   const handleOpenChat = useCallback(async (sessionFile: string) => {
     // Already open in this panel? Switch to it — its pi keeps running, state
@@ -475,7 +476,7 @@ export default function AgentPanel({ panelId, workspaceId }: PanelProps) {
     setOpenChats((prev) => [...prev, { agentKey: key, sessionFile }])
     setActiveAgentKey(key)
     await createAgent(key, model, sessionFile)
-  }, [openChats, chats, createAgent, newAgentKey])
+  }, [openChats, chats, createAgent, newAgentKey, workspaceId])
 
   const handleCloseChat = useCallback((key: string) => {
     // Dispose pi for this chat without deleting its on-disk session file.

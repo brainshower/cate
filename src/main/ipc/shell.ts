@@ -16,7 +16,6 @@ import {
 } from '../../shared/ipc-channels'
 import { terminalPids } from './terminal'
 import { sendToWindow, windowFromEvent, broadcastToAll } from '../windowRegistry'
-import { getShellEnv } from '../shellEnv'
 import { countSpawn } from '../perf/perfMonitor'
 import type { TerminalActivity } from '../../shared/types'
 
@@ -46,7 +45,7 @@ function createLimit(max: number) {
   const next = () => { active--; const fn = queue.shift(); if (fn) { active++; fn() } }
   return <T>(fn: () => Promise<T>): Promise<T> => new Promise((resolve, reject) => {
     const run = () => fn().then(v => { next(); resolve(v) }, e => { next(); reject(e) })
-    if (active < max) { active++; run() } else queue.push(run)
+    if (active < max) { active++; void run() } else queue.push(run)
   })
 }
 const limit = createLimit(4)
@@ -374,7 +373,7 @@ async function runActivityScan(): Promise<void> {
         try {
           const result = await scanTerminal(terminalId, info)
           return { terminalId, info, result }
-        } catch (e) {
+        } catch {
           skipNextScan.add(terminalId)
           return null
         }

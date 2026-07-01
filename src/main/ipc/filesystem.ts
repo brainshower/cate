@@ -409,7 +409,7 @@ function watchStop(dirPath: string, ownerWindowId: number): void {
       shared.refCount--
     }
     if (shared.refCount <= 0) {
-      shared.watcher.close()
+      void shared.watcher.close()
       sharedWatchers.delete(normPath)
     }
   }
@@ -510,7 +510,7 @@ export function subscribeFsChanges(prefix: string, listener: InProcListener): ()
       if (shared.subscribers.delete(key)) {
         shared.refCount--
         if (shared.refCount <= 0) {
-          shared.watcher.close()
+          void shared.watcher.close()
           sharedWatchers.delete(root)
         }
       }
@@ -548,7 +548,7 @@ async function nextAvailableName(
   const stem = ext ? baseName.slice(0, -ext.length) : baseName
   let candidate = intoSameDir ? `${stem} copy${ext}` : baseName
   let n = 2
-  // eslint-disable-next-line no-constant-condition
+
   while (true) {
     try {
       await fs.lstat(path.join(destDir, candidate))

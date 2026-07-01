@@ -20,5 +20,5 @@ export function sendOsNotification(payload: {
   const settings = useSettingsStore.getState()
   const focused = typeof document !== 'undefined' && document.hasFocus()
   if (!shouldSendNotification(settings, focused)) return
-  window.electronAPI?.notifyOS(payload)
+  void window.electronAPI?.notifyOS(payload)
 }

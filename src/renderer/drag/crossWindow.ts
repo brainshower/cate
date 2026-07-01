@@ -104,7 +104,7 @@ function runRemoteEffects(active: ActiveRemote, state: RuntimeState): void {
         }
         if (remoteTarget && active.onDrop) {
           active.onDrop(active.snapshot, remoteTarget)
-          window.electronAPI.crossWindowDragDrop(active.snapshot.panel.id)
+          void window.electronAPI.crossWindowDragDrop(active.snapshot.panel.id)
         }
         break
       }

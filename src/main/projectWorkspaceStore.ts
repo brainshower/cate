@@ -400,7 +400,7 @@ function enqueueSave(rootPath: string, task: () => Promise<void>): Promise<void>
   const prev = saveQueues.get(rootPath) ?? Promise.resolve()
   const next = prev.catch(() => {}).then(task)
   saveQueues.set(rootPath, next)
-  next.finally(() => {
+  void next.finally(() => {
     if (saveQueues.get(rootPath) === next) saveQueues.delete(rootPath)
   })
   return next

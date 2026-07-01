@@ -29,7 +29,7 @@ export async function ensureWorkspaceFolder(workspaceId: string): Promise<string
   const folderPath = await window.electronAPI.openFolderDialog()
   if (!folderPath) return null
 
-  useAppStore.getState().setWorkspaceRootPath(workspaceId, folderPath)
+  void useAppStore.getState().setWorkspaceRootPath(workspaceId, folderPath)
   return workspaceId
 }
 
@@ -62,7 +62,7 @@ export function useShortcuts(): void {
       if (action === 'openFolder') {
         const folder = await window.electronAPI.openFolderDialog()
         if (folder) {
-          useAppStore.getState().setWorkspaceRootPath(selectedWorkspaceId, folder)
+          void useAppStore.getState().setWorkspaceRootPath(selectedWorkspaceId, folder)
         }
         return
       }
@@ -288,7 +288,7 @@ export function useShortcuts(): void {
               ? Object.values(state.nodes).filter((n) => n.regionId && state.selectedRegionIds.has(n.regionId)).length
               : 0
             if (!e.shiftKey && containedPanels > 0) {
-              confirmDeleteRegion(containedPanels).then((choice) => {
+              void confirmDeleteRegion(containedPanels).then((choice) => {
                 if (choice === 'cancel') return
                 canvasStore().deleteSelection(choice === 'with-contents')
               })

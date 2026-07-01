@@ -249,7 +249,7 @@ const CreateForm: React.FC<{
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') submit()
+              if (e.key === 'Enter') void submit()
               if (e.key === 'Escape') onCancel()
             }}
             placeholder="What are you working on?"
@@ -700,7 +700,7 @@ export const ParallelWorkTab: React.FC<ParallelWorkTabProps> = ({ rootPath }) =>
   // Derived view state
   // ---------------------------------------------------------------------------
 
-  const worktrees = workspace?.worktrees ?? []
+  const worktrees = useMemo(() => workspace?.worktrees ?? [], [workspace?.worktrees])
   const gitPaths = useMemo(() => new Set(gitWorktrees.map((g) => g.path)), [gitWorktrees])
   const orphans = worktrees.filter((w) => !w.isPrimary && !gitPaths.has(w.path))
   const live = worktrees.filter((w) => w.isPrimary || gitPaths.has(w.path))

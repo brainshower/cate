@@ -4,7 +4,7 @@ import { mkdtemp } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { closeApp, createBrowserPanel, createWorkspace, evalBrowserPanel, launchApp, quitApp, waitForBrowserPartition } from './fixtures/electron-app'
-import type { ElectronApplication, Page } from 'playwright'
+import type { ElectronApplication } from 'playwright'
 
 async function startLocalBrowserServer(
   handler: Parameters<typeof createServer>[0] = (_req, res) => {
@@ -382,8 +382,8 @@ test('T-E-017 browser webview registration reaches main for portal parent lookup
 test('T-E-005/T-E-006 browser history and bookmarks persist by workspace and stay isolated', async () => {
   const userDataDir = await mkdtemp(path.join(os.tmpdir(), 'cate-browser-uplift-user-data-'))
   const { electronApp: firstApp, mainWindow: firstPage } = await launchApp({ userDataDir })
-  let workspaceA = ''
-  let workspaceB = ''
+  let workspaceA: string
+  let workspaceB: string
 
   try {
     workspaceA = await firstPage.evaluate(() => window.__cateE2E!.selectedWorkspaceId())

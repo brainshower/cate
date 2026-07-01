@@ -13,9 +13,8 @@ import type {
   WindowDockState,
   PanelLocation,
   DockDropTarget,
-  Point,
 } from '../../shared/types'
-import { SIDE_ZONES, ALL_ZONES } from '../../shared/types'
+import { ALL_ZONES } from '../../shared/types'
 import { findTabStack, findZoneForStack } from './dockTreeUtils'
 
 // -----------------------------------------------------------------------------

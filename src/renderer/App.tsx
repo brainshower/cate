@@ -33,7 +33,7 @@ import { FlashQueryConnectionDialog } from './dialogs/FlashQueryConnectionDialog
 import { PostUpdateFeedbackDialog } from './dialogs/PostUpdateFeedbackDialog'
 import PerfHud from './ui/PerfHud'
 import { initPerfClient } from './lib/perf/perfClient'
-import { loadSession, restoreSession, restoreMultiWorkspaceSession, restoreDetachedWindows, setupAutoSave, saveSession } from './lib/session'
+import { loadSession, restoreSession, restoreMultiWorkspaceSession, restoreDetachedWindows, setupAutoSave } from './lib/session'
 import type { MultiWorkspaceSession } from '../shared/types'
 import { useDockStore } from './stores/dockStore'
 import MainWindowShell from './shells/MainWindowShell'
@@ -252,7 +252,7 @@ function MainApp() {
       if (useAppStore.getState().workspaces.length === 0) {
         log.info('No session to restore, creating default workspace')
         const wsId = useAppStore.getState().addWorkspace()
-        useAppStore.getState().selectWorkspace(wsId)
+        void useAppStore.getState().selectWorkspace(wsId)
       }
 
       // Ensure the center dock zone has a canvas panel
@@ -333,11 +333,11 @@ function MainApp() {
         // panels), reuse it rather than stacking a second empty workspace.
         const existing = app.workspaces.find((w) => w.rootPath === filePath)
         if (existing) {
-          app.selectWorkspace(existing.id)
+          void app.selectWorkspace(existing.id)
           return
         }
         const wsId = app.addWorkspace(folderName, filePath)
-        window.electronAPI.recentProjectsAdd(filePath)
+        void window.electronAPI.recentProjectsAdd(filePath)
         await app.selectWorkspace(wsId)
       } catch (err) {
         log.warn('onOpenPath failed:', err)

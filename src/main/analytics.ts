@@ -260,7 +260,7 @@ export function initAnalytics(): void {
 
   ipcMain.on(OPEN_EXTERNAL_URL, (_e, url: string) => {
     if (typeof url === 'string' && (url.startsWith('https://') || url.startsWith('http://'))) {
-      shell.openExternal(url)
+      void shell.openExternal(url)
     }
   })
 

@@ -178,11 +178,11 @@ export function useDockTabActions(params: DockTabActionsParams) {
           break
         }
         case 'move-window':
-          moveTabToNewWindow(panelId)
+          void moveTabToNewWindow(panelId)
           break
       }
     },
-    [stack.panelIds, onClosePanel, getPanelLocal, moveTabToNewWindow, workspaceId, splitWithType],
+    [stack.panelIds, onClosePanel, getPanelLocal, moveTabToNewWindow, splitWithType],
   )
 
   // Tab-bar (empty-area) context menu — split/new menus. Returns a handler

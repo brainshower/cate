@@ -14,7 +14,6 @@ import CanvasToolbar from '../canvas/CanvasToolbar'
 import WelcomePage from '../ui/WelcomePage'
 import type { PanelType, Point, DockLayoutNode, PanelLocation, WindowDockState } from '../../shared/types'
 import { useAppStore, useSelectedWorkspace, registerCanvasOps, unregisterCanvasOps, setActiveCanvasPanelId } from '../stores/appStore'
-import { useSettingsStore } from '../stores/settingsStore'
 import { useStore } from 'zustand'
 import type { StoreApi } from 'zustand'
 import { ensureWorkspaceFolder } from '../hooks/useShortcuts'
@@ -199,7 +198,7 @@ const CanvasNodeWrapper = React.memo(({ nodeId, canvasPanelId, workspaceId, rend
 // CanvasPanel
 // ---------------------------------------------------------------------------
 
-export default function CanvasPanel({ panelId, workspaceId, nodeId, renderPanelContent }: CanvasPanelProps) {
+export default function CanvasPanel({ panelId, workspaceId, nodeId: _nodeId, renderPanelContent }: CanvasPanelProps) {
   useRenderCount('CanvasPanel')
   // Each canvas panel gets a stable, unique store keyed by panelId. The first
   // canvas to register aliases the legacy singleton store for backward compat.

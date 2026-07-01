@@ -798,7 +798,7 @@ export default function EditorPanel({
       setRefreshing(false)
       setShowRefreshConfirm(false)
     }
-  }, [flashQueryConnection, flashQueryStatus, markClean, refreshing, save])
+  }, [flashQueryConnection, flashQueryStatus, markClean, refreshing, save, primeAndWarmSemanticConnections])
 
   const copyVaultPathOrReference = useCallback(async () => {
     if (!activeVaultUri) return
@@ -881,15 +881,16 @@ export default function EditorPanel({
           modifiedContent = await window.electronAPI.fsReadFile(filePath)
         } catch { /* empty */ }
 
-        let originalContent = ''
-        try {
+        const originalContent = await (async () => {
+          try {
           const diff = diffMode === 'staged'
             ? await window.electronAPI.gitDiffStaged(rootPath, relativePath)
             : await window.electronAPI.gitDiff(rootPath, relativePath)
-          originalContent = reconstructOriginalFromDiff(modifiedContent, diff)
-        } catch {
-          originalContent = modifiedContent
-        }
+            return reconstructOriginalFromDiff(modifiedContent, diff)
+          } catch {
+            return modifiedContent
+          }
+        })()
 
         if (cancelled) return
 
@@ -902,7 +903,7 @@ export default function EditorPanel({
         })
       }
 
-      loadDiff()
+      void loadDiff()
 
       return () => {
         cancelled = true
@@ -1138,7 +1139,7 @@ export default function EditorPanel({
     // user clicking off the textarea onto e.g. the markdown preview toggle,
     // which would defeat a raw `hasTextFocus()` check.
     const handler = () => {
-      if (getActiveEditorPanelId() === panelId) save()
+      if (getActiveEditorPanelId() === panelId) void save()
     }
     window.addEventListener('save-file', handler)
     registerEditorSave(panelId, save)
@@ -1230,7 +1231,7 @@ export default function EditorPanel({
       resolvePreviewChunkIdForHeading,
       highlightSourceLine,
     })
-  }, [workspaceId, panelId, markdownPreview, isMarkdown, scrollPreviewToHeading, resolvePreviewChunkIdForHeading, highlightSourceLine])
+  }, [workspaceId, panelId, markdownPreview, isMarkdown, filePath, scrollPreviewToHeading, resolvePreviewChunkIdForHeading, highlightSourceLine])
 
   // ---------------------------------------------------------------------------
   // Watch app theme changes and update Monaco theme

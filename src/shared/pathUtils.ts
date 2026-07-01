@@ -8,7 +8,7 @@ export function toRelativePath(absPath: string, rootPath: string): string {
 export function toAbsolutePath(relPath: string, rootPath: string): string {
   if (relPath.startsWith('/') || /^[A-Za-z]:/.test(relPath)) return relPath
   // URI schemes (flashquery://, file://, http://, ...) are already absolute references.
-  if (/^[a-z][a-z0-9+.\-]*:\/\//i.test(relPath)) return relPath
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(relPath)) return relPath
   const normRoot = rootPath.replace(/\\/g, '/').replace(/\/$/, '')
   const normRel = relPath.replace(/\\/g, '/')
   const joined = normRoot + '/' + normRel

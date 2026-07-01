@@ -61,7 +61,7 @@ async function normalizeCreationTarget(filePath: string): Promise<string> {
   try {
     realParent = await fs.realpath(parentDir)
   } catch (err) {
-    throw new Error(`Access denied: cannot resolve real path for parent "${parentDir}": ${err}`)
+    throw new Error(`Access denied: cannot resolve real path for parent "${parentDir}": ${err}`, { cause: err })
   }
 
   return path.join(realParent, baseName)
@@ -171,7 +171,7 @@ export async function validatePathStrict(filePath: string, ownerWindowId?: numbe
   try {
     real = await fs.realpath(filePath)
   } catch (err) {
-    throw new Error(`Access denied: cannot resolve real path for "${filePath}": ${err}`)
+    throw new Error(`Access denied: cannot resolve real path for "${filePath}": ${err}`, { cause: err })
   }
 
   if (isWithinAllowedRoots(real)) {

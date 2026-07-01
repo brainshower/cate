@@ -128,7 +128,7 @@ export function DockTabBar(props: DockTabBarProps) {
   const {
     stack, compact, workspaceId, getPanel, getPanelTitle, onClosePanel,
     onTabClick, onTabMouseDown, onTabContextMenu,
-    renameId, renameValue, renameInputRef, setRenameValue, setRenameId, commitRename, beginRename,
+    renameId, renameValue, renameInputRef, setRenameValue, setRenameId, commitRename, beginRename: _beginRename,
     springLoadTimer, setActiveTab,
     onEmptyMouseDown, onEmptyContextMenu,
     showTabPlaceholder, selfTabDrag, onTabBarMouseDown,

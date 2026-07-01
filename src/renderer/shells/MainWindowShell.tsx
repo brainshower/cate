@@ -100,7 +100,7 @@ export default function MainWindowShell({
       const sign = position === 'left' ? 1 : -1
       setZoneSize(position, zone.size + delta * sign)
     },
-    [setZoneSize],
+    [setZoneSize, dockStoreApi],
   )
 
   // Determine if each zone edge is the active drop target

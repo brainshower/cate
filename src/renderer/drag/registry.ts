@@ -29,7 +29,7 @@ export interface DropZoneEntry {
 // The registry now lives on the DragSession (one per window). These free
 // functions delegate to the default singleton so non-React callers — and the
 // few component sites that still call them directly — continue to work.
-// eslint-disable-next-line @typescript-eslint/no-use-before-define
+
 import { getDefaultSession } from './session'
 
 export function registerDropZone(entry: DropZoneEntry): () => void {

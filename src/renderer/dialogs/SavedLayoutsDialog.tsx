@@ -39,7 +39,7 @@ export function SavedLayoutsDialog() {
 
   useEffect(() => {
     if (show) {
-      refresh()
+      void refresh()
       setSaveName('')
       setSelected(null)
       setError(null)
@@ -180,7 +180,7 @@ export function SavedLayoutsDialog() {
             type="text"
             value={saveName}
             onChange={(e) => setSaveName(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleSave() }}
+            onKeyDown={(e) => { if (e.key === 'Enter') void handleSave() }}
             className="flex-1 bg-transparent text-primary text-base font-medium outline-none placeholder:text-muted placeholder:font-normal"
             placeholder="Save current canvas as…"
             disabled={busy}
@@ -226,7 +226,7 @@ export function SavedLayoutsDialog() {
                     <span className="flex-1 text-primary text-sm font-medium truncate">{name}</span>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleLoad(name) }}
+                        onClick={(e) => { e.stopPropagation(); void handleLoad(name) }}
                         disabled={busy}
                         className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 text-primary"
                         title="Load"
@@ -235,7 +235,7 @@ export function SavedLayoutsDialog() {
                         Load
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleDelete(name) }}
+                        onClick={(e) => { e.stopPropagation(); void handleDelete(name) }}
                         disabled={busy}
                         className="p-1.5 rounded-md text-muted hover:text-red-400 hover:bg-red-600/10"
                         title="Delete"

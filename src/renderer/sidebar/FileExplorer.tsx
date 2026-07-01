@@ -10,34 +10,9 @@ import type { FileTreeNode as FileTreeNodeType, FileSearchResult } from '../../s
 import { FileTreeNode } from './FileTreeNode'
 import { getClipboard, hasClipboard } from './fileClipboard'
 import { useAppStore } from '../stores/appStore'
-import { useDockStore } from '../stores/dockStore'
 import { openFileAsPanel } from '../lib/fileRouting'
 import { isExternalFileDrag, importDroppedEntries } from '../lib/importExternalEntries'
 import { SidebarSectionHeader, SidebarHeaderButton } from './SidebarSectionHeader'
-import type { DockLayoutNode } from '../../shared/types'
-
-// -----------------------------------------------------------------------------
-// Helpers
-// -----------------------------------------------------------------------------
-
-function findActivePanel(node: DockLayoutNode): string | null {
-  if (node.type === 'tabs') return node.panelIds[node.activeIndex] ?? null
-  for (const child of node.children) {
-    const result = findActivePanel(child)
-    if (result) return result
-  }
-  return null
-}
-
-function isCanvasActiveInCenter(): boolean {
-  const centerLayout = useDockStore.getState().zones.center.layout
-  if (!centerLayout) return false
-  const activePanelId = findActivePanel(centerLayout)
-  if (!activePanelId) return false
-  const appState = useAppStore.getState()
-  const ws = appState.workspaces.find((w) => w.id === appState.selectedWorkspaceId)
-  return ws?.panels[activePanelId]?.type === 'canvas'
-}
 
 // -----------------------------------------------------------------------------
 // Component
@@ -142,7 +117,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({ rootPath }) => {
     if (!rootPath || !window.electronAPI) return
 
     // Initial load
-    loadTree(rootPath)
+    void loadTree(rootPath)
 
     // Start watcher
     window.electronAPI.fsWatchStart(rootPath).catch((err) => log.warn('[file-explorer] Watch start failed:', err))
@@ -151,7 +126,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({ rootPath }) => {
     const unsubscribe = window.electronAPI.onFsWatchEvent(() => {
       // Debounced reload — just reload the whole tree for simplicity
       if (rootPathRef.current === rootPath) {
-        loadTree(rootPath)
+        void loadTree(rootPath)
       }
     })
 
@@ -159,7 +134,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({ rootPath }) => {
     // without a relaunch.
     const unsubscribeSettings = window.electronAPI.onSettingsChanged((key) => {
       if (key === 'fileExclusions' && rootPathRef.current === rootPath) {
-        loadTree(rootPath)
+        void loadTree(rootPath)
       }
     })
 
@@ -263,7 +238,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({ rootPath }) => {
   )
 
   const handleReload = useCallback(() => {
-    if (rootPath) loadTree(rootPath)
+    if (rootPath) void loadTree(rootPath)
   }, [rootPath, loadTree])
 
   // Resolve the target directory for new file/folder creation based on selection
@@ -312,7 +287,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({ rootPath }) => {
       } else {
         await window.electronAPI.fsWriteFile(newPath, '')
       }
-      loadTree(rootPath)
+      void loadTree(rootPath)
     } catch (err) {
       console.error('[file-explorer] Failed to create entry:', err)
     }
@@ -343,7 +318,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({ rootPath }) => {
     switch (id) {
       case 'new-file': startRootCreate('file'); break
       case 'new-folder': startRootCreate('folder'); break
-      case 'reveal': window.electronAPI.shellShowInFolder(rootPath); break
+      case 'reveal': void window.electronAPI.shellShowInFolder(rootPath); break
       case 'open-terminal':
         createTerminal(selectedWorkspaceId, undefined, undefined, { target: 'dock', zone: 'bottom' })
         break
@@ -365,8 +340,8 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({ rootPath }) => {
         }
         break
       case 'find-in-folder': openSearch(); break
-      case 'copy-path': navigator.clipboard.writeText(rootPath); break
-      case 'copy-rel-path': navigator.clipboard.writeText(folderName); break
+      case 'copy-path': void navigator.clipboard.writeText(rootPath); break
+      case 'copy-rel-path': void navigator.clipboard.writeText(folderName); break
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rootPath, startRootCreate, createTerminal, selectedWorkspaceId, removeWorkspace, openSearch])
@@ -588,7 +563,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({ rootPath }) => {
                 onChange={(e) => setRootCreateValue(e.target.value)}
                 onBlur={commitRootCreate}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') commitRootCreate()
+                  if (e.key === 'Enter') void commitRootCreate()
                   if (e.key === 'Escape') setRootCreating(null)
                   e.stopPropagation()
                 }}

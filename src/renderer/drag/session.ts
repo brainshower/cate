@@ -162,7 +162,7 @@ export class DragSession {
       ((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV ||
         (typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production'))
     ) {
-      // eslint-disable-next-line no-console
+
       console.error(
         `[drag] canvas store divergence: nodeId=${nodeId}`,
         { sessionStore, callerStore },

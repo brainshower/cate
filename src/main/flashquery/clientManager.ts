@@ -141,8 +141,6 @@ export class FlashQueryClientManager {
   }
 
   async listVault(workspaceId: string, vaultPath?: string): Promise<FlashQueryVaultEntry[]> {
-    let state = this.workspaceStates.get(workspaceId)
-
     try {
       const client = await this.getOrCreateMcpClient(workspaceId)
       if (!client) return []
@@ -155,7 +153,7 @@ export class FlashQueryClientManager {
       const entries = Array.isArray(payload.entries) ? payload.entries : []
       return entries.flatMap((entry) => this.normalizeVaultEntry(entry))
     } catch (error) {
-      state = this.workspaceStates.get(workspaceId)
+      const state = this.workspaceStates.get(workspaceId)
       const connection = state?.connection ?? this.getConfiguredConnection(workspaceId)
       const message = this.errorToSafeMessage(error, connection, state?.token)
       if (state && connection) {
@@ -203,7 +201,7 @@ export class FlashQueryClientManager {
     } catch (error) {
       const state = this.workspaceStates.get(workspaceId)
       const connection = state?.connection ?? this.getConfiguredConnection(workspaceId)
-      throw new Error(this.errorToSafeMessage(error, connection, state?.token))
+      throw new Error(this.errorToSafeMessage(error, connection, state?.token), { cause: error })
     }
   }
 

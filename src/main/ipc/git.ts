@@ -499,7 +499,7 @@ export function registerHandlers(): void {
         await fs.rm(targetPath, { recursive: true, force: true }).catch(() => {})
         removeAllowedRoot(targetPath)
         const msg = error instanceof Error ? error.message : String(error)
-        throw new Error(`Could not check out PR #${prNumber}: ${msg}`)
+        throw new Error(`Could not check out PR #${prNumber}: ${msg}`, { cause: error })
       }
       const branch = (await simpleGit(targetPath).raw(['rev-parse', '--abbrev-ref', 'HEAD'])).trim()
       return { path: targetPath, branch }

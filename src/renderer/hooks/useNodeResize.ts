@@ -11,7 +11,7 @@ import { useAppStore } from '../stores/appStore'
 import { minimumSize, findSharedBorders } from '../canvas/layoutEngine'
 import type { SharedBorder } from '../canvas/layoutEngine'
 import type { PanelType, Point, Size } from '../../shared/types'
-import { detectEdge, getCursorForEdge } from './resizeEdge'
+import { getCursorForEdge } from './resizeEdge'
 import type { ResizeEdge } from './resizeEdge'
 
 // Re-exported so existing importers (CanvasNode, useNodeResizeCursor,
@@ -405,7 +405,7 @@ export function useNodeResize(
       window.addEventListener('mousemove', handleMouseMove)
       window.addEventListener('mouseup', handleMouseUp)
     },
-    [nodeId, panelType, minSize.width, minSize.height],
+    [nodeId, minSize.width, minSize.height, canvasStoreApi],
   )
 
   const getCursor = useCallback(

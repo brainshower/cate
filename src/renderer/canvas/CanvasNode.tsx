@@ -243,7 +243,7 @@ const CanvasNode: React.FC<CanvasNodeProps> = ({
       animationTimerRef.current = timer
       return () => clearTimeout(timer)
     }
-  }, [node?.animationState, nodeId])
+  }, [node, nodeId, canvasApi])
 
   // --- Dock layout renderer --------------------------------------------------
 
@@ -346,7 +346,7 @@ const CanvasNode: React.FC<CanvasNodeProps> = ({
 
   const handleTogglePin = useCallback(() => {
     canvasApi.getState().togglePin(nodeId)
-  }, [nodeId])
+  }, [nodeId, canvasApi])
 
   // Walk the layout to the currently active leaf panel so the worktree pill
   // reflects the visible tab when this node hosts multiple panels.
@@ -389,7 +389,7 @@ const CanvasNode: React.FC<CanvasNodeProps> = ({
       </GrabButton>
       <GrabButton
         title="Close"
-        onClick={(e) => { e.stopPropagation(); handleClose() }}
+        onClick={(e) => { e.stopPropagation(); void handleClose() }}
       >
         <X size={TAB_ICON_SIZE} />
       </GrabButton>
@@ -430,7 +430,7 @@ const CanvasNode: React.FC<CanvasNodeProps> = ({
   const renderLayoutNode = useCallback(
     (layoutNode: DockLayoutNode) => renderLayoutNodeRef.current(layoutNode, true),
     // intentionally no deps — the ref is rebound on every render
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [],
   )
 
@@ -448,7 +448,7 @@ const CanvasNode: React.FC<CanvasNodeProps> = ({
         focusNode(nodeId)
       }
     },
-    [isFocused, focusNode, nodeId, wasDragged],
+    [isFocused, focusNode, nodeId, wasDragged, canvasApi],
   )
 
   // Grab strip: double-click toggles maximize, drag moves node
@@ -487,7 +487,7 @@ const CanvasNode: React.FC<CanvasNodeProps> = ({
         case 'pin': handleTogglePin(); break
         case 'front': canvasApi.getState().moveToFront(nodeId); break
         case 'back': canvasApi.getState().moveToBack(nodeId); break
-        case 'close': handleClose(); break
+        case 'close': void handleClose(); break
       }
     },
     [maximized, node?.isPinned, handleToggleMaximize, handleTogglePin, handleClose, canvasApi, nodeId],

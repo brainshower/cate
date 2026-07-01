@@ -1,6 +1,5 @@
 import { useShortcutStore } from '../stores/shortcutStore'
-import { SHORTCUT_ACTIONS, SHORTCUT_DISPLAY_NAMES, displayString } from '../../shared/types'
-import type { ShortcutAction } from '../../shared/types'
+import { SHORTCUT_ACTIONS, SHORTCUT_DISPLAY_NAMES } from '../../shared/types'
 import { ShortcutRecorder } from './ShortcutRecorder'
 import { ArrowCounterClockwise } from '@phosphor-icons/react'
 

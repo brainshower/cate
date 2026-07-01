@@ -167,8 +167,8 @@ function applyRegionContainment(
 
 function removeFromSource(
   source: DragSource,
-  panelType: PanelType,
-  ctx: CommitContext,
+  _panelType: PanelType,
+  _ctx: CommitContext,
 ): void {
   const origin = source.origin
   if (origin.kind === 'dock-tab') {

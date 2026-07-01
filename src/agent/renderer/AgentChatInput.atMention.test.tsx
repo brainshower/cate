@@ -172,7 +172,7 @@ describe('AgentChatInput T-U-020 REQ-018 @ mention autocomplete', () => {
   })
 
   it('dismisses on Escape and no-match space literal fallback without changing slash popup behavior', () => {
-    const { textarea, onChange } = renderInput({ draft: '@missing', vaultIndex: entries })
+    const { textarea } = renderInput({ draft: '@missing', vaultIndex: entries })
 
     expect(screen.queryByTestId('agent-mention-highlight')).toBeNull()
     fireEvent.keyDown(textarea, { key: 'Escape' })

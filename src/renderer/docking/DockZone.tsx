@@ -78,7 +78,7 @@ export default function DockZone({
         />
       )
     },
-    [renderPanel, getPanelTitle, onClosePanel],
+    [renderPanel, getPanelTitle, onClosePanel, getPanel, onPanelRemoved, onPanelRenamed, position, workspaceId],
   )
 
   if (!zone.visible) return null
