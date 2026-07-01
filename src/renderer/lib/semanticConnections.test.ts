@@ -408,7 +408,7 @@ describe('semantic connection utilities', () => {
     const section = {
       heading: 'Only Section Heading',
       nodeMeta: {
-        chunkSummary: 'Only section summary',
+        chunkSummary: 'Only section overview',
         keyClaims: ['Only claim text'],
         questionResolution: 'Only resolution text',
         communitySummary: 'Dominant community summary',

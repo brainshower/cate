@@ -178,6 +178,12 @@ export interface SemanticConnectionMetadataProseInput {
   qualifiers?: readonly string[]
 }
 
+export interface SemanticConnectionFilterSectionInput {
+  heading?: string
+  nodeMeta?: Pick<SemanticConnectionNodeMeta, 'chunkSummary' | 'questionResolution' | 'keyClaims'>
+  connections?: readonly SemanticConnection[]
+}
+
 export const SC_EDGE: Record<SemanticConnectionRel, SemanticConnectionEdgeDef> = {
   contradicts: { kind: 'symmetric', tone: 'warn', sym: 'contradicts', color: '#dc2626', icon: 'warning' },
   depends_on: { kind: 'directed', tone: 'neutral', out: 'depends on', in: 'required by', color: '#2563eb', icon: 'link' },
@@ -262,6 +268,56 @@ export function scEdgeMetadataProse(input: SemanticConnectionMetadataProseInput)
     if (value) prose.push(`${label}: ${value}`)
   }
   return prose
+}
+
+function normalizedFilterTerm(term: string): string {
+  return term.trim().toLocaleLowerCase()
+}
+
+function filterTextMatches(value: string | undefined, normalizedTerm: string): boolean {
+  return Boolean(value && value.toLocaleLowerCase().includes(normalizedTerm))
+}
+
+function filterAny(values: readonly (string | undefined)[], normalizedTerm: string): boolean {
+  return values.some((value) => filterTextMatches(value, normalizedTerm))
+}
+
+export function matchSemanticConnectionFilter(connection: SemanticConnection, term: string): boolean {
+  const normalizedTerm = normalizedFilterTerm(term)
+  if (!normalizedTerm) return true
+
+  return filterAny([
+    connection.target.title,
+    connection.target.heading,
+    connection.target.snippet,
+    connection.reasoning,
+    connection.target.body,
+    scEdgeLabel(connection.rel, connection.dir),
+    ...scEdgeMetadataProse({
+      qualifiers: connection.qualifiers,
+      metadata: connection.metadata,
+    }),
+  ], normalizedTerm)
+}
+
+export function matchSemanticSectionFilter(section: SemanticConnectionFilterSectionInput, term: string): boolean {
+  const normalizedTerm = normalizedFilterTerm(term)
+  if (!normalizedTerm) return true
+
+  const claimTexts = (section.nodeMeta?.keyClaims ?? [])
+    .map((claim) => semanticClaimText(claim))
+    .filter((claim): claim is string => claim !== null)
+
+  if (filterAny([
+    section.heading,
+    section.nodeMeta?.chunkSummary,
+    section.nodeMeta?.questionResolution,
+    ...claimTexts,
+  ], normalizedTerm)) {
+    return true
+  }
+
+  return (section.connections ?? []).some((connection) => matchSemanticConnectionFilter(connection, normalizedTerm))
 }
 
 export function isActiveSemanticConnection(connection: SemanticConnection): boolean {
