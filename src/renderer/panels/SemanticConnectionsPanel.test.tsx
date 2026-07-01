@@ -1193,6 +1193,130 @@ describe('SemanticConnectionsPanel', () => {
     expect(within(support).getByText('Supporting evidence backs the first claim.').className).toContain('line-clamp-2')
   })
 
+  it('T-C-050/T-C-052/T-C-053 opens, focuses, escapes, and closes the local filter without provider reloads', async () => {
+    const activeProvider = provider(graphResult)
+    const load = activeProvider.loadDocumentConnections as ReturnType<typeof vi.fn>
+    renderPanelWithProvider(activeProvider)
+
+    await screen.findByText('Whole-document graph')
+    expect(load).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filter semantic connections' }))
+
+    const input = screen.getByRole('searchbox', { name: 'Filter semantic connections' })
+    expect(document.activeElement).toBe(input)
+
+    fireEvent.change(input, { target: { value: 'supporting data' } })
+    expect(screen.getByDisplayValue('supporting data')).toBeTruthy()
+    expect(load).toHaveBeenCalledTimes(1)
+
+    fireEvent.keyDown(input, { key: 'Escape' })
+
+    expect(screen.queryByRole('searchbox', { name: 'Filter semantic connections' })).toBeNull()
+    expect(load).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filter semantic connections' }))
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Filter semantic connections' }), { target: { value: 'scope' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Filter semantic connections' }))
+
+    expect(screen.queryByRole('searchbox', { name: 'Filter semantic connections' })).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filter semantic connections' }))
+    expect(screen.getByRole('searchbox', { name: 'Filter semantic connections' })).toHaveProperty('value', '')
+    expect(load).toHaveBeenCalledTimes(1)
+  })
+
+  it('T-C-051 persists filter text across whole-document and selection view switches while open', async () => {
+    renderPanel(selectionGraphResult)
+
+    await screen.findByText('Whole-document graph')
+    fireEvent.click(screen.getByRole('button', { name: 'Filter semantic connections' }))
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Filter semantic connections' }), { target: { value: 'supporting evidence' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open section Scope' }))
+
+    expect(await screen.findByText('Selected section')).toBeTruthy()
+    expect(screen.getByRole('searchbox', { name: 'Filter semantic connections' })).toHaveProperty('value', 'supporting evidence')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back to whole-document graph' }))
+
+    expect(await screen.findByText('Whole-document graph')).toBeTruthy()
+    expect(screen.getByRole('searchbox', { name: 'Filter semantic connections' })).toHaveProperty('value', 'supporting evidence')
+  })
+
+  it('T-C-054 does not call provider, FlashQuery queryGraph, semantic search, or network APIs while filtering', async () => {
+    const activeProvider = provider(graphResult)
+    const load = activeProvider.loadDocumentConnections as ReturnType<typeof vi.fn>
+    const electronApi = {
+      flashquerySearch: vi.fn(),
+      flashqueryQueryGraph: vi.fn(),
+    }
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok'))
+    Object.defineProperty(window, 'electronAPI', {
+      configurable: true,
+      value: electronApi,
+    })
+    renderPanelWithProvider(activeProvider)
+
+    await screen.findByText('Whole-document graph')
+    fireEvent.click(screen.getByRole('button', { name: 'Filter semantic connections' }))
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Filter semantic connections' }), { target: { value: 'scope' } })
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Filter semantic connections' }), { target: { value: 'details' } })
+
+    expect(load).toHaveBeenCalledTimes(1)
+    expect(electronApi.flashquerySearch).not.toHaveBeenCalled()
+    expect(electronApi.flashqueryQueryGraph).not.toHaveBeenCalled()
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it('T-C-055/T-C-056 filters whole-document attention, sections, and connection groups while keeping Summary structural', async () => {
+    renderPanel(groupedGraphResult)
+
+    expect(await screen.findByText('Summary')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Filter semantic connections' }))
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Filter semantic connections' }), { target: { value: 'support 1 snippet' } })
+
+    expect(screen.getByText('Summary')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Review contradiction in Scope' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Open section Scope' })).toBeNull()
+    expect(screen.queryByText('Contradicts')).toBeNull()
+
+    const connections = screen.getByTestId('semantic-graph-connections')
+    expect(within(connections).getByText('Supports')).toBeTruthy()
+    expect(within(connections).getByText('Support 1')).toBeTruthy()
+    expect(within(connections).queryByText('Support 2')).toBeNull()
+    expect(within(connections).queryByText('Conflict A')).toBeNull()
+  })
+
+  it('T-C-057/T-C-058 filters selection claims and General connections while structural status remains visible', async () => {
+    renderPanel(selectionGraphResult, { activeChunkId: 'scope' })
+
+    expect(await screen.findByText('Selected section')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Filter semantic connections' }))
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Filter semantic connections' }), { target: { value: 'counterpoint' } })
+
+    expect(screen.getByText('Status notes')).toBeTruthy()
+    expect(screen.getByText('https://example.test/ref')).toBeTruthy()
+    expect(screen.getByText('First claim in order')).toBeTruthy()
+    expect(screen.getByText('Support Notes')).toBeTruthy()
+    expect(screen.getByText('Contradiction Notes')).toBeTruthy()
+    expect(screen.queryByText('Structured claim text')).toBeNull()
+    expect(screen.queryByText('General Notes')).toBeNull()
+  })
+
+  it('T-C-059 renders exact no-results copy when no filterable graph items match', async () => {
+    renderPanel(selectionGraphResult, { activeChunkId: 'scope' })
+
+    expect(await screen.findByText('Selected section')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Filter semantic connections' }))
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Filter semantic connections' }), { target: { value: 'absent term' } })
+
+    expect(screen.getByText('No items match absent term')).toBeTruthy()
+    expect(screen.getByText('Status notes')).toBeTruthy()
+    expect(screen.queryByTestId('semantic-selection-claims')).toBeNull()
+    expect(screen.queryByTestId('semantic-selection-general-connections')).toBeNull()
+  })
+
   it('T-I-025 and T-I-026 shows loading and supersedes stale in-flight requests', async () => {
     const first = deferred<SemanticConnectionsResult>()
     const second = deferred<SemanticConnectionsResult>()
