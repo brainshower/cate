@@ -49,7 +49,7 @@ test('T-E-001 refreshes clean and dirty FlashQuery body editors safely', async (
     server.setDocumentBody('Refresh.md', '# Refresh\n\nClean body from fixture.')
     await page.getByLabel('Refresh from vault').click()
     await expect.poll(() => page.evaluate((id) => window.__cateE2E!.editorText(id), panelId)).toContain('Clean body from fixture')
-    expect(server.lastGetArgs()).toEqual({ identifiers: 'Refresh.md', include: ['body'] })
+    expect(server.lastGetArgs()).toEqual({ identifiers: 'Refresh.md', include: ['body', 'connections'] })
 
     await page.evaluate((id) => window.__cateE2E!.setEditorText(id, '# Refresh\n\nLocal dirty edit.'), panelId)
     server.setDocumentBody('Refresh.md', '# Refresh\n\nDiscard target.')
