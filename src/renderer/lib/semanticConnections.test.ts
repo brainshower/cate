@@ -6,6 +6,8 @@ import {
   groupWholeDocumentConnections,
   groupSelectionClaimsAndConnections,
   isActiveSemanticConnection,
+  matchSemanticConnectionFilter,
+  matchSemanticSectionFilter,
   scEdgeMetadataProse,
   scCautionFlags,
   scEdgeLabel,
@@ -313,5 +315,141 @@ describe('semantic connection utilities', () => {
     expect(grouped.claims[0].connections.map((connection) => connection.id)).toEqual(['linked-to-both'])
     expect(grouped.claims[1].connections.map((connection) => connection.id)).toEqual(['linked-to-second', 'linked-to-both'])
     expect(grouped.generalConnections.map((connection) => connection.id)).toEqual(['invalid-ref', 'absent-ref'])
+  })
+
+  it('T-U-019 connection matcher searches required data-bearing fields', () => {
+    const connection: SemanticConnection = {
+      id: 'filter-connection',
+      rel: 'depends_on',
+      dir: 'in',
+      reasoning: 'Reasoning mentions migration blockers',
+      qualifiers: ['runtime critical'],
+      metadata: {
+        severity: 'high',
+        strength: 'strong',
+        dependency_type: 'schema',
+        internal_note: 'not searchable',
+      },
+      target: {
+        title: 'Architecture Notes',
+        path: 'Docs/Architecture.md',
+        heading: 'Query Graph Bridge',
+        chunkId: 'query-graph-bridge',
+        snippet: 'Snippet mentions provider overlay',
+        body: 'Body covers local renderer filtering',
+      },
+    }
+
+    expect(matchSemanticConnectionFilter(connection, 'architecture')).toBe(true)
+    expect(matchSemanticConnectionFilter(connection, 'query graph')).toBe(true)
+    expect(matchSemanticConnectionFilter(connection, 'provider overlay')).toBe(true)
+    expect(matchSemanticConnectionFilter(connection, 'migration blockers')).toBe(true)
+    expect(matchSemanticConnectionFilter(connection, 'local renderer')).toBe(true)
+    expect(matchSemanticConnectionFilter(connection, 'runtime critical')).toBe(true)
+    expect(matchSemanticConnectionFilter(connection, 'schema')).toBe(true)
+    expect(matchSemanticConnectionFilter(connection, 'required by')).toBe(true)
+    expect(matchSemanticConnectionFilter(connection, 'not searchable')).toBe(false)
+  })
+
+  it('T-U-020 section matcher searches section fields, claims, and owned connections', () => {
+    const connection: SemanticConnection = {
+      id: 'section-owned',
+      rel: 'supports',
+      target: {
+        title: 'Design Memo',
+        path: 'Docs/Design.md',
+        heading: 'Filter Contract',
+        chunkId: 'filter-contract',
+        snippet: 'Connection snippet carries owned edge content',
+      },
+    }
+
+    const section = {
+      heading: 'Selection Detail',
+      nodeMeta: {
+        chunkSummary: 'Summary names the chrome state',
+        questionResolution: 'Question resolution mentions escape handling',
+        keyClaims: [
+          'Claim text mentions whole claim visibility',
+          { text: 'Structured claim remains searchable', basis: 'basis-label-excluded' },
+        ],
+        communitySummary: 'Community summary is structural only',
+        externalRefs: ['https://example.invalid/structural-only'],
+        temporalMarkers: ['Q3 structural marker'],
+      },
+      connections: [connection],
+    }
+
+    expect(matchSemanticSectionFilter(section, 'selection detail')).toBe(true)
+    expect(matchSemanticSectionFilter(section, 'chrome state')).toBe(true)
+    expect(matchSemanticSectionFilter(section, 'escape handling')).toBe(true)
+    expect(matchSemanticSectionFilter(section, 'whole claim visibility')).toBe(true)
+    expect(matchSemanticSectionFilter(section, 'structured claim')).toBe(true)
+    expect(matchSemanticSectionFilter(section, 'owned edge content')).toBe(true)
+    expect(matchSemanticSectionFilter(section, 'community summary')).toBe(false)
+    expect(matchSemanticSectionFilter(section, 'example.invalid')).toBe(false)
+    expect(matchSemanticSectionFilter(section, 'structural marker')).toBe(false)
+    expect(matchSemanticSectionFilter(section, 'basis-label-excluded')).toBe(false)
+  })
+
+  it('T-U-021 structural UI text, counts, and labels do not determine matches', () => {
+    const connection: SemanticConnection = {
+      id: 'structural-negative',
+      rel: 'contradicts',
+      target: {
+        title: 'Only Data Title',
+        path: 'Docs/Data.md',
+        heading: 'Only Data Heading',
+        chunkId: 'data',
+        snippet: 'Only data snippet',
+      },
+    }
+
+    const section = {
+      heading: 'Only Section Heading',
+      nodeMeta: {
+        chunkSummary: 'Only section summary',
+        keyClaims: ['Only claim text'],
+        questionResolution: 'Only resolution text',
+        communitySummary: 'Dominant community summary',
+        temporalMarkers: ['2026-07-01'],
+        externalRefs: ['https://docs.example/visible-ref'],
+      },
+      connections: [connection],
+    }
+
+    expect(matchSemanticConnectionFilter(connection, 'Needs attention')).toBe(false)
+    expect(matchSemanticConnectionFilter(connection, 'Connections')).toBe(false)
+    expect(matchSemanticConnectionFilter(connection, '2')).toBe(false)
+    expect(matchSemanticSectionFilter(section, 'Summary')).toBe(false)
+    expect(matchSemanticSectionFilter(section, 'Dominant community')).toBe(false)
+    expect(matchSemanticSectionFilter(section, 'visible-ref')).toBe(false)
+    expect(matchSemanticSectionFilter(section, '2026-07-01')).toBe(false)
+  })
+
+  it('T-U-022 matching is trimmed case-insensitive substring matching with deterministic blank handling', () => {
+    const connection: SemanticConnection = {
+      id: 'case-insensitive',
+      target: {
+        title: 'Case Study',
+        path: 'Docs/Case.md',
+        heading: 'Mixed Case Heading',
+        chunkId: 'case',
+        snippet: 'AlphaBetaGamma',
+      },
+    }
+    const section = {
+      heading: 'Filtering Rules',
+      nodeMeta: { keyClaims: ['Substring Matching'] },
+      connections: [connection],
+    }
+
+    expect(matchSemanticConnectionFilter(connection, '  betag  ')).toBe(true)
+    expect(matchSemanticConnectionFilter(connection, 'MIXED case')).toBe(true)
+    expect(matchSemanticConnectionFilter(connection, '')).toBe(true)
+    expect(matchSemanticConnectionFilter(connection, '   ')).toBe(true)
+    expect(matchSemanticSectionFilter(section, 'string match')).toBe(true)
+    expect(matchSemanticSectionFilter(section, 'FILTERING')).toBe(true)
+    expect(matchSemanticSectionFilter(section, 'missing')).toBe(false)
   })
 })
