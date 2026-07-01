@@ -6,8 +6,10 @@ import {
   groupWholeDocumentConnections,
   groupSelectionClaimsAndConnections,
   isActiveSemanticConnection,
+  scEdgeMetadataProse,
   scCautionFlags,
   scEdgeLabel,
+  scScoreTone,
   semanticClaimText,
   scUnknownRelationDiagnostic,
   type SemanticConnection,
@@ -147,6 +149,47 @@ describe('semantic connection utilities', () => {
   it('T-U-008 returns zero caution counts for embeddings-only data and counts typed caution tones', () => {
     expect(scCautionFlags(embeddingsOnly)).toEqual({ warn: 0, caution: 0, total: 0 })
     expect(scCautionFlags(mixedTyped)).toEqual({ warn: 1, caution: 1, total: 2 })
+  })
+
+  it('T-U-027 classifies score tone at locked boundary thresholds', () => {
+    expect(scScoreTone(0.39)).toBe('red')
+    expect(scScoreTone(0.4)).toBe('orange')
+    expect(scScoreTone(0.59)).toBe('orange')
+    expect(scScoreTone(0.6)).toBe('teal')
+    expect(scScoreTone(0.79)).toBe('teal')
+    expect(scScoreTone(0.8)).toBe('green')
+  })
+
+  it('T-C-046 helper support converts qualifiers and known metadata keys into readable prose', () => {
+    expect(scEdgeMetadataProse({
+      qualifiers: ['source-of-truth', 'needs review'],
+      metadata: {
+        severity: 'high',
+        strength: 'strong',
+        dependency_type: 'runtime',
+        internal_trace: { nested: true },
+      },
+    })).toEqual([
+      'Qualifier: source-of-truth',
+      'Qualifier: needs review',
+      'Severity: high',
+      'Strength: strong',
+      'Dependency type: runtime',
+    ])
+  })
+
+  it('T-C-046 helper support ignores unsupported metadata without throwing or dumping raw JSON', () => {
+    expect(scEdgeMetadataProse({
+      qualifiers: ['  confirmed  ', ''],
+      metadata: {
+        severity: ['critical'],
+        strength: null,
+        dependency_type: { nested: true },
+        debug: { raw: true },
+      },
+    })).toEqual(['Qualifier: confirmed'])
+    expect(scEdgeMetadataProse({ metadata: null })).toEqual([])
+    expect(scEdgeMetadataProse({ metadata: 'not-object' })).toEqual([])
   })
 
   it('T-U-017 groups whole-document relations in graph priority order with similarity last', () => {
