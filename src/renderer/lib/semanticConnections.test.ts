@@ -4,8 +4,11 @@ import {
   arrangeForDisplay,
   getAllRels,
   groupWholeDocumentConnections,
+  groupSelectionClaimsAndConnections,
+  isActiveSemanticConnection,
   scCautionFlags,
   scEdgeLabel,
+  semanticClaimText,
   scUnknownRelationDiagnostic,
   type SemanticConnection,
   type SemanticConnectionRel,
@@ -197,5 +200,75 @@ describe('semantic connection utilities', () => {
       'score-fallback',
       'confidence-low',
     ])
+  })
+
+  it('T-C-040/T-C-041/T-C-042 helper preconditions filter stale/deleted edges before selection grouping', () => {
+    const active = { ...mixedTyped[1], id: 'active-edge', status: 'active' }
+    const stale = { ...mixedTyped[1], id: 'stale-edge', status: 'stale' }
+    const deleted = { ...mixedTyped[1], id: 'deleted-edge', status: 'deleted' }
+
+    expect(isActiveSemanticConnection(active)).toBe(true)
+    expect(isActiveSemanticConnection(stale)).toBe(false)
+    expect(isActiveSemanticConnection(deleted)).toBe(false)
+
+    const grouped = groupSelectionClaimsAndConnections(['Claim one'], [active, stale, deleted])
+
+    expect(grouped.generalConnections.map((connection) => connection.id)).toEqual(['active-edge'])
+    expect(grouped.generalConnections).not.toContainEqual(expect.objectContaining({ id: 'stale-edge' }))
+    expect(grouped.generalConnections).not.toContainEqual(expect.objectContaining({ id: 'deleted-edge' }))
+  })
+
+  it('T-C-038/T-C-039 helper preconditions extract string and structured claim text in source order', () => {
+    const grouped = groupSelectionClaimsAndConnections([
+      'First string claim',
+      { text: 'Structured text claim', basis: 'deferred-ui' },
+      { claim: 'Structured claim field' },
+      { content: 'Structured content field' },
+      { unsupported: true },
+    ], [])
+
+    expect(grouped.claims.map((claim) => claim.text)).toEqual([
+      'First string claim',
+      'Structured text claim',
+      'Structured claim field',
+      'Structured content field',
+    ])
+    expect(semanticClaimText({ unsupported: true })).toBeNull()
+  })
+
+  it('T-C-040/T-C-041/T-C-042 helper preconditions nest valid claim-ref edges and route invalid refs to General connections', () => {
+    const linkedToSecond: SemanticConnection = {
+      id: 'linked-to-second',
+      sourceClaimsReferenced: [1],
+      rel: 'supports',
+      target: { title: 'Linked', path: 'Docs/Linked.md', chunkId: 'linked', snippet: 'Linked snippet' },
+    }
+    const linkedToBoth: SemanticConnection = {
+      id: 'linked-to-both',
+      sourceClaimsReferenced: [0, 1],
+      rel: 'depends_on',
+      target: { title: 'Both', path: 'Docs/Both.md', chunkId: 'both', snippet: 'Both snippet' },
+    }
+    const invalidRef: SemanticConnection = {
+      id: 'invalid-ref',
+      sourceClaimsReferenced: [99],
+      rel: 'references',
+      target: { title: 'Invalid', path: 'Docs/Invalid.md', chunkId: 'invalid', snippet: 'Invalid snippet' },
+    }
+    const absentRef: SemanticConnection = {
+      id: 'absent-ref',
+      rel: 'references',
+      target: { title: 'General', path: 'Docs/General.md', chunkId: 'general', snippet: 'General snippet' },
+    }
+
+    const grouped = groupSelectionClaimsAndConnections([
+      'Claim zero',
+      'Claim one',
+    ], [linkedToSecond, linkedToBoth, invalidRef, absentRef])
+
+    expect(grouped.claims.map((claim) => claim.text)).toEqual(['Claim zero', 'Claim one'])
+    expect(grouped.claims[0].connections.map((connection) => connection.id)).toEqual(['linked-to-both'])
+    expect(grouped.claims[1].connections.map((connection) => connection.id)).toEqual(['linked-to-second', 'linked-to-both'])
+    expect(grouped.generalConnections.map((connection) => connection.id)).toEqual(['invalid-ref', 'absent-ref'])
   })
 })

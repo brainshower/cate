@@ -101,7 +101,7 @@ export interface SemanticConnectionsCommunitySummary {
 
 export interface SemanticConnectionNodeMeta {
   chunkSummary?: string
-  keyClaims?: string[]
+  keyClaims?: unknown[]
   certaintyLevel?: SemanticConnectionConfidence | string
   stalenessRisk?: string
   externalRefs?: string[]
@@ -161,6 +161,17 @@ export interface SemanticConnectionGroup {
   connections: SemanticConnection[]
 }
 
+export interface SemanticConnectionClaimGroup {
+  index: number
+  text: string
+  connections: SemanticConnection[]
+}
+
+export interface SemanticConnectionSelectionGroups {
+  claims: SemanticConnectionClaimGroup[]
+  generalConnections: SemanticConnection[]
+}
+
 export const SC_EDGE: Record<SemanticConnectionRel, SemanticConnectionEdgeDef> = {
   contradicts: { kind: 'symmetric', tone: 'warn', sym: 'contradicts', color: '#dc2626', icon: 'warning' },
   depends_on: { kind: 'directed', tone: 'neutral', out: 'depends on', in: 'required by', color: '#2563eb', icon: 'link' },
@@ -207,6 +218,52 @@ export function scEdgeLabel(rel?: SemanticConnectionRelation, dir?: SemanticConn
   if (!edge) return titleCase(rel.replace(/_/g, ' '))
   if (edge.kind === 'symmetric') return titleCase(edge.sym ?? rel.replace(/_/g, ' '))
   return titleCase((dir === 'in' ? edge.in : edge.out) ?? edge.out ?? rel.replace(/_/g, ' '))
+}
+
+export function isActiveSemanticConnection(connection: SemanticConnection): boolean {
+  return connection.status !== 'stale' && connection.status !== 'deleted'
+}
+
+export function semanticClaimText(claim: unknown): string | null {
+  if (typeof claim === 'string') {
+    const value = claim.trim()
+    return value.length > 0 ? value : null
+  }
+  if (!claim || typeof claim !== 'object') return null
+  const record = claim as Record<string, unknown>
+  for (const key of ['text', 'claim', 'content']) {
+    const value = record[key]
+    if (typeof value === 'string' && value.trim().length > 0) return value.trim()
+  }
+  return null
+}
+
+export function groupSelectionClaimsAndConnections(
+  claimsInput: readonly unknown[] | undefined,
+  connectionsInput: readonly SemanticConnection[],
+): SemanticConnectionSelectionGroups {
+  const claims = (claimsInput ?? [])
+    .map((claim, index) => ({ index, text: semanticClaimText(claim), connections: [] as SemanticConnection[] }))
+    .filter((claim): claim is SemanticConnectionClaimGroup => claim.text !== null)
+  const claimsByIndex = new Map(claims.map((claim) => [claim.index, claim]))
+  const generalConnections: SemanticConnection[] = []
+
+  for (const connection of connectionsInput.filter(isActiveSemanticConnection)) {
+    const validClaimRefs = (connection.sourceClaimsReferenced ?? [])
+      .filter((index) => Number.isInteger(index) && claimsByIndex.has(index))
+    if (validClaimRefs.length === 0) {
+      generalConnections.push(connection)
+      continue
+    }
+    for (const index of validClaimRefs) {
+      claimsByIndex.get(index)?.connections.push(connection)
+    }
+  }
+
+  return {
+    claims,
+    generalConnections,
+  }
 }
 
 function connectionTone(connection: SemanticConnection): SemanticConnectionTone {
