@@ -21,7 +21,22 @@ import { handleAgentEvent, useAgentStore } from '../../agent/renderer/agentStore
 import type { SemanticConnectionsProvider, SemanticConnectionsResult } from './semanticConnections'
 import { createTransferSnapshot } from './panelTransfer'
 
-type SemanticConnectionsScenario = 'default' | 'empty' | 'stale'
+type SemanticConnectionsScenario =
+  | 'default'
+  | 'empty'
+  | 'stale'
+  | 'graph'
+  | 'embeddings-only'
+  | 'flashquery-unavailable'
+  | 'no-vault'
+
+interface SemanticConnectionsProviderCounts {
+  loadDocumentConnections: number
+  fixtureReads: {
+    getDocument: number
+    queryGraph: number
+  }
+}
 
 declare global {
   interface Window {
@@ -59,6 +74,8 @@ declare global {
       writeVaultDocument(vaultPath: string, content: string): Promise<void>
       retryFlashQuery(workspaceId?: string): Promise<void>
       setSemanticConnectionsScenario(scenario: SemanticConnectionsScenario): void
+      semanticConnectionsProviderCounts(): SemanticConnectionsProviderCounts
+      resetSemanticConnectionsProviderCounts(): void
       semanticConnectionsProvider(): SemanticConnectionsProvider
       setSemanticConnectionsSource(panelId: string, sourceEditorPanelId: string): void
       detachPanelToDockWindow(panelId: string): Promise<number | null>
@@ -98,9 +115,17 @@ export function installE2EHarness(): void {
   if (window.__cateE2E) return
 
   let semanticConnectionsScenario: SemanticConnectionsScenario = 'default'
+  let semanticConnectionsCachedScenario: SemanticConnectionsScenario | null = null
+  let semanticConnectionsCachedResult: SemanticConnectionsResult | null = null
+  const semanticConnectionsProviderCountState: SemanticConnectionsProviderCounts = {
+    loadDocumentConnections: 0,
+    fixtureReads: {
+      getDocument: 0,
+      queryGraph: 0,
+    },
+  }
 
-  const semanticConnectionsFixtures = (): Record<SemanticConnectionsScenario, SemanticConnectionsResult> => {
-    const defaultResult: SemanticConnectionsResult = {
+  const embeddingsOnlyFixture = (): SemanticConnectionsResult => ({
       mode: 'embeddings-only',
       overall: [
         {
@@ -173,7 +198,194 @@ export function installE2EHarness(): void {
         },
       },
       diagnostics: [],
-    }
+    })
+
+  const graphFixture = (): SemanticConnectionsResult => ({
+    mode: 'typed',
+    overall: [
+      {
+        id: 'edge-design-runtime-conflict',
+        rel: 'contradicts',
+        dir: 'sym',
+        confidenceScore: 0.93,
+        score: 0.91,
+        status: 'active',
+        reasoning: 'The design brief promises uninterrupted adapter recovery while runtime notes describe an interrupting retry path.',
+        sourceClaimsReferenced: [0],
+        qualifiers: ['must reconcile before release'],
+        metadata: { severity: 'high' },
+        target: {
+          title: 'Runtime Conflict',
+          path: 'Docs/Runtime.md',
+          heading: 'Runtime Notes',
+          chunkId: 'runtime-notes',
+          snippet: 'Runtime adapter recovery interrupts the design promise.',
+          body: 'Runtime adapter recovery interrupts the design promise and requires explicit reconciliation.',
+        },
+      },
+      {
+        id: 'edge-runtime-dependency',
+        rel: 'depends_on',
+        dir: 'out',
+        confidenceScore: 0.82,
+        score: 0.79,
+        status: 'active',
+        reasoning: 'The runtime note depends on adapter restart sequencing.',
+        sourceClaimsReferenced: [1],
+        metadata: { dependency_type: 'runtime', strength: 'medium' },
+        target: {
+          title: 'Adapter Restart',
+          path: 'Docs/Adapter.md',
+          heading: 'Restart Contract',
+          chunkId: 'adapter-restart',
+          snippet: 'Adapter restarts must preserve no-vault recovery state.',
+          body: 'Adapter restarts must preserve no-vault recovery state and deterministic retry behavior.',
+        },
+      },
+      {
+        id: 'edge-design-support',
+        rel: 'supports',
+        dir: 'out',
+        confidenceScore: 0.7,
+        score: 0.74,
+        status: 'active',
+        sourceClaimsReferenced: [0],
+        target: {
+          title: 'Graph Workflow',
+          path: 'Docs/Graph.md',
+          heading: 'Graph Workflow',
+          chunkId: 'graph-workflow',
+          snippet: 'Graph workflow supports section-level inspection.',
+        },
+      },
+    ],
+    byChunkId: {
+      'design-brief': [
+        {
+          id: 'edge-design-runtime-conflict',
+          rel: 'contradicts',
+          dir: 'sym',
+          confidenceScore: 0.93,
+          score: 0.91,
+          status: 'active',
+          reasoning: 'The design brief promises uninterrupted adapter recovery while runtime notes describe an interrupting retry path.',
+          sourceClaimsReferenced: [0],
+          qualifiers: ['must reconcile before release'],
+          metadata: { severity: 'high' },
+          target: {
+            title: 'Runtime Conflict',
+            path: 'Docs/Runtime.md',
+            heading: 'Runtime Notes',
+            chunkId: 'runtime-notes',
+            snippet: 'Runtime adapter recovery interrupts the design promise.',
+            body: 'Runtime adapter recovery interrupts the design promise and requires explicit reconciliation.',
+          },
+        },
+        {
+          id: 'edge-design-support',
+          rel: 'supports',
+          dir: 'out',
+          confidenceScore: 0.7,
+          score: 0.74,
+          status: 'active',
+          sourceClaimsReferenced: [0],
+          target: {
+            title: 'Graph Workflow',
+            path: 'Docs/Graph.md',
+            heading: 'Graph Workflow',
+            chunkId: 'graph-workflow',
+            snippet: 'Graph workflow supports section-level inspection.',
+          },
+        },
+      ],
+      'runtime-notes': [
+        {
+          id: 'edge-runtime-dependency',
+          rel: 'depends_on',
+          dir: 'out',
+          confidenceScore: 0.82,
+          score: 0.79,
+          status: 'active',
+          reasoning: 'The runtime note depends on adapter restart sequencing.',
+          sourceClaimsReferenced: [1],
+          metadata: { dependency_type: 'runtime', strength: 'medium' },
+          target: {
+            title: 'Adapter Restart',
+            path: 'Docs/Adapter.md',
+            heading: 'Restart Contract',
+            chunkId: 'adapter-restart',
+            snippet: 'Adapter restarts must preserve no-vault recovery state.',
+            body: 'Adapter restarts must preserve no-vault recovery state and deterministic retry behavior.',
+          },
+        },
+      ],
+    },
+    chunkOrder: ['overview', 'design-brief', 'runtime-notes'],
+    chunkMap: {
+      overview: {
+        previewChunkId: 'overview',
+        documentPath: 'semantic-graph.md',
+        documentTitle: 'Semantic Graph',
+        headingText: 'Overview',
+      },
+      'design-brief': {
+        previewChunkId: 'design-brief',
+        documentPath: 'semantic-graph.md',
+        documentTitle: 'Semantic Graph',
+        headingText: 'Design Brief',
+      },
+      'runtime-notes': {
+        previewChunkId: 'runtime-notes',
+        documentPath: 'semantic-graph.md',
+        documentTitle: 'Semantic Graph',
+        headingText: 'Runtime Notes',
+      },
+    },
+    diagnostics: [],
+    graphSummary: {
+      edge_count: 3,
+      edge_counts_by_relation: { contradicts: 1, depends_on: 1, supports: 1 },
+      stale_edge_count: 0,
+      community_labels: ['Graph Workflow', 'Runtime Adapter'],
+      has_contradictions: true,
+      has_open_questions: true,
+      open_question_count: 1,
+    },
+    communitySummary: {
+      dominantLabel: 'Graph Workflow',
+      summary: 'Graph Workflow connects design promises to runtime adapter recovery.',
+      labels: ['Graph Workflow', 'Runtime Adapter'],
+    },
+    nodeMeta: {
+      overview: {
+        chunkSummary: 'Opening context for deterministic graph coverage.',
+        certaintyLevel: 'high',
+        keyClaims: ['Overview frames graph workflow validation.'],
+      },
+      'design-brief': {
+        chunkSummary: 'Design brief defines the graph side-panel behavior.',
+        certaintyLevel: 'medium',
+        stalenessRisk: 'Design and runtime claims diverge until adapter recovery is reconciled.',
+        keyClaims: ['Design brief must stay aligned with runtime adapter recovery.'],
+        communityLabel: 'Graph Workflow',
+        communitySummary: 'Design behavior belongs to the Graph Workflow community.',
+      },
+      'runtime-notes': {
+        chunkSummary: 'Runtime notes describe adapter recovery behavior and local filter checks.',
+        certaintyLevel: 'low',
+        questionStatus: 'open',
+        questionResolution: 'Open question: confirm no-vault recovery preserves retry behavior.',
+        keyClaims: [
+          'Runtime claim without a filter match',
+          'Runtime dependency must preserve adapter restart sequencing.',
+        ],
+        externalRefs: ['https://example.invalid/runtime'],
+      },
+    },
+  })
+
+  const semanticConnectionsFixtures = (): Record<'default' | 'empty' | 'stale' | 'graph' | 'embeddings-only', SemanticConnectionsResult> => {
+    const defaultResult = embeddingsOnlyFixture()
     const emptyResult: SemanticConnectionsResult = {
       mode: 'embeddings-only',
       overall: [],
@@ -184,6 +396,8 @@ export function installE2EHarness(): void {
     }
     return {
       default: defaultResult,
+      'embeddings-only': embeddingsOnlyFixture(),
+      graph: graphFixture(),
       empty: emptyResult,
       stale: { ...defaultResult, stale: true },
     }
@@ -191,11 +405,43 @@ export function installE2EHarness(): void {
 
   const setSemanticConnectionsScenario = (scenario: SemanticConnectionsScenario): void => {
     semanticConnectionsScenario = scenario
+    semanticConnectionsCachedScenario = null
+    semanticConnectionsCachedResult = null
+  }
+
+  const semanticConnectionsProviderCounts = (): SemanticConnectionsProviderCounts => ({
+    loadDocumentConnections: semanticConnectionsProviderCountState.loadDocumentConnections,
+    fixtureReads: { ...semanticConnectionsProviderCountState.fixtureReads },
+  })
+
+  const resetSemanticConnectionsProviderCounts = (): void => {
+    semanticConnectionsProviderCountState.loadDocumentConnections = 0
+    semanticConnectionsProviderCountState.fixtureReads.getDocument = 0
+    semanticConnectionsProviderCountState.fixtureReads.queryGraph = 0
+    semanticConnectionsCachedScenario = null
+    semanticConnectionsCachedResult = null
   }
 
   const semanticConnectionsProvider = (): SemanticConnectionsProvider => ({
     async loadDocumentConnections() {
-      return semanticConnectionsFixtures()[semanticConnectionsScenario]
+      semanticConnectionsProviderCountState.loadDocumentConnections += 1
+      if (semanticConnectionsScenario === 'flashquery-unavailable') {
+        throw Object.assign(new Error('FlashQuery service down'), { code: 'FLASHQUERY_UNAVAILABLE' })
+      }
+      if (semanticConnectionsScenario === 'no-vault') {
+        throw Object.assign(new Error('No vault connected'), { code: 'NO_VAULT_CONNECTED' })
+      }
+      if (semanticConnectionsCachedScenario === semanticConnectionsScenario && semanticConnectionsCachedResult) {
+        return semanticConnectionsCachedResult
+      }
+      semanticConnectionsProviderCountState.fixtureReads.getDocument += 1
+      if (semanticConnectionsScenario === 'graph') {
+        semanticConnectionsProviderCountState.fixtureReads.queryGraph += 2
+      }
+      const fixture = semanticConnectionsFixtures()[semanticConnectionsScenario]
+      semanticConnectionsCachedScenario = semanticConnectionsScenario
+      semanticConnectionsCachedResult = fixture
+      return fixture
     },
   })
 
@@ -614,6 +860,8 @@ export function installE2EHarness(): void {
     writeVaultDocument,
     retryFlashQuery,
     setSemanticConnectionsScenario,
+    semanticConnectionsProviderCounts,
+    resetSemanticConnectionsProviderCounts,
     semanticConnectionsProvider,
     setSemanticConnectionsSource,
     detachPanelToDockWindow,

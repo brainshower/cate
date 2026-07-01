@@ -27,7 +27,9 @@ async function launchGraphWorkspace(): Promise<{
   }, { id: workspaceId, targetPath: filePath })
 
   await expect(page.getByText('Opening context.')).toBeVisible()
-  await page.getByTitle('Preview markdown').click()
+  await page.getByTitle('Preview markdown').evaluate((button) => {
+    ;(button as HTMLButtonElement).click()
+  })
   await expect(page.getByTestId('markdown-preview-body')).toBeVisible()
   return { app: launched.electronApp, page, workspaceRoot, editorPanelId }
 }
@@ -85,7 +87,7 @@ test('T-E-002 navigates from whole-document attention into selected preview sect
 
     await expect(panel).toContainText('Selected section')
     await expect(panel).toContainText('Design brief must stay aligned with runtime adapter recovery.')
-    await expect(launched.page.locator('[data-chunk-id="design-brief"]').first()).toHaveAttribute('data-active', 'true')
+    await expect(launched.page.locator('[data-chunk-id="design-brief"]').first()).toHaveClass(/cate-preview-chunk-active/)
   } finally {
     if (app) await closeApp(app)
   }
@@ -110,6 +112,7 @@ test('T-E-003 filters whole-document and selection data locally without backend 
     await expect(panel).toContainText('Selected section')
     const beforeSelectionFilter = await launched.page.evaluate(() => window.__cateE2E!.semanticConnectionsProviderCounts())
     await panel.getByRole('searchbox', { name: 'Filter semantic connections' }).fill('dependency')
+    await panel.getByRole('button', { name: 'Expand connection Adapter Restart Restart Contract' }).click()
     await expect(panel).toContainText('Dependency type: runtime')
     await expect(panel).not.toContainText('Runtime claim without a filter match')
     await expect.poll(() => launched.page.evaluate(() => window.__cateE2E!.semanticConnectionsProviderCounts())).toEqual(beforeSelectionFilter)
