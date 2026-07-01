@@ -5,9 +5,12 @@ import type { SemanticConnectionsPanelProps } from './types'
 import {
   arrangeForDisplay,
   getAllRels,
+  groupSelectionClaimsAndConnections,
   groupWholeDocumentConnections,
+  isActiveSemanticConnection,
   scEdgeLabel,
   type SemanticConnection,
+  type SemanticConnectionClaimGroup,
   type SemanticConnectionGroup,
   type SemanticConnectionNodeMeta,
   type SemanticConnectionSortMode,
@@ -165,7 +168,7 @@ function hasOpenMetadata(connection: SemanticConnection): boolean {
 }
 
 function isActiveConnection(connection: SemanticConnection): boolean {
-  return connection.status !== 'stale' && connection.status !== 'deleted'
+  return isActiveSemanticConnection(connection)
 }
 
 function sectionTitle(entry: SemanticConnectionsTargetMapEntry | undefined, chunkId: string): string {
@@ -358,6 +361,207 @@ function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'ne
     <span className={`inline-flex shrink-0 rounded border px-1.5 py-0.5 text-[11px] ${className}`}>
       {children}
     </span>
+  )
+}
+
+function questionStatusLabel(status: SemanticConnectionNodeMeta['questionStatus']): string | null {
+  if (status === 'open') return 'Open question'
+  if (status === 'deferred') return 'Deferred question'
+  if (status === 'resolved') return 'Resolved question'
+  return null
+}
+
+function SelectionEdgeRow({
+  connection,
+  onOpen,
+}: {
+  connection: SemanticConnection
+  onOpen: (connection: SemanticConnection) => void
+}) {
+  const openEnabled = hasOpenMetadata(connection)
+  return (
+    <article
+      data-testid={`semantic-selection-edge-${connection.id}`}
+      className="group min-w-0 rounded border border-subtle bg-surface-2 px-2 py-2"
+    >
+      <div className="flex min-w-0 items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <span className="rounded border border-teal-400/25 bg-teal-400/10 px-1.5 py-0.5 text-[11px] font-medium text-teal-100">
+              {scEdgeLabel(connection.rel, connection.dir)}
+            </span>
+            {connection.qualifiers?.map((qualifier) => (
+              <Badge key={qualifier}>{qualifier}</Badge>
+            ))}
+          </div>
+          <p className="mt-1 truncate text-sm font-medium text-primary">{connection.target.title}</p>
+          {connection.target.heading && <p className="truncate text-xs text-secondary">{connection.target.heading}</p>}
+          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">
+            {plainTextFromMarkdown(connection.target.snippet)}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            className="grid h-7 w-7 place-items-center rounded text-secondary opacity-0 transition-opacity hover:bg-hover hover:text-primary focus-visible:opacity-100 group-hover:opacity-100 disabled:pointer-events-none disabled:opacity-0"
+            aria-label={`Open ${connection.target.title}${connection.target.heading ? ` ${connection.target.heading}` : ''}`}
+            disabled={!openEnabled}
+            onClick={() => {
+              if (openEnabled) onOpen(connection)
+            }}
+          >
+            <ArrowSquareOut size={16} weight="bold" />
+          </button>
+          {connection.score !== undefined && <ScorePie score={connection.score} />}
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function ClaimBlock({
+  claim,
+  onOpenConnection,
+}: {
+  claim: SemanticConnectionClaimGroup
+  onOpenConnection: (connection: SemanticConnection) => void
+}) {
+  return (
+    <div
+      data-testid={`semantic-selection-claim-${claim.index}`}
+      className="space-y-2 rounded border border-subtle bg-surface-2 px-2 py-2"
+    >
+      <p className="text-sm leading-relaxed text-primary">{claim.text}</p>
+      {claim.connections.length > 0 && (
+        <div className="space-y-1.5">
+          {claim.connections.map((connection) => (
+            <SelectionEdgeRow key={connection.id} connection={connection} onOpen={onOpenConnection} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SelectionGraphView({
+  result,
+  chunkId,
+  connections,
+  selectionScopeId,
+  onOpenConnection,
+}: {
+  result: SemanticConnectionsResult
+  chunkId: string
+  connections: readonly SemanticConnection[]
+  selectionScopeId: string | null
+  onOpenConnection: (connection: SemanticConnection) => void
+}) {
+  const [temporalExpanded, setTemporalExpanded] = useState(false)
+  const entry = result.chunkMap[chunkId]
+  const nodeMeta = result.nodeMeta?.[chunkId]
+  const title = sectionTitle(entry, chunkId)
+  const questionLabel = questionStatusLabel(nodeMeta?.questionStatus)
+  const certainty = certaintyLabel(nodeMeta?.certaintyLevel)
+  const grouped = useMemo(
+    () => groupSelectionClaimsAndConnections(nodeMeta?.keyClaims, connections),
+    [connections, nodeMeta?.keyClaims],
+  )
+  const hasStatus = Boolean(
+    questionLabel
+      || nodeMeta?.questionResolution
+      || certainty
+      || nodeMeta?.stalenessRisk
+      || nodeMeta?.externalRefs?.length
+      || nodeMeta?.temporalMarkers?.length,
+  )
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-3">
+      <div className="space-y-2 rounded-md border border-subtle bg-surface px-3 py-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <button
+            type="button"
+            className="shrink-0 rounded border border-subtle px-2 py-1 text-xs text-secondary hover:bg-hover hover:text-primary"
+            aria-label="Back to whole-document graph"
+            onClick={() => usePreviewSelectionStore.getState().clearSelection(selectionScopeId)}
+          >
+            Back
+          </button>
+          <span className="shrink-0 text-xs uppercase tracking-normal text-muted">Selected section</span>
+        </div>
+        <h2 className="min-w-0 truncate text-base font-semibold text-primary">{title}</h2>
+        {nodeMeta?.chunkSummary && <p className="text-sm leading-relaxed text-secondary">{nodeMeta.chunkSummary}</p>}
+        {(nodeMeta?.communityLabel || nodeMeta?.communitySummary) && (
+          <div className="space-y-1 rounded border border-subtle bg-surface-2 px-2 py-2">
+            {nodeMeta.communityLabel && <p className="text-xs font-medium text-primary">{nodeMeta.communityLabel}</p>}
+            {nodeMeta.communitySummary && <p className="text-xs leading-relaxed text-secondary">{nodeMeta.communitySummary}</p>}
+          </div>
+        )}
+      </div>
+
+      {hasStatus && (
+        <SectionChrome title="Status notes">
+          <div className="space-y-2 text-sm">
+            {questionLabel && (
+              <div className="rounded border border-amber-400/25 bg-amber-400/10 px-2 py-1.5">
+                <p className="text-xs font-medium text-amber-100">{questionLabel}</p>
+                {nodeMeta?.questionResolution && <p className="mt-1 text-xs leading-relaxed text-secondary">{nodeMeta.questionResolution}</p>}
+              </div>
+            )}
+            {certainty && <Badge tone={nodeMeta?.certaintyLevel === 'low' ? 'caution' : 'neutral'}>{certainty}</Badge>}
+            {nodeMeta?.stalenessRisk && (
+              <p className="rounded border border-subtle bg-surface-2 px-2 py-1.5 text-xs leading-relaxed text-secondary">
+                {nodeMeta.stalenessRisk}
+              </p>
+            )}
+            {nodeMeta?.externalRefs?.length ? (
+              <div className="space-y-1">
+                {nodeMeta.externalRefs.map((ref) => (
+                  <p key={ref} className="truncate text-xs text-secondary">{ref}</p>
+                ))}
+              </div>
+            ) : null}
+            {nodeMeta?.temporalMarkers?.length ? (
+              <div>
+                <button
+                  type="button"
+                  className="rounded border border-subtle px-2 py-1 text-xs text-secondary hover:bg-hover hover:text-primary"
+                  aria-expanded={temporalExpanded}
+                  onClick={() => setTemporalExpanded((value) => !value)}
+                >
+                  {temporalExpanded ? 'Hide temporal markers' : 'Show temporal markers'}
+                </button>
+                {temporalExpanded && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {nodeMeta.temporalMarkers.map((marker) => <Badge key={marker}>{marker}</Badge>)}
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+        </SectionChrome>
+      )}
+
+      {grouped.claims.length > 0 && (
+        <SectionChrome title="Claims">
+          <div data-testid="semantic-selection-claims" className="space-y-2">
+            {grouped.claims.map((claim) => (
+              <ClaimBlock key={claim.index} claim={claim} onOpenConnection={onOpenConnection} />
+            ))}
+          </div>
+        </SectionChrome>
+      )}
+
+      {grouped.generalConnections.length > 0 && (
+        <SectionChrome title="General connections">
+          <div data-testid="semantic-selection-general-connections" className="space-y-1.5">
+            {grouped.generalConnections.map((connection) => (
+              <SelectionEdgeRow key={connection.id} connection={connection} onOpen={onOpenConnection} />
+            ))}
+          </div>
+        </SectionChrome>
+      )}
+    </div>
   )
 }
 
@@ -767,6 +971,12 @@ export default function SemanticConnectionsPanel({
       && result.mode !== 'embeddings-only'
       && result.chunkOrder.some((chunkId) => result.chunkMap[chunkId]?.previewChunkId),
   )
+  const graphSelectionMode = Boolean(
+    result
+      && activeChunkId
+      && result.mode !== 'embeddings-only'
+      && result.chunkMap[activeChunkId]?.previewChunkId,
+  )
   const graphOrderedConnections = useMemo(() => (
     groupWholeDocumentConnections(filteredConnections).flatMap((group) => group.connections)
   ), [filteredConnections])
@@ -1001,7 +1211,17 @@ export default function SemanticConnectionsPanel({
             />
           )}
 
-          {!loading && !loadIssue && !graphWholeDocumentMode && sortedConnections.length === 0 && (
+          {!loadIssue && graphSelectionMode && result && activeChunkId && (
+            <SelectionGraphView
+              result={result}
+              chunkId={activeChunkId}
+              connections={filteredConnections}
+              selectionScopeId={selectionScopeId}
+              onOpenConnection={handleOpenConnection}
+            />
+          )}
+
+          {!loading && !loadIssue && !graphWholeDocumentMode && !graphSelectionMode && sortedConnections.length === 0 && (
             <StateMessage
               title={activeChunkId ? 'No connections exist for this section' : 'No connections exist for this document'}
               detail="No matching semantic connections are available yet."
@@ -1009,7 +1229,7 @@ export default function SemanticConnectionsPanel({
             />
           )}
 
-          {!loadIssue && !graphWholeDocumentMode && sortedConnections.length > 0 && (
+          {!loadIssue && !graphWholeDocumentMode && !graphSelectionMode && sortedConnections.length > 0 && (
             <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-3">
               <div className="flex shrink-0 items-center justify-between text-xs text-muted">
                 <span>

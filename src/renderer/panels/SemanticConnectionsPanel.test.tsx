@@ -281,6 +281,71 @@ const groupedGraphResult: SemanticConnectionsResult = {
   ],
 }
 
+const selectionGraphResult: SemanticConnectionsResult = {
+  ...graphResult,
+  byChunkId: {
+    scope: [{
+      id: 'edge-claim-zero',
+      rel: 'supports',
+      confidenceScore: 0.84,
+      sourceClaimsReferenced: [0],
+      qualifiers: ['normative'],
+      status: 'active',
+      target: {
+        title: 'Support Notes',
+        path: 'Docs/Support.md',
+        heading: 'Evidence',
+        chunkId: 'support-evidence',
+        snippet: 'Supporting evidence backs the first claim.',
+      },
+    }, {
+      id: 'edge-general',
+      rel: 'references',
+      sourceClaimsReferenced: [8],
+      status: 'active',
+      target: {
+        title: 'General Notes',
+        path: 'Docs/General.md',
+        heading: 'Reference',
+        chunkId: 'general-reference',
+        snippet: 'General reference belongs outside claim blocks.',
+      },
+    }, {
+      id: 'edge-stale',
+      rel: 'supports',
+      sourceClaimsReferenced: [0],
+      status: 'stale',
+      target: {
+        title: 'Stale Notes',
+        path: 'Docs/Stale.md',
+        heading: 'Old',
+        chunkId: 'stale-old',
+        snippet: 'Stale edge should not render.',
+      },
+    }],
+    details: [],
+    appendix: [],
+  },
+  nodeMeta: {
+    ...graphResult.nodeMeta,
+    scope: {
+      chunkSummary: 'Scope selection summary.',
+      communityLabel: 'Graph rollout',
+      communitySummary: 'Selection belongs to graph rollout.',
+      keyClaims: [
+        'First claim in order',
+        { text: 'Structured claim text', basis: 'deferred-ui' },
+      ],
+      questionStatus: 'open',
+      questionResolution: 'Which edge metadata should be trusted?',
+      certaintyLevel: 'low',
+      stalenessRisk: 'Likely stale after July 2026.',
+      externalRefs: ['https://example.test/ref'],
+      temporalMarkers: ['2026-Q3', 'after launch'],
+    },
+  },
+}
+
 function renderPanel(result: SemanticConnectionsResult, options: { activeChunkId?: string } = {}) {
   const filePath = readyEditor()
   if (options.activeChunkId) {
@@ -926,6 +991,61 @@ describe('SemanticConnectionsPanel', () => {
 
     expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.connectionCount).toBe(7)
     expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.configActive).toBe(true)
+  })
+
+  it('T-C-030/T-C-031/T-C-032 renders selected graph section header and back control with missing-metadata degradation', async () => {
+    renderPanel(selectionGraphResult, { activeChunkId: 'scope' })
+
+    expect(await screen.findByText('Selected section')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Scope' })).toBeTruthy()
+    expect(screen.getByText('Scope selection summary.')).toBeTruthy()
+    expect(screen.getByText('Graph rollout')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back to whole-document graph' }))
+    expect(usePreviewSelectionStore.getState().getScope('editor-1').activeChunkId).toBeNull()
+    cleanup()
+    clearActiveEditorRegistryForTests()
+    clearPreviewSelectionForTests()
+
+    renderPanel({ ...selectionGraphResult, nodeMeta: {} }, { activeChunkId: 'scope' })
+    expect(await screen.findByRole('heading', { name: 'Scope' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Back to whole-document graph' })).toBeTruthy()
+    expect(screen.queryByText('Scope selection summary.')).toBeNull()
+  })
+
+  it('T-C-033/T-C-034/T-C-035/T-C-036/T-C-037/T-C-065 renders selected section status notes and expandable temporal markers', async () => {
+    renderPanel(selectionGraphResult, { activeChunkId: 'scope' })
+
+    expect(await screen.findByText('Status notes')).toBeTruthy()
+    expect(screen.getByText('Open question')).toBeTruthy()
+    expect(screen.getByText('Which edge metadata should be trusted?')).toBeTruthy()
+    expect(screen.getByText('Low certainty')).toBeTruthy()
+    expect(screen.getByText('Likely stale after July 2026.')).toBeTruthy()
+    expect(screen.getByText('https://example.test/ref')).toBeTruthy()
+    expect(screen.queryByText('2026-Q3')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show temporal markers' }))
+
+    expect(screen.getByText('2026-Q3')).toBeTruthy()
+    expect(screen.getByText('after launch')).toBeTruthy()
+  })
+
+  it('T-C-038/T-C-039/T-C-040/T-C-041/T-C-042 renders selected claims, linked edges, and General connections', async () => {
+    renderPanel(selectionGraphResult, { activeChunkId: 'scope' })
+
+    const claims = await screen.findByTestId('semantic-selection-claims')
+    expect(within(claims).getByText('First claim in order')).toBeTruthy()
+    expect(within(claims).getByText('Structured claim text')).toBeTruthy()
+    const firstClaim = within(claims).getByTestId('semantic-selection-claim-0')
+    expect(within(firstClaim).getByText('Support Notes')).toBeTruthy()
+    expect(within(firstClaim).getByText('Supports')).toBeTruthy()
+    expect(within(firstClaim).getByText('normative')).toBeTruthy()
+    expect(within(claims).queryByText('Stale Notes')).toBeNull()
+    expect(within(claims).queryByText('basis')).toBeNull()
+
+    const general = screen.getByTestId('semantic-selection-general-connections')
+    expect(within(general).getByText('General Notes')).toBeTruthy()
+    expect(within(general).queryByText('Stale Notes')).toBeNull()
   })
 
   it('T-I-025 and T-I-026 shows loading and supersedes stale in-flight requests', async () => {
