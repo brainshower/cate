@@ -89,7 +89,7 @@ This grouping keeps the first GSD phase vertically testable: the graph data cont
    - Requirements in this wave: REQ-015, REQ-019, REQ-020.
    - Tests in same wave: T-U-027, T-C-043, T-C-044, T-C-045, T-C-046, T-C-047, T-C-048, T-C-049.
 
-3. **Toolbar local filter and chrome polish**
+3. ✅ **Toolbar local filter and chrome polish** — completed by plan 28-03 (`28-03-SUMMARY.md`)
    - Implement filter toggle/autofocus/clear/Escape behavior, pure local matching helpers, whole-document and selection-view filtering granularity, no-results state, no provider/network calls from filtering, separate config/filter active indicators, stable pre-filter connection counts, and chrome unregister on unmount.
    - Requirements in this wave: REQ-016, REQ-017, REQ-018, REQ-022.
    - Tests in same wave: T-U-019, T-U-020, T-U-021, T-U-022, T-C-050, T-C-051, T-C-052, T-C-053, T-C-054, T-C-055, T-C-056, T-C-057, T-C-058, T-C-059, T-C-060, T-C-061, T-C-062.
@@ -126,7 +126,7 @@ This grouping keeps the first GSD phase vertically testable: the graph data cont
 
 ## Current Status
 
-Phase 27 is complete. Plans 27-01 through 27-03 delivered the graph contract, provider graph mode, typed `query_graph` bridge, node metadata backfill, whole-document graph UI, grouped connections, scoped filters, local section navigation, and chrome state. Phase 28 Plans 01-02 completed selection detail, claim grouping, edge metadata overlay, expandable edge rows, readable detail prose, score thresholds, and selection target-opening regression coverage. Phase 28 remains for local filtering/chrome polish and integrated Electron regression coverage.
+Phase 27 is complete. Plans 27-01 through 27-03 delivered the graph contract, provider graph mode, typed `query_graph` bridge, node metadata backfill, whole-document graph UI, grouped connections, scoped filters, local section navigation, and chrome state. Phase 28 Plans 01-03 completed selection detail, claim grouping, edge metadata overlay, expandable edge rows, readable detail prose, score thresholds, selection target-opening regression coverage, local filtering, no-results behavior, stable pre-filter counts, and separate filter/config chrome state. Phase 28 remains for integrated Electron regression coverage.
 
 ---
-*Last updated: 2026-07-01 after Phase 28 Plan 02 completion*
+*Last updated: 2026-07-01 after Phase 28 Plan 03 completion*

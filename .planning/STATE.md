@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Graph Intelligence Monaco Side Panel
 status: executing
-stopped_at: Completed 28-02-PLAN.md
-last_updated: "2026-07-01T11:06:27.757Z"
+stopped_at: Completed 28-03-PLAN.md
+last_updated: "2026-07-01T11:19:59.491Z"
 last_activity: 2026-07-01
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 7
-  completed_plans: 5
-  percent: 71
+  completed_plans: 6
+  percent: 86
 ---
 
 # Project State
@@ -26,21 +26,21 @@ See: `.planning/PROJECT.md` (updated 2026-06-30 after v1.6 Graph Intelligence Mo
 ## Current Position
 
 Phase: 28 (selection-detail-local-filter-chrome-polish-and-e2e-hardenin) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-07-01
 
 ## Session Continuity
 
-Last session: 2026-07-01T11:06:27.719Z
-Stopped At: Completed 28-02-PLAN.md
+Last session: 2026-07-01T11:19:59.473Z
+Stopped At: Completed 28-03-PLAN.md
 Resume File: None
 
 ## Next Up
 
-Execute Phase 28 Plan 03.
+Execute Phase 28 Plan 04.
 
-Phase 27 completed whole-document graph Summary, Needs attention, Sections, grouped Connections, Top-N/relation filters, local section navigation, responsive dock classes, and chrome count/config state. Phase 28 is now planned with four waves for selection-detail graph intelligence, local text filtering, edge metadata overlay, final chrome polish, and integrated Electron regression coverage.
+Phase 27 completed whole-document graph Summary, Needs attention, Sections, grouped Connections, Top-N/relation filters, local section navigation, responsive dock classes, and chrome count/config state. Phase 28 Plans 01-03 completed selection detail, claim grouping, edge metadata overlay, expandable edge rows, readable detail prose, score thresholds, selection target-opening regression coverage, local filtering, no-results behavior, and filter chrome-state polish. Phase 28 remains for integrated Electron regression coverage.
 
 ## Decisions
 
@@ -90,6 +90,8 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table.
 | 2026-07-01 | Plan 28-01 selection claim grouping filters stale/deleted edges first and routes invalid source claim refs to General connections. | Matches v1 product scope while preserving forward-compatible structured claim input. |
 | 2026-07-01 | Plan 28-02 selection edge metadata display is whitelist-only. | Qualifiers plus known primitive metadata keys render as prose while unsupported opaque structures are ignored instead of dumped as raw JSON. |
 | 2026-07-01 | Plan 28-02 applies semantic sorting before selection claim/general grouping. | Claim blocks stay in source claim order while edges inside each block and General connections follow the selected Similarity/Nature sort mode. |
+| 2026-07-01 | Plan 28-03 local filtering stays entirely in renderer UI state. | Filter text is excluded from provider load inputs and effect dependencies so typing only filters loaded result data. |
+| 2026-07-01 | Plan 28-03 dock chrome publishes filter state separately from config state. | Filter open/active state and config open/active state are independent, while connection counts remain pre-text-filter. |
 
 ## Deferred Items
 
@@ -142,7 +144,8 @@ Items acknowledged and deferred at milestone close on 2026-06-16:
 | 27-graph-data-contract-and-whole-document-graph-view | 03 | 18m | 3 | 4 |
 | 28-selection-detail-local-filter-chrome-polish-and-e2e-hardenin | 01 | 7min | 3 | 7 |
 | 28-selection-detail-local-filter-chrome-polish-and-e2e-hardenin | 02 | 9min | 2 | 5 |
+| 28-selection-detail-local-filter-chrome-polish-and-e2e-hardenin | 03 | 9min | 3 | 6 |
 
 ## Operator Next Steps
 
-- Execute Phase 28 Plan 03 for local filter helpers, filter UI, no-results behavior, and chrome filter-state polish.
+- Execute Phase 28 Plan 04 for deterministic Electron graph workflow coverage and final regression hardening.
