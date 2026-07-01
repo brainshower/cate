@@ -610,15 +610,16 @@ async function backfillNodeMeta(
         chunk_id: entry.flashqueryChunkId,
       })
       if (payload.error) {
-        diagnostics.push(`Unable to load node metadata for ${entry.flashqueryChunkId}: ${payload.error}`)
+        diagnostics.push(
+          `Unable to load node metadata for ${entry.flashqueryChunkId}: ${redactedDiagnosticMessage(payload.error)}`,
+        )
         return
       }
       const meta = nodeMetaFromQueryGraph(payload)
       if (meta) nodeMeta[entry.previewChunkId] = meta
     } catch (error) {
       diagnostics.push(
-        `Unable to load node metadata for ${entry.flashqueryChunkId}: `
-        + `${error instanceof Error ? error.message : String(error)}`,
+        `Unable to load node metadata for ${entry.flashqueryChunkId}: ${redactedDiagnosticMessage(error)}`,
       )
     }
   }))
@@ -660,7 +661,9 @@ async function backfillEdgeMetadata(
         include_content: false,
       })
       if (payload.error) {
-        diagnostics.push(`Unable to load edge metadata for ${entry.flashqueryChunkId}: ${payload.error}`)
+        diagnostics.push(
+          `Unable to load edge metadata for ${entry.flashqueryChunkId}: ${redactedDiagnosticMessage(payload.error)}`,
+        )
         return
       }
       for (const edge of edgePayloadsFromQueryGraph(payload)) {

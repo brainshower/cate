@@ -713,7 +713,7 @@ describe('semantic connections provider boundary', () => {
         key_claims: ['Valid claim'],
         chunk_summary: 'Valid summary',
       })
-      .mockRejectedValueOnce(new Error('node fetch failed'))
+      .mockRejectedValueOnce(new Error('node fetch failed for Bearer node-secret-token'))
     const provider = createFlashQuerySemanticConnectionsProvider(search, connections, queryGraph)
 
     const result = await provider.loadDocumentConnections({
@@ -734,6 +734,64 @@ describe('semantic connections provider boundary', () => {
     expect(result.diagnostics).toEqual(expect.arrayContaining([
       expect.stringContaining('Unable to load node metadata for source-details'),
     ]))
+    expect(result.diagnostics.join(' ')).not.toContain('node-secret-token')
+    expect(result.diagnostics.join(' ')).toContain('Bearer [redacted]')
+  })
+
+  it('redacts query_graph payload error diagnostics before storing them in renderer state', async () => {
+    const search = vi.fn()
+    const connections = vi.fn().mockResolvedValue({
+      source: { document_id: 'source-doc', path: 'Docs/Source.md', title: 'Source' },
+      graph_summary: {
+        edge_count: 1,
+        edge_counts_by_relation: { supports: 1 },
+        stale_edge_count: 0,
+        community_labels: [],
+        has_contradictions: false,
+        has_open_questions: false,
+        open_question_count: 0,
+      },
+      overall: [],
+      source_chunks: [{
+        chunk_id: 'source-scope',
+        heading_path: 'Source > Scope',
+        connections: [{
+          id: 'edge-scope',
+          relation: 'supports',
+          target: { chunk_id: 'target-scope', path: 'Docs/Scope.md', title: 'Scope Target' },
+        }],
+      }],
+    } satisfies FlashQueryDocumentConnectionsResponse)
+    const queryGraph = vi.fn()
+      .mockResolvedValueOnce({
+        action: 'node',
+        chunk_id: 'source-scope',
+        error: 'node failed with Bearer node-payload-token',
+      })
+      .mockResolvedValueOnce({
+        action: 'edges',
+        chunk_id: 'source-scope',
+        error: 'edge failed with Bearer edge-payload-token',
+      })
+    const provider = createFlashQuerySemanticConnectionsProvider(search, connections, queryGraph)
+
+    const result = await provider.loadDocumentConnections({
+      workspaceId: 'workspace-1',
+      editorPanelId: 'editor-1',
+      documentPath: 'flashquery://workspace-1/Docs/Source.md',
+      markdown: '# Source\n\nIntro\n\n## Scope\n\nScope body',
+      contentHash: 'hash-redacted-payload-errors',
+    })
+
+    expect(result.byChunkId.scope.map((connection) => connection.id)).toEqual(['edge-scope'])
+    expect(result.diagnostics).toEqual(expect.arrayContaining([
+      expect.stringContaining('Unable to load node metadata for source-scope'),
+      expect.stringContaining('Unable to load edge metadata for source-scope'),
+    ]))
+    const diagnosticText = result.diagnostics.join(' ')
+    expect(diagnosticText).toContain('Bearer [redacted]')
+    expect(diagnosticText).not.toContain('node-payload-token')
+    expect(diagnosticText).not.toContain('edge-payload-token')
   })
 
   it('T-U-024 merges query_graph edge metadata by edge id and preserves rows on partial failures', async () => {
