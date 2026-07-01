@@ -30,7 +30,7 @@ The actual Cate phase artifacts were found and verified at `/Users/matt/Document
 | 1 | Embeddings-only panel behavior remains green and graph-only controls stay hidden in fallback mode. | VERIFIED | `SemanticConnectionsPanel.tsx` gates graph UI on graph document structure and mode; tests T-C-001/T-C-002/T-C-021/T-C-025 pass in `SemanticConnectionsPanel.test.tsx`. |
 | 2 | Graph fields survive main/preload/shared normalization and invalid optional fields do not discard valid rows. | VERIFIED | `src/shared/types.ts` defines `graph_summary`, source chunks, target health fields, and `FlashQueryQueryGraph*`; `clientManager.ts` normalizes graph overlay and diagnostics; T-I-001/T-I-002/T-I-003/T-I-007/T-I-008 pass. |
 | 3 | `query_graph` node metadata backfill is progressive, credential-safe, and partial-failure tolerant. | VERIFIED | `FLASHQUERY_QUERY_GRAPH`, `flashqueryQueryGraph()`, IPC validation, and provider `backfillNodeMeta()` are wired; T-I-005/T-I-006/T-I-009 and T-U-023/T-U-025 pass. |
-| 4 | Whole-document graph mode renders Summary, Needs attention, Sections, grouped Connections, Top-N, relation filters, and chrome state. | VERIFIED | `WholeDocumentGraphView` renders summary/attention/sections/grouped rows; `groupWholeDocumentConnections()` handles grouping/sorting; T-C-005 through T-C-029 plus T-C-063/T-C-064 pass. |
+| 4 | Whole-document graph mode renders Summary, Needs attention, Sections, grouped Connections, Top-N, relation filters, and chrome state. | VERIFIED | `WholeDocumentGraphView` renders summary/attention/sections/grouped rows; `groupWholeDocumentConnections()` handles grouping/sorting; T-C-005 through T-C-030 plus T-C-063/T-C-064 pass. |
 | 5 | Attention rows, section rows, and traceable whole-document connection rows select the local preview section without opening the wrong target. | VERIFIED | Panel calls `usePreviewSelectionStore.getState().selectSection(...)` for section, attention, and traceable graph row navigation; T-C-017/T-C-026/T-C-027 pass. |
 | 6 | Graph relation data can cross Cate's shared/main/renderer boundary without requiring embeddings scores. | VERIFIED | `SemanticConnection.score` is optional; graph rows use `confidenceScore` fallback; T-U-002/T-U-026 and typecheck pass. |
 | 7 | FlashQuery `get_document` graph summaries and partial graph rows remain useful when optional graph fields are malformed. | VERIFIED | `normalizeDocumentConnectionsResponse()` preserves valid rows and adds redacted diagnostics; T-I-003 and T-U-016 pass. |
@@ -54,7 +54,7 @@ The actual Cate phase artifacts were found and verified at `/Users/matt/Document
 | `src/preload/index.ts` and `src/shared/electron-api.d.ts` | Renderer-safe `flashqueryQueryGraph()` bridge | VERIFIED | Preload invokes `FLASHQUERY_QUERY_GRAPH`; API declaration exposes typed method only. |
 | `src/renderer/lib/semanticConnectionsProvider.ts` | Mode derivation, chunk mapping, node metadata backfill | VERIFIED | Builds `chunkMap`, `byChunkId`, mode, diagnostics, and `nodeMeta` via injected query graph function. |
 | `src/renderer/panels/SemanticConnectionsPanel.tsx` | Whole-document graph UI, navigation, filters, chrome state | VERIFIED | Renders Summary/Attention/Sections/Connections, navigates through preview selection store, publishes chrome. |
-| Phase tests | Required T-U/T-I/T-C coverage for Phase 27 | VERIFIED | Focused suites pass locally: 30 renderer/provider tests, 95 main/preload tests, 34 panel tests. |
+| Phase tests | Required T-U/T-I/T-C coverage for Phase 27 | VERIFIED | Focused suites pass locally: renderer/provider and panel tests include grep-able T-C-001..T-C-004, T-U-004, and active-edge invariant T-C-030 coverage. |
 
 ### Key Link Verification
 
@@ -82,7 +82,9 @@ The actual Cate phase artifacts were found and verified at `/Users/matt/Document
 |---|---|---|---|
 | Renderer/provider graph contract tests | `npm run test:unit -- src/renderer/lib/semanticConnections.test.ts src/renderer/lib/semanticConnectionsProvider.test.ts` | 2 files, 30 tests passed | PASS |
 | Main/preload graph IPC tests | `npm run test:unit -- src/main/flashquery/clientManager.test.ts src/main/ipc/flashquery.test.ts src/preload/index.test.ts` | 3 files, 95 tests passed | PASS |
-| Whole-document panel tests | `npm run test:unit -- src/renderer/panels/SemanticConnectionsPanel.test.tsx` | 1 file, 34 tests passed | PASS |
+| Whole-document panel tests | `npm run test:unit -- src/renderer/panels/SemanticConnectionsPanel.test.tsx` | 1 file, 35 tests passed | PASS |
+| Active edge invariant | `npm run test:unit -- src/renderer/panels/SemanticConnectionsPanel.test.tsx` | T-C-030 asserts stale/deleted graph edges are absent from grouped connection lists, dock chrome counts, connected chunk markers, and section tallies | PASS |
+| Phase 27 test ID coverage | `npm run test:phase27:ids` | Required Phase 27 component/provider IDs, including T-C-001..T-C-004 and T-U-004, are present in their expected test files | PASS |
 | TypeScript graph-expanded contracts | `npm run typecheck` | `tsc --noEmit` passed | PASS |
 
 Note: local commands ran under Node `v26.0.0`; Cate officially supports Node 20/22. Orchestrator evidence reports `npm run build` and full `npm test` passed after review fix.

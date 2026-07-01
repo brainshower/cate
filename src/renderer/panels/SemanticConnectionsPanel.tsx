@@ -381,7 +381,7 @@ function WholeDocumentGraphView({
       chunkId,
       entry: result.chunkMap[chunkId],
       nodeMeta: result.nodeMeta?.[chunkId],
-      connections: result.byChunkId[chunkId] ?? [],
+      connections: (result.byChunkId[chunkId] ?? []).filter(isActiveConnection),
     }))
     .filter((section) => section.entry?.previewChunkId)
   const contradictionItems = sections.flatMap((section) => (
@@ -748,15 +748,16 @@ export default function SemanticConnectionsPanel({
   const allRels = useMemo(() => getAllRels(result ?? emptyResult), [result])
   const hasTypedControls = allRels.length > 0
   const scopedConnections = useMemo(() => resultConnections(result ?? emptyResult, activeChunkId), [activeChunkId, result])
+  const activeScopedConnections = useMemo(() => scopedConnections.filter(isActiveConnection), [scopedConnections])
   const connectedChunkIds = useMemo(() => (
     Object.entries((result ?? emptyResult).byChunkId)
-      .filter(([, connections]) => connections.length > 0)
+      .filter(([, connections]) => connections.some(isActiveConnection))
       .map(([chunkId]) => chunkId)
   ), [result])
   const filteredConnections = useMemo(() => {
-    if (!hasTypedControls || activeRelFilters.size === 0) return scopedConnections
-    return scopedConnections.filter((connection) => connection.rel && activeRelFilters.has(connection.rel))
-  }, [activeRelFilters, hasTypedControls, scopedConnections])
+    if (!hasTypedControls || activeRelFilters.size === 0) return activeScopedConnections
+    return activeScopedConnections.filter((connection) => connection.rel && activeRelFilters.has(connection.rel))
+  }, [activeRelFilters, activeScopedConnections, hasTypedControls])
   const sortedConnections = useMemo(() => (
     arrangeForDisplay(filteredConnections, hasTypedControls ? sortMode : 'similarity')
   ), [filteredConnections, hasTypedControls, sortMode])
@@ -775,7 +776,7 @@ export default function SemanticConnectionsPanel({
   const hiddenCount = Math.max(0, orderedConnections.length - visibleConnections.length)
   const configActive = topN !== Infinity || activeRelFilters.size > 0
   const sliderValue = topN === Infinity ? String(Math.max(1, orderedConnections.length)) : String(displayLimit(topN, orderedConnections.length))
-  const scopedCountLabel = countLabel(scopedConnections.length)
+  const scopedCountLabel = countLabel(activeScopedConnections.length)
 
   useEffect(() => {
     if (topN !== Infinity && orderedConnections.length > 0 && topN >= orderedConnections.length) setTopN(Infinity)
@@ -800,7 +801,7 @@ export default function SemanticConnectionsPanel({
 
   useEffect(() => {
     useSemanticConnectionsChromeStore.getState().setPanelChrome(panelId, {
-      connectionCount: scopedConnections.length,
+      connectionCount: activeScopedConnections.length,
       configOpen,
       configActive,
       toggleConfig,
@@ -808,7 +809,7 @@ export default function SemanticConnectionsPanel({
     return () => {
       useSemanticConnectionsChromeStore.getState().clearPanelChrome(panelId)
     }
-  }, [configActive, configOpen, panelId, scopedConnections.length, toggleConfig])
+  }, [activeScopedConnections.length, configActive, configOpen, panelId, toggleConfig])
 
   const toggleRelFilter = useCallback((rel: string) => {
     setActiveRelFilters((current) => {
@@ -883,7 +884,7 @@ export default function SemanticConnectionsPanel({
           )}
         </button>
         <span className="font-mono text-sm font-semibold text-teal-200" aria-label={`Connection count: ${scopedCountLabel}`}>
-          {scopedConnections.length}
+          {activeScopedConnections.length}
         </span>
       </div>
 

@@ -132,7 +132,7 @@ describe('semantic connections provider boundary', () => {
     })
   })
 
-  it('T-I-041 keeps embeddings-only fixtures free of null or empty rel/dir values', () => {
+  it('T-U-004 and T-I-041 keeps embeddings-only fixtures free of null or empty rel/dir values', () => {
     const result = buildSemanticConnectionsResult({
       markdown,
       mode: 'embeddings-only',

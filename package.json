@@ -34,6 +34,7 @@
     "test": "vitest run",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
+    "test:phase27:ids": "node scripts/check-phase-27-test-ids.mjs",
     "test:e2e:debug": "playwright test --debug",
     "test:smoke:electron": "node scripts/run-electron-smoke.mjs",
     "preview": "electron-vite preview",

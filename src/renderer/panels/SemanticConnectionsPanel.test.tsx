@@ -313,7 +313,7 @@ describe('SemanticConnectionsPanel', () => {
     clearSemanticConnectionsChromeForTests()
   })
 
-  it('T-I-009 renders embeddings-only cards and hides nature sort/filter controls', async () => {
+  it('T-C-001 and T-I-009 renders embeddings-only cards and hides nature sort/filter controls', async () => {
     renderPanel(embeddingsOnlyResult)
 
     expect(await screen.findByText('Alpha Notes')).toBeTruthy()
@@ -452,7 +452,7 @@ describe('SemanticConnectionsPanel', () => {
     expect(screen.queryByText('64% match')).toBeNull()
   })
 
-  it('T-I-014, T-I-015, and T-I-016 blocks unsupported, source-mode, and no-editor preconditions without provider calls', () => {
+  it('T-C-003, T-I-014, T-I-015, and T-I-016 blocks unsupported, source-mode, and no-editor preconditions without provider calls', () => {
     const blockedProvider: SemanticConnectionsProvider = { loadDocumentConnections: vi.fn() }
 
     act(() => {
@@ -544,7 +544,7 @@ describe('SemanticConnectionsPanel', () => {
     expect(usePreviewSelectionStore.getState().getScope('editor-1').activeChunkId).toBe('scope')
   })
 
-  it('T-I-020 keeps stale connections visible with a subtle stale indicator', async () => {
+  it('T-C-002 and T-I-020 keeps stale connections visible with a subtle stale indicator', async () => {
     renderPanel({ ...embeddingsOnlyResult, stale: true })
 
     expect(await screen.findByText('Alpha Notes')).toBeTruthy()
@@ -641,7 +641,7 @@ describe('SemanticConnectionsPanel', () => {
     await waitFor(() => expect(cachedProvider.loadDocumentConnections).toHaveBeenCalledTimes(1))
   })
 
-  it('T-I-021, T-I-022, and T-I-023 renders recoverable provider error states', async () => {
+  it('T-C-004, T-I-021, T-I-022, and T-I-023 renders recoverable provider error states', async () => {
     const unavailable: SemanticConnectionsProvider = {
       loadDocumentConnections: vi.fn().mockRejectedValue(Object.assign(new Error('service down'), { code: 'FLASHQUERY_UNAVAILABLE' })),
     }
@@ -789,6 +789,61 @@ describe('SemanticConnectionsPanel', () => {
     fireEvent.click(within(connections).getByRole('button', { name: 'Show 1 more Supports connection' }))
 
     expect(within(connections).getByText('Support 4')).toBeTruthy()
+  })
+
+  it('T-C-030 filters stale and deleted graph edges from connection lists, counts, and section tallies', async () => {
+    renderPanel({
+      ...graphResult,
+      overall: [
+        {
+          id: 'active-edge',
+          rel: 'supports',
+          status: 'active',
+          target: { title: 'Active Edge', path: 'Docs/Active.md', chunkId: 'active', snippet: 'Active edge snippet' },
+        },
+        {
+          id: 'stale-edge',
+          rel: 'supports',
+          status: 'stale',
+          target: { title: 'Stale Edge', path: 'Docs/Stale.md', chunkId: 'stale', snippet: 'Stale edge snippet' },
+        },
+        {
+          id: 'deleted-edge',
+          rel: 'contradicts',
+          status: 'deleted',
+          target: { title: 'Deleted Edge', path: 'Docs/Deleted.md', chunkId: 'deleted', snippet: 'Deleted edge snippet' },
+        },
+      ],
+      byChunkId: {
+        scope: [{
+          id: 'scope-active-edge',
+          rel: 'supports',
+          status: 'active',
+          target: { title: 'Scope Active Edge', path: 'Docs/Scope.md', chunkId: 'scope-active', snippet: 'Scope active edge snippet' },
+        }],
+        details: [{
+          id: 'details-stale-edge',
+          rel: 'supports',
+          status: 'stale',
+          target: { title: 'Details Stale Edge', path: 'Docs/Details.md', chunkId: 'details-stale', snippet: 'Details stale edge snippet' },
+        }],
+        appendix: [],
+      },
+    })
+
+    const connections = await screen.findByTestId('semantic-graph-connections')
+    expect(within(connections).getByText('Active Edge')).toBeTruthy()
+    expect(within(connections).queryByText('Stale Edge')).toBeNull()
+    expect(within(connections).queryByText('Deleted Edge')).toBeNull()
+    expect(screen.getByLabelText('Connection count: 1 connection').textContent).toBe('1')
+    await waitFor(() => expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.connectionCount).toBe(1))
+
+    const sections = screen.getByTestId('semantic-graph-sections')
+    const details = within(sections).getByRole('button', { name: 'Open section Details' })
+    expect(within(details).getByText('—')).toBeTruthy()
+    await waitFor(() => {
+      expect(usePreviewSelectionStore.getState().getScope('editor-1').connectedChunkIds).toEqual(['scope'])
+    })
   })
 
   it('T-C-022, T-C-023, and T-C-024 applies Top-N and relation filters to graph connections only', async () => {
