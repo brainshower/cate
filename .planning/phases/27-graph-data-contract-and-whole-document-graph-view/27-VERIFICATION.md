@@ -84,7 +84,7 @@ The actual Cate phase artifacts were found and verified at `/Users/matt/Document
 | Main/preload graph IPC tests | `npm run test:unit -- src/main/flashquery/clientManager.test.ts src/main/ipc/flashquery.test.ts src/preload/index.test.ts` | 3 files, 95 tests passed | PASS |
 | Whole-document panel tests | `npm run test:unit -- src/renderer/panels/SemanticConnectionsPanel.test.tsx` | 1 file, 35 tests passed | PASS |
 | Active edge invariant | `npm run test:unit -- src/renderer/panels/SemanticConnectionsPanel.test.tsx` | T-C-030 asserts stale/deleted graph edges are absent from grouped connection lists, dock chrome counts, connected chunk markers, and section tallies | PASS |
-| Phase 27 test ID coverage | `npm run test:phase27:ids` | Required Phase 27 component/provider IDs, including T-C-001..T-C-004 and T-U-004, are present in their expected test files | PASS |
+| Phase 27 test ID coverage | Retired temporary gap-resolution guard | Required Phase 27 component/provider IDs, including T-C-001..T-C-004 and T-U-004, were verified during v1.6 gap closeout; normal `npm test` coverage remains authoritative | PASS |
 | TypeScript graph-expanded contracts | `npm run typecheck` | `tsc --noEmit` passed | PASS |
 
 Note: local commands ran under Node `v26.0.0`; Cate officially supports Node 20/22. Orchestrator evidence reports `npm run build` and full `npm test` passed after review fix.

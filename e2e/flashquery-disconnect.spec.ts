@@ -33,9 +33,8 @@ test('T-E-007 REQ-020 disconnect and retry shows disconnected state and recovers
     await page.evaluate(() => window.__cateE2E!.retryFlashQuery())
     const disconnectedChip = page.getByRole('button', { name: 'Disconnected' })
     await expect(disconnectedChip).toBeVisible()
-    await disconnectedChip.hover()
-    await expect(page.getByRole('tooltip')).toContainText(/503|unavailable|Failed/i)
     await expect(page.getByText("Can't reach FlashQuery.")).toBeVisible()
+    await expect(page.getByText(/503|unavailable|Failed/i)).toBeVisible()
     await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible()
 
     server.setAvailable(true)
