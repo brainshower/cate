@@ -12,6 +12,8 @@ import type {
   TerminalActivity,
   GitInfo,
 } from '../../shared/types'
+import { forgetAgentTracker } from '../lib/agentScreenDetector'
+import { forgetTerminalForProcessMonitor } from '../lib/processMonitorState'
 
 // -----------------------------------------------------------------------------
 // Per-workspace status
@@ -388,12 +390,8 @@ export const useStatusStore = create<StatusStore>((set, get) => ({
   unregisterTerminal(terminalId) {
     // Drop module-level tracking in the process monitor so its rising-edge
     // map can't grow without bound across long sessions.
-    void import('../hooks/useProcessMonitor').then(({ forgetTerminalForProcessMonitor }) => {
-      forgetTerminalForProcessMonitor(terminalId)
-    })
-    void import('../lib/agentScreenDetector').then(({ forgetAgentTracker }) => {
-      forgetAgentTracker(terminalId)
-    })
+    forgetTerminalForProcessMonitor(terminalId)
+    forgetAgentTracker(terminalId)
     set((state) => {
       const { [terminalId]: _removed, ...remainingMap } = state.terminalWorkspaceMap
 
@@ -467,4 +465,3 @@ export const useStatusStore = create<StatusStore>((set, get) => ({
     }))
   },
 }))
-

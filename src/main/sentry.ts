@@ -11,7 +11,7 @@
 
 import { app } from 'electron'
 import log from './logger'
-import { getSettingSync } from './store'
+import { getSettingSync, registerCrashReportingToggleHandler } from './store'
 import { getCommonContext } from './appContext'
 
 declare const __SENTRY_DSN__: string
@@ -117,6 +117,8 @@ export function setCrashReportingEnabled(enabled: boolean): void {
   initialized = false
   log.info('[sentry] disabled at runtime')
 }
+
+registerCrashReportingToggleHandler(setCrashReportingEnabled)
 
 /** Capture an uncaughtException in the main process. Best-effort: returns
  *  immediately if Sentry isn't initialized, so the crash path never blocks. */

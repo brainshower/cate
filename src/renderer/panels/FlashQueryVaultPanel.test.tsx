@@ -163,7 +163,7 @@ describe('FlashQueryVaultPanel Header', () => {
 
     render(<SidebarViewContent view="flashqueryVault" rootPath="/workspace" />)
 
-    expect(screen.getByTestId('vault-panel-header')).toBeTruthy()
+    expect(await screen.findByTestId('vault-panel-header')).toBeTruthy()
     emitStatus({ workspaceId, status: 'live' })
     await waitFor(() => expect(window.electronAPI.flashqueryListVault).toHaveBeenCalledWith(workspaceId))
   })

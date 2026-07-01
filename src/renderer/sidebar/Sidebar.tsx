@@ -3,7 +3,7 @@ import { ProjectList } from './ProjectList'
 import { FileExplorer } from './FileExplorer'
 import { SourceControlView } from './SourceControlView'
 import { ParallelWorkTab } from './ParallelWorkTab'
-import FlashQueryVaultPanel from '../panels/FlashQueryVaultPanel'
+import { PANEL_REGISTRY } from '../panels/registry'
 import { useAppStore } from '../stores/appStore'
 import { useUIStore } from '../stores/uiStore'
 import type { SidebarView, SidebarSide } from '../stores/uiStore'
@@ -18,6 +18,8 @@ import {
   type Icon as PhosphorIcon,
 } from '@phosphor-icons/react'
 import pkg from '../../../package.json'
+
+const FlashQueryVaultPanel = PANEL_REGISTRY.flashqueryVault.Component
 
 // ---------------------------------------------------------------------------
 // View metadata — icon + title for each possible sidebar view
@@ -70,10 +72,12 @@ export const SidebarViewContent: React.FC<{ view: SidebarView; rootPath: string 
       // sidebar mount has no real panelId (it's not a registered panel),
       // so pass a sentinel string — the panel never reads it.
       return selectedWorkspaceId ? (
-        <FlashQueryVaultPanel
-          panelId="sidebar-flashquery-vault"
-          workspaceId={selectedWorkspaceId}
-        />
+        <React.Suspense fallback={<div className="flex h-full items-center justify-center text-xs text-muted">Loading...</div>}>
+          <FlashQueryVaultPanel
+            panelId="sidebar-flashquery-vault"
+            workspaceId={selectedWorkspaceId}
+          />
+        </React.Suspense>
       ) : (
         <div className="flex h-full items-center justify-center px-4 text-center text-xs text-muted">
           No workspace selected.

@@ -26,7 +26,7 @@ import {
 } from '../../shared/ipc-channels'
 import { FileTreeNode, FileSearchResult, FileSearchOptions } from '../../shared/types'
 import { sendToWindow, windowFromEvent } from '../windowRegistry'
-import { getSettingSync } from '../store'
+import { getSettingSync, registerWatcherIgnoreRefreshHandler } from '../store'
 
 // Read the user-configured exclusion list live so changes take effect without
 // a relaunch. Built into a Set per call for fast membership checks.
@@ -443,6 +443,8 @@ export function refreshWatcherIgnores(): void {
     old.close().catch((err) => log.warn('[fs-watch] old watcher close failed:', err))
   }
 }
+
+registerWatcherIgnoreRefreshHandler(refreshWatcherIgnores)
 
 // ---------------------------------------------------------------------------
 // In-process fs change subscriptions

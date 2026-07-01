@@ -10,6 +10,7 @@ import { useAppStore } from '../stores/appStore'
 import { useUIStore } from '../stores/uiStore'
 import type { MenuActionId, ShortcutAction } from '../../shared/types'
 import { confirmDeleteRegion } from '../lib/confirmDeleteRegion'
+import { reloadActiveWorkspaceFromDisk } from '../lib/session'
 
 // Single-key (no-modifier) actions that must be suppressed while typing.
 const TOOL_AND_NAV_ACTIONS = new Set<ShortcutAction>([
@@ -67,7 +68,6 @@ export function useShortcuts(): void {
         return
       }
       if (action === 'reloadWorkspace') {
-        const { reloadActiveWorkspaceFromDisk } = await import('../lib/session')
         await reloadActiveWorkspaceFromDisk()
         return
       }

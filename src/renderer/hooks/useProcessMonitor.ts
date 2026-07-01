@@ -3,19 +3,8 @@ import { useStatusStore } from '../stores/statusStore'
 import { useAppStore } from '../stores/appStore'
 import { terminalRegistry } from '../lib/terminalRegistry'
 import { noteAgentPresence } from '../lib/agentScreenDetector'
+import { getLastObservedAgentName, setLastObservedAgentName } from '../lib/processMonitorState'
 import type { TerminalActivity } from '../../shared/types'
-
-/** Last agent name we observed per terminal — module-level so we only push a
- *  panel-title fallback on the rising edge (null → "Codex") instead of every
- *  activity tick. Cleared when the renderer unregisters the terminal so the
- *  map stays bounded across long dev sessions. */
-const lastAgentName: Map<string, string | null> = new Map()
-
-/** Drop tracking state for a terminal. Wired into `statusStore.unregisterTerminal`
- *  so the module-level map can't grow without bound. */
-export function forgetTerminalForProcessMonitor(terminalId: string): void {
-  lastAgentName.delete(terminalId)
-}
 
 export function useProcessMonitor(workspaceId: string): void {
   useEffect(() => {
@@ -51,12 +40,12 @@ export function useProcessMonitor(workspaceId: string): void {
         // / session label) is suppressed for agents in terminalRegistry's
         // onTitleChange (see applyOscTitleIfNoAgent), so this name sticks.
         // `updatePanelTitleFromAgent` skips when the user has manually renamed.
-        const prevAgent = lastAgentName.get(terminalId) ?? null
+        const prevAgent = getLastObservedAgentName(terminalId)
         if (agentName && agentName !== prevAgent) {
           const panelId = terminalRegistry.panelIdForPty(terminalId) ?? terminalId
           useAppStore.getState().updatePanelTitleFromAgent(actualWorkspaceId, panelId, agentName)
         }
-        lastAgentName.set(terminalId, agentName)
+        setLastObservedAgentName(terminalId, agentName)
       },
     )
 

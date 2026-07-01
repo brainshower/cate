@@ -21,7 +21,7 @@ import {
   TERMINAL_SCROLLBACK_SAVE,
   TERMINAL_SET_VISIBILITY,
 } from '../../shared/ipc-channels'
-import { getOrCreateLogger, removeLogger, flushAll as flushAllLoggers, disposeAll as disposeAllLoggers } from './terminalLogger'
+import { TerminalLogger, getOrCreateLogger, removeLogger, flushAll as flushAllLoggers, disposeAll as disposeAllLoggers } from './terminalLogger'
 import { sendToWindow, windowFromEvent } from '../windowRegistry'
 import { getShellEnv } from '../shellEnv'
 import { resolveShell, type ResolvedShell } from '../shellResolver'
@@ -446,7 +446,6 @@ export function registerHandlers(): void {
   // Read terminal scrollback for session restore — prefers .scrollback (plain text
   // captured from xterm buffer) over .log (raw PTY output with escape sequences)
   ipcMain.handle(TERMINAL_LOG_READ, async (_event, terminalId: string): Promise<string | null> => {
-    const { TerminalLogger } = await import('./terminalLogger')
     const logDir = TerminalLogger.getLogDir()
 
     // Prefer scrollback capture (clean plain text)
@@ -471,7 +470,6 @@ export function registerHandlers(): void {
 
   // Save terminal scrollback content (plain text from xterm buffer)
   ipcMain.handle(TERMINAL_SCROLLBACK_SAVE, async (_event, ptyId: string, content: string): Promise<void> => {
-    const { TerminalLogger } = await import('./terminalLogger')
     const logDir = TerminalLogger.getLogDir()
     if (!fs.existsSync(logDir)) {
       fs.mkdirSync(logDir, { recursive: true })

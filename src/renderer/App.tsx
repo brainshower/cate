@@ -33,7 +33,7 @@ import { FlashQueryConnectionDialog } from './dialogs/FlashQueryConnectionDialog
 import { PostUpdateFeedbackDialog } from './dialogs/PostUpdateFeedbackDialog'
 import PerfHud from './ui/PerfHud'
 import { initPerfClient } from './lib/perf/perfClient'
-import { loadSession, restoreSession, restoreMultiWorkspaceSession, restoreDetachedWindows, setupAutoSave } from './lib/session'
+import { loadSession, restoreSession, restoreMultiWorkspaceSession, restoreDetachedWindows, setupAutoSave, reloadActiveWorkspaceFromDisk } from './lib/session'
 import type { MultiWorkspaceSession } from '../shared/types'
 import { useDockStore } from './stores/dockStore'
 import MainWindowShell from './shells/MainWindowShell'
@@ -197,7 +197,6 @@ function MainApp() {
       try {
         const choice = await window.electronAPI.confirmReloadWorkspace?.({ name: active.name })
         if (choice === 'reload') {
-          const { reloadActiveWorkspaceFromDisk } = await import('./lib/session')
           await reloadActiveWorkspaceFromDisk()
         } else {
           // Declined — resume normal saving so the current canvas overwrites the

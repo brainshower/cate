@@ -31,6 +31,7 @@ import { useDockStore } from '../stores/dockStore'
 import { findTabStack } from '../stores/dockTreeUtils'
 import { openFileAsPanel } from '../lib/fileRouting'
 import { terminalRegistry } from '../lib/terminalRegistry'
+import { reloadActiveWorkspaceFromDisk } from '../lib/session'
 
 // -----------------------------------------------------------------------------
 // Command definitions
@@ -222,7 +223,7 @@ export const CommandPalette: React.FC = () => {
         shortcutText: '',
         icon: <ReloadIcon />,
         action: () => {
-          void import('../lib/session').then((m) => m.reloadActiveWorkspaceFromDisk())
+          void reloadActiveWorkspaceFromDisk()
         },
       },
     ],

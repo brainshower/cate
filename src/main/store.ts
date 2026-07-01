@@ -26,6 +26,17 @@ import { DEFAULT_SETTINGS } from '../shared/types'
 import type { AppSettings } from '../shared/types'
 import { broadcastToAll } from './windowRegistry'
 
+let watcherIgnoreRefreshHandler: (() => void) | null = null
+let crashReportingToggleHandler: ((enabled: boolean) => void) | null = null
+
+export function registerWatcherIgnoreRefreshHandler(handler: (() => void) | null): void {
+  watcherIgnoreRefreshHandler = handler
+}
+
+export function registerCrashReportingToggleHandler(handler: ((enabled: boolean) => void) | null): void {
+  crashReportingToggleHandler = handler
+}
+
 // ---------------------------------------------------------------------------
 // Settings schema: expected key → expected typeof value (or 'array')
 // ---------------------------------------------------------------------------
@@ -221,11 +232,10 @@ export function registerHandlers(): void {
         broadcastToAll(SETTINGS_CHANGED, key, value)
       }
       // Rebuild active fs watchers so their ignore globs match the new
-      // exclusions (dynamic import avoids a static store<->filesystem cycle).
+      // exclusions without creating a static store<->filesystem cycle.
       if (key === 'fileExclusions') {
         try {
-          const { refreshWatcherIgnores } = await import('./ipc/filesystem')
-          refreshWatcherIgnores()
+          watcherIgnoreRefreshHandler?.()
         } catch (err) {
           log.warn('Watcher ignore refresh failed: %O', err)
         }
@@ -234,8 +244,7 @@ export function registerHandlers(): void {
       // so they don't need to relaunch for the change to take effect.
       if (key === 'crashReportingEnabled') {
         try {
-          const { setCrashReportingEnabled } = await import('./sentry')
-          setCrashReportingEnabled(value !== false)
+          crashReportingToggleHandler?.(value !== false)
         } catch (err) {
           log.warn('Sentry live-toggle failed: %O', err)
         }

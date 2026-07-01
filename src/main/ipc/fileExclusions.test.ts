@@ -27,6 +27,7 @@ vi.mock('../windowRegistry', () => ({
 let exclusions: string[] = []
 vi.mock('../store', () => ({
   getSettingSync: (key: string) => (key === 'fileExclusions' ? exclusions : undefined),
+  registerWatcherIgnoreRefreshHandler: vi.fn(),
 }))
 
 const { registerHandlers } = await import('./filesystem')
