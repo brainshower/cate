@@ -18,7 +18,7 @@
 - [x] **REQ-004**: User can see safe, complete display metadata for every graph edge relation, including directed/symmetric labels and unknown-relation fallbacks. — Completed in Phase 27 Plan 01.
 - [x] **REQ-005**: User can navigate graph source chunks through Cate preview chunk IDs while preserving FlashQuery chunk IDs for diagnostics and duplicate-heading disambiguation. — Completed in Phase 27 Plan 02.
 - [x] **REQ-006**: User can distinguish typed, mixed, and embeddings-only results while seeing stale and partial-data diagnostics without losing valid graph data. — Completed in Phase 27 Plan 02 for provider data construction and node metadata degradation.
-- [ ] **REQ-023**: User can get progressive node and edge metadata through a typed `query_graph` IPC/preload/provider path without exposing FlashQuery credentials. — Node metadata bridge/backfill completed in Phase 27 Plan 02; edge metadata overlay consumption remains Phase 28.
+- [x] **REQ-023**: User can get progressive node and edge metadata through a typed `query_graph` IPC/preload/provider path without exposing FlashQuery credentials. — Node metadata bridge/backfill completed in Phase 27 Plan 02; edge metadata overlay consumption completed in Phase 28 Plan 01.
 
 ### Whole-Document Graph View
 
@@ -30,9 +30,9 @@
 
 ### Selection View Detail
 
-- [ ] **REQ-012**: User can enter a section selection view with a back control, heading, chunk summary, and community context when node metadata is available.
-- [ ] **REQ-013**: User can see actionable selection-view status notes for question status, certainty, staleness risk, temporal markers, and external references.
-- [ ] **REQ-014**: User can inspect FlashQuery v1 string claims in order and see active claim-linked edges nested under matching claims, with stale/deleted edges filtered out.
+- [x] **REQ-012**: User can enter a section selection view with a back control, heading, chunk summary, and community context when node metadata is available.
+- [x] **REQ-013**: User can see actionable selection-view status notes for question status, certainty, staleness risk, temporal markers, and external references.
+- [x] **REQ-014**: User can inspect FlashQuery v1 string claims in order and see active claim-linked edges nested under matching claims, with stale/deleted edges filtered out.
 - [ ] **REQ-015**: User can expand selection-view edge rows to see relation, optional score, target context, snippet, reasoning, body, qualifiers, and readable metadata prose.
 
 ### Filtering, Navigation, and Chrome
@@ -87,9 +87,9 @@
 | REQ-009 | Phase 27 | Complete | T-C-013, T-C-014, T-C-015, T-C-016, T-C-017, T-E-002 |
 | REQ-010 | Phase 27 | Complete | T-U-017, T-U-018, T-C-018, T-C-019, T-C-020, T-C-021, T-C-064, T-E-001 |
 | REQ-011 | Phase 27 | Complete | T-C-022, T-C-023, T-C-024, T-C-025 |
-| REQ-012 | Phase 28 | Pending | T-C-030, T-C-031, T-C-032, T-E-002 |
-| REQ-013 | Phase 28 | Pending | T-C-033, T-C-034, T-C-035, T-C-036, T-C-037, T-C-065 |
-| REQ-014 | Phase 28 | Pending | T-C-038, T-C-039, T-C-040, T-C-041, T-C-042 |
+| REQ-012 | Phase 28 | Complete | T-C-030, T-C-031, T-C-032, T-E-002 |
+| REQ-013 | Phase 28 | Complete | T-C-033, T-C-034, T-C-035, T-C-036, T-C-037, T-C-065 |
+| REQ-014 | Phase 28 | Complete | T-C-038, T-C-039, T-C-040, T-C-041, T-C-042 |
 | REQ-015 | Phase 28 | Pending | T-U-027, T-C-043, T-C-044, T-C-045, T-C-046, T-C-047 |
 | REQ-016 | Phase 28 | Pending | T-C-050, T-C-051, T-C-052, T-C-053, T-C-054, T-E-003 |
 | REQ-017 | Phase 28 | Pending | T-U-019, T-U-020, T-U-021, T-U-022, T-E-003 |
@@ -98,7 +98,7 @@
 | REQ-020 | Phase 28 | Complete | T-C-028, T-C-049, T-E-001, T-A-003 |
 | REQ-021 | Phase 28 | Partially complete in 27-01 and 27-02 | T-U-016, T-U-026, T-U-028, T-C-003, T-C-004, T-C-063, T-I-003, T-E-005 |
 | REQ-022 | Phase 28 | Complete | T-C-029, T-C-060, T-C-061, T-C-062 |
-| REQ-023 | Phase 27 and Phase 28 | Node bridge/backfill complete in 27-02; edge overlay pending Phase 28 | T-I-005, T-I-006, T-I-009, T-U-023, T-U-024, T-U-025, T-E-002 |
+| REQ-023 | Phase 27 and Phase 28 | Complete: node bridge/backfill in 27-02; edge overlay in 28-01 | T-I-005, T-I-006, T-I-009, T-U-023, T-U-024, T-U-025, T-E-002 |
 
 **Coverage:**
 - v1.6 requirements: 23 total
@@ -107,4 +107,4 @@
 
 ---
 *Requirements defined: 2026-06-30*
-*Last updated: 2026-06-30 after v1.6 milestone definition*
+*Last updated: 2026-07-01 after Phase 28 Plan 01 completion*

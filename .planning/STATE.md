@@ -4,14 +4,14 @@ milestone: v1.6
 milestone_name: Graph Intelligence Monaco Side Panel
 status: executing
 stopped_at: Phase 28 planning complete
-last_updated: "2026-07-01T03:25:56.729Z"
-last_activity: 2026-07-01 -- Phase 28 planning complete
+last_updated: "2026-07-01T10:56:28.158Z"
+last_activity: 2026-07-01
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 7
-  completed_plans: 3
-  percent: 43
+  completed_plans: 4
+  percent: 50
 ---
 
 # Project State
@@ -25,15 +25,15 @@ See: `.planning/PROJECT.md` (updated 2026-06-30 after v1.6 Graph Intelligence Mo
 
 ## Current Position
 
-Phase: 28 (selection-detail-local-filter-chrome-polish-and-e2e-hardenin) — PLANNED
-Plan: 4 of 4
-Status: Ready to execute Phase 28
-Last activity: 2026-07-01 -- Phase 28 planning complete
+Phase: 28 (selection-detail-local-filter-chrome-polish-and-e2e-hardenin) — EXECUTING
+Plan: 2 of 4
+Status: Ready to execute
+Last activity: 2026-07-01
 
 ## Session Continuity
 
-Last session: 2026-07-01T03:25:56.729Z
-Stopped At: Phase 28 planning complete
+Last session: 2026-07-01T10:56:28.140Z
+Stopped At: Completed 28-01-PLAN.md
 Resume File: None
 
 ## Next Up
@@ -86,6 +86,8 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table.
 | 2026-06-30 | Whole-document graph mode activates only when graph document structure is present. | Preserves sparse mixed and embeddings-only fallback behavior while enabling graph triage when chunk mapping exists. |
 | 2026-06-30 | Top-N uses relation-priority ordering for graph whole-document rows before per-group overflow. | Keeps graph triage focused on high-priority relations such as contradictions before lower-priority similarity rows. |
 | 2026-06-30 | Whole-document row navigation derives source sections from byChunkId membership. | Avoids guessing from target metadata and records local diagnostics when a graph row is untraceable. |
+| 2026-07-01 | Plan 28-01 edge metadata overlay runs after node metadata backfill and degrades per chunk without blanking base `get_document` rows. | Keeps query_graph edge enrichment useful without making optional edge metadata a panel-wide failure point. |
+| 2026-07-01 | Plan 28-01 selection claim grouping filters stale/deleted edges first and routes invalid source claim refs to General connections. | Matches v1 product scope while preserving forward-compatible structured claim input. |
 
 ## Deferred Items
 
@@ -136,7 +138,8 @@ Items acknowledged and deferred at milestone close on 2026-06-16:
 | 27-graph-data-contract-and-whole-document-graph-view | 01 | 11m 17s | 3 | 10 |
 | 27-graph-data-contract-and-whole-document-graph-view | 02 | 10m 28s | 3 | 11 |
 | 27-graph-data-contract-and-whole-document-graph-view | 03 | 18m | 3 | 4 |
+| 28-selection-detail-local-filter-chrome-polish-and-e2e-hardenin | 01 | 7min | 3 | 7 |
 
 ## Operator Next Steps
 
-- Verify Phase 27, then plan/execute Phase 28.
+- Execute Phase 28 Plan 02 for expandable edge rows, readable qualifier/metadata prose, score thresholds, target-opening regression coverage, and narrow-width behavior.

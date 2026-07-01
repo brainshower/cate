@@ -79,7 +79,7 @@ This grouping keeps the first GSD phase vertically testable: the graph data cont
 
 **Recommended waves:**
 
-1. **Selection header, status notes, claims, and edge metadata overlay**
+1. ✅ **Selection header, status notes, claims, and edge metadata overlay** — completed by plan 28-01 (`28-01-SUMMARY.md`)
    - Implement selection-view header/back behavior, node-meta degradation, question/certainty/staleness/external-ref notes, temporal marker expansion, v1 string-claim rendering, structured-claim compatibility, `query_graph` edge metadata merge by edge ID, claim-linked edge nesting, and stale/deleted filtering.
    - Requirements in this wave: REQ-012, REQ-013, REQ-014, REQ-023.
    - Tests in same wave: T-U-024, T-C-030, T-C-031, T-C-032, T-C-033, T-C-034, T-C-035, T-C-036, T-C-037, T-C-038, T-C-039, T-C-040, T-C-041, T-C-042, T-C-065.
@@ -126,7 +126,7 @@ This grouping keeps the first GSD phase vertically testable: the graph data cont
 
 ## Current Status
 
-Phase 27 is complete. Plans 27-01 through 27-03 delivered the graph contract, provider graph mode, typed `query_graph` bridge, node metadata backfill, whole-document graph UI, grouped connections, scoped filters, local section navigation, and chrome state. Phase 28 remains for selection detail, local filtering, edge metadata overlay, chrome polish, and integrated Electron regression coverage.
+Phase 27 is complete. Plans 27-01 through 27-03 delivered the graph contract, provider graph mode, typed `query_graph` bridge, node metadata backfill, whole-document graph UI, grouped connections, scoped filters, local section navigation, and chrome state. Phase 28 Plan 01 completed selection detail, claim grouping, and edge metadata overlay. Phase 28 remains for expandable edge rows, local filtering/chrome polish, and integrated Electron regression coverage.
 
 ---
-*Last updated: 2026-06-30 after Phase 27 Plan 03 completion*
+*Last updated: 2026-07-01 after Phase 28 Plan 01 completion*
