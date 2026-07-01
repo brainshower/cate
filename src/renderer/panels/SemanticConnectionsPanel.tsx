@@ -8,7 +8,9 @@ import {
   groupSelectionClaimsAndConnections,
   groupWholeDocumentConnections,
   isActiveSemanticConnection,
+  scEdgeMetadataProse,
   scEdgeLabel,
+  scScoreTone,
   type SemanticConnection,
   type SemanticConnectionClaimGroup,
   type SemanticConnectionGroup,
@@ -257,12 +259,27 @@ function StateMessage({
 function ScorePie({ score }: { score: number }) {
   const label = `Cosine similarity ${Math.round(score * 100)}%`
   const degrees = Math.max(0, Math.min(1, score)) * 360
+  const tone = scScoreTone(score)
+  const color = tone === 'red'
+    ? 'rgb(248 113 113)'
+    : tone === 'orange'
+      ? 'rgb(251 146 60)'
+      : tone === 'teal'
+        ? 'rgb(45 212 191)'
+        : 'rgb(74 222 128)'
+  const border = tone === 'red'
+    ? 'border-red-400/30'
+    : tone === 'orange'
+      ? 'border-orange-400/30'
+      : tone === 'teal'
+        ? 'border-teal-400/30'
+        : 'border-green-400/30'
   return (
     <div
       aria-label={label}
       title={label}
-      className="h-11 w-11 shrink-0 rounded-full border border-teal-400/30"
-      style={{ background: `conic-gradient(rgb(45 212 191) ${degrees}deg, rgba(148, 163, 184, 0.18) 0deg)` }}
+      className={`h-11 w-11 shrink-0 rounded-full border ${border}`}
+      style={{ background: `conic-gradient(${color} ${degrees}deg, rgba(148, 163, 184, 0.18) 0deg)` }}
     >
       <div className="m-[9px] h-[24px] w-[24px] rounded-full bg-surface" />
     </div>
@@ -378,33 +395,44 @@ function SelectionEdgeRow({
   connection: SemanticConnection
   onOpen: (connection: SemanticConnection) => void
 }) {
+  const [expanded, setExpanded] = useState(false)
   const openEnabled = hasOpenMetadata(connection)
+  const heading = connection.target.heading
+  const targetLabel = `${connection.target.title}${heading ? ` ${heading}` : ''}`
+  const detailProse = scEdgeMetadataProse({ qualifiers: connection.qualifiers, metadata: connection.metadata })
+  const fullText = plainTextFromMarkdown(connection.target.body ?? connection.target.snippet)
+  const collapsedText = plainTextFromMarkdown(connection.target.snippet)
+  const hasDetails = Boolean(connection.target.body || connection.reasoning || detailProse.length > 0)
   return (
     <article
       data-testid={`semantic-selection-edge-${connection.id}`}
       className="group min-w-0 rounded border border-subtle bg-surface-2 px-2 py-2"
     >
       <div className="flex min-w-0 items-start gap-2">
-        <div className="min-w-0 flex-1">
+        <button
+          type="button"
+          className="min-w-0 flex-1 text-left"
+          aria-expanded={expanded}
+          aria-label={`${expanded ? 'Collapse' : 'Expand'} connection ${targetLabel}`}
+          onClick={() => setExpanded((value) => !value)}
+          disabled={!hasDetails}
+        >
           <div className="flex min-w-0 flex-wrap items-center gap-1.5">
             <span className="rounded border border-teal-400/25 bg-teal-400/10 px-1.5 py-0.5 text-[11px] font-medium text-teal-100">
               {scEdgeLabel(connection.rel, connection.dir)}
             </span>
-            {connection.qualifiers?.map((qualifier) => (
-              <Badge key={qualifier}>{qualifier}</Badge>
-            ))}
           </div>
           <p className="mt-1 truncate text-sm font-medium text-primary">{connection.target.title}</p>
-          {connection.target.heading && <p className="truncate text-xs text-secondary">{connection.target.heading}</p>}
+          {heading && <p className="truncate text-xs text-secondary">{heading}</p>}
           <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">
-            {plainTextFromMarkdown(connection.target.snippet)}
+            {collapsedText}
           </p>
-        </div>
+        </button>
         <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
             className="grid h-7 w-7 place-items-center rounded text-secondary opacity-0 transition-opacity hover:bg-hover hover:text-primary focus-visible:opacity-100 group-hover:opacity-100 disabled:pointer-events-none disabled:opacity-0"
-            aria-label={`Open ${connection.target.title}${connection.target.heading ? ` ${connection.target.heading}` : ''}`}
+            aria-label={`Open target ${targetLabel}`}
             disabled={!openEnabled}
             onClick={() => {
               if (openEnabled) onOpen(connection)
@@ -415,6 +443,17 @@ function SelectionEdgeRow({
           {connection.score !== undefined && <ScorePie score={connection.score} />}
         </div>
       </div>
+      {expanded && (
+        <div className="mt-2 space-y-2 border-t border-subtle pt-2 text-xs leading-relaxed text-secondary">
+          {fullText && <p className="whitespace-normal break-words">{fullText}</p>}
+          {connection.reasoning && <p className="whitespace-normal break-words">{connection.reasoning}</p>}
+          {detailProse.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {detailProse.map((line) => <Badge key={line}>{line}</Badge>)}
+            </div>
+          )}
+        </div>
+      )}
     </article>
   )
 }
@@ -1215,7 +1254,7 @@ export default function SemanticConnectionsPanel({
             <SelectionGraphView
               result={result}
               chunkId={activeChunkId}
-              connections={filteredConnections}
+              connections={sortedConnections}
               selectionScopeId={selectionScopeId}
               onOpenConnection={handleOpenConnection}
             />
