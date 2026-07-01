@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Graph Intelligence Monaco Side Panel
-status: verifying
-stopped_at: Completed 27-03-PLAN.md
-last_updated: "2026-06-30T23:53:57.172Z"
-last_activity: 2026-06-30
+status: executing
+stopped_at: Phase 28 planning complete
+last_updated: "2026-07-01T03:25:56.729Z"
+last_activity: 2026-07-01 -- Phase 28 planning complete
 progress:
   total_phases: 2
   completed_phases: 1
-  total_plans: 3
+  total_plans: 7
   completed_plans: 3
-  percent: 50
+  percent: 43
 ---
 
 # Project State
@@ -21,26 +21,26 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-30 after v1.6 Graph Intelligence Monaco Side Panel milestone start)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** Phase 27 — graph-data-contract-and-whole-document-graph-view
+**Current focus:** Phase 28 — selection-detail-local-filter-chrome-polish-and-e2e-hardenin
 
 ## Current Position
 
-Phase: 27 (graph-data-contract-and-whole-document-graph-view) — VERIFYING
-Plan: 3 of 3
-Status: Phase complete — ready for verification
-Last activity: 2026-06-30
+Phase: 28 (selection-detail-local-filter-chrome-polish-and-e2e-hardenin) — PLANNED
+Plan: 4 of 4
+Status: Ready to execute Phase 28
+Last activity: 2026-07-01 -- Phase 28 planning complete
 
 ## Session Continuity
 
-Last session: 2026-06-30T23:53:56.946Z
-Stopped At: Completed 27-03-PLAN.md
+Last session: 2026-07-01T03:25:56.729Z
+Stopped At: Phase 28 planning complete
 Resume File: None
 
 ## Next Up
 
-Verify Phase 27, then continue v1.6 with Phase 28.
+Execute Phase 28.
 
-Plan 27-03 completed whole-document graph Summary, Needs attention, Sections, grouped Connections, Top-N/relation filters, local section navigation, responsive dock classes, and chrome count/config state. Phase 28 should build selection-detail graph intelligence, local text filtering, edge metadata overlay, final chrome polish, and integrated Electron regression coverage.
+Phase 27 completed whole-document graph Summary, Needs attention, Sections, grouped Connections, Top-N/relation filters, local section navigation, responsive dock classes, and chrome count/config state. Phase 28 is now planned with four waves for selection-detail graph intelligence, local text filtering, edge metadata overlay, final chrome polish, and integrated Electron regression coverage.
 
 ## Decisions
 

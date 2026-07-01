@@ -336,20 +336,19 @@ expect(provider.loadDocumentConnections).toHaveBeenCalledTimes(1)
 
 | # | Claim | Section | Risk if Wrong |
 |---|-------|---------|---------------|
-| A1 | The edge traversal action can be implemented with existing `FlashQueryQueryGraphAction` values (`edges`, `neighbors`, or `subgraph`) without adding a new action literal. [ASSUMED] | Suggested Plan Split | Planner may need a small shared type/IPC validation update if FlashQuery requires another action name or parameter. |
-| A2 | Extending the renderer E2E harness with a graph scenario may be faster than extending the MCP stub, but either path is valid if T-E-001..005 remain deterministic. [ASSUMED] | Current Implementation State | Planner must choose one fixture strategy and avoid split fixture behavior. |
+| A1 | RESOLVED: Edge overlay should use the existing Cate `FlashQueryQueryGraphAction` contract, primarily `action:'edges'` with `chunk_id:<source chunk id>`, `direction:'both'`, `include_content:false`, and a bounded `limit`; `neighbors` or `subgraph` remain fallback actions only if implementation-time tests prove `edges` lacks the needed target node context. [VERIFIED: Cate `src/shared/types.ts`, `src/main/ipc/flashquery.ts`, FlashQuery `src/graph/queries.ts`] | Suggested Plan Split | Low: Cate already validates `edges`, FlashQuery implements `edgesAction()` returning `{ edges: GraphEdgePayload[] }`, and `GraphEdgePayload.metadata` carries the required overlay fields. |
+| A2 | RESOLVED: E2E should prefer extending `e2e/fixtures/flashquery-server.ts` so T-E-003 can prove no backend reload through deterministic `get_document` / `query_graph` counters. Renderer harness graph scenarios are acceptable only as a fallback if the stub cannot reach the app flow, and must still expose provider-call counters. [VERIFIED: product test plan, existing E2E fixture patterns] | Current Implementation State | Low/medium: stub work is more realistic and gives stronger backend-call evidence, but harness fallback remains valid if documented in Plan 28-04 summary. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Which exact `query_graph` edge traversal shape should provider use for edge overlay?**
-   - What we know: `FlashQueryQueryGraphParams` supports `action: 'node' | 'edges' | 'neighbors' | 'subgraph'`, `chunk_id`, `direction`, `include_content`, and `limit`. [VERIFIED: codebase grep]
-   - What's unclear: The product docs require edge metadata from edge traversal, but Cate code does not yet show the exact response schema. [VERIFIED: product requirements]
-   - Recommendation: Planner should add a first task to inspect or fixture the expected `query_graph` edge response and keep the merge helper tolerant of arrays under likely payload keys. [ASSUMED]
+   - Resolution: Use `window.electronAPI.flashqueryQueryGraph(workspaceId, { action: 'edges', chunk_id: flashqueryChunkId, direction: 'both', include_content: false, limit })` through the existing provider injection path. Cate validates `edges` and defaults bulk `include_content` to false; FlashQuery `edgesAction()` returns an `edges` array of `GraphEdgePayload` objects filtered by `chunk_id`; each edge includes `id`, `source`, `target`, `relation`, `direction`, `confidence`, `confidence_score`, `reasoning`, `stale`, and `metadata`. [VERIFIED: Cate `src/main/ipc/flashquery.ts`, Cate `src/main/ipc/flashquery.test.ts`, FlashQuery `src/graph/queries.ts`]
+   - Payload extraction rule for implementation: support both FlashQuery's JSON envelope shape (`payload.data.edges`) and Cate/unit fixture flattened shapes (`payload.edges`, plus node-adjacent `payload.data.node.edges` / `payload.node.edges` if present). This preserves compatibility with Phase 27 tests while matching current FlashQuery source. [VERIFIED: FlashQuery `graphToolResult()`, Cate `clientManager.queryGraph()` tests]
+   - Merge rule: for each returned edge, merge by `edge.id` onto existing `SemanticConnection.id`. Read `qualifiers`, `source_claims_referenced`, and `target_claims_referenced` from `edge.metadata` first; tolerate already-promoted `edge.qualifiers`, `edge.source_claims_referenced`, and `edge.target_claims_referenced` in fixtures. Keep unknown metadata opaque and append diagnostics for malformed overlay entries instead of dropping base connections. [VERIFIED: product REQ-023, Phase 27 provider patterns]
 
 2. **Should E2E graph data flow through the real FlashQuery stub or the renderer harness provider?**
-   - What we know: Existing semantic E2E uses renderer harness scenarios for embeddings-only results, while FlashQuery stub currently implements `get_document` body/search but not graph connections/query_graph. [VERIFIED: codebase grep]
-   - What's unclear: Product T-E-003 wants proof of no backend reload, which is stronger if the MCP stub records `get_document`/`query_graph` counters. [VERIFIED: product test plan]
-   - Recommendation: Prefer extending `flashquery-server.ts` for graph `get_document` and `query_graph` counters if time allows; otherwise use harness provider plus explicit provider call counters. [ASSUMED]
+   - Resolution: Prefer the FlashQuery stub route. Extend `e2e/fixtures/flashquery-server.ts` with deterministic graph `get_document` and `query_graph` responses plus per-tool counters so T-E-003 can assert filter typing does not increment backend calls. [VERIFIED: product T-E-003 and existing stub-server patterns]
+   - Fallback: If the stub path cannot drive the existing app shell reliably, extend `src/renderer/lib/e2eHarness.ts` with graph scenarios and provider-call counters. The implementation summary must document the fallback and still prove no provider/FlashQuery reload while filtering. [VERIFIED: 28-PATTERNS.md]
 
 ## Environment Availability
 
