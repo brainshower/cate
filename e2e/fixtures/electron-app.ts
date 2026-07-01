@@ -210,7 +210,7 @@ export async function titleBarCentre(
   // resolveDrop maps to canvas-reposition for same-canvas drops). The empty
   // tab-bar spacer absorbs mousedown without dispatching to the host's
   // onTabBarMouseDown, so we deliberately target a real tab element.
-  return { x: rect.x + 40, y: rect.y + 6 }
+  return { x: rect.x + Math.min(24, rect.width / 2), y: rect.y + 6 }
 }
 
 export async function waitForGhost(

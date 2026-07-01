@@ -381,16 +381,24 @@ test('T-E-017 browser webview registration reaches main for portal parent lookup
 
 test('T-E-005/T-E-006 browser history and bookmarks persist by workspace and stay isolated', async () => {
   const userDataDir = await mkdtemp(path.join(os.tmpdir(), 'cate-browser-uplift-user-data-'))
+  const workspaceRootA = await mkdtemp(path.join(os.tmpdir(), 'cate-browser-history-workspace-a-'))
   const { electronApp: firstApp, mainWindow: firstPage } = await launchApp({ userDataDir })
   let workspaceA: string
   let workspaceB: string
 
   try {
-    workspaceA = await firstPage.evaluate(() => window.__cateE2E!.selectedWorkspaceId())
+    workspaceA = await firstPage.evaluate((rootPath) => window.__cateE2E!.ensureWorkspaceRoot(rootPath), workspaceRootA)
     await firstPage.evaluate(async (workspaceId) => {
       await window.electronAPI.browserHistoryRecord(workspaceId, 'https://example.test/a', 'Workspace A Page')
       await window.electronAPI.browserBookmarksAdd(workspaceId, 'https://example.test/a', 'Workspace A Page')
     }, workspaceA)
+    await expect.poll(async () => firstPage.evaluate(async (workspaceId) => ({
+      history: await window.electronAPI.browserHistoryGet(workspaceId),
+      bookmarks: await window.electronAPI.browserBookmarksGet(workspaceId),
+    }), workspaceA)).toMatchObject({
+      history: [{ url: 'https://example.test/a', title: 'Workspace A Page', visitCount: 1 }],
+      bookmarks: [{ url: 'https://example.test/a', title: 'Workspace A Page' }],
+    })
     workspaceB = await createWorkspace(firstPage, 'Browser State Workspace B')
   } finally {
     await closeApp(firstApp)

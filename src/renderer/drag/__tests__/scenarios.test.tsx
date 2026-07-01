@@ -3,10 +3,9 @@
 // can't silently break it. Each test exercises real useDragOp → runtime →
 // resolve → commit. Only window.electronAPI is mocked.
 //
-// Numbered scenarios match Phase 1 of the plan. Dock-related scenarios (6, 7,
-// 10) require dock-stack support in the harness and are skipped pending a
-// follow-up harness extension. preMaximizeSize / proportional grab / cross-
-// store invariant are the high-priority regressions targeted here.
+// Numbered scenarios match Phase 1 of the plan. Dock-specific no-op/detach
+// behavior is covered in resolve/commit tests; this harness focuses on real
+// canvas-node drag dispatch, geometry, cross-store drops, and detach fallback.
 // =============================================================================
 
 import { describe, it, expect, vi, afterEach } from 'vitest'
@@ -295,14 +294,6 @@ describe('drag integration — canvas-node scenarios', () => {
     expect(scene.drag().isDragging).toBe(false)
   })
 
-  // ---------------------------------------------------------------------------
-  // 6, 7, 10 — require a real DockStore/DockTabStack mounted in the harness
-  // (a multi-tab stack with registered drop zones, undockPanel/dockPanel store
-  // actions, and a separate per-node mini-dock for scenario 10). That is
-  // substantially more harness scaffolding than this file owns. They remain
-  // skipped here until a dock harness is added.
-  // ---------------------------------------------------------------------------
-  it.skip('6: single-tab self-drop guard (requires dock harness)', () => {})
-  it.skip('7: tab detach from multi-tab stack (requires dock harness)', () => {})
-  it.skip('10: spring-load on maximized (requires dock harness + fake timers)', () => {})
+  // Dock-zone scenarios from the original list are covered by
+  // src/renderer/drag/resolve.test.ts and src/renderer/drag/commit.test.ts.
 })

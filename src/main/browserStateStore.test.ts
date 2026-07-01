@@ -86,6 +86,46 @@ describe('browserStateStore', () => {
     ])
   })
 
+  test('serializes concurrent history and bookmark writes without losing either update', async () => {
+    await Promise.all([
+      recordBrowserVisit('workspace-a', 'https://example.test/a', 'Example A', 1000),
+      addBrowserBookmark('workspace-a', 'https://example.test/a', 'Example A', 1000),
+      recordBrowserVisit('workspace-b', 'https://example.test/b', 'Example B', 2000),
+      addBrowserBookmark('workspace-b', 'https://example.test/b', 'Example B', 2000),
+    ])
+
+    expect(await listBrowserHistory('workspace-a')).toEqual<BrowserHistoryEntry[]>([
+      {
+        url: 'https://example.test/a',
+        title: 'Example A',
+        lastVisited: 1000,
+        visitCount: 1,
+      },
+    ])
+    expect(await listBrowserBookmarks('workspace-a')).toEqual<BrowserBookmark[]>([
+      {
+        url: 'https://example.test/a',
+        title: 'Example A',
+        addedAt: 1000,
+      },
+    ])
+    expect(await listBrowserHistory('workspace-b')).toEqual<BrowserHistoryEntry[]>([
+      {
+        url: 'https://example.test/b',
+        title: 'Example B',
+        lastVisited: 2000,
+        visitCount: 1,
+      },
+    ])
+    expect(await listBrowserBookmarks('workspace-b')).toEqual<BrowserBookmark[]>([
+      {
+        url: 'https://example.test/b',
+        title: 'Example B',
+        addedAt: 2000,
+      },
+    ])
+  })
+
   test('T-U-003 workspace cleanup removes only target workspace history/bookmarks', async () => {
     await recordBrowserVisit('workspace-a', 'https://example.test/a', 'Example A', 1000)
     await addBrowserBookmark('workspace-a', 'https://example.test/a', 'Example A', 1000)

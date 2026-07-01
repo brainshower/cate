@@ -16,6 +16,7 @@ interface BrowserStateFile {
 
 const MAX_HISTORY_ENTRIES_PER_WORKSPACE = 500
 const STATE_FILE_NAME = 'browser-state.json'
+let stateWriteQueue: Promise<unknown> = Promise.resolve()
 
 function emptyState(): BrowserStateFile {
   return { version: 1, workspaces: {} }
@@ -100,9 +101,27 @@ async function readState(): Promise<BrowserStateFile> {
 async function writeState(state: BrowserStateFile): Promise<void> {
   const filePath = browserStatePath()
   await fs.mkdir(path.dirname(filePath), { recursive: true })
-  const tmpPath = `${filePath}.tmp`
+  const tmpPath = `${filePath}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`
   await fs.writeFile(tmpPath, JSON.stringify(state, null, 2), 'utf8')
   await fs.rename(tmpPath, filePath)
+}
+
+async function readLatestState(): Promise<BrowserStateFile> {
+  await stateWriteQueue.catch(() => undefined)
+  return readState()
+}
+
+function mutateState<T>(mutator: (state: BrowserStateFile) => Promise<T> | T): Promise<T> {
+  const run = stateWriteQueue
+    .catch(() => undefined)
+    .then(async () => {
+      const state = await readState()
+      const result = await mutator(state)
+      await writeState(state)
+      return result
+    })
+  stateWriteQueue = run.then(() => undefined, () => undefined)
+  return run
 }
 
 function workspaceState(state: BrowserStateFile, workspaceId: string): WorkspaceBrowserState {
@@ -123,49 +142,49 @@ export async function recordBrowserVisit(
   const normalizedWorkspaceId = normalizeWorkspaceId(workspaceId)
   if (!isRecordableBrowserUrl(url)) return null
 
-  const state = await readState()
-  const current = workspaceState(state, normalizedWorkspaceId)
-  const existing = current.history.find((entry) => entry.url === url)
+  return mutateState((state) => {
+    const current = workspaceState(state, normalizedWorkspaceId)
+    const existing = current.history.find((entry) => entry.url === url)
 
-  if (existing) {
-    existing.title = normalizeTitle(title, url)
-    existing.lastVisited = visitedAt
-    existing.visitCount += 1
-  } else {
-    current.history.push({
-      url,
-      title: normalizeTitle(title, url),
-      lastVisited: visitedAt,
-      visitCount: 1,
-    })
-  }
+    if (existing) {
+      existing.title = normalizeTitle(title, url)
+      existing.lastVisited = visitedAt
+      existing.visitCount += 1
+    } else {
+      current.history.push({
+        url,
+        title: normalizeTitle(title, url),
+        lastVisited: visitedAt,
+        visitCount: 1,
+      })
+    }
 
-  current.history.sort((a, b) => b.lastVisited - a.lastVisited)
-  current.history = current.history.slice(0, MAX_HISTORY_ENTRIES_PER_WORKSPACE)
-  await writeState(state)
-  return current.history.find((entry) => entry.url === url) ?? null
+    current.history.sort((a, b) => b.lastVisited - a.lastVisited)
+    current.history = current.history.slice(0, MAX_HISTORY_ENTRIES_PER_WORKSPACE)
+    return current.history.find((entry) => entry.url === url) ?? null
+  })
 }
 
 export async function listBrowserHistory(workspaceId: string): Promise<BrowserHistoryEntry[]> {
   const normalizedWorkspaceId = normalizeWorkspaceId(workspaceId)
-  const state = await readState()
+  const state = await readLatestState()
   return [...(state.workspaces[normalizedWorkspaceId]?.history ?? [])]
 }
 
 export async function removeBrowserHistoryEntry(workspaceId: string, url: string): Promise<void> {
   const normalizedWorkspaceId = normalizeWorkspaceId(workspaceId)
-  const state = await readState()
-  const current = workspaceState(state, normalizedWorkspaceId)
-  current.history = current.history.filter((entry) => entry.url !== url)
-  await writeState(state)
+  await mutateState((state) => {
+    const current = workspaceState(state, normalizedWorkspaceId)
+    current.history = current.history.filter((entry) => entry.url !== url)
+  })
 }
 
 export async function clearBrowserHistory(workspaceId: string): Promise<void> {
   const normalizedWorkspaceId = normalizeWorkspaceId(workspaceId)
-  const state = await readState()
-  const current = workspaceState(state, normalizedWorkspaceId)
-  current.history = []
-  await writeState(state)
+  await mutateState((state) => {
+    const current = workspaceState(state, normalizedWorkspaceId)
+    current.history = []
+  })
 }
 
 export async function addBrowserBookmark(
@@ -177,49 +196,49 @@ export async function addBrowserBookmark(
   const normalizedWorkspaceId = normalizeWorkspaceId(workspaceId)
   if (!isRecordableBrowserUrl(url)) return null
 
-  const state = await readState()
-  const current = workspaceState(state, normalizedWorkspaceId)
-  const bookmark: BrowserBookmark = {
-    url,
-    title: normalizeTitle(title, url),
-    addedAt,
-  }
-  const index = current.bookmarks.findIndex((entry) => entry.url === url)
-  if (index >= 0) {
-    current.bookmarks[index] = bookmark
-  } else {
-    current.bookmarks.push(bookmark)
-  }
-  current.bookmarks.sort((a, b) => a.addedAt - b.addedAt)
-  await writeState(state)
-  return bookmark
+  return mutateState((state) => {
+    const current = workspaceState(state, normalizedWorkspaceId)
+    const bookmark: BrowserBookmark = {
+      url,
+      title: normalizeTitle(title, url),
+      addedAt,
+    }
+    const index = current.bookmarks.findIndex((entry) => entry.url === url)
+    if (index >= 0) {
+      current.bookmarks[index] = bookmark
+    } else {
+      current.bookmarks.push(bookmark)
+    }
+    current.bookmarks.sort((a, b) => a.addedAt - b.addedAt)
+    return bookmark
+  })
 }
 
 export async function listBrowserBookmarks(workspaceId: string): Promise<BrowserBookmark[]> {
   const normalizedWorkspaceId = normalizeWorkspaceId(workspaceId)
-  const state = await readState()
+  const state = await readLatestState()
   return [...(state.workspaces[normalizedWorkspaceId]?.bookmarks ?? [])]
 }
 
 export async function removeBrowserBookmark(workspaceId: string, url: string): Promise<void> {
   const normalizedWorkspaceId = normalizeWorkspaceId(workspaceId)
-  const state = await readState()
-  const current = workspaceState(state, normalizedWorkspaceId)
-  current.bookmarks = current.bookmarks.filter((entry) => entry.url !== url)
-  await writeState(state)
+  await mutateState((state) => {
+    const current = workspaceState(state, normalizedWorkspaceId)
+    current.bookmarks = current.bookmarks.filter((entry) => entry.url !== url)
+  })
 }
 
 export async function clearBrowserBookmarks(workspaceId: string): Promise<void> {
   const normalizedWorkspaceId = normalizeWorkspaceId(workspaceId)
-  const state = await readState()
-  const current = workspaceState(state, normalizedWorkspaceId)
-  current.bookmarks = []
-  await writeState(state)
+  await mutateState((state) => {
+    const current = workspaceState(state, normalizedWorkspaceId)
+    current.bookmarks = []
+  })
 }
 
 export async function clearWorkspaceBrowserState(workspaceId: string): Promise<void> {
   const normalizedWorkspaceId = normalizeWorkspaceId(workspaceId)
-  const state = await readState()
-  delete state.workspaces[normalizedWorkspaceId]
-  await writeState(state)
+  await mutateState((state) => {
+    delete state.workspaces[normalizedWorkspaceId]
+  })
 }
