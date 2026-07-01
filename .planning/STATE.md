@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Graph Intelligence Monaco Side Panel
-status: milestone_complete
-stopped_at: Milestone complete (Phase 28 was final phase)
-last_updated: 2026-07-01T12:00:47.747Z
-last_activity: 2026-07-01
+status: Awaiting next milestone
+stopped_at: Milestone v1.6 archived
+last_updated: "2026-07-01T17:55:35.242Z"
+last_activity: 2026-07-01 — Milestone v1.6 completed and archived
 progress:
   total_phases: 2
   completed_phases: 2
@@ -18,27 +18,27 @@ progress:
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-06-30 after v1.6 Graph Intelligence Monaco Side Panel milestone start)
+See: `.planning/PROJECT.md` (updated 2026-07-01 after v1.6 Graph Intelligence Monaco Side Panel milestone archive)
 
 **Core value:** Cate should let a developer use FlashQuery knowledge from inside the same spatial workspace where they already code, inspect files, run terminals, and collaborate with AI agents.
-**Current focus:** Milestone complete
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-Phase: 28
-Plan: Not started
-Status: Milestone complete
-Last activity: 2026-07-01
+Phase: Milestone v1.6 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-07-01 — Milestone v1.6 completed and archived
 
 ## Session Continuity
 
 Last session: 2026-07-01T11:45:46.000Z
-Stopped At: Completed 28-04-PLAN.md
+Stopped At: Milestone v1.6 archived
 Resume File: None
 
 ## Next Up
 
-Phase 28 is complete.
+Start the next milestone with `/gsd-new-milestone`.
 
 Phase 27 completed whole-document graph Summary, Needs attention, Sections, grouped Connections, Top-N/relation filters, local section navigation, responsive dock classes, and chrome count/config state. Phase 28 completed selection detail, claim grouping, edge metadata overlay, expandable edge rows, readable detail prose, score thresholds, selection target-opening regression coverage, local filtering, no-results behavior, filter chrome-state polish, deterministic graph Electron E2E coverage, and final regression evidence.
 
@@ -151,4 +151,4 @@ Items acknowledged and deferred at milestone close on 2026-06-16:
 
 ## Operator Next Steps
 
-- Review Phase 28 Plan 04 summary and decide whether to close the v1.6 milestone or address deferred lint/detached-window E2E harness follow-up first.
+- Start the next milestone with /gsd-new-milestone

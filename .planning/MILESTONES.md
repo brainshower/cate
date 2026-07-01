@@ -1,5 +1,21 @@
 # Milestones
 
+## v1.6 Graph Intelligence Monaco Side Panel (Shipped: 2026-07-01)
+
+**Phases completed:** 2 phases, 7 plans, 19 tasks
+
+**Key accomplishments:**
+
+- Graph-aware FlashQuery document connection contracts now carry relation metadata, graph summaries, source chunks, target health fields, and credential-safe diagnostics across Cate boundaries.
+- Semantic Connections provider now derives graph modes, maps FlashQuery source chunks to Cate preview IDs, and backfills node metadata through a typed `query_graph` Electron bridge.
+- Cate's Semantic Connections panel now renders whole-document graph triage with Summary, attention rows, graph sections, grouped relation connections, Top-N/filter scoping, and source-section navigation.
+- Selected graph sections now render inspectable status notes, ordered claims, claim-linked active edges, General connections, and query_graph edge metadata overlays.
+- Selection graph edges now expand into readable, whitelisted detail while preserving score thresholds, intra-group sorting, dock-safe layout, and existing Cate target routing.
+- Renderer-local graph filtering now narrows loaded whole-document and selection data without provider calls while dock chrome reports separate filter/config state and stable pre-filter counts.
+- Deterministic Electron coverage now proves the completed graph Semantic Connections workflow in the app shell without live FlashQuery credentials.
+
+---
+
 ## v1.5 Browser Uplift (Shipped: 2026-06-30)
 
 **Phases completed:** 1 phases, 10 plans, 18 tasks

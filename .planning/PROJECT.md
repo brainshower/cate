@@ -50,19 +50,18 @@ Canonical source docs for this milestone:
 - `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Browser Capture and Control/Browser Uplift - Requirements.md`
 - `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Browser Capture and Control/Browser Uplift - Test Plan.md`
 
-## Current Milestone: v1.6 Graph Intelligence Monaco Side Panel
+**Shipped:** v1.6 Graph Intelligence Monaco Side Panel (2026-07-01).
 
-**Goal:** Upgrade Cate's Semantic Connections side panel from embeddings-only cards into a graph-intelligence inspector that consumes FlashQuery typed graph data while preserving the existing fallback path.
-
-**Target features:**
-- Graph-aware FlashQuery data contracts, `query_graph` IPC/preload support, progressive node/edge metadata backfill, typed/mixed/embeddings-only mode derivation, and embeddings fallback preservation.
-- Whole-document graph view with community summary, attention surfacing, graph-enhanced sections, grouped typed connections, Top-N allocation, nature filters, and dock-native chrome.
-- Section selection view with chunk summaries, status notes, string-claim rendering, claim-linked edges, qualifier/detail expansion, target navigation preservation, local text filtering, chrome polish, and integrated Electron regression coverage.
+Cate's Semantic Connections side panel now consumes FlashQuery typed graph data while preserving embeddings-only fallback behavior. It supports graph-aware contracts, `query_graph` IPC/preload/provider enrichment, whole-document graph triage, section selection detail with claims and edge metadata, renderer-local filtering, dock chrome state, and deterministic Electron regression coverage.
 
 Canonical source docs for this milestone:
 
 - `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Monaco Extension Testing/Graph Explorer/Graph Intelligence Monaco Side Panel Requirements.md`
 - `/Users/matt/Documents/Claude/Projects/FlashQuery/flashquery-product/Product/Cate/Monaco Extension Testing/Graph Explorer/Graph Intelligence Monaco Side Panel Test Plan.md`
+
+## Next Milestone Goals
+
+No active next milestone is defined yet. Use `/gsd-new-milestone` to define fresh requirements and roadmap scope.
 
 ## Requirements
 
@@ -93,14 +92,15 @@ Canonical source docs for this milestone:
 - ✓ Browser chrome includes main-frame-only load errors, crash recovery, focused-webview shortcut forwarding, star/bookmark affordances, menu/settings controls, and scoped clear-data — v1.5
 - ✓ Screenshot capture lives in modular IPC while preserving `{ filePath, dataUrl }`, Desktop PNG behavior, ownership validation, and screenshot drag/drop usability — v1.5
 - ✓ Browser operations preserve FlashQuery credentials, connection metadata, vault/index state, MCP sessions, and existing FlashQuery IPC/preload contracts — v1.5
+- ✓ User can preserve embeddings-only Semantic Connections behavior while adding typed and mixed graph-intelligence modes — v1.6
+- ✓ User can receive normalized FlashQuery `get_document` graph fields and use typed `query_graph` main/preload/renderer boundaries without leaking credentials — v1.6
+- ✓ User can inspect whole-document graph intelligence inside the existing Semantic Connections panel with native dock sizing, attention surfacing, section navigation, grouped typed connections, and tested chrome state — v1.6
+- ✓ User can inspect section-level graph intelligence with status notes, claims, claim-linked edges, qualifier prose, expandable details, and covered target-opening regressions — v1.6
+- ✓ User can locally filter loaded graph data and rely on integrated Electron regression coverage without triggering FlashQuery or network calls from the filter — v1.6
 
 ### Active
 
-- [ ] Preserve embeddings-only Semantic Connections behavior while adding typed and mixed graph-intelligence modes.
-- [ ] Normalize FlashQuery `get_document` graph fields and expose `query_graph` through typed main/preload/renderer boundaries without leaking credentials.
-- [ ] Render whole-document graph intelligence inside the existing Semantic Connections panel with native dock sizing, attention surfacing, section navigation, grouped typed connections, and tested chrome state.
-- [ ] Render section-level graph intelligence with status notes, claims, claim-linked edges, qualifier prose, expandable details, and target-opening regressions covered.
-- [ ] Add local text filtering and integrated Electron regression coverage without triggering FlashQuery/network calls from the filter.
+(None — next milestone requirements have not been defined.)
 
 ### Out of Scope
 
@@ -214,11 +214,11 @@ Known codebase concerns that affect ongoing work:
 | Exclude upstream tabs, start page/autocomplete, proxy, extraction, and browser MCP control | Browser Uplift is a durability and affordance uplift, not the broader Browser Capture and Control tier. | ✓ Good — v1.5 |
 | Use Option A for browser popover and clear-data behavior | Homepage/search stay in the existing Settings-window browser panel; clear-data does not force-reload live webviews and takes effect on next navigation/reload. | ✓ Good — v1.5 |
 | Run post-phase gap analysis before closeout | The gap pass found shortcut scoping, portal smoke, traceability, visit-count, and screenshot-drop issues after implementation looked complete. | ✓ Good — v1.5 |
-| Treat Graph Intelligence Monaco Side Panel requirements/test plan as source of truth for v1.6 | The product docs define FlashQuery graph-data assumptions, deferred claim-basis scope, REQ/test traceability, and the five source implementation phases. | Planned — v1.6 |
-| Execute Graph Intelligence in two GSD phases | Phase 27 bundles source phases 1-2 so the data contract and whole-document graph view land together with their tests; Phase 28 bundles source phases 3-5 for selection detail, filter/chrome polish, E2E, and regression hardening. | Planned — v1.6 |
-| Preserve product `REQ-###` and test IDs | The supplied Test Plan already maps REQ IDs to unit/component/IPC/E2E/acceptance tests; keeping those IDs avoids traceability drift. | Planned — v1.6 |
-| Use `query_graph` for v1 node and edge metadata in Cate | FlashQuery v1 exposes node analysis and edge metadata through `query_graph`, while `get_document` supplies connection overlays and graph summary. | Planned — v1.6 |
-| Keep claim basis tags and per-claim question text deferred | FlashQuery v1 produces `key_claims` as `string[]`; per-claim basis/question typing requires a future structured-claims pipeline. | Planned — v1.6 |
+| Treat Graph Intelligence Monaco Side Panel requirements/test plan as source of truth for v1.6 | The product docs define FlashQuery graph-data assumptions, deferred claim-basis scope, REQ/test traceability, and the five source implementation phases. | ✓ Good — v1.6 |
+| Execute Graph Intelligence in two GSD phases | Phase 27 bundles source phases 1-2 so the data contract and whole-document graph view land together with their tests; Phase 28 bundles source phases 3-5 for selection detail, filter/chrome polish, E2E, and regression hardening. | ✓ Good — v1.6 |
+| Preserve product `REQ-###` and test IDs | The supplied Test Plan already maps REQ IDs to unit/component/IPC/E2E/acceptance tests; keeping those IDs avoids traceability drift. | ✓ Good — v1.6 |
+| Use `query_graph` for v1 node and edge metadata in Cate | FlashQuery v1 exposes node analysis and edge metadata through `query_graph`, while `get_document` supplies connection overlays and graph summary. | ✓ Good — v1.6 |
+| Keep claim basis tags and per-claim question text deferred | FlashQuery v1 produces `key_claims` as `string[]`; per-claim basis/question typing requires a future structured-claims pipeline. | ✓ Good — v1.6 |
 
 ## Planning Preference
 
@@ -242,4 +242,4 @@ This document evolves at milestone boundaries and, once explicitly created, phas
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-30 after v1.6 Graph Intelligence Monaco Side Panel milestone start*
+*Last updated: 2026-07-01 after v1.6 Graph Intelligence Monaco Side Panel milestone archive*

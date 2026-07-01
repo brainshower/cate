@@ -161,6 +161,55 @@
 
 ---
 
+## Milestone: v1.6 — Graph Intelligence Monaco Side Panel
+
+**Shipped:** 2026-07-01
+**Phases:** 2 | **Plans:** 7 | **Tasks:** 19
+
+### What Was Built
+
+- Graph-aware FlashQuery document connection contracts carrying relation metadata, graph summaries, source chunks, target health fields, optional scores, and credential-safe diagnostics across shared/main/preload/renderer boundaries.
+- A typed `query_graph` Electron bridge with provider mode derivation, preview chunk mapping, progressive node metadata backfill, and edge metadata overlay support.
+- Whole-document graph triage in the Semantic Connections panel: Summary, attention rows, graph-enhanced sections, grouped typed connections, Top-N/filter scoping, and source-section navigation.
+- Section selection detail with status notes, ordered string claims, claim-linked active edges, General connections, expandable edge rows, readable qualifier/metadata prose, and preserved target-opening routes.
+- Renderer-local text filtering over loaded graph data, with separate filter/config dock chrome state and stable pre-filter connection counts.
+- Deterministic Electron graph/inspector coverage that proves the completed workflow without live FlashQuery credentials.
+
+### What Worked
+
+- The two-phase grouping matched the product source phases well: Phase 27 established the contract and whole-document surface, while Phase 28 deepened section detail, filtering, chrome, and E2E.
+- Preserving the product `REQ-###` and test IDs made the gap analysis and milestone audit much easier to reconcile against code and test evidence.
+- The graph provider boundary absorbed partial/malformed data cleanly. Node/edge enrichment could degrade per chunk or edge without blanking useful base `get_document` rows.
+- The post-audit tech-debt cleanup was worth doing before archive: Node enforcement, lint, skipped tests, Nyquist metadata, and build warnings all ended in a clean closeout state.
+
+### What Was Inefficient
+
+- Phase 27 left a stale HUMAN-UAT/VERIFICATION human-needed artifact even after the final milestone audit and E2E evidence superseded it. Closeout had to normalize that artifact before archive.
+- Temporary phase-specific npm scripts (`test:phase27:ids`, `test:phase28:ids`) helped during gap closeout but cluttered package scripts and were removed once normal suites became authoritative.
+- Build warning cleanup exposed several mixed static/dynamic import boundaries late in closeout. The actual fix was small, but it required care around store/filesystem/sentry cycles.
+
+### Patterns Established
+
+- Use deterministic renderer/Electron graph fixtures for Cate-side graph workflows; live FlashQuery graph generation remains outside Cate milestone verification.
+- Keep optional graph enrichment as additive overlay data. Base document connections should remain useful when node or edge metadata is missing or malformed.
+- Use small neutral state modules when a store needs cleanup access to hook-owned module state; avoid importing React hook modules into stores.
+- Sidebar-mounted panel components can reuse the lazy panel registry component instead of statically importing the same panel and defeating chunk splitting.
+
+### Key Lessons
+
+1. Milestone audits can supersede earlier human-needed artifacts, but the source artifact should be updated so closeout tooling does not keep reporting stale work.
+2. Normal full-suite commands should become authoritative after temporary traceability guards have served their purpose.
+3. Vite mixed import warnings are usually a real architecture smell: either the lazy boundary is illusory, or a cycle-sensitive callback boundary is needed.
+4. Graph UI should treat structured data as progressive: preserve valid rows, redact diagnostics, and make optional metadata enrich rather than gate rendering.
+
+### Cost Observations
+
+- Model mix: high-capability coding/audit agents for implementation, gap remediation, and repo-wide tech-debt cleanup.
+- Sessions: concentrated from 2026-06-30 through 2026-07-01.
+- Notable: Final closeout included a full repo hygiene sweep, so archive readiness required more than feature verification: lint/type/unit/E2E/build all ended green under Node 20 with no skipped tests and no build warnings.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -170,6 +219,7 @@
 | v1.0 | multi-session over 2 days | 7 | 23 | 61 | First milestone in this project; established the /gsd workflow chain end-to-end, the post-execution gap-and-resolution Gaps.md pattern, and the retroactive close-out discipline. |
 | v1.3 | multiple sessions over 3 days | 2 | 8 | n/a | Document Outline shipped as a focused two-phase feature; audit process learned to reconcile stale artifact wording with current code and explicit product clarification. |
 | v1.5 | concentrated implementation plus gap closeout | 1 | 10 | 18 | Browser Uplift proved one phase can work when sub-slices share a boundary; post-phase gap analysis became the decisive closeout artifact. |
+| v1.6 | concentrated implementation plus tech-debt closeout | 2 | 7 | 19 | Graph Intelligence proved source phases can be bundled into two vertical GSD phases while preserving product REQ/test traceability and ending with full-suite/no-warning hygiene. |
 
 ### Cumulative Quality
 
@@ -178,6 +228,7 @@
 | v1.0 | 18 net new FlashQuery-touching files (51 src/ touched total) | 9 new test files | ~6,800 | 4 (`flashquery-happy-path`, `flashquery-disconnect`, `flashquery-persistence`, `flashquery-vault-browse`) + 1 fixture (`flashquery-server.spec.ts`) | Full v1 user journey covered E2E; integration audit returned WIRED across all 8 cross-cutting flows |
 | v1.3 | focused Outline/editor/preview files | focused parser, registry, OutlinePanel, and EditorPanel tests | n/a | 0 | 22/22 requirements satisfied; focused integration run passed 92 tests after audit clarification. |
 | v1.5 | focused browser, IPC, settings, and E2E harness files | browser partition/state/menu/panel/capture/security tests | n/a | Browser Uplift spec + FlashQuery persistence smoke | Automated verification passed after gap remediation; `T-M-001` remains human-only manual-pending evidence. |
+| v1.6 | semantic connection provider/panel, FlashQuery IPC, graph helpers, and E2E harness files | graph contract/provider/panel/main/preload tests plus repo hygiene tests | n/a | Graph Semantic Connections E2E + inspector coverage | 23/23 requirements satisfied; lint, typecheck, unit, E2E, and build passed under Node 20 with 0 skipped tests and no Vite warnings. |
 
 ### Recurring Themes (to watch in v1.1+)
 
