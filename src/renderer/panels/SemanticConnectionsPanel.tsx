@@ -1134,11 +1134,14 @@ export default function SemanticConnectionsPanel({
       configOpen,
       configActive,
       toggleConfig,
+      filterOpen,
+      filterActive: localFilterActive,
+      toggleFilter,
     })
     return () => {
       useSemanticConnectionsChromeStore.getState().clearPanelChrome(panelId)
     }
-  }, [activeScopedConnections.length, configActive, configOpen, panelId, toggleConfig])
+  }, [activeScopedConnections.length, configActive, configOpen, filterOpen, localFilterActive, panelId, toggleConfig, toggleFilter])
 
   const toggleRelFilter = useCallback((rel: string) => {
     setActiveRelFilters((current) => {

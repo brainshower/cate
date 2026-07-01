@@ -5,6 +5,9 @@ export interface SemanticConnectionsChromeStateEntry {
   configOpen: boolean
   configActive: boolean
   toggleConfig: () => void
+  filterOpen: boolean
+  filterActive: boolean
+  toggleFilter: () => void
 }
 
 interface SemanticConnectionsChromeState {

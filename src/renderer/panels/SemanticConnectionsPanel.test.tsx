@@ -1334,7 +1334,7 @@ describe('SemanticConnectionsPanel', () => {
     expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.configActive).toBe(false)
 
     act(() => useSemanticConnectionsChromeStore.getState().panels['sc-1']?.toggleConfig())
-    fireEvent.change(screen.getByLabelText('Top N connections'), { target: { value: '1' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Supports' }))
 
     expect(screen.getByTestId('semantic-filter-indicator')).toBeTruthy()
     expect(screen.getByTestId('semantic-config-indicator')).toBeTruthy()
