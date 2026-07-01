@@ -72,4 +72,40 @@ describe('real E2E harness global gate', () => {
     expect(cateE2EGlobal()?.chooseNextContextMenuAction).toEqual(expect.any(Function))
     expect(cateE2EGlobal()?.ensureWorkspaceRoot).toEqual(expect.any(Function))
   })
+
+  it('T-E-001 T-E-003 exposes deterministic graph scenario counters for local-filter E2E', async () => {
+    const harnessModule = loadRealHarness()
+    installE2EHarnessIfEnabled({ isE2E: true }, () => harnessModule)
+    await harnessModule
+
+    const harness = cateE2EGlobal()
+    expect(harness).toBeDefined()
+    harness!.setSemanticConnectionsScenario('graph')
+    harness!.resetSemanticConnectionsProviderCounts()
+
+    const first = await harness!.semanticConnectionsProvider().loadDocumentConnections({
+      workspaceId: 'workspace',
+      editorPanelId: 'editor',
+      documentPath: 'semantic.md',
+      markdown: '# Overview',
+    })
+    const second = await harness!.semanticConnectionsProvider().loadDocumentConnections({
+      workspaceId: 'workspace',
+      editorPanelId: 'editor',
+      documentPath: 'semantic.md',
+      markdown: '# Overview',
+    })
+
+    expect(first.mode).toBe('typed')
+    expect(first.graphSummary?.edge_count).toBeGreaterThan(0)
+    expect(first.nodeMeta?.['design-brief']?.keyClaims).toContain('Design brief must stay aligned with runtime adapter recovery.')
+    expect(second).toBe(first)
+    expect(harness!.semanticConnectionsProviderCounts()).toEqual({
+      loadDocumentConnections: 2,
+      fixtureReads: {
+        getDocument: 1,
+        queryGraph: 2,
+      },
+    })
+  })
 })
