@@ -288,8 +288,16 @@ const selectionGraphResult: SemanticConnectionsResult = {
       id: 'edge-claim-zero',
       rel: 'supports',
       confidenceScore: 0.84,
+      score: 0.84,
       sourceClaimsReferenced: [0],
       qualifiers: ['normative'],
+      reasoning: 'The support edge connects the rollout claim to implementation evidence.',
+      metadata: {
+        severity: 'medium',
+        strength: 'strong',
+        dependency_type: 'runtime',
+        raw_debug: { hidden: true },
+      },
       status: 'active',
       target: {
         title: 'Support Notes',
@@ -297,6 +305,20 @@ const selectionGraphResult: SemanticConnectionsResult = {
         heading: 'Evidence',
         chunkId: 'support-evidence',
         snippet: 'Supporting evidence backs the first claim.',
+        body: 'Supporting evidence backs the first claim with complete implementation detail.',
+      },
+    }, {
+      id: 'edge-claim-zero-contradiction',
+      rel: 'contradicts',
+      confidenceScore: 0.7,
+      sourceClaimsReferenced: [0],
+      status: 'active',
+      target: {
+        title: 'Contradiction Notes',
+        path: 'Docs/Contradiction.md',
+        heading: 'Counterpoint',
+        chunkId: 'contradiction-counterpoint',
+        snippet: 'Counterpoint should sort before support in nature mode.',
       },
     }, {
       id: 'edge-general',
@@ -1039,13 +1061,136 @@ describe('SemanticConnectionsPanel', () => {
     const firstClaim = within(claims).getByTestId('semantic-selection-claim-0')
     expect(within(firstClaim).getByText('Support Notes')).toBeTruthy()
     expect(within(firstClaim).getByText('Supports')).toBeTruthy()
-    expect(within(firstClaim).getByText('normative')).toBeTruthy()
     expect(within(claims).queryByText('Stale Notes')).toBeNull()
     expect(within(claims).queryByText('basis')).toBeNull()
 
     const general = screen.getByTestId('semantic-selection-general-connections')
     expect(within(general).getByText('General Notes')).toBeTruthy()
     expect(within(general).queryByText('Stale Notes')).toBeNull()
+  })
+
+  it('T-C-043/T-C-044 renders collapsed selection edge rows with relation, optional score, target, heading, and clamped snippet', async () => {
+    renderPanel(selectionGraphResult, { activeChunkId: 'scope' })
+
+    const support = await screen.findByTestId('semantic-selection-edge-edge-claim-zero')
+    expect(within(support).getByText('Supports')).toBeTruthy()
+    expect(within(support).getByLabelText('Cosine similarity 84%')).toBeTruthy()
+    expect(within(support).getByText('Support Notes')).toBeTruthy()
+    expect(within(support).getByText('Evidence')).toBeTruthy()
+    expect(within(support).getByText('Supporting evidence backs the first claim.')).toBeTruthy()
+    expect(within(support).queryByText('The support edge connects the rollout claim to implementation evidence.')).toBeNull()
+    expect(within(support).queryByText('Supporting evidence backs the first claim with complete implementation detail.')).toBeNull()
+
+    const general = screen.getByTestId('semantic-selection-edge-edge-general')
+    expect(within(general).queryByLabelText(/Cosine similarity/)).toBeNull()
+  })
+
+  it('T-C-045/T-C-046 expands selection edge rows with full detail, qualifier prose, and known metadata prose', async () => {
+    renderPanel(selectionGraphResult, { activeChunkId: 'scope' })
+
+    const support = await screen.findByTestId('semantic-selection-edge-edge-claim-zero')
+    const toggle = within(support).getByRole('button', { name: 'Expand connection Support Notes Evidence' })
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+
+    fireEvent.click(toggle)
+
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    expect(within(support).getByText('Supporting evidence backs the first claim with complete implementation detail.')).toBeTruthy()
+    expect(within(support).getByText('The support edge connects the rollout claim to implementation evidence.')).toBeTruthy()
+    expect(within(support).getByText('Qualifier: normative')).toBeTruthy()
+    expect(within(support).getByText('Severity: medium')).toBeTruthy()
+    expect(within(support).getByText('Strength: strong')).toBeTruthy()
+    expect(within(support).getByText('Dependency type: runtime')).toBeTruthy()
+    expect(within(support).queryByText(/raw_debug/)).toBeNull()
+    expect(within(support).queryByText(/\{"hidden":true\}/)).toBeNull()
+  })
+
+  it('T-C-047 sorts edges inside claim and General groups without reordering claims', async () => {
+    renderPanel(selectionGraphResult, { activeChunkId: 'scope' })
+
+    const claims = await screen.findByTestId('semantic-selection-claims')
+    expect(within(claims).getAllByTestId(/semantic-selection-claim-/).map((claim) => claim.textContent)).toEqual([
+      expect.stringContaining('First claim in order'),
+      expect.stringContaining('Structured claim text'),
+    ])
+    const firstClaim = within(claims).getByTestId('semantic-selection-claim-0')
+    expect(within(firstClaim).getAllByTestId(/semantic-selection-edge-/).map((row) => row.dataset.testid)).toEqual([
+      'semantic-selection-edge-edge-claim-zero',
+      'semantic-selection-edge-edge-claim-zero-contradiction',
+    ])
+
+    act(() => useSemanticConnectionsChromeStore.getState().panels['sc-1']?.toggleConfig())
+    fireEvent.click(screen.getByRole('button', { name: 'Nature' }))
+
+    expect(within(claims).getAllByTestId(/semantic-selection-claim-/).map((claim) => claim.textContent)).toEqual([
+      expect.stringContaining('First claim in order'),
+      expect.stringContaining('Structured claim text'),
+    ])
+    expect(within(firstClaim).getAllByTestId(/semantic-selection-edge-/).map((row) => row.dataset.testid)).toEqual([
+      'semantic-selection-edge-edge-claim-zero-contradiction',
+      'semantic-selection-edge-edge-claim-zero',
+    ])
+  })
+
+  it('T-C-048 opens selection edge targets through existing same-document routing', async () => {
+    const scrollPreviewToHeading = vi.fn()
+    readyEditor('/workspace/Plan.md')
+    act(() => {
+      updateActiveEditorPreview('workspace-1', 'editor-1', {
+        markdownPreview: true,
+        filePath: '/workspace/Plan.md',
+        scrollPreviewToHeading,
+        resolvePreviewChunkIdForHeading: vi.fn(() => 'scope'),
+      })
+      usePreviewSelectionStore.getState().selectSection('scope', 'editor-1')
+    })
+    render(
+      <SemanticConnectionsPanel
+        panelId="sc-1"
+        workspaceId="workspace-1"
+        sourceEditorPanelId="editor-1"
+        sourceFilePath="/workspace/Plan.md"
+        provider={provider({
+          ...selectionGraphResult,
+          byChunkId: {
+            ...selectionGraphResult.byChunkId,
+            scope: [{
+              ...selectionGraphResult.byChunkId.scope[0],
+              id: 'same-doc-selection-edge',
+              target: {
+                ...selectionGraphResult.byChunkId.scope[0].target,
+                title: 'Plan',
+                path: '/workspace/Plan.md',
+                heading: 'Scope',
+                chunkId: 'scope',
+                inDocument: true,
+              },
+            }],
+          },
+        })}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Open target Plan Scope' }))
+
+    expect(scrollPreviewToHeading).toHaveBeenCalledWith('Scope')
+    expect(usePreviewSelectionStore.getState().getScope('editor-1').pinnedChunkId).toBe('scope')
+  })
+
+  it('T-C-049 exposes accessible disclosure labels and narrow dock classes on selection rows', async () => {
+    renderPanel(selectionGraphResult, { activeChunkId: 'scope' })
+
+    const support = await screen.findByTestId('semantic-selection-edge-edge-claim-zero')
+    const toggle = within(support).getByRole('button', { name: 'Expand connection Support Notes Evidence' })
+    const open = within(support).getByRole('button', { name: 'Open target Support Notes Evidence' })
+
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(support.className).toContain('min-w-0')
+    expect(toggle.className).toContain('min-w-0')
+    expect(open.className).toContain('h-7')
+    expect(open.className).toContain('w-7')
+    expect(within(support).getByText('Support Notes').className).toContain('truncate')
+    expect(within(support).getByText('Supporting evidence backs the first claim.').className).toContain('line-clamp-2')
   })
 
   it('T-I-025 and T-I-026 shows loading and supersedes stale in-flight requests', async () => {
