@@ -1,4 +1,4 @@
-import { ArrowSquareOut, SlidersHorizontal } from '@phosphor-icons/react'
+import { ArrowSquareOut, MagnifyingGlass, SlidersHorizontal, X } from '@phosphor-icons/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { SemanticConnectionsPanelProps } from './types'
@@ -8,6 +8,8 @@ import {
   groupSelectionClaimsAndConnections,
   groupWholeDocumentConnections,
   isActiveSemanticConnection,
+  matchSemanticConnectionFilter,
+  matchSemanticSectionFilter,
   scEdgeMetadataProse,
   scEdgeLabel,
   scScoreTone,
@@ -16,6 +18,7 @@ import {
   type SemanticConnectionGroup,
   type SemanticConnectionNodeMeta,
   type SemanticConnectionSortMode,
+  type SemanticConnectionFilterSectionInput,
   type SemanticConnectionsTargetMapEntry,
   type SemanticConnectionsProvider,
   type SemanticConnectionsResult,
@@ -381,6 +384,14 @@ function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'ne
   )
 }
 
+function NoFilterMatches({ term }: { term: string }) {
+  return (
+    <p className="rounded border border-subtle bg-surface px-3 py-2 text-sm text-secondary">
+      No items match {term}
+    </p>
+  )
+}
+
 function questionStatusLabel(status: SemanticConnectionNodeMeta['questionStatus']): string | null {
   if (status === 'open') return 'Open question'
   if (status === 'deferred') return 'Deferred question'
@@ -486,12 +497,14 @@ function SelectionGraphView({
   result,
   chunkId,
   connections,
+  filterTerm,
   selectionScopeId,
   onOpenConnection,
 }: {
   result: SemanticConnectionsResult
   chunkId: string
   connections: readonly SemanticConnection[]
+  filterTerm: string
   selectionScopeId: string | null
   onOpenConnection: (connection: SemanticConnection) => void
 }) {
@@ -505,6 +518,21 @@ function SelectionGraphView({
     () => groupSelectionClaimsAndConnections(nodeMeta?.keyClaims, connections),
     [connections, nodeMeta?.keyClaims],
   )
+  const trimmedFilterTerm = filterTerm.trim()
+  const filterActive = trimmedFilterTerm.length > 0
+  const visibleGroups = useMemo(() => {
+    if (!filterActive) return grouped
+    return {
+      claims: grouped.claims.filter((claim) => matchSemanticSectionFilter({
+        nodeMeta: { keyClaims: [claim.text] },
+        connections: claim.connections,
+      }, trimmedFilterTerm)),
+      generalConnections: grouped.generalConnections.filter((connection) => (
+        matchSemanticConnectionFilter(connection, trimmedFilterTerm)
+      )),
+    }
+  }, [filterActive, grouped, trimmedFilterTerm])
+  const hasVisibleFilterItems = visibleGroups.claims.length > 0 || visibleGroups.generalConnections.length > 0
   const hasStatus = Boolean(
     questionLabel
       || nodeMeta?.questionResolution
@@ -581,20 +609,22 @@ function SelectionGraphView({
         </SectionChrome>
       )}
 
-      {grouped.claims.length > 0 && (
+      {filterActive && !hasVisibleFilterItems && <NoFilterMatches term={trimmedFilterTerm} />}
+
+      {visibleGroups.claims.length > 0 && (
         <SectionChrome title="Claims">
           <div data-testid="semantic-selection-claims" className="space-y-2">
-            {grouped.claims.map((claim) => (
+            {visibleGroups.claims.map((claim) => (
               <ClaimBlock key={claim.index} claim={claim} onOpenConnection={onOpenConnection} />
             ))}
           </div>
         </SectionChrome>
       )}
 
-      {grouped.generalConnections.length > 0 && (
+      {visibleGroups.generalConnections.length > 0 && (
         <SectionChrome title="General connections">
           <div data-testid="semantic-selection-general-connections" className="space-y-1.5">
-            {grouped.generalConnections.map((connection) => (
+            {visibleGroups.generalConnections.map((connection) => (
               <SelectionEdgeRow key={connection.id} connection={connection} onOpen={onOpenConnection} />
             ))}
           </div>
@@ -607,19 +637,23 @@ function SelectionGraphView({
 function WholeDocumentGraphView({
   result,
   connections,
+  filterTerm,
   loading,
   selectionScopeId,
   onSelectConnectionSource,
 }: {
   result: SemanticConnectionsResult
   connections: readonly SemanticConnection[]
+  filterTerm: string
   loading: boolean
   selectionScopeId: string | null
   onSelectConnectionSource: (connection: SemanticConnection) => void
 }) {
   const summary = result.communitySummary
   const secondaryLabels = summary?.labels?.filter((label) => label && label !== summary.dominantLabel) ?? []
-  const sections = result.chunkOrder
+  const trimmedFilterTerm = filterTerm.trim()
+  const filterActive = trimmedFilterTerm.length > 0
+  const allSections = result.chunkOrder
     .map((chunkId) => ({
       chunkId,
       entry: result.chunkMap[chunkId],
@@ -627,14 +661,33 @@ function WholeDocumentGraphView({
       connections: (result.byChunkId[chunkId] ?? []).filter(isActiveConnection),
     }))
     .filter((section) => section.entry?.previewChunkId)
-  const contradictionItems = sections.flatMap((section) => (
+  const sectionFilterInput = (section: (typeof allSections)[number]): SemanticConnectionFilterSectionInput => ({
+    heading: sectionTitle(section.entry, section.chunkId),
+    nodeMeta: section.nodeMeta,
+    connections: section.connections,
+  })
+  const matchesSection = (section: (typeof allSections)[number]): boolean => (
+    !filterActive || matchSemanticSectionFilter(sectionFilterInput(section), trimmedFilterTerm)
+  )
+  const sections = filterActive ? allSections.filter(matchesSection) : allSections
+  const contradictionItems = allSections.flatMap((section) => (
     section.connections
       .filter((connection) => connection.rel === 'contradicts' && isActiveConnection(connection))
+      .filter((connection) => (
+        !filterActive
+          || matchSemanticConnectionFilter(connection, trimmedFilterTerm)
+          || matchSemanticSectionFilter(sectionFilterInput(section), trimmedFilterTerm)
+      ))
       .map((connection) => ({ section, connection }))
   ))
-  const questionItems = sections.filter((section) => section.nodeMeta?.questionStatus === 'open')
-  const uncertainItems = sections.filter((section) => section.nodeMeta?.certaintyLevel === 'medium' || section.nodeMeta?.certaintyLevel === 'low')
+  const questionItems = allSections
+    .filter((section) => section.nodeMeta?.questionStatus === 'open')
+    .filter(matchesSection)
+  const uncertainItems = allSections
+    .filter((section) => section.nodeMeta?.certaintyLevel === 'medium' || section.nodeMeta?.certaintyLevel === 'low')
+    .filter(matchesSection)
   const hasAttention = contradictionItems.length > 0 || questionItems.length > 0 || uncertainItems.length > 0
+  const hasVisibleFilterItems = hasAttention || sections.length > 0 || connections.length > 0
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-3">
@@ -660,6 +713,7 @@ function WholeDocumentGraphView({
           </div>
         </SectionChrome>
       )}
+      {filterActive && !hasVisibleFilterItems && <NoFilterMatches term={trimmedFilterTerm} />}
       {hasAttention && (
         <SectionChrome title="Needs attention">
           <div className="space-y-3">
@@ -856,11 +910,14 @@ export default function SemanticConnectionsPanel({
   const [loadIssue, setLoadIssue] = useState<LoadIssue>(null)
   const [loadKey, setLoadKey] = useState(0)
   const [configOpen, setConfigOpen] = useState(false)
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [filterText, setFilterText] = useState('')
   const [sortMode, setSortMode] = useState<SemanticConnectionSortMode>('similarity')
   const [activeRelFilters, setActiveRelFilters] = useState<ReadonlySet<string>>(() => new Set())
   const [topN, setTopN] = useState<number>(Infinity)
   const [navigationDiagnostics, setNavigationDiagnostics] = useState(0)
   const requestRef = useRef(0)
+  const filterInputRef = useRef<HTMLInputElement | null>(null)
   const resultCacheRef = useRef(new Map<string, SemanticConnectionsResult>())
   const latestResultRef = useRef(new Map<string, { hash: string; result: SemanticConnectionsResult }>())
 
@@ -1004,6 +1061,15 @@ export default function SemanticConnectionsPanel({
   const sortedConnections = useMemo(() => (
     arrangeForDisplay(filteredConnections, hasTypedControls ? sortMode : 'similarity')
   ), [filteredConnections, hasTypedControls, sortMode])
+  const trimmedFilterText = filterText.trim()
+  const localFilterActive = trimmedFilterText.length > 0
+  const locallyFilteredConnections = useMemo(() => {
+    if (!localFilterActive) return filteredConnections
+    return filteredConnections.filter((connection) => matchSemanticConnectionFilter(connection, trimmedFilterText))
+  }, [filteredConnections, localFilterActive, trimmedFilterText])
+  const locallySortedConnections = useMemo(() => (
+    arrangeForDisplay(locallyFilteredConnections, hasTypedControls ? sortMode : 'similarity')
+  ), [hasTypedControls, locallyFilteredConnections, sortMode])
   const graphWholeDocumentMode = Boolean(
     result
       && !activeChunkId
@@ -1017,9 +1083,9 @@ export default function SemanticConnectionsPanel({
       && result.chunkMap[activeChunkId]?.previewChunkId,
   )
   const graphOrderedConnections = useMemo(() => (
-    groupWholeDocumentConnections(filteredConnections).flatMap((group) => group.connections)
-  ), [filteredConnections])
-  const orderedConnections = graphWholeDocumentMode ? graphOrderedConnections : sortedConnections
+    groupWholeDocumentConnections(locallyFilteredConnections).flatMap((group) => group.connections)
+  ), [locallyFilteredConnections])
+  const orderedConnections = graphWholeDocumentMode ? graphOrderedConnections : locallySortedConnections
   const limit = displayLimit(topN, orderedConnections.length)
   const visibleConnections = orderedConnections.slice(0, limit)
   const hiddenCount = Math.max(0, orderedConnections.length - visibleConnections.length)
@@ -1030,6 +1096,10 @@ export default function SemanticConnectionsPanel({
   useEffect(() => {
     if (topN !== Infinity && orderedConnections.length > 0 && topN >= orderedConnections.length) setTopN(Infinity)
   }, [orderedConnections.length, topN])
+
+  useEffect(() => {
+    if (filterOpen) filterInputRef.current?.focus()
+  }, [filterOpen])
 
   useEffect(() => {
     setActiveRelFilters((current) => {
@@ -1047,6 +1117,16 @@ export default function SemanticConnectionsPanel({
   }, [connectedChunkIds, selectionScopeId])
 
   const toggleConfig = useCallback(() => setConfigOpen((value) => !value), [])
+  const toggleFilter = useCallback(() => {
+    setFilterOpen((value) => {
+      if (value) setFilterText('')
+      return !value
+    })
+  }, [])
+  const clearAndCloseFilter = useCallback(() => {
+    setFilterText('')
+    setFilterOpen(false)
+  }, [])
 
   useEffect(() => {
     useSemanticConnectionsChromeStore.getState().setPanelChrome(panelId, {
@@ -1119,6 +1199,22 @@ export default function SemanticConnectionsPanel({
         <button
           type="button"
           className="relative ml-auto flex h-[22px] w-[22px] items-center justify-center rounded text-secondary hover:bg-hover hover:text-primary"
+          aria-label="Filter semantic connections"
+          aria-expanded={filterOpen}
+          title="Filter semantic connections"
+          onClick={toggleFilter}
+        >
+          <MagnifyingGlass size={14} />
+          {localFilterActive && (
+            <span
+              data-testid="semantic-filter-indicator"
+              className="absolute right-0 top-0 h-1.5 w-1.5 rounded-full bg-amber-300"
+            />
+          )}
+        </button>
+        <button
+          type="button"
+          className="relative flex h-[22px] w-[22px] items-center justify-center rounded text-secondary hover:bg-hover hover:text-primary"
           aria-label="Configure semantic connections"
           aria-expanded={configOpen}
           title="Configure semantic connections"
@@ -1149,6 +1245,37 @@ export default function SemanticConnectionsPanel({
 
       {!precondition && (
         <>
+          {filterOpen && (
+            <div className="shrink-0 border-b border-subtle px-3 py-2">
+              <div className="flex min-w-0 items-center gap-2 rounded-md border border-subtle bg-surface px-2 py-1.5">
+                <MagnifyingGlass size={14} className="shrink-0 text-muted" />
+                <input
+                  ref={filterInputRef}
+                  type="search"
+                  role="searchbox"
+                  aria-label="Filter semantic connections"
+                  value={filterText}
+                  onChange={(event) => setFilterText(event.currentTarget.value)}
+                  onKeyDown={(event) => {
+                    if (event.key !== 'Escape') return
+                    event.stopPropagation()
+                    clearAndCloseFilter()
+                  }}
+                  className="min-w-0 flex-1 bg-transparent text-sm text-primary outline-none placeholder:text-muted"
+                  placeholder="Filter loaded graph"
+                />
+                <button
+                  type="button"
+                  className="grid h-6 w-6 place-items-center rounded text-secondary hover:bg-hover hover:text-primary"
+                  aria-label="Clear semantic connections filter"
+                  onClick={clearAndCloseFilter}
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            </div>
+          )}
+
           {configOpen && (
             <div className="shrink-0 border-b border-subtle px-3 py-3">
               <div className="space-y-3 rounded-md border border-subtle bg-surface px-3 py-3">
@@ -1244,6 +1371,7 @@ export default function SemanticConnectionsPanel({
             <WholeDocumentGraphView
               result={result}
               connections={visibleConnections}
+              filterTerm={trimmedFilterText}
               loading={loading}
               selectionScopeId={selectionScopeId}
               onSelectConnectionSource={handleSelectWholeDocumentConnectionSource}
@@ -1255,20 +1383,29 @@ export default function SemanticConnectionsPanel({
               result={result}
               chunkId={activeChunkId}
               connections={sortedConnections}
+              filterTerm={trimmedFilterText}
               selectionScopeId={selectionScopeId}
               onOpenConnection={handleOpenConnection}
             />
           )}
 
           {!loading && !loadIssue && !graphWholeDocumentMode && !graphSelectionMode && sortedConnections.length === 0 && (
-            <StateMessage
-              title={activeChunkId ? 'No connections exist for this section' : 'No connections exist for this document'}
-              detail="No matching semantic connections are available yet."
-              action={{ label: 'Reload connections', onClick: () => setLoadKey((value) => value + 1) }}
-            />
+            localFilterActive
+              ? <StateMessage title={`No items match ${trimmedFilterText}`} detail="No loaded semantic connections match the local filter." />
+              : (
+                <StateMessage
+                  title={activeChunkId ? 'No connections exist for this section' : 'No connections exist for this document'}
+                  detail="No matching semantic connections are available yet."
+                  action={{ label: 'Reload connections', onClick: () => setLoadKey((value) => value + 1) }}
+                />
+              )
           )}
 
-          {!loadIssue && !graphWholeDocumentMode && !graphSelectionMode && sortedConnections.length > 0 && (
+          {!loading && !loadIssue && !graphWholeDocumentMode && !graphSelectionMode && sortedConnections.length > 0 && orderedConnections.length === 0 && (
+            <StateMessage title={`No items match ${trimmedFilterText}`} detail="No loaded semantic connections match the local filter." />
+          )}
+
+          {!loadIssue && !graphWholeDocumentMode && !graphSelectionMode && sortedConnections.length > 0 && orderedConnections.length > 0 && (
             <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-3">
               <div className="flex shrink-0 items-center justify-between text-xs text-muted">
                 <span>
