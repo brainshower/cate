@@ -524,6 +524,73 @@ function nodeMetaFromQueryGraph(payload: FlashQueryQueryGraphResponse): Semantic
   return Object.keys(meta).length > 0 ? meta : null
 }
 
+const EDGE_METADATA_KEYS = new Set(['severity', 'strength', 'dependency_type'])
+
+function numberArray(value: unknown): number[] | undefined {
+  return Array.isArray(value) && value.every((entry) => typeof entry === 'number' && Number.isInteger(entry))
+    ? value
+    : undefined
+}
+
+function redactedDiagnosticMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error)
+  return message.replace(/bearer\s+[^\s]+/gi, 'Bearer [redacted]')
+}
+
+function edgePayloadsFromQueryGraph(payload: FlashQueryQueryGraphResponse): Record<string, unknown>[] {
+  const edges = payload.edges
+  return Array.isArray(edges)
+    ? edges.filter((edge): edge is Record<string, unknown> => Boolean(edge && typeof edge === 'object'))
+    : []
+}
+
+function edgeOverlayFromPayload(edge: Record<string, unknown>): Partial<SemanticConnection> | null {
+  if (typeof edge.id !== 'string' || edge.id.length === 0) return null
+  const metadata = edge.metadata && typeof edge.metadata === 'object'
+    ? edge.metadata as Record<string, unknown>
+    : {}
+  const overlay: Partial<SemanticConnection> = {}
+  const qualifiers = stringArray(edge.qualifiers) ?? stringArray(metadata.qualifiers)
+  if (qualifiers) overlay.qualifiers = qualifiers
+  const sourceClaimsReferenced = numberArray(edge.source_claims_referenced) ?? numberArray(metadata.source_claims_referenced)
+  if (sourceClaimsReferenced) overlay.sourceClaimsReferenced = sourceClaimsReferenced
+  const targetClaimsReferenced = numberArray(edge.target_claims_referenced) ?? numberArray(metadata.target_claims_referenced)
+  if (targetClaimsReferenced) overlay.targetClaimsReferenced = targetClaimsReferenced
+
+  const knownMetadata: Record<string, unknown> = {}
+  for (const key of EDGE_METADATA_KEYS) {
+    if (metadata[key] !== undefined) knownMetadata[key] = metadata[key]
+    else if (edge[key] !== undefined) knownMetadata[key] = edge[key]
+  }
+  if (Object.keys(knownMetadata).length > 0) overlay.metadata = knownMetadata
+  return Object.keys(overlay).length > 0 ? overlay : null
+}
+
+function mergeConnectionOverlay(
+  connection: SemanticConnection,
+  overlays: ReadonlyMap<string, Partial<SemanticConnection>>,
+): SemanticConnection {
+  const overlay = overlays.get(connection.id)
+  return overlay ? { ...connection, ...overlay } : connection
+}
+
+function mergeEdgeOverlays(
+  result: SemanticConnectionsResult,
+  overlays: ReadonlyMap<string, Partial<SemanticConnection>>,
+): SemanticConnectionsResult {
+  if (overlays.size === 0) return result
+  return {
+    ...result,
+    overall: result.overall.map((connection) => mergeConnectionOverlay(connection, overlays)),
+    byChunkId: Object.fromEntries(
+      Object.entries(result.byChunkId).map(([chunkId, connections]) => [
+        chunkId,
+        connections.map((connection) => mergeConnectionOverlay(connection, overlays)),
+      ]),
+    ),
+  }
+}
+
 async function backfillNodeMeta(
   workspaceId: string,
   result: SemanticConnectionsResult,
@@ -565,6 +632,53 @@ async function backfillNodeMeta(
     nodeMetaLoading: false,
     diagnostics: [
       ...result.diagnostics,
+      ...diagnostics,
+    ],
+  }
+}
+
+async function backfillEdgeMetadata(
+  workspaceId: string,
+  result: SemanticConnectionsResult,
+  queryGraph: FlashQueryQueryGraphFn,
+): Promise<SemanticConnectionsResult> {
+  const entries = Object.values(result.chunkMap)
+    .filter((entry): entry is SemanticConnectionsTargetMapEntry & { flashqueryChunkId: string; previewChunkId: string } => {
+      if (!entry.flashqueryChunkId || !entry.previewChunkId) return false
+      return (result.byChunkId[entry.previewChunkId] ?? []).length > 0
+    })
+  if (entries.length === 0) return result
+
+  const overlays = new Map<string, Partial<SemanticConnection>>()
+  const diagnostics: string[] = []
+  await Promise.all(entries.map(async (entry) => {
+    try {
+      const payload = await queryGraph(workspaceId, {
+        action: 'edges',
+        chunk_id: entry.flashqueryChunkId,
+        direction: 'both',
+        include_content: false,
+      })
+      if (payload.error) {
+        diagnostics.push(`Unable to load edge metadata for ${entry.flashqueryChunkId}: ${payload.error}`)
+        return
+      }
+      for (const edge of edgePayloadsFromQueryGraph(payload)) {
+        const overlay = edgeOverlayFromPayload(edge)
+        if (overlay && typeof edge.id === 'string') overlays.set(edge.id, overlay)
+      }
+    } catch (error) {
+      diagnostics.push(
+        `Unable to load edge metadata for ${entry.flashqueryChunkId}: ${redactedDiagnosticMessage(error)}`,
+      )
+    }
+  }))
+
+  const merged = mergeEdgeOverlays(result, overlays)
+  return {
+    ...merged,
+    diagnostics: [
+      ...merged.diagnostics,
       ...diagnostics,
     ],
   }
@@ -741,7 +855,8 @@ export function createFlashQuerySemanticConnectionsProvider(
         const loadQueryGraph = queryGraph
           ?? (typeof window === 'undefined' ? undefined : window.electronAPI.flashqueryQueryGraph)
         if (!loadQueryGraph || result.mode === 'embeddings-only') return result
-        return backfillNodeMeta(input.workspaceId, result, loadQueryGraph)
+        const withNodeMeta = await backfillNodeMeta(input.workspaceId, result, loadQueryGraph)
+        return backfillEdgeMetadata(input.workspaceId, withNodeMeta, loadQueryGraph)
       }
 
       const searchParams = {

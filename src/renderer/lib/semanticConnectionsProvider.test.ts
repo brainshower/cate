@@ -736,6 +736,100 @@ describe('semantic connections provider boundary', () => {
     ]))
   })
 
+  it('T-U-024 merges query_graph edge metadata by edge id and preserves rows on partial failures', async () => {
+    const search = vi.fn()
+    const connections = vi.fn().mockResolvedValue({
+      source: { document_id: 'source-doc', path: 'Docs/Source.md', title: 'Source' },
+      graph_summary: {
+        edge_count: 3,
+        edge_counts_by_relation: { supports: 2, depends_on: 1 },
+        stale_edge_count: 0,
+        community_labels: [],
+        has_contradictions: false,
+        has_open_questions: false,
+        open_question_count: 0,
+      },
+      overall: [],
+      source_chunks: [{
+        chunk_id: 'source-scope',
+        heading_path: 'Source > Scope',
+        connections: [{
+          id: 'edge-with-overlay',
+          relation: 'supports',
+          target: { chunk_id: 'target-one', path: 'Docs/Target.md', title: 'Target' },
+        }, {
+          id: 'edge-without-overlay',
+          relation: 'supports',
+          target: { chunk_id: 'target-two', path: 'Docs/Other.md', title: 'Other' },
+        }],
+      }, {
+        chunk_id: 'source-details',
+        heading_path: 'Source > Details',
+        connections: [{
+          id: 'edge-details',
+          relation: 'depends_on',
+          target: { chunk_id: 'target-three', path: 'Docs/Details.md', title: 'Details' },
+        }],
+      }],
+    } satisfies FlashQueryDocumentConnectionsResponse)
+    const queryGraph = vi.fn()
+      .mockResolvedValueOnce({ action: 'node', chunk_id: 'source-scope', key_claims: ['Claim one'] })
+      .mockResolvedValueOnce({ action: 'node', chunk_id: 'source-details', key_claims: ['Claim two'] })
+      .mockResolvedValueOnce({
+        action: 'edges',
+        chunk_id: 'source-scope',
+        edges: [{
+          id: 'edge-with-overlay',
+          metadata: {
+            qualifiers: ['normative', 'derived'],
+            source_claims_referenced: [0],
+            target_claims_referenced: [1],
+            severity: 'high',
+            raw_secret: 'Bearer should-not-render',
+          },
+        }, {
+          id: 'unmatched-edge',
+          metadata: {
+            qualifiers: ['ignored'],
+          },
+        }],
+      })
+      .mockRejectedValueOnce(new Error('edge fetch failed for Bearer should-not-leak'))
+    const provider = createFlashQuerySemanticConnectionsProvider(search, connections, queryGraph)
+
+    const result = await provider.loadDocumentConnections({
+      workspaceId: 'workspace-1',
+      editorPanelId: 'editor-1',
+      documentPath: 'flashquery://workspace-1/Docs/Source.md',
+      markdown: '# Source\n\nIntro\n\n## Scope\n\nScope body\n\n## Details\n\nDetails body',
+      contentHash: 'hash-edge-overlay',
+    })
+
+    expect(queryGraph).toHaveBeenCalledWith('workspace-1', {
+      action: 'edges',
+      chunk_id: 'source-scope',
+      direction: 'both',
+      include_content: false,
+    })
+    expect(result.byChunkId.scope[0]).toMatchObject({
+      id: 'edge-with-overlay',
+      qualifiers: ['normative', 'derived'],
+      sourceClaimsReferenced: [0],
+      targetClaimsReferenced: [1],
+      metadata: { severity: 'high' },
+    })
+    expect(result.byChunkId.scope[1]).toMatchObject({
+      id: 'edge-without-overlay',
+      rel: 'supports',
+    })
+    expect(result.byChunkId.scope[1].qualifiers).toBeUndefined()
+    expect(result.byChunkId.details.map((connection) => connection.id)).toEqual(['edge-details'])
+    expect(result.diagnostics).toEqual(expect.arrayContaining([
+      expect.stringContaining('Unable to load edge metadata for source-details'),
+    ]))
+    expect(result.diagnostics.join(' ')).not.toContain('should-not-leak')
+  })
+
   it('T-I-042 caches by editor document and content hash, then invalidates material content changes', async () => {
     const backend = {
       loadDocumentConnections: vi.fn()
