@@ -216,6 +216,37 @@ describe('semantic connections provider boundary', () => {
     })
   })
 
+  it('maps live graph summary community labels into the provider community summary', async () => {
+    const connections = vi.fn().mockResolvedValue({
+      source: { document_id: 'source-doc', path: 'Docs/Source.md', title: 'Source' },
+      graph_summary: {
+        edge_count: 1,
+        edge_counts_by_relation: { supports: 1 },
+        stale_edge_count: 0,
+        community_labels: ['Architecture', 'Testing'],
+        has_contradictions: false,
+        has_open_questions: false,
+        open_question_count: 0,
+      },
+      overall: [],
+      source_chunks: [],
+    } satisfies FlashQueryDocumentConnectionsResponse)
+    const provider = createFlashQuerySemanticConnectionsProvider(vi.fn(), connections)
+
+    const result = await provider.loadDocumentConnections({
+      workspaceId: 'workspace-1',
+      editorPanelId: 'editor-1',
+      documentPath: 'flashquery://workspace-1/Docs/Source.md',
+      markdown,
+      contentHash: 'hash-community-labels',
+    })
+
+    expect(result.communitySummary).toEqual({
+      dominantLabel: 'Architecture',
+      labels: ['Architecture', 'Testing'],
+    })
+  })
+
   it('T-U-003 keeps unknown optional metadata opaque without narrowing renderer assumptions', () => {
     const metadata = { futureShape: { nested: ['still opaque'] }, numeric: 42 }
     const result = buildSemanticConnectionsResult({

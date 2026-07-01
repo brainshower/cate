@@ -595,6 +595,13 @@ function buildConnectionsResultFromDocumentConnections(
     ...overall,
     ...Object.values(byChunkId).flat(),
   ])
+  const communityLabels = response.graph_summary?.community_labels.filter((label) => label.trim().length > 0) ?? []
+  const communitySummary: SemanticConnectionsCommunitySummary | undefined = communityLabels.length > 0
+    ? {
+        dominantLabel: communityLabels[0],
+        labels: communityLabels,
+      }
+    : undefined
 
   return {
     mode: deriveMode(response.graph_summary, renderedConnections),
@@ -608,6 +615,7 @@ function buildConnectionsResultFromDocumentConnections(
       ...unknownRelationDiagnostics(renderedConnections),
     ],
     ...(response.graph_summary ? { graphSummary: response.graph_summary } : {}),
+    ...(communitySummary ? { communitySummary } : {}),
   }
 }
 
