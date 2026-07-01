@@ -1317,6 +1317,64 @@ describe('SemanticConnectionsPanel', () => {
     expect(screen.queryByTestId('semantic-selection-general-connections')).toBeNull()
   })
 
+  it('T-C-060 publishes filter active chrome state separately from config active state', async () => {
+    renderPanel(groupedGraphResult)
+
+    await screen.findByTestId('semantic-graph-connections')
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.configActive).toBe(false)
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.filterActive).toBe(false)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filter semantic connections' }))
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Filter semantic connections' }), { target: { value: 'Support 1' } })
+
+    expect(screen.getByTestId('semantic-filter-indicator')).toBeTruthy()
+    expect(screen.queryByTestId('semantic-config-indicator')).toBeNull()
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.filterOpen).toBe(true)
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.filterActive).toBe(true)
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.configActive).toBe(false)
+
+    act(() => useSemanticConnectionsChromeStore.getState().panels['sc-1']?.toggleConfig())
+    fireEvent.change(screen.getByLabelText('Top N connections'), { target: { value: '1' } })
+
+    expect(screen.getByTestId('semantic-filter-indicator')).toBeTruthy()
+    expect(screen.getByTestId('semantic-config-indicator')).toBeTruthy()
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.filterActive).toBe(true)
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.configActive).toBe(true)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear semantic connections filter' }))
+
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.filterOpen).toBe(false)
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.filterActive).toBe(false)
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.configActive).toBe(true)
+  })
+
+  it('T-C-061 keeps dock chrome connection count at the pre-filter active connection count', async () => {
+    renderPanel(groupedGraphResult)
+
+    await screen.findByTestId('semantic-graph-connections')
+    expect(screen.getByLabelText('Connection count: 7 connections').textContent).toBe('7')
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.connectionCount).toBe(7)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filter semantic connections' }))
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Filter semantic connections' }), { target: { value: 'Support 1 snippet' } })
+
+    expect(screen.getByText('Support 1')).toBeTruthy()
+    expect(screen.queryByText('Support 2')).toBeNull()
+    expect(screen.getByLabelText('Connection count: 7 connections').textContent).toBe('7')
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.connectionCount).toBe(7)
+  })
+
+  it('T-C-062 clears chrome store panel state on unmount', async () => {
+    const rendered = renderPanel(groupedGraphResult)
+
+    await screen.findByTestId('semantic-graph-connections')
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']).toBeTruthy()
+
+    rendered.unmount()
+
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']).toBeUndefined()
+  })
+
   it('T-I-025 and T-I-026 shows loading and supersedes stale in-flight requests', async () => {
     const first = deferred<SemanticConnectionsResult>()
     const second = deferred<SemanticConnectionsResult>()
