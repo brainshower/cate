@@ -1,5 +1,6 @@
 export type SemanticConnectionDirection = 'out' | 'in' | 'sym'
 export type SemanticConnectionTone = 'neutral' | 'caution' | 'warn'
+export type SemanticConnectionScoreTone = 'red' | 'orange' | 'teal' | 'green'
 export type SemanticConnectionConfidence = 'high' | 'medium' | 'low' | 'unknown'
 export type SemanticConnectionStatus = 'active' | 'stale' | 'deleted' | 'unknown'
 
@@ -172,6 +173,11 @@ export interface SemanticConnectionSelectionGroups {
   generalConnections: SemanticConnection[]
 }
 
+export interface SemanticConnectionMetadataProseInput {
+  metadata?: unknown
+  qualifiers?: readonly string[]
+}
+
 export const SC_EDGE: Record<SemanticConnectionRel, SemanticConnectionEdgeDef> = {
   contradicts: { kind: 'symmetric', tone: 'warn', sym: 'contradicts', color: '#dc2626', icon: 'warning' },
   depends_on: { kind: 'directed', tone: 'neutral', out: 'depends on', in: 'required by', color: '#2563eb', icon: 'link' },
@@ -218,6 +224,44 @@ export function scEdgeLabel(rel?: SemanticConnectionRelation, dir?: SemanticConn
   if (!edge) return titleCase(rel.replace(/_/g, ' '))
   if (edge.kind === 'symmetric') return titleCase(edge.sym ?? rel.replace(/_/g, ' '))
   return titleCase((dir === 'in' ? edge.in : edge.out) ?? edge.out ?? rel.replace(/_/g, ' '))
+}
+
+export function scScoreTone(score: number): SemanticConnectionScoreTone {
+  if (score < 0.4) return 'red'
+  if (score < 0.6) return 'orange'
+  if (score < 0.8) return 'teal'
+  return 'green'
+}
+
+const DISPLAY_METADATA_LABELS: Record<string, string> = {
+  severity: 'Severity',
+  strength: 'Strength',
+  dependency_type: 'Dependency type',
+}
+
+function displayableMetadataValue(value: unknown): string | null {
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    return trimmed.length > 0 ? trimmed : null
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  return null
+}
+
+export function scEdgeMetadataProse(input: SemanticConnectionMetadataProseInput): string[] {
+  const prose: string[] = []
+  for (const qualifier of input.qualifiers ?? []) {
+    const value = qualifier.trim()
+    if (value.length > 0) prose.push(`Qualifier: ${value}`)
+  }
+
+  if (!input.metadata || typeof input.metadata !== 'object' || Array.isArray(input.metadata)) return prose
+  const metadata = input.metadata as Record<string, unknown>
+  for (const [key, label] of Object.entries(DISPLAY_METADATA_LABELS)) {
+    const value = displayableMetadataValue(metadata[key])
+    if (value) prose.push(`${label}: ${value}`)
+  }
+  return prose
 }
 
 export function isActiveSemanticConnection(connection: SemanticConnection): boolean {
