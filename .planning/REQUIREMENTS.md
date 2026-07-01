@@ -42,7 +42,7 @@
 - [x] **REQ-018**: User can apply local filtering at the correct UI granularity while preserving structural context and seeing a no-results state.
 - [x] **REQ-019**: User can navigate from attention rows, section rows, and whole-document connection rows to local sections while preserving target-opening behavior for edge rows.
 - [x] **REQ-020**: User can use the graph intelligence panel in Cate docks with native theme tokens, accessible controls, responsive truncation/wrapping, and no fixed prototype width.
-- [x] **REQ-021**: User can recover from loading, unsupported context, FlashQuery, adapter, malformed-result, and partial graph metadata states without renderer crashes or premature clean-state claims. — Wave 1 malformed graph payload/credential-safe diagnostics completed in Phase 27 Plan 01; partial node metadata degradation completed in Phase 27 Plan 02; selection edge malformed metadata handling completed in Phase 28 Plan 02. Integrated E2E regression remains scheduled in Phase 28 Plan 04.
+- [x] **REQ-021**: User can recover from loading, unsupported context, FlashQuery, adapter, malformed-result, and partial graph metadata states without renderer crashes or premature clean-state claims. — Wave 1 malformed graph payload/credential-safe diagnostics completed in Phase 27 Plan 01; partial node metadata degradation completed in Phase 27 Plan 02; selection edge malformed metadata handling completed in Phase 28 Plan 02; integrated unavailable/no-vault Electron regression completed in Phase 28 Plan 04.
 - [x] **REQ-022**: User can rely on accurate dock chrome connection counts and separate config/filter active indicators that unregister on unmount.
 
 ## Future Requirements
@@ -96,7 +96,7 @@
 | REQ-018 | Phase 28 | Complete | T-C-055, T-C-056, T-C-057, T-C-058, T-C-059, T-E-003 |
 | REQ-019 | Phase 28 | Complete | T-C-017, T-C-026, T-C-027, T-C-048, T-E-002 |
 | REQ-020 | Phase 28 | Complete | T-C-028, T-C-049, T-E-001, T-A-003 |
-| REQ-021 | Phase 28 | Complete for unit/component scope; E2E regression scheduled in 28-04 | T-U-016, T-U-026, T-U-028, T-C-003, T-C-004, T-C-063, T-I-003, T-E-005 |
+| REQ-021 | Phase 28 | Complete | T-U-016, T-U-026, T-U-028, T-C-003, T-C-004, T-C-063, T-I-003, T-E-005 |
 | REQ-022 | Phase 28 | Complete | T-C-029, T-C-060, T-C-061, T-C-062 |
 | REQ-023 | Phase 27 and Phase 28 | Complete: node bridge/backfill in 27-02; edge overlay in 28-01 | T-I-005, T-I-006, T-I-009, T-U-023, T-U-024, T-U-025, T-E-002 |
 

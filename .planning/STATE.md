@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Graph Intelligence Monaco Side Panel
-status: executing
-stopped_at: Completed 28-03-PLAN.md
-last_updated: "2026-07-01T11:19:59.491Z"
+status: complete
+stopped_at: Completed 28-04-PLAN.md
+last_updated: "2026-07-01T11:45:46.000Z"
 last_activity: 2026-07-01
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 7
-  completed_plans: 6
-  percent: 86
+  completed_plans: 7
+  percent: 100
 ---
 
 # Project State
@@ -25,22 +25,22 @@ See: `.planning/PROJECT.md` (updated 2026-06-30 after v1.6 Graph Intelligence Mo
 
 ## Current Position
 
-Phase: 28 (selection-detail-local-filter-chrome-polish-and-e2e-hardenin) — EXECUTING
+Phase: 28 (selection-detail-local-filter-chrome-polish-and-e2e-hardenin) — COMPLETE
 Plan: 4 of 4
-Status: Ready to execute
+Status: Complete
 Last activity: 2026-07-01
 
 ## Session Continuity
 
-Last session: 2026-07-01T11:19:59.473Z
-Stopped At: Completed 28-03-PLAN.md
+Last session: 2026-07-01T11:45:46.000Z
+Stopped At: Completed 28-04-PLAN.md
 Resume File: None
 
 ## Next Up
 
-Execute Phase 28 Plan 04.
+Phase 28 is complete.
 
-Phase 27 completed whole-document graph Summary, Needs attention, Sections, grouped Connections, Top-N/relation filters, local section navigation, responsive dock classes, and chrome count/config state. Phase 28 Plans 01-03 completed selection detail, claim grouping, edge metadata overlay, expandable edge rows, readable detail prose, score thresholds, selection target-opening regression coverage, local filtering, no-results behavior, and filter chrome-state polish. Phase 28 remains for integrated Electron regression coverage.
+Phase 27 completed whole-document graph Summary, Needs attention, Sections, grouped Connections, Top-N/relation filters, local section navigation, responsive dock classes, and chrome count/config state. Phase 28 completed selection detail, claim grouping, edge metadata overlay, expandable edge rows, readable detail prose, score thresholds, selection target-opening regression coverage, local filtering, no-results behavior, filter chrome-state polish, deterministic graph Electron E2E coverage, and final regression evidence.
 
 ## Decisions
 
@@ -92,6 +92,8 @@ Full decision log lives in `.planning/PROJECT.md` "Key Decisions" table.
 | 2026-07-01 | Plan 28-02 applies semantic sorting before selection claim/general grouping. | Claim blocks stay in source claim order while edges inside each block and General connections follow the selected Similarity/Nature sort mode. |
 | 2026-07-01 | Plan 28-03 local filtering stays entirely in renderer UI state. | Filter text is excluded from provider load inputs and effect dependencies so typing only filters loaded result data. |
 | 2026-07-01 | Plan 28-03 dock chrome publishes filter state separately from config state. | Filter open/active state and config open/active state are independent, while connection counts remain pre-text-filter. |
+| 2026-07-01 | Plan 28-04 uses renderer E2E harness graph fixtures instead of live FlashQuery credentials. | Deterministic app-shell coverage proves graph workflows without external vault/network dependencies. |
+| 2026-07-01 | Plan 28-04 tracks provider fixture reads separately from load calls. | T-E-003 can prove local filter typing does not reload fixture data while allowing legitimate selection-scope loads. |
 
 ## Deferred Items
 
@@ -145,7 +147,8 @@ Items acknowledged and deferred at milestone close on 2026-06-16:
 | 28-selection-detail-local-filter-chrome-polish-and-e2e-hardenin | 01 | 7min | 3 | 7 |
 | 28-selection-detail-local-filter-chrome-polish-and-e2e-hardenin | 02 | 9min | 2 | 5 |
 | 28-selection-detail-local-filter-chrome-polish-and-e2e-hardenin | 03 | 9min | 3 | 6 |
+| 28-selection-detail-local-filter-chrome-polish-and-e2e-hardenin | 04 | 80min | 2 | 7 |
 
 ## Operator Next Steps
 
-- Execute Phase 28 Plan 04 for deterministic Electron graph workflow coverage and final regression hardening.
+- Review Phase 28 Plan 04 summary and decide whether to close the v1.6 milestone or address deferred lint/detached-window E2E harness follow-up first.

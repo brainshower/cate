@@ -8,7 +8,7 @@
 - ✅ **v1.3 Document Outline** — Phases 22-23 (shipped 2026-06-16) — [archive](milestones/v1.3-ROADMAP.md)
 - ✅ **v1.4 Semantic Connections Inspector** — Phases 24-25 (completed 2026-06-17)
 - ✅ **v1.5 Browser Uplift** — Phase 26 (shipped 2026-06-30) — [archive](milestones/v1.5-ROADMAP.md)
-- ▶ **v1.6 Graph Intelligence Monaco Side Panel** — Phases 27-28 (planned)
+- ✅ **v1.6 Graph Intelligence Monaco Side Panel** — Phases 27-28 (completed 2026-07-01)
 
 ## Active Milestone: v1.6 Graph Intelligence Monaco Side Panel
 
@@ -94,7 +94,7 @@ This grouping keeps the first GSD phase vertically testable: the graph data cont
    - Requirements in this wave: REQ-016, REQ-017, REQ-018, REQ-022.
    - Tests in same wave: T-U-019, T-U-020, T-U-021, T-U-022, T-C-050, T-C-051, T-C-052, T-C-053, T-C-054, T-C-055, T-C-056, T-C-057, T-C-058, T-C-059, T-C-060, T-C-061, T-C-062.
 
-4. **Integrated E2E and final regression**
+4. ✅ **Integrated E2E and final regression** — completed by plan 28-04 (`28-04-SUMMARY.md`)
    - Add deterministic Electron fixture coverage for graph panel dock opening, whole-document to selection navigation, local filter workflow, embeddings-only fallback, and recoverable FlashQuery unavailable/no-vault states.
    - Requirements in this wave: REQ-002, REQ-007, REQ-008, REQ-009, REQ-010, REQ-012, REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-021, REQ-022, REQ-023.
    - Tests in same wave: T-E-001, T-E-002, T-E-003, T-E-004, T-E-005, T-A-001, T-A-002, T-A-003, T-A-004.
@@ -126,7 +126,7 @@ This grouping keeps the first GSD phase vertically testable: the graph data cont
 
 ## Current Status
 
-Phase 27 is complete. Plans 27-01 through 27-03 delivered the graph contract, provider graph mode, typed `query_graph` bridge, node metadata backfill, whole-document graph UI, grouped connections, scoped filters, local section navigation, and chrome state. Phase 28 Plans 01-03 completed selection detail, claim grouping, edge metadata overlay, expandable edge rows, readable detail prose, score thresholds, selection target-opening regression coverage, local filtering, no-results behavior, stable pre-filter counts, and separate filter/config chrome state. Phase 28 remains for integrated Electron regression coverage.
+Phase 27 and Phase 28 are complete. Plans 27-01 through 27-03 delivered the graph contract, provider graph mode, typed `query_graph` bridge, node metadata backfill, whole-document graph UI, grouped connections, scoped filters, local section navigation, and chrome state. Phase 28 Plans 01-04 completed selection detail, claim grouping, edge metadata overlay, expandable edge rows, readable detail prose, score thresholds, selection target-opening regression coverage, local filtering, no-results behavior, stable pre-filter counts, separate filter/config chrome state, deterministic Electron graph workflow coverage, and final regression evidence.
 
 ---
-*Last updated: 2026-07-01 after Phase 28 Plan 03 completion*
+*Last updated: 2026-07-01 after Phase 28 Plan 04 completion*
