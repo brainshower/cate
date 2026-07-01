@@ -84,7 +84,7 @@ This grouping keeps the first GSD phase vertically testable: the graph data cont
    - Requirements in this wave: REQ-012, REQ-013, REQ-014, REQ-023.
    - Tests in same wave: T-U-024, T-C-030, T-C-031, T-C-032, T-C-033, T-C-034, T-C-035, T-C-036, T-C-037, T-C-038, T-C-039, T-C-040, T-C-041, T-C-042, T-C-065.
 
-2. **Expandable edge rows and target navigation**
+2. ✅ **Expandable edge rows and target navigation** — completed by plan 28-02 (`28-02-SUMMARY.md`)
    - Implement selection-view edge row collapsed/expanded states, optional score pie, readable qualifier/metadata prose, nature/similarity sort within claims and General connections, score color thresholds, target opening regression behavior, accessibility labels, and narrow-width layout.
    - Requirements in this wave: REQ-015, REQ-019, REQ-020.
    - Tests in same wave: T-U-027, T-C-043, T-C-044, T-C-045, T-C-046, T-C-047, T-C-048, T-C-049.
@@ -126,7 +126,7 @@ This grouping keeps the first GSD phase vertically testable: the graph data cont
 
 ## Current Status
 
-Phase 27 is complete. Plans 27-01 through 27-03 delivered the graph contract, provider graph mode, typed `query_graph` bridge, node metadata backfill, whole-document graph UI, grouped connections, scoped filters, local section navigation, and chrome state. Phase 28 Plan 01 completed selection detail, claim grouping, and edge metadata overlay. Phase 28 remains for expandable edge rows, local filtering/chrome polish, and integrated Electron regression coverage.
+Phase 27 is complete. Plans 27-01 through 27-03 delivered the graph contract, provider graph mode, typed `query_graph` bridge, node metadata backfill, whole-document graph UI, grouped connections, scoped filters, local section navigation, and chrome state. Phase 28 Plans 01-02 completed selection detail, claim grouping, edge metadata overlay, expandable edge rows, readable detail prose, score thresholds, and selection target-opening regression coverage. Phase 28 remains for local filtering/chrome polish and integrated Electron regression coverage.
 
 ---
-*Last updated: 2026-07-01 after Phase 28 Plan 01 completion*
+*Last updated: 2026-07-01 after Phase 28 Plan 02 completion*
