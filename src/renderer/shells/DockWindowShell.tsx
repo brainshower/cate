@@ -21,6 +21,7 @@ import { shouldCloseDockWindow } from './shouldCloseDockWindow'
 import { useSettingsStore } from '../stores/settingsStore'
 import { applyTheme } from '../lib/themeManager'
 import { createEditorPanelState } from '../lib/editorPanelFactory'
+import { installE2EHarnessIfEnabled } from '../lib/e2eHarnessGate'
 
 import { renderPanelComponent, PANEL_REGISTRY } from '../panels/registry'
 const CanvasPanel = PANEL_REGISTRY.canvas.Component
@@ -43,6 +44,10 @@ export default function DockWindowShell({ workspaceId: initialWorkspaceId }: Doc
   const syncTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const hadPanelsRef = useRef(false)
 
+  useEffect(() => {
+    installE2EHarnessIfEnabled(window.electronAPI, () => import('../lib/e2eHarness'))
+  }, [])
+
   // Keep panelsRef in lock-step with the React state for the common path —
   // any synchronous updater that needs to ship its own new map updates the
   // ref inside its callback so the next syncNow can see it.
@@ -52,7 +57,7 @@ export default function DockWindowShell({ workspaceId: initialWorkspaceId }: Doc
   // app's appearance (theme, minimap, canvas grid, etc.). Without this the
   // window renders with default settings and ignores the user's preferences.
   useEffect(() => {
-    useSettingsStore.getState().loadSettings()
+    void useSettingsStore.getState().loadSettings()
   }, [])
   const activeThemeId = useSettingsStore((s) => s.activeThemeId)
   const customThemes = useSettingsStore((s) => s.customThemes)
@@ -80,7 +85,7 @@ export default function DockWindowShell({ workspaceId: initialWorkspaceId }: Doc
     })
 
     return cleanup
-  }, [dockStore])
+  }, [dockStore, wsId])
 
   // Editor Save-As inside this window updates the global appStore in the
   // detached renderer, but this shell maintains its own local `panels`
@@ -198,7 +203,7 @@ export default function DockWindowShell({ workspaceId: initialWorkspaceId }: Doc
         target.canvasStoreApi.getState().focusNode(newNodeId)
       }
     })
-  }, [dockStore])
+  }, [dockStore, wsId])
 
   // Periodic state sync to main process for session persistence
   const syncNowRef = useRef<() => void>(() => {})
@@ -233,7 +238,7 @@ export default function DockWindowShell({ workspaceId: initialWorkspaceId }: Doc
       }
 
       const snapshot = dockStore.getState().getSnapshot()
-      window.electronAPI.dockWindowSyncState({
+      void window.electronAPI.dockWindowSyncState({
         ...snapshot,
         panels: currentPanels,
         terminalPtyIds,

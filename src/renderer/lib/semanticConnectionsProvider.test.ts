@@ -654,6 +654,7 @@ describe('semantic connections provider boundary', () => {
       action: 'node',
       chunk_id: 'source-scope',
     })
+    expect(queryGraph.mock.calls[0]?.[1]).not.toHaveProperty('include_content')
     expect(result.nodeMetaLoading).toBe(false)
     expect(result.nodeMeta?.scope).toMatchObject({
       keyClaims: ['Claim one'],

@@ -264,12 +264,12 @@ function ScorePie({ score }: { score: number }) {
   const degrees = Math.max(0, Math.min(1, score)) * 360
   const tone = scScoreTone(score)
   const color = tone === 'red'
-    ? 'rgb(248 113 113)'
+    ? 'var(--git-deleted)'
     : tone === 'orange'
-      ? 'rgb(251 146 60)'
+      ? 'var(--activity-orange)'
       : tone === 'teal'
-        ? 'rgb(45 212 191)'
-        : 'rgb(74 222 128)'
+        ? 'var(--focus-blue)'
+        : 'var(--activity-green)'
   const border = tone === 'red'
     ? 'border-red-400/30'
     : tone === 'orange'
@@ -282,7 +282,7 @@ function ScorePie({ score }: { score: number }) {
       aria-label={label}
       title={label}
       className={`h-11 w-11 shrink-0 rounded-full border ${border}`}
-      style={{ background: `conic-gradient(${color} ${degrees}deg, rgba(148, 163, 184, 0.18) 0deg)` }}
+      style={{ background: `conic-gradient(${color} ${degrees}deg, var(--border-subtle) 0deg)` }}
     >
       <div className="m-[9px] h-[24px] w-[24px] rounded-full bg-surface" />
     </div>
@@ -397,6 +397,16 @@ function questionStatusLabel(status: SemanticConnectionNodeMeta['questionStatus'
   if (status === 'deferred') return 'Deferred question'
   if (status === 'resolved') return 'Resolved question'
   return null
+}
+
+function stalenessRiskNote(risk: SemanticConnectionNodeMeta['stalenessRisk']): string | null {
+  const value = risk?.trim()
+  if (!value || value === 'none' || value === 'unknown') return null
+  const normalized = value.toLowerCase()
+  if (normalized === 'high' || normalized === 'medium' || normalized === 'low') {
+    return `Time-sensitive content: ${normalized} risk`
+  }
+  return `Time-sensitive content: ${value}`
 }
 
 function SelectionEdgeRow({
@@ -514,6 +524,7 @@ function SelectionGraphView({
   const title = sectionTitle(entry, chunkId)
   const questionLabel = questionStatusLabel(nodeMeta?.questionStatus)
   const certainty = certaintyLabel(nodeMeta?.certaintyLevel)
+  const stalenessNote = stalenessRiskNote(nodeMeta?.stalenessRisk)
   const grouped = useMemo(
     () => groupSelectionClaimsAndConnections(nodeMeta?.keyClaims, connections),
     [connections, nodeMeta?.keyClaims],
@@ -537,7 +548,7 @@ function SelectionGraphView({
     questionLabel
       || nodeMeta?.questionResolution
       || certainty
-      || nodeMeta?.stalenessRisk
+      || stalenessNote
       || nodeMeta?.externalRefs?.length
       || nodeMeta?.temporalMarkers?.length,
   )
@@ -576,9 +587,9 @@ function SelectionGraphView({
               </div>
             )}
             {certainty && <Badge tone={nodeMeta?.certaintyLevel === 'low' ? 'caution' : 'neutral'}>{certainty}</Badge>}
-            {nodeMeta?.stalenessRisk && (
+            {stalenessNote && (
               <p className="rounded border border-subtle bg-surface-2 px-2 py-1.5 text-xs leading-relaxed text-secondary">
-                {nodeMeta.stalenessRisk}
+                {stalenessNote}
               </p>
             )}
             {nodeMeta?.externalRefs?.length ? (
@@ -687,6 +698,7 @@ function WholeDocumentGraphView({
     .filter((section) => section.nodeMeta?.certaintyLevel === 'medium' || section.nodeMeta?.certaintyLevel === 'low')
     .filter(matchesSection)
   const hasAttention = contradictionItems.length > 0 || questionItems.length > 0 || uncertainItems.length > 0
+  const showAttention = hasAttention || Boolean(result.nodeMetaLoading)
   const hasVisibleFilterItems = hasAttention || sections.length > 0 || connections.length > 0
 
   return (
@@ -714,7 +726,7 @@ function WholeDocumentGraphView({
         </SectionChrome>
       )}
       {filterActive && !hasVisibleFilterItems && <NoFilterMatches term={trimmedFilterTerm} />}
-      {hasAttention && (
+      {showAttention && (
         <SectionChrome title="Needs attention">
           <div className="space-y-3">
             {result.nodeMetaLoading && (
@@ -805,6 +817,7 @@ function WholeDocumentGraphView({
                     {activeContradictions.length > 0 && <Badge tone="warn">Contradiction</Badge>}
                     {section.nodeMeta?.questionStatus === 'open' && <Badge tone="caution">Question</Badge>}
                     {certainty && <Badge tone={section.nodeMeta?.certaintyLevel === 'low' ? 'caution' : 'neutral'}>{certainty}</Badge>}
+                    {result.nodeMetaLoading && <Badge>Analyzing</Badge>}
                     <span className="min-w-[1.25rem] text-right text-xs text-muted">
                       {section.connections.length > 0 ? section.connections.length : '—'}
                     </span>
@@ -940,7 +953,7 @@ export default function SemanticConnectionsPanel({
     return subscribeActiveEditor(workspaceId, refresh)
   }, [sourceEditorPanelId, workspaceId])
 
-  const openRegisteredPreview = useCallback((targetSnapshot: ActiveEditorSnapshot, heading: string, chunkId: string): boolean => {
+  const openRegisteredPreview = useCallback((targetSnapshot: ActiveEditorSnapshot, heading: string): boolean => {
     if (!targetSnapshot.panelId || !targetSnapshot.markdownPreview || !targetSnapshot.scrollPreviewToHeading) return false
     focusEditorForOpen?.(workspaceId, targetSnapshot.panelId)
     targetSnapshot.editor?.focus()
@@ -958,7 +971,6 @@ export default function SemanticConnectionsPanel({
     if (!hasOpenMetadata(connection)) return
     const { target } = connection
     const heading = target.heading!
-    const chunkId = target.chunkId
     const path = target.path
     const editorPath = editorPathForTarget(workspaceId, documentPath, path)
     const sameDocument = target.inDocument || path === documentPath || editorPath === documentPath
@@ -972,7 +984,7 @@ export default function SemanticConnectionsPanel({
 
     const registered = getEditorSnapshotForPath(workspaceId, editorPath)
     if (registered.panelId) {
-      if (!openRegisteredPreview(registered, heading, chunkId) && !revealHeadingInSourceEditor(registered, heading)) {
+      if (!openRegisteredPreview(registered, heading) && !revealHeadingInSourceEditor(registered, heading)) {
         focusEditorForOpen?.(workspaceId, registered.panelId)
         registered.editor?.focus()
       }

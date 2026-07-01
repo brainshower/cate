@@ -15,6 +15,8 @@ export interface FlashQueryStubDocument {
   snippet?: string
   score?: number
   matched_chunks?: Array<Record<string, unknown>>
+  connections?: Record<string, unknown>
+  graph_summary?: Record<string, unknown>
 }
 
 export interface FlashQueryStubMemory {
@@ -228,6 +230,8 @@ function makeMcpServer(
       return mcpText({
         ...(includeParts.includes('body') ? { body: document.body } : {}),
         ...(includeParts.includes('frontmatter') ? { frontmatter: document.frontmatter ?? {} } : {}),
+        ...(includeParts.includes('connections') ? { connections: document.connections ?? { overall: [], source_chunks: [] } } : {}),
+        ...(includeParts.includes('graph_summary') ? { graph_summary: document.graph_summary ?? document.connections?.graph_summary } : {}),
         version_token: 'stub-version-1',
         modified: new Date(0).toISOString(),
       })

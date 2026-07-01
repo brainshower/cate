@@ -19,6 +19,7 @@ import { VaultBadge } from '../components/VaultBadge'
 import { FlashQueryEditorTitleActions } from '../components/FlashQueryEditorTitleActions'
 import { createEditorPanelState } from '../lib/editorPanelFactory'
 import { createTransferSnapshot } from '../lib/panelTransfer'
+import { installE2EHarnessIfEnabled } from '../lib/e2eHarnessGate'
 
 interface PanelWindowShellProps {
   panelType?: string
@@ -26,14 +27,17 @@ interface PanelWindowShellProps {
   workspaceId?: string
 }
 
-export default function PanelWindowShell({ panelType, panelId, workspaceId }: PanelWindowShellProps) {
+export default function PanelWindowShell({ workspaceId }: PanelWindowShellProps) {
   const [panel, setPanel] = useState<PanelState | null>(null)
-  const [receivedSnapshot, setReceivedSnapshot] = useState<PanelTransferSnapshot | null>(null)
+
+  useEffect(() => {
+    installE2EHarnessIfEnabled(window.electronAPI, () => import('../lib/e2eHarness'))
+  }, [])
 
   // Hydrate settings + apply theme so this window mirrors the main app's
   // appearance and settings (theme, minimap, canvas grid, etc.).
   useEffect(() => {
-    useSettingsStore.getState().loadSettings()
+    void useSettingsStore.getState().loadSettings()
   }, [])
   const activeThemeId = useSettingsStore((s) => s.activeThemeId)
   const customThemes = useSettingsStore((s) => s.customThemes)
@@ -65,11 +69,10 @@ export default function PanelWindowShell({ panelType, panelId, workspaceId }: Pa
       }
 
       setPanel(snapshot.panel)
-      setReceivedSnapshot(snapshot)
     })
 
     return cleanup
-  }, [])
+  }, [workspaceId])
 
   // Editor Save-As inside this detached panel window updates appStore in the
   // renderer, but our local `panel` state — and the main-process window
@@ -183,7 +186,7 @@ export default function PanelWindowShell({ panelType, panelId, workspaceId }: Pa
 
   /** Double-click title bar → dock panel back into main window */
   const handleTitleDoubleClick = useCallback(() => {
-    window.electronAPI.panelWindowDockBack()
+    void window.electronAPI.panelWindowDockBack()
   }, [])
 
   /** Mousedown on the title bar starts a cross-window drag of this panel.

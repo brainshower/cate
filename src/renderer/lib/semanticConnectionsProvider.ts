@@ -25,7 +25,6 @@ import type {
   SemanticConnection,
   SemanticConnectionDirection,
   SemanticConnectionNodeMeta,
-  SemanticConnectionRel,
   SemanticConnectionRelation,
   SemanticConnectionsCommunitySummary,
   SemanticConnectionsProvider,
@@ -468,24 +467,6 @@ function toFlashQuerySemanticConnection(connection: FlashQueryDocumentConnection
 
 function toSemanticConnection(connection: FlashQueryDocumentConnection): SemanticConnection {
   return toUnscopedPanelConnection(toFlashQuerySemanticConnection(connection))
-}
-
-function sourcePreviewChunkId(
-  sourceChunk: FlashQuerySourceChunkConnections,
-  markdown: string,
-): string | null {
-  const headingPath = headingPathFrom(sourceChunk.heading_path ?? sourceChunk.breadcrumb)
-  const headingText = headingFromPath(sourceChunk.heading_path ?? sourceChunk.breadcrumb)
-  const mappingTarget: FlashQuerySemanticConnectionTarget = {
-    flashqueryChunkId: sourceChunk.chunk_id,
-    documentPath: '',
-    documentTitle: '',
-    headingPath,
-    headingText,
-    snippet: '',
-  }
-  const previewHeading = findPreviewHeading(mappingTarget, previewHeadingsFromMarkdown(markdown), new Set())
-  return previewHeading?.previewChunkId ?? null
 }
 
 function deriveMode(

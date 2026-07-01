@@ -55,6 +55,17 @@ async function filterLoadedGraph(page: Page, term: string): Promise<void> {
   await panel.getByRole('searchbox', { name: 'Filter semantic connections' }).fill(term)
 }
 
+async function expectNoHorizontalOverflow(page: Page, selector: string): Promise<void> {
+  const overflowing = await page.locator(selector).evaluateAll((elements) => elements
+    .filter((element) => element.scrollWidth > element.clientWidth + 1)
+    .map((element) => ({
+      testId: element.getAttribute('data-testid'),
+      scrollWidth: element.scrollWidth,
+      clientWidth: element.clientWidth,
+    })))
+  expect(overflowing).toEqual([])
+}
+
 test('T-E-001 opens graph semantic-connections panel in the dock with deterministic graph fixture data', async () => {
   let app: ElectronApplication | null = null
   try {
@@ -69,6 +80,7 @@ test('T-E-001 opens graph semantic-connections panel in the dock with determinis
     await expect(panel).toContainText('Sections')
     await expect(panel).toContainText('Connections')
     await expect(panel.getByTestId('semantic-graph-group-contradicts')).toContainText('Runtime Conflict')
+    await expectNoHorizontalOverflow(launched.page, '[data-testid="semantic-connections-panel"], [data-testid^="semantic-graph-connection-"]')
     await expect.poll(() => launched.page.evaluate((id) => window.__cateE2E!.panelLocation(id), panelId)).toBe('dock')
   } finally {
     if (app) await closeApp(app)
@@ -136,7 +148,9 @@ test('T-E-004 renders embeddings-only fallback without graph-only chrome', async
     await expect(panel).toContainText('Design Companion')
     await expect(panel).toContainText('Runtime Neighbor')
     await expect(panel).not.toContainText('Whole-document graph')
+    await panel.getByRole('button', { name: 'Configure semantic connections' }).click()
     await expect(panel.getByText('Nature filters')).toHaveCount(0)
+    await expect(panel.getByText('Sort by nature')).toHaveCount(0)
   } finally {
     if (app) await closeApp(app)
   }

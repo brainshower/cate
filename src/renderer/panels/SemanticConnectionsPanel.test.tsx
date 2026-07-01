@@ -323,6 +323,7 @@ const selectionGraphResult: SemanticConnectionsResult = {
     }, {
       id: 'edge-general',
       rel: 'references',
+      confidenceScore: 0.9,
       sourceClaimsReferenced: [8],
       status: 'active',
       target: {
@@ -331,6 +332,19 @@ const selectionGraphResult: SemanticConnectionsResult = {
         heading: 'Reference',
         chunkId: 'general-reference',
         snippet: 'General reference belongs outside claim blocks.',
+      },
+    }, {
+      id: 'edge-general-contradiction',
+      rel: 'contradicts',
+      confidenceScore: 0.1,
+      sourceClaimsReferenced: [9],
+      status: 'active',
+      target: {
+        title: 'General Conflict',
+        path: 'Docs/GeneralConflict.md',
+        heading: 'Conflict',
+        chunkId: 'general-conflict',
+        snippet: 'General contradiction sorts first in nature mode.',
       },
     }, {
       id: 'edge-stale',
@@ -356,7 +370,7 @@ const selectionGraphResult: SemanticConnectionsResult = {
       communitySummary: 'Selection belongs to graph rollout.',
       keyClaims: [
         'First claim in order',
-        { text: 'Structured claim text', basis: 'deferred-ui' },
+        { text: 'Structured claim text', basis: 'deferred-ui', type: 'question' },
       ],
       questionStatus: 'open',
       questionResolution: 'Which edge metadata should be trusted?',
@@ -822,6 +836,25 @@ describe('SemanticConnectionsPanel', () => {
     renderPanel({
       ...graphResult,
       overall: graphResult.overall.filter((connection) => connection.rel !== 'contradicts'),
+      byChunkId: {
+        scope: [],
+        details: [],
+        appendix: [],
+      },
+      nodeMeta: {},
+      nodeMetaLoading: true,
+    })
+
+    expect(await screen.findByText('Needs attention')).toBeTruthy()
+    expect(screen.getByText('Checking graph metadata...')).toBeTruthy()
+    expect(screen.getAllByText('Analyzing')).toHaveLength(3)
+    cleanup()
+    clearActiveEditorRegistryForTests()
+    clearPreviewSelectionForTests()
+
+    renderPanel({
+      ...graphResult,
+      overall: graphResult.overall.filter((connection) => connection.rel !== 'contradicts'),
       byChunkId: { scope: [], details: [], appendix: [] },
       nodeMeta: {
         scope: { certaintyLevel: 'high', questionStatus: 'none' },
@@ -878,7 +911,7 @@ describe('SemanticConnectionsPanel', () => {
     expect(within(connections).getByText('Support 4')).toBeTruthy()
   })
 
-  it('T-C-030 filters stale and deleted graph edges from connection lists, counts, and section tallies', async () => {
+  it('T-C-042 filters stale and deleted graph edges from connection lists, counts, and section tallies', async () => {
     renderPanel({
       ...graphResult,
       overall: [
@@ -1042,7 +1075,7 @@ describe('SemanticConnectionsPanel', () => {
     expect(screen.getByText('Open question')).toBeTruthy()
     expect(screen.getByText('Which edge metadata should be trusted?')).toBeTruthy()
     expect(screen.getByText('Low certainty')).toBeTruthy()
-    expect(screen.getByText('Likely stale after July 2026.')).toBeTruthy()
+    expect(screen.getByText('Time-sensitive content: Likely stale after July 2026.')).toBeTruthy()
     expect(screen.getByText('https://example.test/ref')).toBeTruthy()
     expect(screen.queryByText('2026-Q3')).toBeNull()
 
@@ -1050,6 +1083,109 @@ describe('SemanticConnectionsPanel', () => {
 
     expect(screen.getByText('2026-Q3')).toBeTruthy()
     expect(screen.getByText('after launch')).toBeTruthy()
+  })
+
+  it('T-C-034 renders deferred and resolved question statuses without whole-document attention', async () => {
+    renderPanel({
+      ...selectionGraphResult,
+      nodeMeta: {
+        ...selectionGraphResult.nodeMeta,
+        scope: {
+          ...selectionGraphResult.nodeMeta!.scope,
+          questionStatus: 'deferred',
+          questionResolution: 'Question deferred until adapter telemetry lands.',
+        },
+        details: {
+          ...selectionGraphResult.nodeMeta!.details,
+          questionStatus: 'none',
+          questionResolution: undefined,
+        },
+      },
+    })
+
+    await screen.findByText('Sections')
+    expect(screen.queryByText('Open questions')).toBeNull()
+    cleanup()
+    clearActiveEditorRegistryForTests()
+    clearPreviewSelectionForTests()
+
+    renderPanel({
+      ...selectionGraphResult,
+      nodeMeta: {
+        ...selectionGraphResult.nodeMeta,
+        scope: {
+          ...selectionGraphResult.nodeMeta!.scope,
+          questionStatus: 'deferred',
+          questionResolution: 'Question deferred until adapter telemetry lands.',
+        },
+      },
+    }, { activeChunkId: 'scope' })
+
+    expect(await screen.findByText('Deferred question')).toBeTruthy()
+    expect(screen.getByText('Question deferred until adapter telemetry lands.')).toBeTruthy()
+    cleanup()
+    clearActiveEditorRegistryForTests()
+    clearPreviewSelectionForTests()
+
+    renderPanel({
+      ...selectionGraphResult,
+      nodeMeta: {
+        ...selectionGraphResult.nodeMeta,
+        scope: {
+          ...selectionGraphResult.nodeMeta!.scope,
+          questionStatus: 'resolved',
+          questionResolution: 'Resolved by the runtime contract update.',
+        },
+      },
+    }, { activeChunkId: 'scope' })
+
+    expect(await screen.findByText('Resolved question')).toBeTruthy()
+    expect(screen.getByText('Resolved by the runtime contract update.')).toBeTruthy()
+  })
+
+  it('T-C-035 and REQ-013 suppress unknown certainty and non-durable staleness notes in selection status', async () => {
+    renderPanel({
+      ...selectionGraphResult,
+      nodeMeta: {
+        ...selectionGraphResult.nodeMeta,
+        scope: {
+          ...selectionGraphResult.nodeMeta!.scope,
+          certaintyLevel: 'unknown',
+          stalenessRisk: 'unknown',
+          questionStatus: 'none',
+          questionResolution: undefined,
+          externalRefs: [],
+          temporalMarkers: [],
+        },
+      },
+    }, { activeChunkId: 'scope' })
+
+    await screen.findByText('Selected section')
+    expect(screen.queryByText('Unknown certainty')).toBeNull()
+    expect(screen.queryByText('Time-sensitive content: unknown')).toBeNull()
+    expect(screen.queryByText('Status notes')).toBeNull()
+    cleanup()
+    clearActiveEditorRegistryForTests()
+    clearPreviewSelectionForTests()
+
+    renderPanel({
+      ...selectionGraphResult,
+      nodeMeta: {
+        ...selectionGraphResult.nodeMeta,
+        scope: {
+          ...selectionGraphResult.nodeMeta!.scope,
+          certaintyLevel: 'high',
+          stalenessRisk: 'none',
+          questionStatus: 'none',
+          questionResolution: undefined,
+          externalRefs: [],
+          temporalMarkers: [],
+        },
+      },
+    }, { activeChunkId: 'scope' })
+
+    await screen.findByText('Selected section')
+    expect(screen.queryByText('Time-sensitive content: none')).toBeNull()
   })
 
   it('T-C-038/T-C-039/T-C-040/T-C-041/T-C-042 renders selected claims, linked edges, and General connections', async () => {
@@ -1118,6 +1254,11 @@ describe('SemanticConnectionsPanel', () => {
       'semantic-selection-edge-edge-claim-zero',
       'semantic-selection-edge-edge-claim-zero-contradiction',
     ])
+    const general = screen.getByTestId('semantic-selection-general-connections')
+    expect(within(general).getAllByTestId(/semantic-selection-edge-/).map((row) => row.dataset.testid)).toEqual([
+      'semantic-selection-edge-edge-general',
+      'semantic-selection-edge-edge-general-contradiction',
+    ])
 
     act(() => useSemanticConnectionsChromeStore.getState().panels['sc-1']?.toggleConfig())
     fireEvent.click(screen.getByRole('button', { name: 'Nature' }))
@@ -1129,6 +1270,10 @@ describe('SemanticConnectionsPanel', () => {
     expect(within(firstClaim).getAllByTestId(/semantic-selection-edge-/).map((row) => row.dataset.testid)).toEqual([
       'semantic-selection-edge-edge-claim-zero-contradiction',
       'semantic-selection-edge-edge-claim-zero',
+    ])
+    expect(within(general).getAllByTestId(/semantic-selection-edge-/).map((row) => row.dataset.testid)).toEqual([
+      'semantic-selection-edge-edge-general-contradiction',
+      'semantic-selection-edge-edge-general',
     ])
   })
 
@@ -1175,6 +1320,58 @@ describe('SemanticConnectionsPanel', () => {
 
     expect(scrollPreviewToHeading).toHaveBeenCalledWith('Scope')
     expect(usePreviewSelectionStore.getState().getScope('editor-1').pinnedChunkId).toBe('scope')
+  })
+
+  it('T-C-048 opens selection edge targets through existing cross-document registered preview routing', async () => {
+    const targetScroll = vi.fn()
+    const targetEditor = editor(model('# Target\n\n## Details'))
+    readyEditor('/workspace/Plan.md')
+    act(() => {
+      registerActiveEditor('workspace-1', 'editor-target', targetEditor)
+      updateActiveEditorPreview('workspace-1', 'editor-target', {
+        markdownPreview: true,
+        filePath: '/workspace/Target.md',
+        scrollPreviewToHeading: targetScroll,
+        resolvePreviewChunkIdForHeading: vi.fn(() => 'details'),
+      })
+      usePreviewSelectionStore.getState().selectSection('scope', 'editor-1')
+    })
+    render(
+      <SemanticConnectionsPanel
+        panelId="sc-1"
+        workspaceId="workspace-1"
+        sourceEditorPanelId="editor-1"
+        sourceFilePath="/workspace/Plan.md"
+        provider={provider({
+          ...selectionGraphResult,
+          byChunkId: {
+            ...selectionGraphResult.byChunkId,
+            scope: [{
+              ...selectionGraphResult.byChunkId.scope[0],
+              id: 'cross-doc-selection-edge',
+              target: {
+                ...selectionGraphResult.byChunkId.scope[0].target,
+                title: 'Target',
+                path: '/workspace/Target.md',
+                heading: 'Details',
+                chunkId: 'target-details',
+                inDocument: false,
+              },
+            }],
+          },
+        })}
+      />,
+    )
+
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      callback(0)
+      return 0
+    })
+    fireEvent.click(await screen.findByRole('button', { name: 'Open target Target Details' }))
+
+    expect(targetEditor.focus).toHaveBeenCalled()
+    expect(targetScroll).toHaveBeenCalledWith('Details')
+    expect(usePreviewSelectionStore.getState().getScope('editor-target').pinnedChunkId).toBe('details')
   })
 
   it('T-C-049 exposes accessible disclosure labels and narrow dock classes on selection rows', async () => {
@@ -1362,6 +1559,22 @@ describe('SemanticConnectionsPanel', () => {
     expect(screen.queryByText('Support 2')).toBeNull()
     expect(screen.getByLabelText('Connection count: 7 connections').textContent).toBe('7')
     expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.connectionCount).toBe(7)
+  })
+
+  it('T-C-061 keeps selection-view dock chrome count at the active section pre-filter count', async () => {
+    renderPanel(selectionGraphResult, { activeChunkId: 'scope' })
+
+    await screen.findByText('Selected section')
+    expect(screen.getByLabelText('Connection count: 4 connections').textContent).toBe('4')
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.connectionCount).toBe(4)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filter semantic connections' }))
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Filter semantic connections' }), { target: { value: 'General Notes' } })
+
+    expect(screen.getByText('General Notes')).toBeTruthy()
+    expect(screen.queryByText('Support Notes')).toBeNull()
+    expect(screen.getByLabelText('Connection count: 4 connections').textContent).toBe('4')
+    expect(useSemanticConnectionsChromeStore.getState().panels['sc-1']?.connectionCount).toBe(4)
   })
 
   it('T-C-062 clears chrome store panel state on unmount', async () => {
